@@ -1,36 +1,74 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+## Find ABA Therapy – Project Scaffold
 
-## Getting Started
+This repository hosts the MVP for the Find ABA Therapy directory: a high-performance Next.js application backed by Supabase and Stripe. Families can discover ABA providers by state, service type, or any agency attribute; agencies manage listings through a TurboTax-style dashboard with paid upgrade paths.
 
-First, run the development server:
+### Stack
+
+- **Frontend:** Next.js 14 (App Router), TypeScript, Tailwind CSS, shadcn/ui, React Query
+- **Auth/Data:** Supabase (Postgres, RLS, Storage, SSR helpers)
+- **Payments:** Stripe Checkout and billing webhooks
+- **UI Tokens:** Shared metadata in `src/config/site.ts`, `src/lib/constants/*`
+
+### Getting Started
 
 ```bash
+nvm use # optional if you have nvm installed (see .nvmrc for the target version)
+npm install
+cp .env.example .env.local
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Visit `http://localhost:3000` for the public directory and `http://localhost:3000/dashboard` for the agency dashboard scaffold.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Environment Variables
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Populate `.env.local` with Supabase and Stripe credentials:
 
-## Learn More
+- `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY` (server-only tasks, not exposed to the browser)
+- `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`
+- `NEXT_PUBLIC_SITE_URL` (defaults to `http://localhost:3000`)
 
-To learn more about Next.js, take a look at the following resources:
+`src/env.ts` validates required variables at runtime so misconfiguration fails fast in development and deployment.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Supabase
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- SQL definitions live under `supabase/schema.sql` with supporting seed data in `supabase/seed_attribute_definitions.sql`.
+- Run migrations with `supabase db push` once the Supabase CLI is configured.
+- Storage buckets to provision: `logos`, `media`, `sponsors` (configure RLS to match in-app policies).
+- Use the helper `src/lib/supabase/clients.ts` for browser/server clients.
 
-## Deploy on Vercel
+### Stripe
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- `src/lib/stripe.ts` exports a pre-configured Stripe SDK instance (API version pinned).
+- Subscription upgrades map to plan tiers (`free`, `premium`, `featured`). Webhook handlers will adjust Supabase records accordingly.
+- Add CLI webhook forwarding during development: `stripe listen --forward-to localhost:3000/api/stripe/webhook`.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Project Structure Highlights
+
+- `src/app/(site)/*`: Public marketing, state directory, and agency detail pages with SEO-friendly routing.
+- `src/app/(dashboard)/*`: Agency onboarding, listing editor, billing, and partner center.
+- `src/components/search/agency-search-form.tsx`: Reusable search/filter entry point referencing attribute metadata.
+- `src/lib/constants/listings.ts`: Filterable attribute registry mirrored by Supabase attribute definitions.
+- `supabase/`: SQL schema, seeds, and RLS policies.
+
+### UX & Future Work
+
+- Integrate Supabase auth flows (email/password, Google, Microsoft) in the dashboard routes.
+- Implement Supabase Edge Functions to refresh the materialized search view after listing updates.
+- Wire Stripe Checkout sessions + webhook handlers to mutate `plan_tier`, `featured_orders`, and `sponsorships`.
+- Replace placeholder listing data with live queries using Supabase (TanStack Query for client-side filters).
+- Add analytics tooling (PostHog) and conversion tracking for agency sign-ups and family searches.
+
+### Commands
+
+| Command          | Purpose                          |
+| ---------------- | -------------------------------- |
+| `npm run dev`    | Start Next.js dev server         |
+| `npm run build`  | Production build                 |
+| `npm run start`  | Start production server          |
+| `npm run lint`   | Run ESLint checks                |
+
+### Licensing & Legal Content
+
+Legal copy placeholders live under `src/app/(site)/legal`. Replace with finalized content before launch.
