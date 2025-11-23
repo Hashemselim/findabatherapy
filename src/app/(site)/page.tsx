@@ -33,7 +33,7 @@ export default function HomePage() {
         <BubbleBackground
           interactive
           transition={{ stiffness: 100, damping: 50, mass: 0.5 }}
-          className="w-full bg-gradient-to-br from-white via-yellow-50/50 to-blue-50/50 py-14 sm:py-20"
+          className="w-full bg-gradient-to-br from-white via-yellow-50/50 to-blue-50/50 py-12 sm:py-16"
           colors={{
             first: "255,255,255",
             second: "255,236,170",
@@ -43,10 +43,10 @@ export default function HomePage() {
             sixth: "240,248,255",
           }}
         >
-          <div className="mx-auto flex max-w-5xl flex-col gap-8 px-4 sm:px-6">
+          <div className="mx-auto flex max-w-4xl flex-col gap-8 px-4 sm:px-6">
             <div className="space-y-5 text-center">
-              <h1 className="text-[28px] font-semibold leading-[36px] text-foreground sm:text-[44px] sm:leading-[60px]">
-                Find ABA Therapy Providers{" "}
+              <h1 className="text-[32px] font-semibold leading-[40px] text-foreground sm:text-[44px] sm:leading-[60px]">
+                Find Local ABA Therapy Providers{" "}
                 <span className="sm:whitespace-nowrap">Who Take Your Insurance</span>
               </h1>
             </div>

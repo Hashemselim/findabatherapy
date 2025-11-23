@@ -45,7 +45,7 @@ export function SiteHeader() {
           <Button
             asChild
             size="sm"
-            className="rounded-full border border-[#FEE720] bg-[#FEE720] px-4 text-base font-medium text-[#333333] hover:bg-[#f5d900]"
+            className="rounded-full border border-[#87B0FF] bg-[#87B0FF] px-4 text-base font-medium text-white hover:bg-[#6f99ff]"
           >
             <Link href="/get-listed">List your practice</Link>
           </Button>
@@ -77,7 +77,7 @@ export function SiteHeader() {
             <div className="mt-8 flex flex-col gap-3 text-base">
               <Button
                 asChild
-                className="rounded-full border border-[#FEE720] bg-[#FEE720] text-base font-medium text-[#333333] hover:bg-[#f5d900]"
+                className="rounded-full border border-[#87B0FF] bg-[#87B0FF] text-base font-medium text-white hover:bg-[#6f99ff]"
               >
                 <Link href="/get-listed">List your practice</Link>
               </Button>
