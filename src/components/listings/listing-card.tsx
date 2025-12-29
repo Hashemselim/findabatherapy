@@ -49,7 +49,7 @@ export function ListingCard({
         <div className="flex flex-wrap items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground">
           <Badge variant={plan === "free" ? "outline" : "secondary"}>{planBadges[plan]}</Badge>
           {isAcceptingClients && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-1 text-emerald-700">
+            <span className="inline-flex items-center gap-1 rounded-full border border-[#FEE720] bg-[#FFF5C2] px-2 py-1 text-[#333333]">
               <Star className="h-3 w-3" aria-hidden />
               Accepting new clients
             </span>

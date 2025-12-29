@@ -1,23 +1,58 @@
+"use client";
+
 import Link from "next/link";
-import { Bell, Sparkles } from "lucide-react";
+import Image from "next/image";
+import { Bell, Menu } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
+import { siteConfig } from "@/config/site";
 import { Button } from "@/components/ui/button";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { DashboardMobileNav } from "./dashboard-mobile-nav";
 
-export function DashboardTopbar() {
+interface DashboardTopbarProps {
+  isOnboardingComplete: boolean;
+}
+
+export function DashboardTopbar({ isOnboardingComplete }: DashboardTopbarProps) {
   return (
-    <header className="sticky top-0 z-40 border-b border-white/10 bg-slate-950/90 backdrop-blur">
+    <header className="sticky top-0 z-50 border-b border-border/60 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
       <div className="container flex h-16 items-center justify-between px-4 sm:px-6">
-        <Link href="/" className="flex items-center gap-2 text-lg font-semibold text-white">
-          <Sparkles className="h-5 w-5 text-primary" aria-hidden />
-          Find ABA Therapy
-        </Link>
+        <div className="flex items-center gap-4">
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon" className="lg:hidden" aria-label="Toggle navigation">
+                <Menu className="h-5 w-5" aria-hidden />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-72 sm:w-80">
+              <SheetHeader>
+                <SheetTitle>Dashboard</SheetTitle>
+                <SheetDescription>Navigate your provider dashboard</SheetDescription>
+              </SheetHeader>
+              <DashboardMobileNav isOnboardingComplete={isOnboardingComplete} />
+            </SheetContent>
+          </Sheet>
+          <Link href="/" className="flex items-center">
+            <Image
+              src="/logo-full.png"
+              alt={siteConfig.name}
+              width={540}
+              height={55}
+              className="h-7 w-auto sm:h-8"
+              priority
+            />
+          </Link>
+        </div>
         <div className="flex items-center gap-3">
-          <Badge variant="outline" className="border-primary/60 text-primary">
-            Premium
-          </Badge>
-          <Button variant="ghost" size="icon" className="text-slate-200 hover:bg-white/10" aria-label="Notifications">
-            <Bell className="h-4 w-4" aria-hidden />
+          <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground" aria-label="Notifications">
+            <Bell className="h-5 w-5" aria-hidden />
           </Button>
         </div>
       </div>

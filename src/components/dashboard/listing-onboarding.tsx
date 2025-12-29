@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -9,8 +9,11 @@ import { SERVICE_TYPES } from "@/lib/constants/listings";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
+import { updateProfileBasics, updateListingDetails, updateBasicAttributes } from "@/lib/actions/onboarding";
 
 const onboardingSchema = z.object({
   companyName: z.string().min(2),
@@ -33,6 +36,9 @@ const premiumFields = [
 
 export function ListingOnboarding() {
   const [currentStep, setCurrentStep] = useState(0);
+  const [isPending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
   const form = useForm<OnboardingValues>({
     resolver: zodResolver(onboardingSchema),
     defaultValues: {
@@ -53,28 +59,28 @@ export function ListingOnboarding() {
       description: "Tell families who you are and how you serve them.",
       fields: (
         <div className="grid gap-4 md:grid-cols-2">
-          <div className="md:col-span-2">
-            <label className="text-sm font-medium text-slate-200">Company name</label>
+          <div className="md:col-span-2 space-y-2">
+            <Label htmlFor="companyName">Company name</Label>
             <Input
+              id="companyName"
               placeholder="Thrive Spectrum ABA"
               {...form.register("companyName")}
-              className="mt-1 border-white/10 bg-white/5 text-white"
             />
           </div>
-          <div className="md:col-span-2">
-            <label className="text-sm font-medium text-slate-200">Tagline</label>
+          <div className="md:col-span-2 space-y-2">
+            <Label htmlFor="tagline">Tagline</Label>
             <Input
+              id="tagline"
               placeholder="Family-first ABA for every setting"
               {...form.register("tagline")}
-              className="mt-1 border-white/10 bg-white/5 text-white"
             />
           </div>
-          <div className="md:col-span-2">
-            <label className="text-sm font-medium text-slate-200">Description</label>
-            <textarea
+          <div className="md:col-span-2 space-y-2">
+            <Label htmlFor="description">Description</Label>
+            <Textarea
+              id="description"
               {...form.register("description")}
               rows={5}
-              className="mt-1 w-full rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-white shadow-inner outline-none focus:border-primary focus:ring-1 focus:ring-primary"
               placeholder="Share your approach, specialties, and what makes your agency unique."
             />
           </div>
@@ -86,37 +92,37 @@ export function ListingOnboarding() {
       description: "Make it easy for families to reach you.",
       fields: (
         <div className="grid gap-4 md:grid-cols-2">
-          <div>
-            <label className="text-sm font-medium text-slate-200">Email</label>
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
             <Input
+              id="email"
               type="email"
               placeholder="hello@thrivespectrumaba.com"
               {...form.register("email")}
-              className="mt-1 border-white/10 bg-white/5 text-white"
             />
           </div>
-          <div>
-            <label className="text-sm font-medium text-slate-200">Phone</label>
+          <div className="space-y-2">
+            <Label htmlFor="phone">Phone</Label>
             <Input
+              id="phone"
               placeholder="(480) 555-1182"
               {...form.register("phone")}
-              className="mt-1 border-white/10 bg-white/5 text-white"
             />
           </div>
-          <div className="md:col-span-2">
-            <label className="text-sm font-medium text-slate-200">Website</label>
+          <div className="md:col-span-2 space-y-2">
+            <Label htmlFor="website">Website</Label>
             <Input
+              id="website"
               placeholder="https://thrivespectrumaba.com"
               {...form.register("website")}
-              className="mt-1 border-white/10 bg-white/5 text-white"
             />
           </div>
-          <div className="md:col-span-2">
-            <label className="text-sm font-medium text-slate-200">Accepted insurances</label>
-            <textarea
+          <div className="md:col-span-2 space-y-2">
+            <Label htmlFor="insurances">Accepted insurances</Label>
+            <Textarea
+              id="insurances"
               {...form.register("insurances")}
               rows={3}
-              className="mt-1 w-full rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-white shadow-inner outline-none focus:border-primary focus:ring-1 focus:ring-primary"
               placeholder="BCBS, Aetna, Medicaid (DDD), TRICARE..."
             />
           </div>
@@ -131,13 +137,13 @@ export function ListingOnboarding() {
           {SERVICE_TYPES.map((service) => (
             <label
               key={service.value}
-              className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-200"
+              className="flex items-center justify-between rounded-xl border border-border/60 bg-muted/30 px-3 py-2 text-sm text-foreground cursor-pointer hover:bg-muted/50 transition-colors"
             >
               <span>{service.label}</span>
               <input
                 type="checkbox"
                 value={service.value}
-                className="h-4 w-4 rounded border-white/20 bg-transparent text-primary focus:ring-primary"
+                className="h-4 w-4 rounded border-border bg-background text-primary focus:ring-primary"
                 {...form.register("services")}
               />
             </label>
@@ -151,23 +157,95 @@ export function ListingOnboarding() {
   const prevStep = () => setCurrentStep((step) => Math.max(step - 1, 0));
 
   const onSubmit = (values: OnboardingValues) => {
-    // TODO: Persist listing updates to Supabase via server action or RPC.
-    void values;
+    setError(null);
+    setSuccess(false);
+
+    startTransition(async () => {
+      try {
+        // Step 1: Update profile basics
+        const profileResult = await updateProfileBasics({
+          agencyName: values.companyName,
+          contactEmail: values.email,
+          contactPhone: values.phone,
+          website: values.website || undefined,
+        });
+
+        if (!profileResult.success) {
+          setError(profileResult.error);
+          return;
+        }
+
+        // Step 2: Update listing details
+        // Map service values to expected types
+        const serviceModesMap: Record<string, "in_home" | "in_center" | "telehealth" | "hybrid"> = {
+          in_home: "in_home",
+          in_center: "in_center",
+          both: "hybrid",
+        };
+        const mappedServiceModes = values.services
+          .map((s) => serviceModesMap[s])
+          .filter((s): s is "in_home" | "in_center" | "telehealth" | "hybrid" => !!s);
+
+        const listingResult = await updateListingDetails({
+          headline: values.tagline || values.companyName,
+          description: values.description,
+          serviceModes: mappedServiceModes,
+        });
+
+        if (!listingResult.success) {
+          setError(listingResult.error);
+          return;
+        }
+
+        // Step 3: Update insurances if provided
+        if (values.insurances) {
+          const insurancesList = values.insurances
+            .split(",")
+            .map((i) => i.trim())
+            .filter(Boolean);
+
+          if (insurancesList.length > 0) {
+            const attrResult = await updateBasicAttributes({
+              insurances: insurancesList,
+            });
+
+            if (!attrResult.success) {
+              setError(attrResult.error);
+              return;
+            }
+          }
+        }
+
+        setSuccess(true);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "An unexpected error occurred");
+      }
+    });
   };
 
   return (
-    <Card className="border-white/10 bg-white/5">
+    <Card className="border-border/60">
       <CardHeader>
-        <CardTitle className="text-white">Listing onboarding</CardTitle>
-        <CardDescription className="text-slate-300">
+        <CardTitle>Listing onboarding</CardTitle>
+        <CardDescription>
           Complete each step to publish your listing. Additional enhancements unlock with Premium.
         </CardDescription>
+        {error && (
+          <div className="mt-2 rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+            {error}
+          </div>
+        )}
+        {success && (
+          <div className="mt-2 rounded-md bg-green-500/10 p-3 text-sm text-green-600">
+            Listing saved successfully!
+          </div>
+        )}
       </CardHeader>
       <CardContent className="space-y-6">
         <Tabs value={`step-${currentStep}`} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 bg-white/10">
+          <TabsList className="grid w-full grid-cols-3 bg-muted/50">
             {steps.map((step, index) => (
-              <TabsTrigger key={step.title} value={`step-${index}`} className="text-xs uppercase text-slate-200">
+              <TabsTrigger key={step.title} value={`step-${index}`} className="text-xs uppercase">
                 {step.title}
               </TabsTrigger>
             ))}
@@ -178,31 +256,26 @@ export function ListingOnboarding() {
               value={`step-${index}`}
               className="mt-6 focus-visible:outline-none"
             >
-              <div className="space-y-4 text-sm text-slate-300">
+              <div className="space-y-4 text-sm text-muted-foreground">
                 <p>{step.description}</p>
                 <form className="space-y-6" onSubmit={form.handleSubmit(onSubmit)}>
                   {step.fields}
                   <div className="flex items-center gap-3">
                     <Button
                       type="button"
-                      variant="ghost"
+                      variant="outline"
                       disabled={currentStep === 0}
                       onClick={prevStep}
-                      className="border-white/10 bg-white/5 text-slate-200 hover:bg-white/10"
                     >
                       Previous
                     </Button>
                     {index < steps.length - 1 ? (
-                      <Button
-                        type="button"
-                        onClick={nextStep}
-                        className="bg-primary text-primary-foreground hover:bg-primary/90"
-                      >
+                      <Button type="button" onClick={nextStep}>
                         Save & continue
                       </Button>
                     ) : (
-                      <Button type="submit" className="bg-primary text-primary-foreground hover:bg-primary/90">
-                        Publish listing
+                      <Button type="submit" disabled={isPending}>
+                        {isPending ? "Saving..." : "Publish listing"}
                       </Button>
                     )}
                   </div>
@@ -212,15 +285,15 @@ export function ListingOnboarding() {
           ))}
         </Tabs>
 
-        <Separator className="bg-white/10" />
+        <Separator />
 
         <div>
-          <h3 className="text-sm font-semibold uppercase text-slate-200">Premium upgrades unlock</h3>
+          <h3 className="text-sm font-semibold uppercase text-muted-foreground">Premium upgrades unlock</h3>
           <div className="mt-3 grid gap-3 md:grid-cols-3">
             {premiumFields.map((field) => (
-              <div key={field.label} className="rounded-xl border border-primary/40 bg-primary/[0.08] p-4">
-                <p className="text-sm font-medium text-white">{field.label}</p>
-                <p className="mt-1 text-xs text-primary-foreground/80">{field.description}</p>
+              <div key={field.label} className="rounded-xl border border-primary/30 bg-primary/5 p-4">
+                <p className="text-sm font-medium text-foreground">{field.label}</p>
+                <p className="mt-1 text-xs text-muted-foreground">{field.description}</p>
               </div>
             ))}
           </div>

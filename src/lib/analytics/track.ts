@@ -1,0 +1,234 @@
+"use server";
+
+import { headers } from "next/headers";
+import { createClient, createAdminClient } from "@/lib/supabase/server";
+import {
+  EVENT_TYPES,
+  type EventType,
+  type EventMetadata,
+  type ListingViewMetadata,
+  type ListingClickMetadata,
+  type SearchEventMetadata,
+  type SearchImpressionMetadata,
+  type InquiryEventMetadata,
+} from "./events";
+
+/**
+ * Generate a simple session ID from request headers
+ * Used for deduplication of events
+ */
+function generateSessionId(headersList: Headers): string {
+  const ip = headersList.get("x-forwarded-for") || headersList.get("x-real-ip") || "unknown";
+  const userAgent = headersList.get("user-agent") || "unknown";
+  // Create a simple hash for the session
+  const sessionString = `${ip}-${userAgent}-${new Date().toDateString()}`;
+  return Buffer.from(sessionString).toString("base64").slice(0, 32);
+}
+
+/**
+ * Get base metadata from request headers
+ */
+async function getBaseMetadata(): Promise<Partial<EventMetadata>> {
+  const headersList = await headers();
+  return {
+    timestamp: new Date().toISOString(),
+    userAgent: headersList.get("user-agent") || undefined,
+    referrer: headersList.get("referer") || undefined,
+    sessionId: generateSessionId(headersList),
+  };
+}
+
+/**
+ * Track an analytics event
+ */
+export async function trackEvent(
+  eventType: EventType,
+  metadata: EventMetadata,
+  listingId?: string,
+  profileId?: string
+): Promise<{ success: boolean }> {
+  try {
+    const supabase = await createAdminClient();
+    const baseMetadata = await getBaseMetadata();
+
+    const { error } = await supabase.from("audit_events").insert({
+      event_type: eventType,
+      listing_id: listingId || null,
+      profile_id: profileId || null,
+      metadata: { ...baseMetadata, ...metadata },
+    });
+
+    if (error) {
+      return { success: false };
+    }
+
+    return { success: true };
+  } catch {
+    return { success: false };
+  }
+}
+
+/**
+ * Track a listing view
+ */
+export async function trackListingView(
+  listingId: string,
+  listingSlug: string,
+  source?: "search" | "direct" | "state_page" | "homepage",
+  locationId?: string
+): Promise<{ success: boolean }> {
+  const metadata: ListingViewMetadata = {
+    listingId,
+    listingSlug,
+    locationId,
+    source,
+  };
+
+  return trackEvent(EVENT_TYPES.LISTING_VIEW, metadata, listingId);
+}
+
+/**
+ * Track a listing contact click
+ */
+export async function trackListingClick(
+  listingId: string,
+  clickType: "contact" | "phone" | "email" | "website"
+): Promise<{ success: boolean }> {
+  const metadata: ListingClickMetadata = {
+    listingId,
+    clickType,
+  };
+
+  const eventType =
+    clickType === "phone"
+      ? EVENT_TYPES.LISTING_PHONE_CLICK
+      : clickType === "email"
+        ? EVENT_TYPES.LISTING_EMAIL_CLICK
+        : clickType === "website"
+          ? EVENT_TYPES.LISTING_WEBSITE_CLICK
+          : EVENT_TYPES.LISTING_CONTACT_CLICK;
+
+  return trackEvent(eventType, metadata, listingId);
+}
+
+/**
+ * Track a search performed
+ */
+export async function trackSearch(
+  query: string | undefined,
+  filters: Record<string, unknown>,
+  resultsCount: number,
+  page?: number
+): Promise<{ success: boolean }> {
+  const metadata: SearchEventMetadata = {
+    query,
+    filters,
+    resultsCount,
+    page,
+  };
+
+  return trackEvent(EVENT_TYPES.SEARCH_PERFORMED, metadata);
+}
+
+/**
+ * Track search impressions (listings shown in results)
+ */
+export async function trackSearchImpressions(
+  listings: Array<{ id: string; locationId?: string; position: number }>,
+  searchQuery?: string
+): Promise<{ success: boolean }> {
+  try {
+    const supabase = await createAdminClient();
+    const baseMetadata = await getBaseMetadata();
+
+    const events = listings.map((listing) => ({
+      event_type: EVENT_TYPES.SEARCH_IMPRESSION,
+      listing_id: listing.id,
+      metadata: {
+        ...baseMetadata,
+        listingId: listing.id,
+        locationId: listing.locationId,
+        position: listing.position,
+        searchQuery,
+      } as SearchImpressionMetadata,
+    }));
+
+    const { error } = await supabase.from("audit_events").insert(events);
+
+    if (error) {
+      return { success: false };
+    }
+
+    return { success: true };
+  } catch {
+    return { success: false };
+  }
+}
+
+/**
+ * Track a search result click
+ */
+export async function trackSearchClick(
+  listingId: string,
+  position: number,
+  searchQuery?: string,
+  locationId?: string
+): Promise<{ success: boolean }> {
+  const metadata: SearchImpressionMetadata = {
+    listingId,
+    locationId,
+    position,
+    searchQuery,
+  };
+
+  return trackEvent(EVENT_TYPES.SEARCH_CLICK, metadata, listingId);
+}
+
+/**
+ * Track an inquiry submission
+ */
+export async function trackInquirySubmitted(
+  listingId: string,
+  inquiryId: string
+): Promise<{ success: boolean }> {
+  const metadata: InquiryEventMetadata = {
+    listingId,
+    inquiryId,
+  };
+
+  return trackEvent(EVENT_TYPES.INQUIRY_SUBMITTED, metadata, listingId);
+}
+
+/**
+ * Check if an event was already tracked in this session
+ * Used for deduplication
+ */
+export async function wasEventTracked(
+  eventType: EventType,
+  listingId: string
+): Promise<boolean> {
+  try {
+    const headersList = await headers();
+    const sessionId = generateSessionId(headersList);
+
+    const supabase = await createClient();
+    const today = new Date().toISOString().split("T")[0];
+
+    const { data, error } = await supabase
+      .from("audit_events")
+      .select("id")
+      .eq("event_type", eventType)
+      .eq("listing_id", listingId)
+      .gte("created_at", `${today}T00:00:00`)
+      .contains("metadata", { sessionId })
+      .limit(1);
+
+    if (error) {
+      return false;
+    }
+
+    return (data?.length || 0) > 0;
+  } catch {
+    return false;
+  }
+}

@@ -14,6 +14,14 @@ const envSchema = z.object({
   STRIPE_SECRET_KEY: z.string().min(1),
   STRIPE_WEBHOOK_SECRET: z.string().min(1),
   SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
+  // Cloudflare Turnstile for bot protection
+  TURNSTILE_SECRET_KEY: z.string().min(1),
+  // Google Maps API for geocoding and places autocomplete
+  GOOGLE_MAPS_API_KEY: z.string().min(1),
+  // Resend for transactional emails (optional - emails disabled if not set)
+  RESEND_API_KEY: z.string().optional(),
+  // Email address for sending emails (defaults to onboarding@resend.dev for testing)
+  EMAIL_FROM: z.string().min(1).optional().default("onboarding@resend.dev"),
 });
 
 const parsed = envSchema.safeParse({
@@ -25,6 +33,10 @@ const parsed = envSchema.safeParse({
   STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,
   STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET,
   SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
+  TURNSTILE_SECRET_KEY: process.env.TURNSTILE_SECRET_KEY,
+  GOOGLE_MAPS_API_KEY: process.env.GOOGLE_MAPS_API_KEY,
+  RESEND_API_KEY: process.env.RESEND_API_KEY,
+  EMAIL_FROM: process.env.EMAIL_FROM,
 });
 
 if (!parsed.success) {

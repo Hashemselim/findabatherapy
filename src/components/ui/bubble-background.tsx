@@ -130,12 +130,91 @@ const BUBBLES: BubbleConfig[] = [
   },
 ];
 
+const SMALL_BUBBLES: BubbleConfig[] = [
+  {
+    size: 120,
+    floatX: 20,
+    floatY: 15,
+    duration: 24,
+    opacity: 0.7,
+    blur: 0,
+    parallax: 0.2,
+    color: "first",
+    top: "-5%",
+    left: "5%",
+  },
+  {
+    size: 100,
+    floatX: 18,
+    floatY: 14,
+    duration: 20,
+    delay: 1,
+    opacity: 0.75,
+    blur: 6,
+    parallax: 0.3,
+    color: "second",
+    top: "10%",
+    right: "10%",
+  },
+  {
+    size: 140,
+    floatX: 15,
+    floatY: 20,
+    duration: 28,
+    delay: 2,
+    opacity: 0.65,
+    blur: 10,
+    parallax: 0.25,
+    color: "third",
+    bottom: "-5%",
+    left: "15%",
+  },
+  {
+    size: 80,
+    floatX: 12,
+    floatY: 15,
+    duration: 18,
+    opacity: 0.7,
+    blur: 4,
+    parallax: 0.35,
+    color: "fourth",
+    top: "40%",
+    left: "25%",
+  },
+  {
+    size: 90,
+    floatX: 20,
+    floatY: 18,
+    duration: 22,
+    delay: 3,
+    opacity: 0.75,
+    blur: 8,
+    parallax: 0.3,
+    color: "fifth",
+    bottom: "10%",
+    right: "20%",
+  },
+  {
+    size: 70,
+    floatX: 10,
+    floatY: 12,
+    duration: 16,
+    opacity: 0.8,
+    blur: 4,
+    parallax: 0.4,
+    color: "sixth",
+    top: "25%",
+    right: "30%",
+  },
+];
+
 type BubbleBackgroundProps = {
   children: React.ReactNode;
   className?: string;
   interactive?: boolean;
   transition?: SpringOptions;
   colors?: Partial<ColorConfig>;
+  size?: "default" | "small";
 };
 
 export function BubbleBackground({
@@ -144,11 +223,14 @@ export function BubbleBackground({
   interactive = true,
   transition = DEFAULT_TRANSITION,
   colors,
+  size = "default",
 }: BubbleBackgroundProps) {
   const mergedColors = React.useMemo(
     () => ({ ...DEFAULT_COLORS, ...colors }),
     [colors],
   );
+
+  const bubbles = size === "small" ? SMALL_BUBBLES : BUBBLES;
 
   const containerRef = React.useRef<HTMLDivElement>(null);
   const pointerX = useMotionValue(0);
@@ -184,13 +266,14 @@ export function BubbleBackground({
   }, [interactive, pointerX, pointerY]);
 
   return (
-    <div ref={containerRef} className={cn("relative isolate overflow-hidden", className)}>
+    <div ref={containerRef} className={cn("relative isolate", className)}>
+      {/* Bubble container with overflow hidden to clip bubbles */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0"
+        className="pointer-events-none absolute inset-0 overflow-hidden"
         style={{ filter: `url(#${filterId})` }}
       >
-        {BUBBLES.map((bubble, index) => (
+        {bubbles.map((bubble, index) => (
           <Bubble
             key={index}
             definition={bubble}
@@ -213,6 +296,7 @@ export function BubbleBackground({
           </filter>
         </svg>
       </div>
+      {/* Content container without overflow hidden so dropdowns can extend */}
       <div className="relative z-10">{children}</div>
     </div>
   );
