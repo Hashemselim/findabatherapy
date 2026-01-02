@@ -1,13 +1,14 @@
 "use client";
 
 import { useState, useEffect, useTransition } from "react";
-import { Loader2, CheckCircle2, Settings2, Sparkles, Search, Users, Globe, Stethoscope } from "lucide-react";
+import { Loader2, CheckCircle2, Settings2, Sparkles, Search, Users, Globe, Stethoscope, Pencil, X, Save } from "lucide-react";
 import Link from "next/link";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -35,7 +36,16 @@ interface AttributeData {
 }
 
 export function ServicesAttributesCard({ planTier }: ServicesAttributesCardProps) {
+  const [isEditing, setIsEditing] = useState(false);
   const [data, setData] = useState<AttributeData>({
+    languages: [],
+    diagnoses: [],
+    clinicalSpecialties: [],
+    agesServedMin: 0,
+    agesServedMax: 21,
+  });
+  // Track saved data separately for cancel functionality
+  const [savedData, setSavedData] = useState<AttributeData>({
     languages: [],
     diagnoses: [],
     clinicalSpecialties: [],
@@ -55,13 +65,15 @@ export function ServicesAttributesCard({ planTier }: ServicesAttributesCardProps
       if (result.success && result.data) {
         const attrs = result.data;
         const agesServed = attrs.ages_served as { min: number; max: number } | undefined;
-        setData({
+        const loadedData = {
           languages: (attrs.languages as string[]) || [],
           diagnoses: (attrs.diagnoses as string[]) || [],
           clinicalSpecialties: (attrs.clinical_specialties as string[]) || [],
           agesServedMin: agesServed?.min ?? 0,
           agesServedMax: agesServed?.max ?? 21,
-        });
+        };
+        setData(loadedData);
+        setSavedData(loadedData);
       }
       setIsLoading(false);
     }
@@ -74,6 +86,12 @@ export function ServicesAttributesCard({ planTier }: ServicesAttributesCardProps
       ? array.filter((i) => i !== item)
       : [...array, item];
     setData((prev) => ({ ...prev, [field]: newArray }));
+  }
+
+  function handleCancel() {
+    setData(savedData);
+    setError(null);
+    setIsEditing(false);
   }
 
   async function handleSave() {
@@ -94,7 +112,9 @@ export function ServicesAttributesCard({ planTier }: ServicesAttributesCardProps
       if (!result.success) {
         setError(result.error);
       } else {
+        setSavedData(data);
         setSuccess(true);
+        setIsEditing(false);
         setTimeout(() => setSuccess(false), 3000);
       }
     });
@@ -212,26 +232,126 @@ export function ServicesAttributesCard({ planTier }: ServicesAttributesCardProps
     );
   }
 
-  // Paid plan: Full editing capability
+  // Paid plan: View Mode - Read-only display
+  if (!isEditing) {
+    const hasAnyData = savedData.languages.length > 0 ||
+                       savedData.diagnoses.length > 0 ||
+                       savedData.clinicalSpecialties.length > 0;
+
+    return (
+      <Card className="border-border/60">
+        <CardHeader>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0">
+              <CardTitle>Services & Specialties</CardTitle>
+              <CardDescription className="mt-1">Details that help families find you in search</CardDescription>
+            </div>
+            <Button variant="ghost" size="sm" onClick={() => setIsEditing(true)} className="shrink-0 self-start">
+              <Pencil className="mr-2 h-4 w-4" />
+              Edit
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {success && (
+            <div className="flex items-center gap-2 rounded-lg bg-emerald-500/10 p-3 text-sm text-emerald-600">
+              <CheckCircle2 className="h-4 w-4" />
+              Changes saved successfully
+            </div>
+          )}
+
+          {/* Ages Served */}
+          <div className="space-y-2">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Ages Served</p>
+            <p className="text-foreground">
+              {savedData.agesServedMin} - {savedData.agesServedMax === 99 ? "99+" : savedData.agesServedMax} years
+            </p>
+          </div>
+
+          {/* Languages */}
+          <div className="space-y-2">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Languages Spoken</p>
+            {savedData.languages.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {savedData.languages.map((lang) => (
+                  <Badge key={lang} variant="secondary">
+                    {lang}
+                  </Badge>
+                ))}
+              </div>
+            ) : (
+              <p className="italic text-muted-foreground">No languages specified</p>
+            )}
+          </div>
+
+          {/* Diagnoses */}
+          <div className="space-y-2">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Diagnoses Supported</p>
+            {savedData.diagnoses.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {savedData.diagnoses.map((diagnosis) => (
+                  <Badge key={diagnosis} variant="outline">
+                    {diagnosis}
+                  </Badge>
+                ))}
+              </div>
+            ) : (
+              <p className="italic text-muted-foreground">No diagnoses specified</p>
+            )}
+          </div>
+
+          {/* Specialties */}
+          <div className="space-y-2">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Clinical Specialties</p>
+            {savedData.clinicalSpecialties.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {savedData.clinicalSpecialties.map((specialty) => (
+                  <Badge key={specialty} variant="outline">
+                    {specialty}
+                  </Badge>
+                ))}
+              </div>
+            ) : (
+              <p className="italic text-muted-foreground">No specialties specified</p>
+            )}
+          </div>
+
+          {!hasAnyData && (
+            <div className="rounded-lg border border-dashed border-border/60 p-4 text-center">
+              <p className="text-sm text-muted-foreground">
+                Add languages, diagnoses, and specialties to help families find you in search results.
+              </p>
+              <Button variant="outline" size="sm" className="mt-3" onClick={() => setIsEditing(true)}>
+                Add Details
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Paid plan: Edit Mode - Full editing capability
   return (
     <Card className="border-border/60">
       <CardHeader>
-        <CardTitle>Services & Specialties</CardTitle>
-        <CardDescription>
-          Update the services you offer and specialties to help families find you.
-        </CardDescription>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
+            <CardTitle>Edit Services & Specialties</CardTitle>
+            <CardDescription className="mt-1">
+              Update the services you offer and specialties to help families find you.
+            </CardDescription>
+          </div>
+          <Button variant="ghost" size="sm" onClick={handleCancel} className="shrink-0 self-start">
+            <X className="mr-2 h-4 w-4" />
+            Cancel
+          </Button>
+        </div>
       </CardHeader>
       <CardContent className="space-y-6">
         {error && (
           <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
             {error}
-          </div>
-        )}
-
-        {success && (
-          <div className="flex items-center gap-2 rounded-lg bg-emerald-500/10 p-3 text-sm text-emerald-600">
-            <CheckCircle2 className="h-4 w-4" />
-            Changes saved successfully
           </div>
         )}
 
@@ -337,15 +457,21 @@ export function ServicesAttributesCard({ planTier }: ServicesAttributesCardProps
           </div>
         </div>
 
-        <div className="flex justify-end pt-4">
-          <Button onClick={handleSave} disabled={isPending} className="w-full sm:w-auto">
+        <div className="flex justify-end gap-2 pt-4">
+          <Button type="button" variant="outline" onClick={handleCancel} disabled={isPending}>
+            Cancel
+          </Button>
+          <Button onClick={handleSave} disabled={isPending}>
             {isPending ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Saving...
               </>
             ) : (
-              "Save Changes"
+              <>
+                <Save className="mr-2 h-4 w-4" />
+                Save Changes
+              </>
             )}
           </Button>
         </div>

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { cache } from "react";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -17,10 +18,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { BubbleBackground } from "@/components/ui/bubble-background";
 import { getListingBySlug } from "@/lib/actions/listings";
 import { getStateSlug } from "@/lib/data/cities";
-import { createClient } from "@/lib/supabase/server";
 import { getVideoEmbedUrl } from "@/lib/storage/config";
-import { STORAGE_BUCKETS } from "@/lib/storage/config";
 import { generateHealthcareBusinessSchema } from "@/lib/seo/schemas";
+
+// Cache the listing fetch to dedupe between generateMetadata and page component
+const getCachedListing = cache(async (slug: string) => {
+  return getListingBySlug(slug);
+});
 
 type ProviderPageParams = {
   slug: string;
@@ -47,7 +51,7 @@ export const revalidate = 300;
 
 export async function generateMetadata({ params }: ProviderPageProps): Promise<Metadata> {
   const { slug } = await params;
-  const result = await getListingBySlug(slug);
+  const result = await getCachedListing(slug);
 
   if (!result.success || !result.data) {
     return {};
@@ -98,7 +102,7 @@ export async function generateMetadata({ params }: ProviderPageProps): Promise<M
 export default async function ProviderPage({ params, searchParams }: ProviderPageProps) {
   const { slug } = await params;
   const { location: highlightedLocationId } = await searchParams;
-  const result = await getListingBySlug(slug);
+  const result = await getCachedListing(slug);
 
   if (!result.success || !result.data) {
     notFound();
@@ -110,22 +114,8 @@ export default async function ProviderPage({ params, searchParams }: ProviderPag
   // Contact form is only available for premium plans with the toggle enabled
   const contactFormEnabled = isPremium && (listing.attributes.contact_form_enabled !== false);
 
-  // Get photos for the listing
-  const supabase = await createClient();
-  const { data: photos } = await supabase
-    .from("media_assets")
-    .select("id, storage_path, sort_order")
-    .eq("listing_id", listing.id)
-    .eq("media_type", "photo")
-    .order("sort_order", { ascending: true });
-
-  // Build photo URLs
-  const photoUrls = photos?.map((photo) => {
-    const { data } = supabase.storage
-      .from(STORAGE_BUCKETS.photos)
-      .getPublicUrl(photo.storage_path);
-    return data.publicUrl;
-  }) || [];
+  // Photo URLs are now included in getListingBySlug response
+  const photoUrls = listing.photoUrls || [];
 
   // Get video embed URL
   const videoEmbedUrl = listing.videoUrl ? getVideoEmbedUrl(listing.videoUrl) : null;
@@ -186,7 +176,15 @@ export default async function ProviderPage({ params, searchParams }: ProviderPag
       <JsonLd data={businessSchema} />
 
       {/* Analytics tracking */}
-      <ViewTracker listingId={listing.id} listingSlug={listing.slug} locationId={highlightedLocationId} />
+      <ViewTracker
+        listingId={listing.id}
+        listingSlug={listing.slug}
+        listingName={listing.profile.agencyName}
+        locationId={highlightedLocationId}
+        city={primaryLocation?.city}
+        state={primaryLocation?.state}
+        planTier={listing.profile.planTier}
+      />
 
       {/* Hero Section */}
       <section className="px-0 pt-0">
@@ -240,399 +238,395 @@ export default async function ProviderPage({ params, searchParams }: ProviderPag
         </BubbleBackground>
       </section>
 
-      <div className="mx-auto mt-10 max-w-5xl space-y-6 px-4 sm:px-6">
-        {/* Contact Info Card - shown for all providers */}
-        <Card className="border border-border/80">
-          <CardHeader>
-            <CardTitle>Contact {listing.profile.agencyName}</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="flex flex-wrap items-start gap-x-8 gap-y-4 text-sm text-muted-foreground">
-              <div className="min-w-0 max-w-full">
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Email</p>
-                <a
-                  href={`mailto:${listing.profile.contactEmail}`}
-                  className="mt-1 flex items-center gap-2 text-base font-medium text-foreground"
-                >
-                  <Mail className="h-4 w-4 shrink-0 text-primary" aria-hidden />
-                  <span className="truncate">{listing.profile.contactEmail}</span>
-                </a>
-              </div>
-              {listing.profile.contactPhone && (
-                <div className="min-w-0">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Phone</p>
-                  <a
-                    href={`tel:${listing.profile.contactPhone.replace(/\D/g, "")}`}
-                    className="mt-1 flex items-center gap-2 text-base font-medium text-foreground"
-                  >
-                    <Phone className="h-4 w-4 shrink-0 text-primary" aria-hidden />
-                    <span>{listing.profile.contactPhone}</span>
-                  </a>
-                </div>
-              )}
-              {listing.profile.website && (
-                <div className="min-w-0">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Website</p>
-                  <a
-                    href={listing.profile.website}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-1 flex items-center gap-2 text-base font-medium text-foreground"
-                  >
-                    <Globe className="h-4 w-4 shrink-0 text-primary" aria-hidden />
-                    <span>Visit Website</span>
-                  </a>
-                </div>
-              )}
-            </div>
-            <div className="flex flex-col gap-3 sm:flex-row">
-              {listing.profile.website && (
-                <Button asChild variant="outline" className="flex-1 rounded-full text-base">
-                  <a href={listing.profile.website} target="_blank" rel="noopener noreferrer">
-                    <Globe className="mr-2 h-4 w-4" />
-                    Visit Website
-                  </a>
-                </Button>
-              )}
-              {contactFormEnabled && (
-                <Button asChild className="flex-1 rounded-full text-base">
-                  <a href="#contact-form">
-                    <Mail className="mr-2 h-4 w-4" />
-                    Contact Now
-                  </a>
-                </Button>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+      {(() => {
+        // Determine which location's contact info to show
+        const currentLocation = highlightedLocationId
+          ? listing.locations.find(loc => loc.id === highlightedLocationId)
+          : listing.locations[0];
 
-        {/* Locations Card */}
-        {listing.locations.length > 0 && (() => {
-          // Separate current location from other locations
-          const currentLocation = highlightedLocationId
-            ? listing.locations.find(loc => loc.id === highlightedLocationId)
-            : listing.locations[0]; // Default to first location if none highlighted
-          const otherLocations = listing.locations.filter(loc => loc.id !== currentLocation?.id);
+        // Use location-specific contact info if useCompanyContact is false
+        const useLocationContact = currentLocation && currentLocation.useCompanyContact === false;
+        const contactEmail = useLocationContact && currentLocation.contactEmail
+          ? currentLocation.contactEmail
+          : listing.profile.contactEmail;
+        const contactPhone = useLocationContact && currentLocation.contactPhone
+          ? currentLocation.contactPhone
+          : listing.profile.contactPhone;
+        const contactWebsite = useLocationContact && currentLocation.contactWebsite
+          ? currentLocation.contactWebsite
+          : listing.profile.website;
 
-          // Helper function to render a location item
-          const renderLocationItem = (location: typeof listing.locations[0], isCurrentLocation: boolean) => {
-            const serviceMode = (location as { serviceMode?: string }).serviceMode;
-            const locationInsurances = (location as { insurances?: string[] }).insurances || [];
-
-            return (
-              <li
-                key={location.id}
-                id={`location-${location.id}`}
-                className={`rounded-xl border p-4 transition-all ${
-                  isCurrentLocation
-                    ? "border-primary bg-primary/5 ring-2 ring-primary/20"
-                    : "border-border/60 bg-muted/30"
-                }`}
-              >
-                <div className="flex items-start gap-3">
-                  <MapPin className="mt-0.5 h-5 w-5 flex-shrink-0 text-primary" />
-                  <div className="flex-1 space-y-2">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-medium text-foreground">
-                        {location.city}, {location.state}
-                      </span>
-                      {location.isPrimary && (
-                        <Badge variant="secondary" className="text-xs">Primary</Badge>
-                      )}
-                      {serviceMode && (
-                        <Badge variant="outline" className="gap-1 text-xs">
-                          {serviceMode === "center_based" && <Building2 className="h-3 w-3" />}
-                          {serviceMode === "in_home" && <Home className="h-3 w-3" />}
-                          {serviceMode === "both" && <CheckCircle className="h-3 w-3" />}
-                          {LOCATION_SERVICE_MODE_LABELS[serviceMode] || serviceMode}
-                        </Badge>
-                      )}
-                    </div>
-
-                    {/* Address for center-based */}
-                    {location.street && (
-                      <p className="text-sm text-muted-foreground">
-                        {location.street}
-                        {location.postalCode && `, ${location.postalCode}`}
-                      </p>
-                    )}
-
-                    {/* Get Directions button for center-based locations */}
-                    {(serviceMode === "center_based" || serviceMode === "both") && (
-                      <DirectionsButton
-                        latitude={(location as { latitude?: number }).latitude || null}
-                        longitude={(location as { longitude?: number }).longitude || null}
-                        address={[location.street, location.city, location.state, location.postalCode].filter(Boolean).join(", ")}
-                        className="mt-2"
-                      />
-                    )}
-
-                    {/* Service radius for in-home */}
-                    {(serviceMode === "in_home" || serviceMode === "both") && (
-                      <p className="text-xs text-muted-foreground">
-                        Service radius: {(location as { serviceRadiusMiles?: number }).serviceRadiusMiles || 25} miles
-                      </p>
-                    )}
-
-                    {/* Location-specific insurances */}
-                    {locationInsurances.length > 0 && (
-                      <div className="pt-2">
-                        <p className="text-xs font-medium text-muted-foreground">Insurance Accepted:</p>
-                        <div className="mt-1 flex flex-wrap gap-1">
-                          {locationInsurances.slice(0, 5).map((ins) => (
-                            <Badge key={ins} variant="outline" className="text-xs font-normal">
-                              {ins}
-                            </Badge>
-                          ))}
-                          {locationInsurances.length > 5 && (
-                            <span className="text-xs text-muted-foreground">
-                              +{locationInsurances.length - 5} more
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </li>
-            );
-          };
-
-          return (
+        return (
+          <div className="mx-auto mt-10 max-w-5xl space-y-6 px-4 sm:px-6">
+            {/* Contact Info Card - shown for all providers */}
             <Card className="border border-border/80">
               <CardHeader>
-                <CardTitle>Locations</CardTitle>
-                <CardDescription>
-                  {listing.locations.length} service {listing.locations.length === 1 ? "location" : "locations"}
-                </CardDescription>
+                <CardTitle>Contact {listing.profile.agencyName}</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Current Location Section */}
-                {currentLocation && (
-                  <div>
-                    <h4 className="mb-3 text-sm font-medium text-muted-foreground">
-                      {highlightedLocationId ? "You're Viewing This Location" : "Primary Location"}
-                    </h4>
-                    <ul>
-                      {renderLocationItem(currentLocation, true)}
-                    </ul>
+              <CardContent>
+                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                  {/* Website URL display */}
+                  {contactWebsite && (
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Globe className="h-4 w-4 shrink-0 text-primary" aria-hidden />
+                      <span className="truncate text-sm" title={contactWebsite}>
+                        {contactWebsite.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, "")}
+                      </span>
+                    </div>
+                  )}
+                  {/* Action buttons */}
+                  <div className="flex flex-col gap-3 sm:flex-row md:shrink-0">
+                    {contactWebsite && (
+                      <Button asChild variant="outline" className="rounded-full text-base">
+                        <a href={contactWebsite} target="_blank" rel="noopener noreferrer">
+                          <Globe className="mr-2 h-4 w-4" />
+                          Visit Website
+                        </a>
+                      </Button>
+                    )}
+                    {contactFormEnabled && (
+                      <Button asChild className="rounded-full text-base">
+                        <a href="#contact-form">
+                          <Mail className="mr-2 h-4 w-4" />
+                          Contact Now
+                        </a>
+                      </Button>
+                    )}
                   </div>
-                )}
-
-                {/* Other Locations Section - Compact Links */}
-                {otherLocations.length > 0 && (
-                  <div>
-                    <h4 className="mb-3 text-sm font-medium text-muted-foreground">
-                      Other Locations ({otherLocations.length})
-                    </h4>
-                    <ul className="divide-y divide-border/60 rounded-xl border border-border/60 bg-muted/30">
-                      {otherLocations.map((location) => {
-                        const serviceMode = (location as { serviceMode?: string }).serviceMode;
-                        return (
-                          <li key={location.id}>
-                            <Link
-                              href={`/provider/${listing.slug}?location=${location.id}`}
-                              className="flex items-center gap-3 p-3 transition-colors hover:bg-muted/50"
-                            >
-                              <MapPin className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
-                              <span className="flex-1 text-sm font-medium">
-                                {location.city}, {location.state}
-                              </span>
-                              {serviceMode && (
-                                <Badge variant="outline" className="gap-1 text-xs">
-                                  {serviceMode === "center_based" && <Building2 className="h-3 w-3" />}
-                                  {serviceMode === "in_home" && <Home className="h-3 w-3" />}
-                                  {serviceMode === "both" && <CheckCircle className="h-3 w-3" />}
-                                  {LOCATION_SERVICE_MODE_LABELS[serviceMode] || serviceMode}
-                                </Badge>
-                              )}
-                              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                            </Link>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  </div>
-                )}
+                </div>
               </CardContent>
             </Card>
-          );
-        })()}
 
-        {/* Google Rating Card - Premium only */}
-        {isPremium && (() => {
-          // Find the first location with Google rating data
-          // Prefer the highlighted location if it has a rating
-          const highlightedLoc = highlightedLocationId
-            ? listing.locations.find(loc => loc.id === highlightedLocationId)
-            : null;
+            {/* Locations Card */}
+            {listing.locations.length > 0 && (() => {
+              // Separate current location from other locations
+              const currentLocation = highlightedLocationId
+                ? listing.locations.find(loc => loc.id === highlightedLocationId)
+                : listing.locations[0]; // Default to first location if none highlighted
+              const otherLocations = listing.locations.filter(loc => loc.id !== currentLocation?.id);
 
-          const locationWithRating = highlightedLoc && (highlightedLoc as { googleRating?: number | null }).googleRating
-            ? highlightedLoc
-            : listing.locations.find(loc => (loc as { googleRating?: number | null }).googleRating);
+              // Helper function to render a location item
+              const renderLocationItem = (location: typeof listing.locations[0], isCurrentLocation: boolean) => {
+                const serviceMode = (location as { serviceMode?: string }).serviceMode;
+                const locationInsurances = (location as { insurances?: string[] }).insurances || [];
 
-          if (!locationWithRating) return null;
-
-          const googleRating = (locationWithRating as { googleRating?: number | null }).googleRating;
-          const googleRatingCount = (locationWithRating as { googleRatingCount?: number | null }).googleRatingCount;
-          const googlePlaceId = (locationWithRating as { googlePlaceId?: string | null }).googlePlaceId;
-
-          if (!googleRating || !googlePlaceId) return null;
-
-          const googleMapsUrl = `https://www.google.com/maps/place/?q=place_id:${googlePlaceId}`;
-
-          return (
-            <GoogleRatingCard
-              rating={googleRating}
-              reviewCount={googleRatingCount}
-              googleMapsUrl={googleMapsUrl}
-            />
-          );
-        })()}
-
-        {/* Services Card */}
-        {listing.serviceModes.length > 0 && (
-          <Card className="border border-border/80">
-            <CardHeader>
-              <CardTitle>Services</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ul className="flex flex-wrap gap-2 text-sm text-muted-foreground">
-                {listing.serviceModes.map((mode) => (
+                return (
                   <li
-                    key={mode}
-                    className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-muted/30 px-4 py-2"
+                    key={location.id}
+                    id={`location-${location.id}`}
+                    className={`rounded-xl border p-4 transition-all ${
+                      isCurrentLocation
+                        ? "border-primary bg-primary/5 ring-2 ring-primary/20"
+                        : "border-border/60 bg-muted/30"
+                    }`}
                   >
-                    <CheckCircle className="h-4 w-4 text-primary" aria-hidden />
-                    {serviceModeLabels[mode] || mode}
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
-        )}
+                    <div className="flex items-start gap-3">
+                      <MapPin className="mt-0.5 h-5 w-5 flex-shrink-0 text-primary" />
+                      <div className="flex-1 space-y-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-medium text-foreground">
+                            {location.city}, {location.state}
+                          </span>
+                          {location.isPrimary && (
+                            <Badge variant="secondary" className="text-xs">Primary</Badge>
+                          )}
+                          {serviceMode && (
+                            <Badge variant="outline" className="gap-1 text-xs">
+                              {serviceMode === "center_based" && <Building2 className="h-3 w-3" />}
+                              {serviceMode === "in_home" && <Home className="h-3 w-3" />}
+                              {serviceMode === "both" && <CheckCircle className="h-3 w-3" />}
+                              {LOCATION_SERVICE_MODE_LABELS[serviceMode] || serviceMode}
+                            </Badge>
+                          )}
+                        </div>
 
-        {/* Insurances Card */}
-        {insurances.length > 0 && (
-          <Card className="border border-border/80">
-            <CardHeader>
-              <CardTitle>Insurance Accepted</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap gap-2">
-                {insurances.map((insurance) => (
-                  <Badge key={insurance} variant="outline" className="rounded-full px-4 py-2 text-sm">
-                    {insurance}
-                  </Badge>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
+                        {/* Address for center-based */}
+                        {location.street && (
+                          <p className="text-sm text-muted-foreground">
+                            {location.street}
+                            {location.postalCode && `, ${location.postalCode}`}
+                          </p>
+                        )}
 
-        {/* About Card - Premium only */}
-        {isPremium && listing.description && (
-          <Card className="border border-border/80">
-            <CardHeader>
-              <CardTitle>About {listing.profile.agencyName}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4 text-sm text-muted-foreground">
-              <p className="whitespace-pre-wrap">{listing.description}</p>
+                        {/* Get Directions button for center-based locations */}
+                        {(serviceMode === "center_based" || serviceMode === "both") && (
+                          <DirectionsButton
+                            latitude={(location as { latitude?: number }).latitude || null}
+                            longitude={(location as { longitude?: number }).longitude || null}
+                            address={[location.street, location.city, location.state, location.postalCode].filter(Boolean).join(", ")}
+                            className="mt-2"
+                          />
+                        )}
 
-              {/* Additional Details */}
-              <div className="grid gap-4 pt-4 md:grid-cols-2">
-                {agesServed && (agesServed.min !== undefined || agesServed.max !== undefined) && (
-                  <div className="rounded-xl border border-border/60 bg-muted/30 p-4">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Ages Served</p>
-                    <p className="mt-1 font-medium text-foreground">
-                      {agesServed.min ?? 0} - {agesServed.max ?? 18} years
-                    </p>
-                  </div>
-                )}
+                        {/* Service radius for in-home */}
+                        {(serviceMode === "in_home" || serviceMode === "both") && (
+                          <p className="text-xs text-muted-foreground">
+                            Service radius: {(location as { serviceRadiusMiles?: number }).serviceRadiusMiles || 25} miles
+                          </p>
+                        )}
 
-                {languages.length > 0 && (
-                  <div className="rounded-xl border border-border/60 bg-muted/30 p-4">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Languages</p>
-                    <p className="mt-1 font-medium text-foreground">{languages.join(", ")}</p>
-                  </div>
-                )}
-
-                {diagnoses.length > 0 && (
-                  <div className="rounded-xl border border-border/60 bg-muted/30 p-4">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Diagnoses</p>
-                    <p className="mt-1 font-medium text-foreground">{diagnoses.join(", ")}</p>
-                  </div>
-                )}
-
-                {clinicalSpecialties.length > 0 && (
-                  <div className="rounded-xl border border-border/60 bg-muted/30 p-4">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Specialties</p>
-                    <p className="mt-1 font-medium text-foreground">{clinicalSpecialties.join(", ")}</p>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Photos and Video Card - Premium only */}
-        {isPremium && (photoUrls.length > 0 || videoEmbedUrl) && (
-          <Card className="border border-border/80">
-            <CardHeader>
-              <CardTitle>Photos & Video</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Video Embed */}
-              {videoEmbedUrl && (
-                <div className="space-y-2">
-                  <p className="text-sm font-medium text-muted-foreground">Video</p>
-                  <div className="relative aspect-video w-full overflow-hidden rounded-2xl border bg-black">
-                    <iframe
-                      src={videoEmbedUrl}
-                      className="absolute inset-0 h-full w-full"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* Photo Gallery */}
-              {photoUrls.length > 0 && (
-                <div className="space-y-2">
-                  <p className="text-sm font-medium text-muted-foreground">Gallery</p>
-                  <div className="grid gap-4 md:grid-cols-2">
-                    {photoUrls.map((url, index) => (
-                      <div
-                        key={url}
-                        className="relative aspect-video overflow-hidden rounded-2xl bg-muted/40"
-                      >
-                        <Image
-                          src={url}
-                          alt={`${listing.profile.agencyName} photo ${index + 1}`}
-                          fill
-                          className="object-cover"
-                        />
+                        {/* Location-specific insurances */}
+                        {locationInsurances.length > 0 && (
+                          <div className="pt-2">
+                            <p className="text-xs font-medium text-muted-foreground">Insurance Accepted:</p>
+                            <div className="mt-1 flex flex-wrap gap-1">
+                              {locationInsurances.slice(0, 5).map((ins) => (
+                                <Badge key={ins} variant="outline" className="text-xs font-normal">
+                                  {ins}
+                                </Badge>
+                              ))}
+                              {locationInsurances.length > 5 && (
+                                <span className="text-xs text-muted-foreground">
+                                  +{locationInsurances.length - 5} more
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        )}
                       </div>
+                    </div>
+                  </li>
+                );
+              };
+
+              return (
+                <Card className="border border-border/80">
+                  <CardHeader>
+                    <CardTitle>Locations</CardTitle>
+                    <CardDescription>
+                      {listing.locations.length} service {listing.locations.length === 1 ? "location" : "locations"}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    {/* Current Location Section */}
+                    {currentLocation && (
+                      <div>
+                        <h4 className="mb-3 text-sm font-medium text-muted-foreground">
+                          {highlightedLocationId ? "You're Viewing This Location" : "Primary Location"}
+                        </h4>
+                        <ul>
+                          {renderLocationItem(currentLocation, true)}
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* Other Locations Section - Compact Links */}
+                    {otherLocations.length > 0 && (
+                      <div>
+                        <h4 className="mb-3 text-sm font-medium text-muted-foreground">
+                          Other Locations ({otherLocations.length})
+                        </h4>
+                        <ul className="divide-y divide-border/60 rounded-xl border border-border/60 bg-muted/30">
+                          {otherLocations.map((location) => {
+                            const serviceMode = (location as { serviceMode?: string }).serviceMode;
+                            return (
+                              <li key={location.id}>
+                                <Link
+                                  href={`/provider/${listing.slug}?location=${location.id}`}
+                                  className="flex items-center gap-3 p-3 transition-colors hover:bg-muted/50"
+                                >
+                                  <MapPin className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+                                  <span className="flex-1 text-sm font-medium">
+                                    {location.city}, {location.state}
+                                  </span>
+                                  {serviceMode && (
+                                    <Badge variant="outline" className="gap-1 text-xs">
+                                      {serviceMode === "center_based" && <Building2 className="h-3 w-3" />}
+                                      {serviceMode === "in_home" && <Home className="h-3 w-3" />}
+                                      {serviceMode === "both" && <CheckCircle className="h-3 w-3" />}
+                                      {LOCATION_SERVICE_MODE_LABELS[serviceMode] || serviceMode}
+                                    </Badge>
+                                  )}
+                                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                                </Link>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })()}
+
+            {/* Google Rating Card - Premium only */}
+            {isPremium && (() => {
+              // Find the first location with Google rating data
+              // Prefer the highlighted location if it has a rating
+              const highlightedLoc = highlightedLocationId
+                ? listing.locations.find(loc => loc.id === highlightedLocationId)
+                : null;
+
+              const locationWithRating = highlightedLoc && (highlightedLoc as { googleRating?: number | null }).googleRating
+                ? highlightedLoc
+                : listing.locations.find(loc => (loc as { googleRating?: number | null }).googleRating);
+
+              if (!locationWithRating) return null;
+
+              const googleRating = (locationWithRating as { googleRating?: number | null }).googleRating;
+              const googleRatingCount = (locationWithRating as { googleRatingCount?: number | null }).googleRatingCount;
+              const googlePlaceId = (locationWithRating as { googlePlaceId?: string | null }).googlePlaceId;
+
+              if (!googleRating || !googlePlaceId) return null;
+
+              const googleMapsUrl = `https://www.google.com/maps/place/?q=place_id:${googlePlaceId}`;
+
+              return (
+                <GoogleRatingCard
+                  rating={googleRating}
+                  reviewCount={googleRatingCount}
+                  googleMapsUrl={googleMapsUrl}
+                />
+              );
+            })()}
+
+            {/* Services Card */}
+            {listing.serviceModes.length > 0 && (
+              <Card className="border border-border/80">
+                <CardHeader>
+                  <CardTitle>Services</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ul className="flex flex-wrap gap-2 text-sm text-muted-foreground">
+                    {listing.serviceModes.map((mode) => (
+                      <li
+                        key={mode}
+                        className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-muted/30 px-4 py-2"
+                      >
+                        <CheckCircle className="h-4 w-4 text-primary" aria-hidden />
+                        {serviceModeLabels[mode] || mode}
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Insurances Card */}
+            {insurances.length > 0 && (
+              <Card className="border border-border/80">
+                <CardHeader>
+                  <CardTitle>Insurance Accepted</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-wrap gap-2">
+                    {insurances.map((insurance) => (
+                      <Badge key={insurance} variant="outline" className="rounded-full px-4 py-2 text-sm">
+                        {insurance}
+                      </Badge>
                     ))}
                   </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
+                </CardContent>
+              </Card>
+            )}
 
-        {/* Contact Form - Premium providers with contact form enabled */}
-        {contactFormEnabled && (
-          <div id="contact-form" className="scroll-mt-6">
-            <ContactForm
-              listingId={listing.id}
-              providerName={listing.profile.agencyName}
-              locationId={highlightedLocationId}
-            />
+            {/* About Card - Premium only */}
+            {isPremium && listing.description && (
+              <Card className="border border-border/80">
+                <CardHeader>
+                  <CardTitle>About {listing.profile.agencyName}</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4 text-sm text-muted-foreground">
+                  <p className="whitespace-pre-wrap">{listing.description}</p>
+
+                  {/* Additional Details */}
+                  <div className="grid gap-4 pt-4 md:grid-cols-2">
+                    {agesServed && (agesServed.min !== undefined || agesServed.max !== undefined) && (
+                      <div className="rounded-xl border border-border/60 bg-muted/30 p-4">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Ages Served</p>
+                        <p className="mt-1 font-medium text-foreground">
+                          {agesServed.min ?? 0} - {agesServed.max ?? 18} years
+                        </p>
+                      </div>
+                    )}
+
+                    {languages.length > 0 && (
+                      <div className="rounded-xl border border-border/60 bg-muted/30 p-4">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Languages</p>
+                        <p className="mt-1 font-medium text-foreground">{languages.join(", ")}</p>
+                      </div>
+                    )}
+
+                    {diagnoses.length > 0 && (
+                      <div className="rounded-xl border border-border/60 bg-muted/30 p-4">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Diagnoses</p>
+                        <p className="mt-1 font-medium text-foreground">{diagnoses.join(", ")}</p>
+                      </div>
+                    )}
+
+                    {clinicalSpecialties.length > 0 && (
+                      <div className="rounded-xl border border-border/60 bg-muted/30 p-4">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Specialties</p>
+                        <p className="mt-1 font-medium text-foreground">{clinicalSpecialties.join(", ")}</p>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Photos and Video Card - Premium only */}
+            {isPremium && (photoUrls.length > 0 || videoEmbedUrl) && (
+              <Card className="border border-border/80">
+                <CardHeader>
+                  <CardTitle>Photos & Video</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Video Embed */}
+                  {videoEmbedUrl && (
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium text-muted-foreground">Video</p>
+                      <div className="relative aspect-video w-full overflow-hidden rounded-2xl border bg-black">
+                        <iframe
+                          src={videoEmbedUrl}
+                          className="absolute inset-0 h-full w-full"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                          referrerPolicy="strict-origin-when-cross-origin"
+                          allowFullScreen
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Photo Gallery */}
+                  {photoUrls.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium text-muted-foreground">Gallery</p>
+                      <div className="grid gap-4 md:grid-cols-2">
+                        {photoUrls.map((url, index) => (
+                          <div
+                            key={url}
+                            className="relative aspect-video overflow-hidden rounded-2xl bg-muted/40"
+                          >
+                            <Image
+                              src={url}
+                              alt={`${listing.profile.agencyName} photo ${index + 1}`}
+                              fill
+                              className="object-cover"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Contact Form - Premium providers with contact form enabled */}
+            {contactFormEnabled && (
+              <div id="contact-form" className="scroll-mt-6">
+                <ContactForm
+                  listingId={listing.id}
+                  providerName={listing.profile.agencyName}
+                  locationId={highlightedLocationId}
+                />
+              </div>
+            )}
           </div>
-        )}
-      </div>
+        );
+      })()}
     </div>
   );
 }

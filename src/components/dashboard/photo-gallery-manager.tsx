@@ -3,10 +3,11 @@
 import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Upload, X, Loader2, ImageIcon, GripVertical, Sparkles, Camera, Users, Heart, CheckCircle2 } from "lucide-react";
+import { Upload, X, Loader2, ImageIcon, GripVertical, Sparkles, Camera, Users, Heart, CheckCircle2, Pencil } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,19 +22,34 @@ import {
 import { getPhotos, uploadPhoto, deletePhoto, reorderPhotos } from "@/lib/storage/actions";
 import { FILE_SIZE_LIMITS, ALLOWED_IMAGE_TYPES, PHOTO_LIMITS } from "@/lib/storage/config";
 
-interface PhotoGalleryManagerProps {
-  planTier: string;
-}
-
-interface Photo {
+export interface Photo {
   id: string;
   url: string;
   order: number;
 }
 
-export function PhotoGalleryManager({ planTier }: PhotoGalleryManagerProps) {
-  const [photos, setPhotos] = useState<Photo[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+interface PhotoGalleryManagerProps {
+  planTier: string;
+  /** Enable demo mode - uses static data and disables editing */
+  isDemo?: boolean;
+  /** Static photos for demo mode */
+  demoPhotos?: Photo[];
+  /** Callback when user tries to edit in demo mode */
+  onDemoAction?: () => void;
+  /** data-tour attribute for guided tour */
+  dataTour?: string;
+}
+
+export function PhotoGalleryManager({
+  planTier,
+  isDemo = false,
+  demoPhotos = [],
+  onDemoAction,
+  dataTour,
+}: PhotoGalleryManagerProps) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [photos, setPhotos] = useState<Photo[]>(isDemo ? demoPhotos : []);
+  const [isLoading, setIsLoading] = useState(!isDemo);
   const [isUploading, setIsUploading] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -43,8 +59,10 @@ export function PhotoGalleryManager({ planTier }: PhotoGalleryManagerProps) {
   const photoLimit = PHOTO_LIMITS[planTier as keyof typeof PHOTO_LIMITS] || 0;
   const isPremium = planTier !== "free";
 
-  // Load photos on mount
+  // Load photos on mount (skip for demo)
   useEffect(() => {
+    if (isDemo) return;
+
     async function loadPhotos() {
       const result = await getPhotos();
       if (result.success && result.data) {
@@ -53,7 +71,7 @@ export function PhotoGalleryManager({ planTier }: PhotoGalleryManagerProps) {
       setIsLoading(false);
     }
     loadPhotos();
-  }, []);
+  }, [isDemo]);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -225,16 +243,98 @@ export function PhotoGalleryManager({ planTier }: PhotoGalleryManagerProps) {
     );
   }
 
+  // Handle edit button click - demo mode shows toast, real mode enables editing
+  const handleEditClick = () => {
+    if (isDemo && onDemoAction) {
+      onDemoAction();
+    } else {
+      setIsEditing(true);
+    }
+  };
+
+  // View Mode - Read-only display
+  if (!isEditing) {
+    return (
+      <Card data-tour={dataTour} className="border-border/60">
+        <CardHeader>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0">
+              <CardTitle className="flex items-center gap-2">
+                <ImageIcon className="h-5 w-5 shrink-0" />
+                <span>Photo Gallery</span>
+              </CardTitle>
+              <CardDescription className="mt-1">Photos visible on your listing page</CardDescription>
+            </div>
+            <Button variant="ghost" size="sm" onClick={handleEditClick} className="shrink-0 self-start">
+              <Pencil className="mr-2 h-4 w-4" />
+              Edit
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : photos.length === 0 ? (
+            <div className="rounded-lg border border-dashed border-border/60 p-8 text-center">
+              <ImageIcon className="mx-auto h-12 w-12 text-muted-foreground/50" />
+              <p className="mt-2 text-sm text-muted-foreground">No photos added yet</p>
+              <Button variant="outline" size="sm" className="mt-4" onClick={handleEditClick}>
+                Add Photos
+              </Button>
+            </div>
+          ) : (
+            <>
+              {/* Photo Grid - Read Only */}
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                {photos.map((photo, index) => (
+                  <div
+                    key={photo.id}
+                    className="relative aspect-video overflow-hidden rounded-lg border bg-muted"
+                  >
+                    <Image
+                      src={photo.url}
+                      alt={`Gallery photo ${index + 1}`}
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                ))}
+              </div>
+
+              {/* Photo Count */}
+              <div className="mt-4 flex items-center justify-between">
+                <Badge variant="secondary">
+                  {photos.length} of {photoLimit} photos
+                </Badge>
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Edit Mode - Full editing capability
   return (
-    <Card>
+    <Card className="border-border/60">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <ImageIcon className="h-5 w-5" />
-          Photo Gallery
-        </CardTitle>
-        <CardDescription>
-          Add up to {photoLimit} photos of your facility. Drag to reorder. Max file size: 5MB per photo.
-        </CardDescription>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
+            <CardTitle className="flex items-center gap-2">
+              <ImageIcon className="h-5 w-5 shrink-0" />
+              <span>Edit Photo Gallery</span>
+            </CardTitle>
+            <CardDescription className="mt-1">
+              Add up to {photoLimit} photos. Drag to reorder. Max file size: 5MB per photo.
+            </CardDescription>
+          </div>
+          <Button variant="ghost" size="sm" onClick={() => setIsEditing(false)} className="shrink-0 self-start">
+            <X className="mr-2 h-4 w-4" />
+            Done
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
         {isLoading ? (

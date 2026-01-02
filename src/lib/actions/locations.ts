@@ -10,7 +10,7 @@ type ActionResult<T = void> =
   | { success: true; data?: T }
   | { success: false; error: string };
 
-export type LocationServiceMode = "center_based" | "in_home" | "both";
+export type ServiceType = "in_home" | "in_center" | "telehealth" | "school_based";
 
 export interface LocationData {
   id: string;
@@ -23,12 +23,14 @@ export interface LocationData {
   longitude: number | null;
   serviceRadiusMiles: number;
   isPrimary: boolean;
+  isAcceptingClients: boolean;
   createdAt: string;
-  serviceMode: LocationServiceMode;
-  insurances: string[];
-  // Contact info
+  serviceTypes: ServiceType[]; // Multi-select service types (in_home, in_center, telehealth, school_based)
+  insurances: string[]; // Always location-level, no fallback to company
+  // Contact info override
   contactPhone: string | null;
   contactEmail: string | null;
+  contactWebsite: string | null;
   useCompanyContact: boolean;
   // Google Business integration
   googlePlaceId: string | null;
@@ -79,8 +81,9 @@ export async function getLocations(): Promise<ActionResult<LocationData[]>> {
     .from("locations")
     .select(`
       id, label, street, city, state, postal_code, latitude, longitude,
-      service_radius_miles, is_primary, created_at, service_mode, insurances,
-      contact_phone, contact_email, use_company_contact,
+      service_radius_miles, is_primary, is_accepting_clients, created_at, service_types,
+      insurances,
+      contact_phone, contact_email, contact_website, use_company_contact,
       google_place_id, google_rating, google_rating_count,
       is_featured,
       location_featured_subscriptions!left (
@@ -124,11 +127,13 @@ export async function getLocations(): Promise<ActionResult<LocationData[]>> {
         longitude: loc.longitude,
         serviceRadiusMiles: loc.service_radius_miles || 25,
         isPrimary: loc.is_primary,
+        isAcceptingClients: loc.is_accepting_clients ?? true,
         createdAt: loc.created_at,
-        serviceMode: (loc.service_mode as LocationServiceMode) || "both",
+        serviceTypes: (loc.service_types as ServiceType[]) || ["in_home", "in_center"],
         insurances: (loc.insurances as string[]) || [],
         contactPhone: loc.contact_phone,
         contactEmail: loc.contact_email,
+        contactWebsite: loc.contact_website,
         useCompanyContact: loc.use_company_contact ?? true,
         googlePlaceId: loc.google_place_id,
         googleRating: loc.google_rating,
@@ -157,11 +162,13 @@ export async function addLocation(data: {
   latitude?: number;
   longitude?: number;
   serviceRadiusMiles?: number;
-  serviceMode: LocationServiceMode;
+  serviceTypes: ServiceType[];
   insurances: string[];
-  // Contact info
+  isAcceptingClients?: boolean;
+  // Contact info override
   contactPhone?: string;
   contactEmail?: string;
+  contactWebsite?: string;
   useCompanyContact?: boolean;
 }): Promise<ActionResult<{ id: string; geocoded: boolean }>> {
   const user = await getUser();
@@ -238,6 +245,13 @@ export async function addLocation(data: {
     geocodeSuccess = true;
   }
 
+  // Map service_types array to legacy service_mode value for backward compatibility
+  const legacyServiceMode = data.serviceTypes?.includes("in_home") && data.serviceTypes?.includes("in_center")
+    ? "both"
+    : data.serviceTypes?.includes("in_home")
+    ? "in_home"
+    : "center_based";
+
   const { data: newLocation, error } = await supabase
     .from("locations")
     .insert({
@@ -251,11 +265,14 @@ export async function addLocation(data: {
       longitude,
       service_radius_miles: data.serviceRadiusMiles || 25,
       is_primary: isPrimary,
-      service_mode: data.serviceMode,
+      is_accepting_clients: data.isAcceptingClients ?? true,
+      service_types: data.serviceTypes,
+      service_mode: legacyServiceMode, // Legacy column - still has NOT NULL constraint
       insurances: data.insurances,
-      // Contact info defaults to using company contact
+      // Contact info override
       contact_phone: data.contactPhone || null,
       contact_email: data.contactEmail || null,
+      contact_website: data.contactWebsite || null,
       use_company_contact: data.useCompanyContact ?? true,
     })
     .select("id")
@@ -266,7 +283,7 @@ export async function addLocation(data: {
   }
 
   revalidatePath("/dashboard");
-  revalidatePath("/dashboard/listing");
+  revalidatePath("/dashboard/company");
   return { success: true, data: { id: newLocation.id, geocoded: geocodeSuccess } };
 }
 
@@ -284,11 +301,13 @@ export async function updateLocation(
     latitude?: number;
     longitude?: number;
     serviceRadiusMiles?: number;
-    serviceMode?: LocationServiceMode;
+    serviceTypes?: ServiceType[];
     insurances?: string[];
-    // Contact info
+    isAcceptingClients?: boolean;
+    // Contact info override
     contactPhone?: string;
     contactEmail?: string;
+    contactWebsite?: string;
     useCompanyContact?: boolean;
   }
 ): Promise<ActionResult<{ geocoded: boolean }>> {
@@ -322,11 +341,13 @@ export async function updateLocation(
   if (data.state !== undefined) updateData.state = data.state;
   if (data.postalCode !== undefined) updateData.postal_code = data.postalCode || null;
   if (data.serviceRadiusMiles !== undefined) updateData.service_radius_miles = data.serviceRadiusMiles;
-  if (data.serviceMode !== undefined) updateData.service_mode = data.serviceMode;
+  if (data.serviceTypes !== undefined) updateData.service_types = data.serviceTypes;
   if (data.insurances !== undefined) updateData.insurances = data.insurances;
-  // Contact info
+  if (data.isAcceptingClients !== undefined) updateData.is_accepting_clients = data.isAcceptingClients;
+  // Contact info override
   if (data.contactPhone !== undefined) updateData.contact_phone = data.contactPhone || null;
   if (data.contactEmail !== undefined) updateData.contact_email = data.contactEmail || null;
+  if (data.contactWebsite !== undefined) updateData.contact_website = data.contactWebsite || null;
   if (data.useCompanyContact !== undefined) updateData.use_company_contact = data.useCompanyContact;
 
   // Check if address fields changed - if so, re-geocode
@@ -389,7 +410,7 @@ export async function updateLocation(
   }
 
   revalidatePath("/dashboard");
-  revalidatePath("/dashboard/listing");
+  revalidatePath("/dashboard/company");
   return { success: true, data: { geocoded: geocodeSuccess } };
 }
 
@@ -475,7 +496,7 @@ export async function deleteLocation(locationId: string): Promise<ActionResult> 
   }
 
   revalidatePath("/dashboard");
-  revalidatePath("/dashboard/listing");
+  revalidatePath("/dashboard/company");
   revalidatePath("/dashboard/locations");
   return { success: true };
 }
@@ -524,7 +545,7 @@ export async function setPrimaryLocation(locationId: string): Promise<ActionResu
   }
 
   revalidatePath("/dashboard");
-  revalidatePath("/dashboard/listing");
+  revalidatePath("/dashboard/company");
   return { success: true };
 }
 

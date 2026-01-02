@@ -15,10 +15,10 @@ export async function GET(request: Request) {
   const selectedInterval = searchParams.get("interval");
 
   // Validate plan tier and billing interval
+  // Normalize to "month"/"year" to match Stripe's convention
   const validPlans = ["free", "pro", "enterprise"];
   const planTier = selectedPlan && validPlans.includes(selectedPlan) ? selectedPlan : "free";
-  const validIntervals = ["monthly", "annual"];
-  const billingInterval = selectedInterval && validIntervals.includes(selectedInterval) ? selectedInterval : "monthly";
+  const billingInterval = selectedInterval === "annual" || selectedInterval === "year" ? "year" : "month";
 
   if (code) {
     const supabase = await createClient();

@@ -202,6 +202,182 @@ async function geocodeWithOpenCage(
 }
 
 /**
+ * Reverse geocode coordinates to address
+ */
+export async function reverseGeocode(
+  latitude: number,
+  longitude: number
+): Promise<GeocodingResult | null> {
+  // Check cache first
+  const cacheKey = `${latitude.toFixed(6)},${longitude.toFixed(6)}`;
+  if (geocodeCache.has(cacheKey)) {
+    return geocodeCache.get(cacheKey)!;
+  }
+
+  const config = getGeoConfig();
+  if (!config) {
+    return null;
+  }
+
+  try {
+    let result: GeocodingResult | null = null;
+
+    switch (config.provider) {
+      case "google":
+        result = await reverseGeocodeWithGoogle(latitude, longitude, config.apiKey);
+        break;
+      case "mapbox":
+        result = await reverseGeocodeWithMapbox(latitude, longitude, config.apiKey);
+        break;
+      case "opencage":
+        result = await reverseGeocodeWithOpenCage(latitude, longitude, config.apiKey);
+        break;
+    }
+
+    if (result) {
+      geocodeCache.set(cacheKey, result);
+    }
+
+    return result;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Google Maps Reverse Geocoding
+ */
+async function reverseGeocodeWithGoogle(
+  latitude: number,
+  longitude: number,
+  apiKey: string
+): Promise<GeocodingResult | null> {
+  const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${apiKey}`;
+
+  const response = await fetch(url);
+  const data = await response.json();
+
+  if (data.status !== "OK" || !data.results?.[0]) {
+    return null;
+  }
+
+  const result = data.results[0];
+
+  // Extract address components
+  let city: string | undefined;
+  let state: string | undefined;
+  let postalCode: string | undefined;
+  let country: string | undefined;
+
+  for (const component of result.address_components) {
+    if (component.types.includes("locality")) {
+      city = component.long_name;
+    }
+    if (component.types.includes("administrative_area_level_1")) {
+      state = component.short_name;
+    }
+    if (component.types.includes("postal_code")) {
+      postalCode = component.long_name;
+    }
+    if (component.types.includes("country")) {
+      country = component.short_name;
+    }
+  }
+
+  return {
+    latitude,
+    longitude,
+    formattedAddress: result.formatted_address,
+    city,
+    state,
+    postalCode,
+    country,
+  };
+}
+
+/**
+ * Mapbox Reverse Geocoding
+ */
+async function reverseGeocodeWithMapbox(
+  latitude: number,
+  longitude: number,
+  apiKey: string
+): Promise<GeocodingResult | null> {
+  const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${longitude},${latitude}.json?access_token=${apiKey}&types=address,place,region,postcode`;
+
+  const response = await fetch(url);
+  const data = await response.json();
+
+  if (!data.features?.[0]) {
+    return null;
+  }
+
+  const feature = data.features[0];
+
+  // Extract context components
+  let city: string | undefined;
+  let state: string | undefined;
+  let postalCode: string | undefined;
+  let country: string | undefined;
+
+  for (const ctx of feature.context || []) {
+    if (ctx.id.startsWith("place.")) {
+      city = ctx.text;
+    }
+    if (ctx.id.startsWith("region.")) {
+      state = ctx.short_code?.replace("US-", "");
+    }
+    if (ctx.id.startsWith("postcode.")) {
+      postalCode = ctx.text;
+    }
+    if (ctx.id.startsWith("country.")) {
+      country = ctx.short_code?.toUpperCase();
+    }
+  }
+
+  return {
+    latitude,
+    longitude,
+    formattedAddress: feature.place_name,
+    city,
+    state,
+    postalCode,
+    country,
+  };
+}
+
+/**
+ * OpenCage Reverse Geocoding
+ */
+async function reverseGeocodeWithOpenCage(
+  latitude: number,
+  longitude: number,
+  apiKey: string
+): Promise<GeocodingResult | null> {
+  const url = `https://api.opencagedata.com/geocode/v1/json?q=${latitude}+${longitude}&key=${apiKey}&limit=1`;
+
+  const response = await fetch(url);
+  const data = await response.json();
+
+  if (!data.results?.[0]) {
+    return null;
+  }
+
+  const result = data.results[0];
+  const components = result.components;
+
+  return {
+    latitude,
+    longitude,
+    formattedAddress: result.formatted,
+    city: components.city || components.town || components.village,
+    state: components.state_code,
+    postalCode: components.postcode,
+    country: components.country_code?.toUpperCase(),
+  };
+}
+
+/**
  * Clear the geocoding cache
  */
 export function clearGeocodeCache(): void {

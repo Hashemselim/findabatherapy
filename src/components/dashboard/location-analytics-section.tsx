@@ -40,25 +40,13 @@ export function LocationAnalyticsSection({
           Analytics breakdown by service location
         </CardDescription>
       </CardHeader>
-      <CardContent className="p-0">
+      <CardContent className="p-0 pb-4">
         {filteredLocations.length === 0 ? (
           <div className="px-4 py-8 text-center text-sm text-muted-foreground">
             No locations match the current filter
           </div>
         ) : (
-          <div className="divide-y divide-border/60">
-            {/* Header row */}
-            <div className="hidden items-center gap-4 bg-muted/30 px-4 py-2 text-xs font-medium text-muted-foreground sm:flex">
-              <div className="w-4" /> {/* Spacer for chevron */}
-              <div className="flex-1">Location</div>
-              <div className="flex items-center gap-6">
-                <div className="w-16 text-right">Views</div>
-                <div className="w-16 text-right">Impr.</div>
-                <div className="w-16 text-right">Clicks</div>
-                <div className="w-16 text-right">CTR</div>
-              </div>
-            </div>
-
+          <div className="space-y-0">
             {/* Location rows */}
             {filteredLocations.map((location) => (
               <LocationAnalyticsRow key={location.locationId} location={location} />

@@ -12,7 +12,6 @@ import {
   MapPin,
   Star,
   Trash2,
-  Pencil,
   CheckCircle2,
   AlertCircle,
   Building2,
@@ -20,6 +19,9 @@ import {
   Sparkles,
   MapPinOff,
   TrendingUp,
+  Video,
+  GraduationCap,
+  Users,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -27,6 +29,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -42,7 +45,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -62,63 +64,89 @@ import {
   deleteLocation,
   setPrimaryLocation,
   type LocationData,
-  type LocationServiceMode,
+  type ServiceType,
 } from "@/lib/actions/locations";
 import {
   SERVICE_RADIUS_OPTIONS,
-  LOCATION_SERVICE_MODES,
   INSURANCE_OPTIONS,
+  SERVICE_TYPE_OPTIONS,
 } from "@/lib/validations/onboarding";
 import { GoogleBusinessLinkModal } from "@/components/dashboard/google-business-link-modal";
 import { FeaturedUpgradeButton, type FeaturedPricing } from "@/components/dashboard/featured-upgrade-button";
 import { FeaturedManageButton } from "@/components/dashboard/featured-manage-button";
+import { useFormErrorHandler, FormErrorSummary } from "@/hooks/use-form-error-handler";
 
 const locationFormSchema = z
   .object({
     label: z.string().optional(),
-    serviceMode: z.enum(["center_based", "in_home", "both"]),
+    serviceTypes: z.array(z.string()).min(1, "Please select at least one service type"),
     street: z.string().optional(),
     city: z.string().min(2, "City is required"),
     state: z.string().length(2, "Please select a state"),
     postalCode: z.string().optional(),
     serviceRadiusMiles: z.number().min(5).max(100),
-    insurances: z.array(z.string()).min(1, "Please select at least one insurance"),
     latitude: z.number().optional(),
     longitude: z.number().optional(),
+    // Contact override
+    useCompanyContact: z.boolean(),
+    contactPhone: z.string().optional(),
+    contactEmail: z.string().email().optional().or(z.literal("")),
+    contactWebsite: z
+      .string()
+      .optional()
+      .or(z.literal(""))
+      .transform((val) => {
+        if (!val || val === "") return "";
+        // Auto-prepend https:// if no protocol specified
+        if (!val.match(/^https?:\/\//i)) {
+          return `https://${val}`;
+        }
+        return val;
+      })
+      .refine((val) => val === "" || z.string().url().safeParse(val).success, {
+        message: "Please enter a valid website URL",
+      }),
+    // Insurances - always location-level
+    insurances: z.array(z.string()).min(1, "Please select at least one insurance"),
+    // Accepting clients
+    isAcceptingClients: z.boolean(),
   })
   .refine(
     (data) => {
-      if (data.serviceMode === "center_based" || data.serviceMode === "both") {
+      // If center-based or school-based is selected, street address is required
+      if (data.serviceTypes.includes("in_center") || data.serviceTypes.includes("school_based")) {
         return data.street && data.street.trim().length > 0;
       }
       return true;
     },
     {
-      message: "Street address is required for center-based services",
+      message: "Street address is required for center-based and school-based services",
       path: ["street"],
     }
   );
 
 type LocationFormValues = z.infer<typeof locationFormSchema>;
 
+export interface CompanyDefaults {
+  phone: string | null;
+  email: string;
+  website: string | null;
+}
+
 interface LocationsManagerProps {
   initialLocations: LocationData[];
   locationLimit: number;
   planTier: string;
   featuredPricing: FeaturedPricing;
+  companyDefaults: CompanyDefaults;
 }
-
-const SERVICE_MODE_LABELS: Record<LocationServiceMode, string> = {
-  center_based: "Center-Based",
-  in_home: "In-Home",
-  both: "Center & In-Home",
-};
 
 export function LocationsManager({
   initialLocations,
   locationLimit,
   planTier,
   featuredPricing,
+  companyDefaults,
 }: LocationsManagerProps) {
   const [locations, setLocations] = useState<LocationData[]>(initialLocations);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -151,37 +179,60 @@ export function LocationsManager({
     resolver: zodResolver(locationFormSchema),
     defaultValues: {
       label: "",
-      serviceMode: "both",
+      serviceTypes: ["in_home", "in_center"],
       street: "",
       city: "",
       state: "",
       postalCode: "",
       serviceRadiusMiles: 25,
-      insurances: [],
       latitude: undefined,
       longitude: undefined,
+      // Contact override - default to using company contact
+      useCompanyContact: true,
+      contactPhone: "",
+      contactEmail: "",
+      contactWebsite: "",
+      // Insurances - empty by default, user must select
+      insurances: [],
+      // Accepting clients - default to true
+      isAcceptingClients: true,
     },
   });
 
-  const serviceMode = form.watch("serviceMode");
+  const { formRef, hasErrors, errorCount } = useFormErrorHandler({
+    errors: form.formState.errors,
+    isSubmitting: form.formState.isSubmitting,
+  });
+
+  const selectedServiceTypes = form.watch("serviceTypes") || [];
   const selectedInsurances = form.watch("insurances") || [];
+  const useCompanyContact = form.watch("useCompanyContact");
+  const isAcceptingClients = form.watch("isAcceptingClients");
   const canAddMore = locations.length < locationLimit;
   const isFreePlan = planTier === "free";
 
-  const showServiceRadius = serviceMode === "in_home" || serviceMode === "both";
+  const showServiceRadius = selectedServiceTypes.includes("in_home") || selectedServiceTypes.includes("telehealth");
 
   const resetForm = () => {
     form.reset({
       label: "",
-      serviceMode: "both",
+      serviceTypes: ["in_home", "in_center"],
       street: "",
       city: "",
       state: "",
       postalCode: "",
       serviceRadiusMiles: 25,
-      insurances: [],
       latitude: undefined,
       longitude: undefined,
+      // Contact override - reset to using company contact
+      useCompanyContact: true,
+      contactPhone: "",
+      contactEmail: "",
+      contactWebsite: "",
+      // Insurances - empty for new locations
+      insurances: [],
+      // Accepting clients
+      isAcceptingClients: true,
     });
     setAddressInput("");
     setSelectedPlace(null);
@@ -191,10 +242,11 @@ export function LocationsManager({
 
   const handlePlaceSelect = (place: PlaceDetails) => {
     setSelectedPlace(place);
-    // Auto-populate form fields from place details
-    if (place.city) form.setValue("city", place.city);
-    if (place.state) form.setValue("state", place.state);
-    if (place.postalCode) form.setValue("postalCode", place.postalCode);
+    // Clear previous values first, then set new ones
+    form.setValue("street", "");
+    form.setValue("city", place.city || "");
+    form.setValue("state", place.state || "");
+    form.setValue("postalCode", place.postalCode || "");
     form.setValue("latitude", place.latitude);
     form.setValue("longitude", place.longitude);
     // Extract street from formatted address (everything before city)
@@ -217,15 +269,23 @@ export function LocationsManager({
     setSelectedPlace(null); // Clear selected place when editing
     form.reset({
       label: location.label || "",
-      serviceMode: location.serviceMode,
+      serviceTypes: location.serviceTypes || ["in_home", "in_center"],
       street: location.street || "",
       city: location.city,
       state: location.state,
       postalCode: location.postalCode || "",
       serviceRadiusMiles: location.serviceRadiusMiles,
-      insurances: location.insurances || [],
       latitude: location.latitude || undefined,
       longitude: location.longitude || undefined,
+      // Contact override
+      useCompanyContact: location.useCompanyContact,
+      contactPhone: location.contactPhone || "",
+      contactEmail: location.contactEmail || "",
+      contactWebsite: location.contactWebsite || "",
+      // Insurances
+      insurances: location.insurances || [],
+      // Accepting clients
+      isAcceptingClients: location.isAcceptingClients,
     });
     setIsDialogOpen(true);
   };
@@ -243,6 +303,19 @@ export function LocationsManager({
     }
   };
 
+  const toggleServiceType = (type: string) => {
+    const current = selectedServiceTypes || [];
+    if (current.includes(type)) {
+      form.setValue(
+        "serviceTypes",
+        current.filter((t) => t !== type),
+        { shouldValidate: true }
+      );
+    } else {
+      form.setValue("serviceTypes", [...current, type], { shouldValidate: true });
+    }
+  };
+
   const handleSubmit = (values: LocationFormValues) => {
     setError(null);
 
@@ -251,15 +324,23 @@ export function LocationsManager({
         // Update existing location
         const result = await updateLocation(editingLocation.id, {
           label: values.label || undefined,
-          serviceMode: values.serviceMode,
+          serviceTypes: values.serviceTypes as ServiceType[],
           street: values.street || undefined,
           city: values.city,
           state: values.state,
           postalCode: values.postalCode || undefined,
           serviceRadiusMiles: values.serviceRadiusMiles,
-          insurances: values.insurances,
           latitude: values.latitude,
           longitude: values.longitude,
+          // Contact override
+          useCompanyContact: values.useCompanyContact,
+          contactPhone: values.useCompanyContact ? undefined : values.contactPhone,
+          contactEmail: values.useCompanyContact ? undefined : values.contactEmail,
+          contactWebsite: values.useCompanyContact ? undefined : values.contactWebsite,
+          // Insurances
+          insurances: values.insurances,
+          // Accepting clients
+          isAcceptingClients: values.isAcceptingClients,
         });
 
         if (!result.success) {
@@ -275,16 +356,24 @@ export function LocationsManager({
               ? {
                   ...loc,
                   label: values.label || null,
-                  serviceMode: values.serviceMode,
+                  serviceTypes: values.serviceTypes as ServiceType[],
                   street: values.street || null,
                   city: values.city,
                   state: values.state,
                   postalCode: values.postalCode || null,
                   serviceRadiusMiles: values.serviceRadiusMiles,
-                  insurances: values.insurances,
                   // Update lat/lng status based on geocoding result
                   latitude: geocoded ? loc.latitude ?? 1 : null,
                   longitude: geocoded ? loc.longitude ?? 1 : null,
+                  // Contact override
+                  useCompanyContact: values.useCompanyContact,
+                  contactPhone: values.useCompanyContact ? null : (values.contactPhone || null),
+                  contactEmail: values.useCompanyContact ? null : (values.contactEmail || null),
+                  contactWebsite: values.useCompanyContact ? null : (values.contactWebsite || null),
+                  // Insurances
+                  insurances: values.insurances,
+                  // Accepting clients
+                  isAcceptingClients: values.isAcceptingClients,
                 }
               : loc
           )
@@ -295,15 +384,23 @@ export function LocationsManager({
         // Add new location
         const result = await addLocation({
           label: values.label || undefined,
-          serviceMode: values.serviceMode,
+          serviceTypes: values.serviceTypes as ServiceType[],
           street: values.street || undefined,
           city: values.city,
           state: values.state,
           postalCode: values.postalCode || undefined,
           serviceRadiusMiles: values.serviceRadiusMiles,
-          insurances: values.insurances,
           latitude: values.latitude,
           longitude: values.longitude,
+          // Contact override
+          useCompanyContact: values.useCompanyContact,
+          contactPhone: values.useCompanyContact ? undefined : values.contactPhone,
+          contactEmail: values.useCompanyContact ? undefined : values.contactEmail,
+          contactWebsite: values.useCompanyContact ? undefined : values.contactWebsite,
+          // Insurances
+          insurances: values.insurances,
+          // Accepting clients
+          isAcceptingClients: values.isAcceptingClients,
         });
 
         if (!result.success) {
@@ -316,7 +413,7 @@ export function LocationsManager({
         const newLocation: LocationData = {
           id: result.data!.id,
           label: values.label || null,
-          serviceMode: values.serviceMode,
+          serviceTypes: values.serviceTypes as ServiceType[],
           street: values.street || null,
           city: values.city,
           state: values.state,
@@ -325,13 +422,16 @@ export function LocationsManager({
           latitude: geocoded ? 1 : null,
           longitude: geocoded ? 1 : null,
           serviceRadiusMiles: values.serviceRadiusMiles,
-          insurances: values.insurances,
           isPrimary: locations.length === 0,
+          isAcceptingClients: values.isAcceptingClients,
           createdAt: new Date().toISOString(),
-          // Contact info - defaults to using company contact
-          contactPhone: null,
-          contactEmail: null,
-          useCompanyContact: true,
+          // Contact override
+          useCompanyContact: values.useCompanyContact,
+          contactPhone: values.useCompanyContact ? null : (values.contactPhone || null),
+          contactEmail: values.useCompanyContact ? null : (values.contactEmail || null),
+          contactWebsite: values.useCompanyContact ? null : (values.contactWebsite || null),
+          // Insurances
+          insurances: values.insurances,
           // Google Business - not linked initially
           googlePlaceId: null,
           googleRating: null,
@@ -388,35 +488,117 @@ export function LocationsManager({
     });
   };
 
+  const handleFeaturedSuccess = (locationId: string, billingInterval: string) => {
+    // Optimistically update local state so UI reflects featured status immediately
+    setLocations((prev) =>
+      prev.map((loc) =>
+        loc.id === locationId
+          ? {
+              ...loc,
+              isFeatured: true,
+              featuredSubscription: {
+                status: "active",
+                billingInterval: billingInterval as "month" | "year",
+                currentPeriodEnd: null,
+                cancelAtPeriodEnd: false,
+              },
+            }
+          : loc
+      )
+    );
+
+    const location = locations.find((l) => l.id === locationId);
+    const locationName = location?.label || `${location?.city}, ${location?.state}` || "Location";
+    setSuccess(`${locationName} is now featured and will appear at the top of search results!`);
+    setTimeout(() => setSuccess(null), 5000);
+  };
+
+  const handleFeaturedCancel = (locationId: string) => {
+    // Optimistically update to show cancellation pending
+    setLocations((prev) =>
+      prev.map((loc) =>
+        loc.id === locationId && loc.featuredSubscription
+          ? {
+              ...loc,
+              featuredSubscription: {
+                ...loc.featuredSubscription,
+                cancelAtPeriodEnd: true,
+              },
+            }
+          : loc
+      )
+    );
+
+    const location = locations.find((l) => l.id === locationId);
+    const locationName = location?.label || `${location?.city}, ${location?.state}` || "Location";
+    setSuccess(`Featured status for ${locationName} will end at the current billing period.`);
+    setTimeout(() => setSuccess(null), 5000);
+  };
+
+  const handleFeaturedReactivate = (locationId: string) => {
+    // Optimistically update to show reactivation
+    setLocations((prev) =>
+      prev.map((loc) =>
+        loc.id === locationId && loc.featuredSubscription
+          ? {
+              ...loc,
+              featuredSubscription: {
+                ...loc.featuredSubscription,
+                cancelAtPeriodEnd: false,
+              },
+            }
+          : loc
+      )
+    );
+
+    const location = locations.find((l) => l.id === locationId);
+    const locationName = location?.label || `${location?.city}, ${location?.state}` || "Location";
+    setSuccess(`${locationName} featured status has been reactivated!`);
+    setTimeout(() => setSuccess(null), 5000);
+  };
+
   return (
     <>
-    <Card className="border-border/60">
-      <CardHeader>
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <CardTitle>Locations</CardTitle>
-            <CardDescription>
-              Manage your service locations. Each location can have different services and insurances.
-            </CardDescription>
-          </div>
-          <Dialog
-            open={isDialogOpen}
-            onOpenChange={(open) => {
-              setIsDialogOpen(open);
-              if (!open) resetForm();
+    <div className="space-y-4">
+      {/* Success/Error Messages */}
+      {success && (
+        <div className="flex items-center gap-2 rounded-lg bg-emerald-500/10 p-3 text-sm text-emerald-600">
+          <CheckCircle2 className="h-4 w-4" />
+          {success}
+        </div>
+      )}
+
+      {error && !isDialogOpen && (
+        <div className="flex items-center gap-2 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
+          <AlertCircle className="h-4 w-4" />
+          {error}
+        </div>
+      )}
+
+      {/* Add Location Button */}
+      {canAddMore && (
+        <div className="flex justify-end">
+          <Button
+            onClick={() => {
+              resetForm();
+              setIsDialogOpen(true);
             }}
+            disabled={isPending}
           >
-            <DialogTrigger asChild>
-              <Button
-                size="sm"
-                disabled={!canAddMore || isPending}
-                onClick={() => resetForm()}
-                className="w-full sm:w-auto"
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Add Location
-              </Button>
-            </DialogTrigger>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Location
+          </Button>
+        </div>
+      )}
+
+      {/* Add Location Dialog */}
+      <Dialog
+        open={isDialogOpen}
+        onOpenChange={(open) => {
+          setIsDialogOpen(open);
+          if (!open) resetForm();
+        }}
+      >
             <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
               <DialogHeader>
                 <DialogTitle>
@@ -428,7 +610,7 @@ export function LocationsManager({
                     : "Add a new service location with its service type and accepted insurances."}
                 </DialogDescription>
               </DialogHeader>
-              <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+              <form ref={formRef} onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
                 {error && (
                   <div className="flex items-center gap-2 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
                     <AlertCircle className="h-4 w-4 shrink-0" />
@@ -436,33 +618,44 @@ export function LocationsManager({
                   </div>
                 )}
 
-                {/* Service Mode */}
+                {/* Service Types - Multi-select */}
                 <div className="space-y-2">
-                  <Label>Service Type</Label>
-                  <div className="grid gap-2 sm:grid-cols-3">
-                    {LOCATION_SERVICE_MODES.map((mode) => (
+                  <Label>Service Types *</Label>
+                  <p className="text-xs text-muted-foreground">Select all service types available at this location</p>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {SERVICE_TYPE_OPTIONS.map((type) => (
                       <button
-                        key={mode.value}
+                        key={type.value}
                         type="button"
-                        onClick={() => form.setValue("serviceMode", mode.value as LocationServiceMode)}
-                        className={`flex flex-col items-center gap-1 rounded-lg border-2 p-3 text-xs transition-colors ${
-                          serviceMode === mode.value
+                        onClick={() => toggleServiceType(type.value)}
+                        className={`flex items-center gap-2 rounded-lg border-2 p-3 text-sm transition-colors ${
+                          selectedServiceTypes.includes(type.value)
                             ? "border-primary bg-primary/5"
                             : "border-border hover:border-primary/50"
                         }`}
                       >
-                        {mode.value === "center_based" && <Building2 className="h-4 w-4 text-[#5788FF]" />}
-                        {mode.value === "in_home" && <Home className="h-4 w-4 text-[#5788FF]" />}
-                        {mode.value === "both" && (
-                          <div className="flex">
-                            <Building2 className="h-4 w-4 text-[#5788FF]" />
-                            <Home className="h-4 w-4 text-[#5788FF]" />
-                          </div>
-                        )}
-                        <span className="font-medium">{mode.label}</span>
+                        <div className={`flex h-5 w-5 items-center justify-center rounded border ${
+                          selectedServiceTypes.includes(type.value)
+                            ? "border-primary bg-primary text-primary-foreground"
+                            : "border-muted-foreground/30"
+                        }`}>
+                          {selectedServiceTypes.includes(type.value) && (
+                            <CheckCircle2 className="h-3 w-3" />
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {type.value === "in_home" && <Home className="h-4 w-4 text-[#5788FF]" />}
+                          {type.value === "in_center" && <Building2 className="h-4 w-4 text-[#5788FF]" />}
+                          {type.value === "telehealth" && <Video className="h-4 w-4 text-[#5788FF]" />}
+                          {type.value === "school_based" && <GraduationCap className="h-4 w-4 text-[#5788FF]" />}
+                          <span className="font-medium">{type.label}</span>
+                        </div>
                       </button>
                     ))}
                   </div>
+                  {form.formState.errors.serviceTypes && (
+                    <p className="text-xs text-destructive">{form.formState.errors.serviceTypes.message}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -531,40 +724,131 @@ export function LocationsManager({
                   </div>
                 )}
 
-                <div className="grid gap-4 sm:grid-cols-2">
+                {showServiceRadius && (
+                  <div className="space-y-2">
+                    <Label htmlFor="serviceRadius">Service Radius</Label>
+                    <Select
+                      value={form.watch("serviceRadiusMiles").toString()}
+                      onValueChange={(value) =>
+                        form.setValue("serviceRadiusMiles", parseInt(value))
+                      }
+                      disabled={isPending}
+                    >
+                      <SelectTrigger id="serviceRadius">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {SERVICE_RADIUS_OPTIONS.map((option) => (
+                          <SelectItem
+                            key={option.value}
+                            value={option.value.toString()}
+                          >
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
 
-                  {showServiceRadius && (
-                    <div className="space-y-2">
-                      <Label htmlFor="serviceRadius">Service Radius</Label>
-                      <Select
-                        value={form.watch("serviceRadiusMiles").toString()}
-                        onValueChange={(value) =>
-                          form.setValue("serviceRadiusMiles", parseInt(value))
+                {/* Accepting New Clients Toggle */}
+                <div className="flex items-center justify-between rounded-lg border border-border/60 p-4">
+                  <div className="flex items-center gap-3">
+                    <Users className="h-5 w-5 text-muted-foreground" />
+                    <div>
+                      <Label htmlFor="acceptingClients" className="cursor-pointer font-medium">
+                        Accepting New Clients
+                      </Label>
+                      <p className="text-xs text-muted-foreground">
+                        Show families that this location has availability
+                      </p>
+                    </div>
+                  </div>
+                  <Switch
+                    id="acceptingClients"
+                    checked={isAcceptingClients}
+                    onCheckedChange={(checked) => form.setValue("isAcceptingClients", checked)}
+                    disabled={isPending}
+                  />
+                </div>
+
+                {/* Contact Override Section */}
+                <div className="space-y-3 rounded-lg border border-border/60 bg-muted/20 p-4">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="useCompanyContact"
+                      checked={useCompanyContact}
+                      onCheckedChange={(checked) => {
+                        form.setValue("useCompanyContact", !!checked);
+                        if (checked) {
+                          form.setValue("contactPhone", "");
+                          form.setValue("contactEmail", "");
+                          form.setValue("contactWebsite", "");
                         }
-                        disabled={isPending}
-                      >
-                        <SelectTrigger id="serviceRadius">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {SERVICE_RADIUS_OPTIONS.map((option) => (
-                            <SelectItem
-                              key={option.value}
-                              value={option.value.toString()}
-                            >
-                              {option.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      }}
+                      disabled={isPending}
+                    />
+                    <Label htmlFor="useCompanyContact" className="cursor-pointer text-sm font-medium">
+                      Use company contact info
+                    </Label>
+                  </div>
+
+                  {useCompanyContact ? (
+                    <div className="rounded-lg bg-muted/40 p-3 text-sm">
+                      <p className="text-xs text-muted-foreground mb-1">Using company defaults:</p>
+                      <p>{companyDefaults.phone || "No phone set"}</p>
+                      <p>{companyDefaults.email}</p>
+                      <p>{companyDefaults.website ? companyDefaults.website.replace(/^https?:\/\//, "") : "No website set"}</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <div className="space-y-1">
+                          <Label htmlFor="contactPhone" className="text-xs">Phone</Label>
+                          <Input
+                            id="contactPhone"
+                            placeholder="(555) 123-4567"
+                            {...form.register("contactPhone")}
+                            disabled={isPending}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label htmlFor="contactEmail" className="text-xs">Email</Label>
+                          <Input
+                            id="contactEmail"
+                            type="email"
+                            placeholder="contact@example.com"
+                            {...form.register("contactEmail")}
+                            disabled={isPending}
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <Label htmlFor="contactWebsite" className="text-xs">Website</Label>
+                        <Input
+                          id="contactWebsite"
+                          type="text"
+                          placeholder="example.com"
+                          {...form.register("contactWebsite")}
+                          disabled={isPending}
+                        />
+                        {form.formState.errors.contactWebsite && (
+                          <p className="text-xs text-destructive">
+                            {form.formState.errors.contactWebsite.message}
+                          </p>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
 
-                {/* Insurance Selection */}
-                <div className="space-y-2">
+                {/* Insurance Section - Always location-level */}
+                <div className="space-y-3">
                   <Label>Insurance Accepted *</Label>
-                  <div className="grid max-h-40 gap-2 overflow-y-auto rounded-lg border border-border/60 p-3 sm:grid-cols-2">
+                  <p className="text-xs text-muted-foreground">
+                    Select all insurance plans accepted at this location
+                  </p>
+                  <div className="grid max-h-48 gap-2 overflow-y-auto rounded-lg border border-border/60 bg-background p-3 sm:grid-cols-2">
                     {INSURANCE_OPTIONS.map((insurance) => (
                       <div key={insurance} className="flex items-center space-x-2">
                         <Checkbox
@@ -589,314 +873,285 @@ export function LocationsManager({
                   )}
                 </div>
 
-                <div className="flex justify-end gap-2 pt-4">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      setIsDialogOpen(false);
-                      resetForm();
-                    }}
-                    disabled={isPending}
-                  >
-                    Cancel
-                  </Button>
-                  <Button type="submit" disabled={isPending}>
-                    {isPending ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Saving...
-                      </>
-                    ) : editingLocation ? (
-                      "Save Changes"
-                    ) : (
-                      "Add Location"
-                    )}
-                  </Button>
+                <div className="flex flex-col items-end gap-2 pt-4">
+                  {hasErrors && <FormErrorSummary errorCount={errorCount} />}
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setIsDialogOpen(false);
+                        resetForm();
+                      }}
+                      disabled={isPending}
+                    >
+                      Cancel
+                    </Button>
+                    <Button type="submit" disabled={isPending}>
+                      {isPending ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Saving...
+                        </>
+                      ) : editingLocation ? (
+                        "Save Changes"
+                      ) : (
+                        "Add Location"
+                      )}
+                    </Button>
+                  </div>
                 </div>
               </form>
             </DialogContent>
           </Dialog>
+
+      {/* Locations List */}
+      {locations.length === 0 ? (
+        <div className="rounded-lg border border-dashed border-border/60 p-8 text-center">
+          <MapPin className="mx-auto h-8 w-8 text-muted-foreground" />
+          <p className="mt-2 text-sm text-muted-foreground">
+            No locations added yet. Add your first location to appear in search results.
+          </p>
         </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {success && (
-          <div className="flex items-center gap-2 rounded-lg bg-emerald-500/10 p-3 text-sm text-emerald-600">
-            <CheckCircle2 className="h-4 w-4" />
-            {success}
-          </div>
-        )}
+      ) : (
+        <div className="space-y-4">
+          {locations.map((location) => {
+            const locationName = location.label || `${location.city}, ${location.state}`;
+            const isFeatured = location.isFeatured && location.featuredSubscription;
 
-        {error && !isDialogOpen && (
-          <div className="flex items-center gap-2 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
-            <AlertCircle className="h-4 w-4" />
-            {error}
-          </div>
-        )}
-
-        {locations.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-border/60 p-8 text-center">
-            <MapPin className="mx-auto h-8 w-8 text-muted-foreground" />
-            <p className="mt-2 text-sm text-muted-foreground">
-              No locations added yet. Add your first location to appear in search results.
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {locations.map((location) => {
-              const locationName = location.label || `${location.city}, ${location.state}`;
-              const isFeatured = location.isFeatured && location.featuredSubscription;
-
-              return (
-                <div
-                  key={location.id}
-                  className={`rounded-lg border p-4 transition-colors ${
-                    isFeatured
-                      ? "border-amber-300 bg-gradient-to-br from-amber-50/80 via-white to-amber-50/50 ring-1 ring-amber-200/50"
-                      : "border-border/60"
-                  }`}
-                >
-                  {/* Main content */}
-                  <div className="flex items-start gap-3">
-                    <div className={`hidden rounded-lg p-2 sm:block ${
-                      isFeatured ? "bg-amber-100" : "bg-primary/10"
-                    }`}>
-                      <MapPin className={`h-4 w-4 ${isFeatured ? "text-amber-600" : "text-[#5788FF]"}`} />
-                    </div>
-                    <div className="min-w-0 flex-1 space-y-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="font-medium text-foreground">{locationName}</p>
-                        {location.isPrimary && (
-                          <Badge variant="secondary" className="text-xs">
-                            <Star className="mr-1 h-3 w-3" />
-                            Primary
-                          </Badge>
-                        )}
-                        {isFeatured && (
-                          <Badge className="gap-1 border-amber-300 bg-amber-100 text-amber-700" variant="outline">
-                            <Sparkles className="h-3 w-3 fill-amber-400" />
-                            Featured
-                          </Badge>
-                        )}
-                        <Badge variant="outline" className="text-xs">
-                          {SERVICE_MODE_LABELS[location.serviceMode]}
-                        </Badge>
+            return (
+              <Card key={location.id} className="border-border/60">
+                <CardHeader>
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-start gap-3">
+                      <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${
+                        isFeatured ? "bg-amber-100" : "bg-[#5788FF]/10"
+                      }`}>
+                        <MapPin className={`h-5 w-5 ${isFeatured ? "text-amber-600" : "text-[#5788FF]"}`} />
                       </div>
-                      <p className="text-sm text-muted-foreground break-words">
-                        {[location.street, location.city, location.state, location.postalCode]
-                          .filter(Boolean)
-                          .join(", ")}
-                      </p>
-                      {(location.serviceMode === "in_home" || location.serviceMode === "both") && (
-                        <p className="text-xs text-muted-foreground">
-                          Service radius: {location.serviceRadiusMiles} miles
-                        </p>
-                      )}
-                      {location.insurances && location.insurances.length > 0 && (
-                        <p className="text-xs text-muted-foreground">
-                          Insurance:{" "}
-                          {location.insurances.slice(0, 3).join(", ")}
-                          {location.insurances.length > 3 && ` +${location.insurances.length - 3} more`}
-                        </p>
-                      )}
-                      {/* Geocoding status indicator */}
-                      {location.latitude && location.longitude ? (
-                        <p className="flex items-center gap-1 text-xs text-emerald-600">
-                          <CheckCircle2 className="h-3 w-3" />
-                          Address verified
-                        </p>
-                      ) : (
-                        <p className="flex items-center gap-1 text-xs text-amber-600">
-                          <MapPinOff className="h-3 w-3" />
-                          Address not verified
-                        </p>
-                      )}
-                      {/* Google Business Link - Paid feature only */}
-                      {location.googlePlaceId ? (
-                        <div className="flex items-center gap-2">
-                          <a
-                            href={`https://www.google.com/maps/place/?q=place_id:${location.googlePlaceId}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-xs transition-colors hover:bg-amber-100"
+                      <div>
+                        <CardTitle className="text-base">{locationName}</CardTitle>
+                        <CardDescription className="mt-1">
+                          {location.street
+                            ? `${location.street}, ${location.city}, ${location.state} ${location.postalCode}`
+                            : `${location.city}, ${location.state}`}
+                        </CardDescription>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {isFeatured && (
+                            <Badge className="bg-amber-500 text-white">
+                              <Sparkles className="mr-1 h-3 w-3" />
+                              Featured
+                            </Badge>
+                          )}
+                          {location.isPrimary && (
+                            <Badge variant="secondary">Primary</Badge>
+                          )}
+                          <Badge
+                            variant={location.isAcceptingClients ? "default" : "secondary"}
+                            className={location.isAcceptingClients ? "bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20" : ""}
                           >
-                            <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
-                            <span className="font-medium text-amber-700">
-                              {location.googleRating?.toFixed(1) || "N/A"}
-                            </span>
-                            {location.googleRatingCount && (
-                              <span className="text-amber-600">
-                                ({location.googleRatingCount.toLocaleString()})
-                              </span>
-                            )}
-                          </a>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setGoogleLinkLocation(location);
-                              setGoogleLinkModalOpen(true);
-                            }}
-                            className="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
-                          >
-                            Edit
-                          </button>
+                            {location.isAcceptingClients ? "Accepting Clients" : "Not Accepting"}
+                          </Badge>
                         </div>
-                      ) : !isFreePlan ? (
+                      </div>
+                    </div>
+                    <Button variant="outline" size="sm" onClick={() => openEditDialog(location)} disabled={isPending}>
+                      Edit
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Service Types as Badges */}
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground mb-2">
+                      Service Types
+                    </p>
+                    <div className="flex flex-wrap gap-1">
+                      {(location.serviceTypes || []).length > 0 ? (
+                        (location.serviceTypes || []).map((type) => {
+                          const typeOption = SERVICE_TYPE_OPTIONS.find((t) => t.value === type);
+                          return (
+                            <Badge key={type} variant="outline" className="text-xs">
+                              {typeOption?.label || type}
+                            </Badge>
+                          );
+                        })
+                      ) : (
+                        <span className="text-xs text-muted-foreground">No service types set</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Service Radius */}
+                  {((location.serviceTypes || []).includes("in_home") ||
+                    (location.serviceTypes || []).includes("telehealth")) && (
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">
+                        Service Radius
+                      </p>
+                      <p className="text-foreground">
+                        {location.serviceRadiusMiles} miles
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Insurances as Badges */}
+                  {location.insurances && location.insurances.length > 0 && (
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground mb-2">
+                        Insurances Accepted
+                      </p>
+                      <div className="flex flex-wrap gap-1">
+                        {location.insurances.map((insurance) => (
+                          <Badge key={insurance} variant="outline" className="text-xs">
+                            {insurance}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Geocoding and Google status */}
+                  <div className="flex items-center gap-4">
+                    {location.latitude && location.longitude ? (
+                      <p className="flex items-center gap-1 text-xs text-emerald-600">
+                        <CheckCircle2 className="h-3 w-3" />
+                        Address verified
+                      </p>
+                    ) : (
+                      <p className="flex items-center gap-1 text-xs text-amber-600">
+                        <MapPinOff className="h-3 w-3" />
+                        Address not verified
+                      </p>
+                    )}
+
+                    {/* Google Business Link - Paid feature only */}
+                    {location.googlePlaceId ? (
+                      <div className="flex items-center gap-2">
+                        <a
+                          href={`https://www.google.com/maps/place/?q=place_id:${location.googlePlaceId}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-xs transition-colors hover:bg-amber-100"
+                        >
+                          <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                          <span className="font-medium text-amber-700">
+                            {location.googleRating?.toFixed(1) || "N/A"}
+                          </span>
+                          {location.googleRatingCount && (
+                            <span className="text-amber-600">
+                              ({location.googleRatingCount.toLocaleString()})
+                            </span>
+                          )}
+                        </a>
                         <button
                           type="button"
                           onClick={() => {
                             setGoogleLinkLocation(location);
                             setGoogleLinkModalOpen(true);
                           }}
-                          className="flex items-center gap-1.5 text-xs text-[#5788FF] underline-offset-2 hover:underline"
+                          className="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
                         >
-                          <Star className="h-3 w-3" />
-                          Show your Google rating
+                          Edit
                         </button>
-                      ) : (
-                        <Link
-                          href="/dashboard/billing"
-                          className="flex items-center gap-1.5 text-xs text-muted-foreground"
-                        >
-                          <Star className="h-3 w-3" />
-                          <span>Google rating</span>
-                          <Badge variant="outline" className="ml-1 px-1.5 py-0 text-[10px]">Pro</Badge>
-                        </Link>
-                      )}
-                    </div>
+                      </div>
+                    ) : !isFreePlan ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setGoogleLinkLocation(location);
+                          setGoogleLinkModalOpen(true);
+                        }}
+                        className="flex items-center gap-1.5 text-xs text-[#5788FF] underline-offset-2 hover:underline"
+                      >
+                        <Star className="h-3 w-3" />
+                        Show your Google rating
+                      </button>
+                    ) : (
+                      <Link
+                        href="/dashboard/billing"
+                        className="flex items-center gap-1.5 text-xs text-muted-foreground"
+                      >
+                        <Star className="h-3 w-3" />
+                        <span>Google rating</span>
+                        <Badge variant="outline" className="ml-1 px-1.5 py-0 text-[10px]">Pro</Badge>
+                      </Link>
+                    )}
+                  </div>
 
-                    {/* Actions - desktop only */}
-                    <div className="hidden items-center gap-1 sm:flex">
+                  {/* Actions Row */}
+                  <div className="flex flex-col gap-3 border-t border-border/40 pt-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+                    {/* Left side - Featured upgrade or status */}
+                    {!isFreePlan && (
+                      <>
+                        {isFeatured && location.featuredSubscription ? (
+                          <div className="flex items-center gap-2">
+                            <TrendingUp className="h-4 w-4 shrink-0 text-amber-600" />
+                            <span className="text-sm text-amber-700">
+                              Appearing at top of {location.state} searches
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <Sparkles className="h-4 w-4 shrink-0 text-slate-400" />
+                            <span className="text-sm text-muted-foreground">
+                              Boost to top of search results
+                            </span>
+                          </div>
+                        )}
+                      </>
+                    )}
+
+                    {/* Right side - Action buttons */}
+                    <div className="flex flex-wrap items-center gap-2">
+                      {!isFreePlan && (
+                        <>
+                          {isFeatured && location.featuredSubscription ? (
+                            <FeaturedManageButton
+                              locationId={location.id}
+                              locationName={locationName}
+                              status={location.featuredSubscription.status}
+                              billingInterval={location.featuredSubscription.billingInterval}
+                              currentPeriodEnd={location.featuredSubscription.currentPeriodEnd}
+                              cancelAtPeriodEnd={location.featuredSubscription.cancelAtPeriodEnd}
+                              onCancel={() => handleFeaturedCancel(location.id)}
+                              onReactivate={() => handleFeaturedReactivate(location.id)}
+                            />
+                          ) : (
+                            <FeaturedUpgradeButton
+                              locationId={location.id}
+                              locationName={locationName}
+                              disabled={isPending}
+                              pricing={featuredPricing}
+                              onSuccess={({ billingInterval }) =>
+                                handleFeaturedSuccess(location.id, billingInterval)
+                              }
+                            />
+                          )}
+                        </>
+                      )}
                       {!location.isPrimary && (
                         <Button
-                          variant="ghost"
+                          variant="outline"
                           size="sm"
                           onClick={() => handleSetPrimary(location.id)}
                           disabled={isPending}
-                          title="Set as primary"
                         >
-                          <Star className="h-4 w-4" />
+                          <Star className="mr-2 h-4 w-4" />
+                          Set Primary
                         </Button>
                       )}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => openEditDialog(location)}
-                        disabled={isPending}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
                       {locations.length > 1 && (
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="sm" disabled={isPending}>
-                              <Trash2 className="h-4 w-4 text-destructive" />
+                            <Button variant="outline" size="sm" disabled={isPending}>
+                              <Trash2 className="mr-2 h-4 w-4 text-destructive" />
+                              Delete
                             </Button>
                           </AlertDialogTrigger>
                           <AlertDialogContent>
                             <AlertDialogHeader>
                               <AlertDialogTitle>Delete Location</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Are you sure you want to delete this location? This action cannot be undone.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter className="flex-col gap-2 sm:flex-row">
-                              <AlertDialogCancel className="w-full sm:w-auto">Cancel</AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={() => handleDelete(location.id)}
-                                className="w-full bg-destructive text-destructive-foreground hover:bg-destructive/90 sm:w-auto"
-                              >
-                                Delete
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Featured upgrade section - separate from badges */}
-                  {!isFreePlan && (
-                    <div className={`mt-3 flex items-center justify-between border-t pt-3 ${
-                      isFeatured ? "border-amber-200/60" : "border-border/40"
-                    }`}>
-                      {isFeatured && location.featuredSubscription ? (
-                        <div className="flex flex-1 items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <TrendingUp className="h-4 w-4 text-amber-600" />
-                            <span className="text-sm text-amber-700">
-                              Appearing at top of {location.state} searches
-                            </span>
-                          </div>
-                          <FeaturedManageButton
-                            locationId={location.id}
-                            locationName={locationName}
-                            status={location.featuredSubscription.status}
-                            billingInterval={location.featuredSubscription.billingInterval}
-                            currentPeriodEnd={location.featuredSubscription.currentPeriodEnd}
-                            cancelAtPeriodEnd={location.featuredSubscription.cancelAtPeriodEnd}
-                          />
-                        </div>
-                      ) : (
-                        <div className="flex flex-1 items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <Sparkles className="h-4 w-4 text-slate-400" />
-                            <span className="text-sm text-muted-foreground">
-                              Boost to top of search results
-                            </span>
-                          </div>
-                          <FeaturedUpgradeButton
-                            locationId={location.id}
-                            locationName={locationName}
-                            disabled={isPending}
-                            pricing={featuredPricing}
-                          />
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Mobile actions */}
-                  <div className="mt-3 flex items-center justify-end gap-1 border-t border-border/40 pt-3 sm:hidden">
-                    {!location.isPrimary && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleSetPrimary(location.id)}
-                        disabled={isPending}
-                        title="Set as primary"
-                        className="min-h-[44px] min-w-[44px]"
-                      >
-                        <Star className="h-4 w-4" />
-                        <span className="ml-2">Primary</span>
-                      </Button>
-                    )}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => openEditDialog(location)}
-                      disabled={isPending}
-                      className="min-h-[44px] min-w-[44px]"
-                    >
-                      <Pencil className="h-4 w-4" />
-                      <span className="ml-2">Edit</span>
-                    </Button>
-                    {locations.length > 1 && (
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            disabled={isPending}
-                            className="min-h-[44px] min-w-[44px]"
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                            <span className="ml-2 text-destructive">Delete</span>
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Delete Location</AlertDialogTitle>
                             <AlertDialogDescription>
                               Are you sure you want to delete this location? This action cannot be undone.
                             </AlertDialogDescription>
@@ -913,52 +1168,47 @@ export function LocationsManager({
                         </AlertDialogContent>
                       </AlertDialog>
                     )}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
 
-        {!canAddMore && !isFreePlan && (
-          <p className="text-sm text-muted-foreground">
-            You&apos;ve reached your plan&apos;s location limit ({locationLimit}).
-          </p>
-        )}
-
-        {isFreePlan && locations.length > 0 && (
-          <div className="relative overflow-hidden rounded-xl border border-slate-200 bg-gradient-to-br from-slate-50 via-white to-slate-50 shadow-sm">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(59,130,246,0.06),transparent_50%)]" />
-            <div className="relative flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-3">
-                <div className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600 sm:flex">
-                  <MapPin className="h-5 w-5" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-medium text-slate-900">
-                      Add more locations
-                    </p>
-                    <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-600">
-                      <Sparkles className="h-3 w-3" />
-                      Pro
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-500">
-                    Free plan is limited to 1 location. Upgrade to add up to 5 locations.
-                  </p>
-                </div>
+      {/* Free plan upgrade upsell */}
+      {isFreePlan && locations.length > 0 && (
+        <Card className="border-slate-200 bg-gradient-to-br from-slate-50 via-white to-slate-50">
+          <CardContent className="flex flex-col gap-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
+              <div className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600 sm:flex">
+                <MapPin className="h-5 w-5" />
               </div>
-              <Button asChild size="sm" className="w-full shrink-0 rounded-full sm:w-auto">
-                <Link href="/dashboard/billing">
-                  Upgrade Now
-                </Link>
-              </Button>
+              <div>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-medium text-slate-900">
+                    Add more locations
+                  </p>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-600">
+                    <Sparkles className="h-3 w-3" />
+                    Pro
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500">
+                  Free plan is limited to 1 location. Upgrade to add up to 5 locations.
+                </p>
+              </div>
             </div>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+            <Button asChild size="sm" className="w-full shrink-0 rounded-full sm:w-auto">
+              <Link href="/dashboard/billing">
+                Upgrade Now
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+    </div>
 
       {/* Google Business Link Modal */}
       {googleLinkLocation && (

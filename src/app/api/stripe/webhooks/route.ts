@@ -1,4 +1,5 @@
 import { headers } from "next/headers";
+import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import type Stripe from "stripe";
 
@@ -186,6 +187,11 @@ async function handleCheckoutCompleted(
     },
   });
 
+  // Revalidate dashboard pages so the UI reflects the change
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/company");
+  revalidatePath("/dashboard/locations");
+
   console.log(`Checkout completed for profile ${profileId}, plan: ${planTier}, interval: ${billingInterval}`);
 }
 
@@ -253,6 +259,11 @@ async function updateProfileSubscription(
     })
     .eq("profile_id", profileId);
 
+  // Revalidate dashboard pages so the UI reflects the change
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/company");
+  revalidatePath("/dashboard/locations");
+
   console.log(`Subscription updated for profile ${profileId}, status: ${subscription.status}, interval: ${billingInterval}`);
 }
 
@@ -319,6 +330,11 @@ async function handleSubscriptionDeleted(
     },
   });
 
+  // Revalidate dashboard pages so the UI reflects the change
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/company");
+  revalidatePath("/dashboard/locations");
+
   console.log(`Subscription cancelled for profile ${targetProfileId}`);
 }
 
@@ -354,6 +370,11 @@ async function handleInvoicePaid(
       currency: invoice.currency,
     },
   });
+
+  // Revalidate dashboard pages so the UI reflects the change
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/company");
+  revalidatePath("/dashboard/locations");
 
   console.log(`Invoice paid for profile ${profile.id}, amount: ${invoice.amount_paid}`);
 }
@@ -402,6 +423,11 @@ async function handleInvoicePaymentFailed(
       attemptCount: invoice.attempt_count || 1,
     });
   }
+
+  // Revalidate dashboard pages so the UI reflects the change
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/company");
+  revalidatePath("/dashboard/locations");
 
   console.log(`Invoice payment failed for profile ${profile.id}`);
 }
@@ -481,6 +507,11 @@ async function handleFeaturedLocationCheckoutCompleted(
       billing_interval: billingInterval,
     },
   });
+
+  // Revalidate dashboard pages so the UI reflects the change
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/company");
+  revalidatePath("/dashboard/locations");
 
   console.log(`Featured location activated: ${locationId} for profile ${profileId}`);
 }
@@ -565,6 +596,11 @@ async function handleFeaturedLocationSubscriptionCreated(
     },
   });
 
+  // Revalidate dashboard pages so the UI reflects the change
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/company");
+  revalidatePath("/dashboard/locations");
+
   console.log(`Featured location activated (direct): ${locationId} for profile ${profileId}`);
 }
 
@@ -625,6 +661,11 @@ async function handleFeaturedLocationSubscriptionUpdated(
       .eq("id", locationId);
   }
 
+  // Revalidate dashboard pages so the UI reflects the change
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/company");
+  revalidatePath("/dashboard/locations");
+
   console.log(`Featured location subscription updated: ${locationId}, status: ${status}`);
 }
 
@@ -675,6 +716,11 @@ async function handleFeaturedLocationSubscriptionDeleted(
       },
     });
   }
+
+  // Revalidate dashboard pages so the UI reflects the change
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/company");
+  revalidatePath("/dashboard/locations");
 
   console.log(`Featured location subscription cancelled: ${locationId}`);
 }

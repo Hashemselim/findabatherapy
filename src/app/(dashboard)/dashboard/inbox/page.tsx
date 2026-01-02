@@ -4,8 +4,10 @@ import { ClipboardList, Mail, MessageSquare, Sparkles, ArrowRight, CheckCircle2,
 
 import { getInquiries } from "@/lib/actions/inquiries";
 import { getLocations } from "@/lib/actions/locations";
+import { getListingAttributes } from "@/lib/actions/listings";
 import { getProfile } from "@/lib/supabase/server";
 import { InquiriesList } from "@/components/dashboard/inquiries-list";
+import { ContactFormToggle } from "@/components/dashboard/inbox/contact-form-toggle";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { BubbleBackground } from "@/components/ui/bubble-background";
@@ -182,10 +184,11 @@ export default async function InquiriesPage() {
     );
   }
 
-  // Fetch inquiries and locations in parallel
-  const [result, locationsResult] = await Promise.all([
+  // Fetch inquiries, locations, and attributes in parallel
+  const [result, locationsResult, attributesResult] = await Promise.all([
     getInquiries(),
     getLocations(),
+    getListingAttributes(),
   ]);
 
   if (!result.success) {
@@ -216,20 +219,20 @@ export default async function InquiriesPage() {
         state: loc.state,
       }))
     : [];
+  const contactFormEnabled = attributesResult.success
+    ? (attributesResult.data?.contact_form_enabled as boolean) !== false
+    : true;
 
   return (
-    <div className="space-y-4 sm:space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">Contact Form Inbox</h1>
-        <p className="mt-1 text-sm text-muted-foreground sm:mt-2">
-          Manage messages from families interested in your services.
-          {unreadCount > 0 && (
-            <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
-              <Mail className="h-3 w-3" />
-              {unreadCount} new
-            </span>
-          )}
-        </p>
+    <div className="flex min-h-0 flex-1 flex-col gap-4 sm:gap-6 lg:overflow-hidden">
+      <div className="flex shrink-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">Contact Form Inbox</h1>
+          <p className="mt-1 text-sm text-muted-foreground sm:mt-2">
+            Manage messages from families interested in your services.
+          </p>
+        </div>
+        <ContactFormToggle contactFormEnabled={contactFormEnabled} />
       </div>
 
       <Suspense

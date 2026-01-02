@@ -3,15 +3,17 @@ import Link from "next/link";
 import { Suspense, type ReactNode } from "react";
 
 import { HomeSearchCard } from "@/components/home/home-search-card";
+import { CompactSearchBar } from "@/components/search/compact-search-bar";
 import { SearchFilters, ActiveFilters } from "@/components/search/search-filters";
 import { SearchResults, SearchResultsSkeleton } from "@/components/search/search-results";
 import { SearchPagination } from "@/components/search/search-pagination";
+import { SearchTracker } from "@/components/search/search-tracker";
 import { SortToggle } from "@/components/search/sort-toggle";
 import { BubbleBackground } from "@/components/ui/bubble-background";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { searchProviderLocationsWithGooglePlaces } from "@/lib/actions/search";
-import { trackSearchImpressions } from "@/lib/analytics/track";
+import { trackSearch, trackSearchImpressions } from "@/lib/analytics/track";
 import { parseFiltersFromParams, parseOptionsFromParams } from "@/lib/search/filters";
 
 interface SearchPageProps {
@@ -114,9 +116,30 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
 
   // Fetch results (combined location + Google Places search)
   const result = await searchProviderLocationsWithGooglePlaces(filters, options);
-  const { results, total, page, totalPages } = result.success
+  const { results, total, page, totalPages, radiusMiles } = result.success
     ? result.data
-    : { results: [], total: 0, page: 1, totalPages: 0 };
+    : { results: [], total: 0, page: 1, totalPages: 0, radiusMiles: 25 };
+
+  // Track search event with full filter metadata (non-blocking)
+  trackSearch(
+    filters.query,
+    {
+      state: filters.state,
+      city: filters.city,
+      serviceTypes: filters.serviceTypes,
+      insurances: filters.insurances,
+      languages: filters.languages,
+      agesServed: filters.agesServed,
+      acceptingClients: filters.acceptingClients,
+      userLat: filters.userLat,
+      userLng: filters.userLng,
+      radiusMiles: filters.radiusMiles,
+    },
+    total,
+    page
+  ).catch(() => {
+    // Silently fail - don't block page render
+  });
 
   // Track search impressions for real listings only (non-blocking)
   const realListingsForTracking = results
@@ -136,8 +159,8 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     });
   }
 
-  // Build heading with blue highlight for location
-  let heading: ReactNode = "Find ABA Therapy Providers";
+  // Build heading with blue highlight
+  let heading: ReactNode = <>Search <span className="text-[#5788FF]">ABA Therapy</span> Providers</>;
   const hasProximitySearch = filters.userLat !== undefined && filters.userLng !== undefined;
 
   if (hasProximitySearch) {
@@ -168,32 +191,60 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     defaultLocation = filters.query;
   }
 
+  // Hero variant toggle: "compact" (default) or "full" for A/B testing
+  const heroVariant = params.hero === "full" ? "full" : "compact";
+
   return (
     <div className="space-y-6 pb-16">
       {/* Hero Section with Search */}
       <section className="px-0 pt-0">
-        <BubbleBackground
-          interactive
-          transition={{ stiffness: 100, damping: 50, mass: 0.5 }}
-          className="w-full bg-gradient-to-br from-white via-yellow-50/50 to-blue-50/50 py-6 sm:py-8"
-          colors={{
-            first: "255,255,255",
-            second: "255,236,170",
-            third: "135,176,255",
-            fourth: "255,248,210",
-            fifth: "190,210,255",
-            sixth: "240,248,255",
-          }}
-        >
-          <div className="mx-auto flex w-full max-w-5xl flex-col items-center gap-4 px-4 sm:px-6">
-            <HomeSearchCard
-              heading={heading}
-              defaultLocation={defaultLocation}
-              defaultServices={filters.serviceModes?.length ? filters.serviceModes : undefined}
-              defaultInsurance={filters.insurances?.[0]}
-            />
-          </div>
-        </BubbleBackground>
+        {heroVariant === "compact" ? (
+          <BubbleBackground
+            interactive
+            transition={{ stiffness: 100, damping: 50, mass: 0.5 }}
+            className="w-full bg-gradient-to-br from-white via-yellow-50/50 to-blue-50/50 py-4 sm:py-5"
+            colors={{
+              first: "255,255,255",
+              second: "255,236,170",
+              third: "135,176,255",
+              fourth: "255,248,210",
+              fifth: "190,210,255",
+              sixth: "240,248,255",
+            }}
+          >
+            <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
+              <CompactSearchBar
+                heading={heading}
+                defaultLocation={defaultLocation}
+                defaultServices={filters.serviceTypes?.length ? filters.serviceTypes : undefined}
+                defaultInsurance={filters.insurances?.[0]}
+              />
+            </div>
+          </BubbleBackground>
+        ) : (
+          <BubbleBackground
+            interactive
+            transition={{ stiffness: 100, damping: 50, mass: 0.5 }}
+            className="w-full bg-gradient-to-br from-white via-yellow-50/50 to-blue-50/50 py-6 sm:py-8"
+            colors={{
+              first: "255,255,255",
+              second: "255,236,170",
+              third: "135,176,255",
+              fourth: "255,248,210",
+              fifth: "190,210,255",
+              sixth: "240,248,255",
+            }}
+          >
+            <div className="mx-auto flex w-full max-w-5xl flex-col items-center gap-4 px-4 sm:px-6">
+              <HomeSearchCard
+                heading={heading}
+                defaultLocation={defaultLocation}
+                defaultServices={filters.serviceTypes?.length ? filters.serviceTypes : undefined}
+                defaultInsurance={filters.insurances?.[0]}
+              />
+            </div>
+          </BubbleBackground>
+        )}
       </section>
 
       {/* Main Content */}
@@ -223,9 +274,24 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
               <ActiveFilters />
             </Suspense>
 
+            {/* PostHog Search Tracking (client-side) */}
+            <SearchTracker
+              query={filters.query}
+              state={filters.state}
+              city={filters.city}
+              serviceTypes={filters.serviceTypes}
+              insurances={filters.insurances}
+              languages={filters.languages}
+              agesServedMin={filters.agesServed?.min}
+              agesServedMax={filters.agesServed?.max}
+              acceptingClients={filters.acceptingClients}
+              resultsCount={total}
+              page={page}
+            />
+
             {/* Results List */}
             <Suspense fallback={<SearchResultsSkeleton />}>
-              <SearchResults results={results} searchQuery={filters.query} />
+              <SearchResults results={results} searchQuery={filters.query} radiusMiles={radiusMiles} hasProximitySearch={hasProximitySearch} />
             </Suspense>
 
             {/* Pagination */}

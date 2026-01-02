@@ -8,6 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { createCheckoutSession } from "@/lib/stripe/actions";
 import { STRIPE_PLANS, type BillingInterval } from "@/lib/stripe/config";
+import {
+  trackCheckoutPageViewed,
+  trackCheckoutStarted,
+  trackCheckoutStripeRedirect,
+  trackCheckoutError,
+  trackError,
+} from "@/lib/posthog/events";
 
 function CheckoutContent() {
   const router = useRouter();
@@ -17,7 +24,8 @@ function CheckoutContent() {
 
   const planTier = searchParams.get("plan") as "pro" | "enterprise" | null;
   const intervalParam = searchParams.get("interval");
-  const billingInterval: BillingInterval = intervalParam === "annual" ? "year" : "month";
+  // Accept both "annual" and "year" as annual billing (normalize to "year" for Stripe)
+  const billingInterval: BillingInterval = intervalParam === "annual" || intervalParam === "year" ? "year" : "month";
   const returnTo = searchParams.get("return_to") || undefined;
 
   useEffect(() => {
@@ -28,17 +36,52 @@ function CheckoutContent() {
         return;
       }
 
+      // Track checkout page viewed
+      trackCheckoutPageViewed({
+        planTier,
+        billingInterval: billingInterval === "year" ? "year" : "month",
+        source: returnTo || "billing",
+      });
+
+      // Track checkout started
+      trackCheckoutStarted({
+        planTier,
+        billingInterval: billingInterval === "year" ? "year" : "month",
+        source: returnTo || "billing",
+      });
+
       const result = await createCheckoutSession(planTier, billingInterval, returnTo);
 
       if (!result.success) {
+        // Track checkout error
+        trackCheckoutError({
+          planTier,
+          billingInterval: billingInterval === "year" ? "year" : "month",
+          errorMessage: result.error,
+        });
+        trackError({
+          errorType: "api",
+          errorMessage: result.error,
+          componentName: "CheckoutPage",
+        });
         setError(result.error);
         setIsLoading(false);
         return;
       }
 
       if (result.data?.url) {
+        // Track redirect to Stripe
+        trackCheckoutStripeRedirect({
+          planTier,
+          billingInterval: billingInterval === "year" ? "year" : "month",
+        });
         window.location.href = result.data.url;
       } else {
+        trackCheckoutError({
+          planTier,
+          billingInterval: billingInterval === "year" ? "year" : "month",
+          errorMessage: "Failed to create checkout session",
+        });
         setError("Failed to create checkout session");
         setIsLoading(false);
       }

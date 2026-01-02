@@ -4,7 +4,7 @@ import { useState, useEffect, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowLeft, ArrowRight, Building2, Home, Loader2, MapPin, Users, CheckCircle2, AlertCircle } from "lucide-react";
+import { ArrowLeft, ArrowRight, Building2, Home, Loader2, MapPin, Users, CheckCircle2, AlertCircle, Video, GraduationCap } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,11 +20,12 @@ import {
 } from "@/components/ui/select";
 import { PlacesAutocomplete } from "@/components/ui/places-autocomplete";
 import type { PlaceDetails } from "@/hooks/use-places-autocomplete";
+import { useFormErrorHandler, FormErrorSummary } from "@/hooks/use-form-error-handler";
 import {
   locationWithServicesSchema,
   type LocationWithServicesData,
   SERVICE_RADIUS_OPTIONS,
-  LOCATION_SERVICE_MODES,
+  SERVICE_TYPE_OPTIONS,
   INSURANCE_OPTIONS,
 } from "@/lib/validations/onboarding";
 import { updateListingLocationWithServices, getOnboardingData } from "@/lib/actions/onboarding";
@@ -38,7 +39,7 @@ export default function OnboardingLocationPage() {
 
   const {
     handleSubmit,
-    formState: { errors },
+    formState: { errors, isSubmitting },
     setValue,
     watch,
     reset,
@@ -46,7 +47,7 @@ export default function OnboardingLocationPage() {
     resolver: zodResolver(locationWithServicesSchema),
     defaultValues: {
       label: "",
-      serviceMode: "both",
+      serviceTypes: ["in_home", "in_center"],
       street: "",
       city: "",
       state: "",
@@ -59,8 +60,13 @@ export default function OnboardingLocationPage() {
     },
   });
 
+  const { formRef, hasErrors, errorCount } = useFormErrorHandler({
+    errors,
+    isSubmitting,
+  });
+
   const serviceRadius = watch("serviceRadiusMiles");
-  const serviceMode = watch("serviceMode");
+  const selectedServiceTypes = watch("serviceTypes") || [];
   const selectedInsurances = watch("insurances") || [];
   const isAcceptingClients = watch("isAcceptingClients");
   const latitude = watch("latitude");
@@ -74,7 +80,7 @@ export default function OnboardingLocationPage() {
         const loc = result.data.location;
         reset({
           label: "",
-          serviceMode: loc.serviceMode || "both",
+          serviceTypes: loc.serviceTypes || ["in_home", "in_center"],
           street: loc.street || "",
           city: loc.city || "",
           state: loc.state || "",
@@ -93,12 +99,28 @@ export default function OnboardingLocationPage() {
     loadData();
   }, [reset]);
 
+  type ServiceTypeValue = "in_home" | "in_center" | "telehealth" | "school_based";
+
+  function toggleServiceType(type: ServiceTypeValue) {
+    const current = selectedServiceTypes || [];
+    if (current.includes(type)) {
+      setValue(
+        "serviceTypes",
+        current.filter((t) => t !== type),
+        { shouldValidate: true }
+      );
+    } else {
+      setValue("serviceTypes", [...current, type], { shouldValidate: true });
+    }
+  }
+
   const handlePlaceSelect = (place: PlaceDetails) => {
     setSelectedPlace(place);
-    // Auto-populate form fields from place details
-    if (place.city) setValue("city", place.city);
-    if (place.state) setValue("state", place.state);
-    if (place.postalCode) setValue("postalCode", place.postalCode);
+    // Clear previous values first, then set new ones
+    setValue("street", "");
+    setValue("city", place.city || "");
+    setValue("state", place.state || "");
+    setValue("postalCode", place.postalCode || "");
     setValue("latitude", place.latitude);
     setValue("longitude", place.longitude);
     // Extract street from formatted address (everything before city)
@@ -142,7 +164,7 @@ export default function OnboardingLocationPage() {
     });
   }
 
-  const showServiceRadius = serviceMode === "in_home" || serviceMode === "both";
+  const showServiceRadius = selectedServiceTypes.includes("in_home") || selectedServiceTypes.includes("telehealth");
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -154,44 +176,53 @@ export default function OnboardingLocationPage() {
         </p>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        {/* Service Mode Selection */}
+      <form ref={formRef} onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        {/* Service Types Selection - Multi-select */}
         <Card className="border-border/60">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <MapPin className="h-5 w-5 text-[#5788FF]" />
-              Service type
+              Service Types
             </CardTitle>
             <CardDescription>
-              How do you deliver services at this location?
+              Select all the ways you deliver services at this location
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-3 grid-cols-1 sm:grid-cols-3">
-              {LOCATION_SERVICE_MODES.map((mode) => (
+            <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
+              {SERVICE_TYPE_OPTIONS.map((type) => (
                 <button
-                  key={mode.value}
+                  key={type.value}
                   type="button"
-                  onClick={() => setValue("serviceMode", mode.value as LocationWithServicesData["serviceMode"])}
-                  className={`flex flex-col items-center gap-2 rounded-xl border-2 p-4 transition-colors ${
-                    serviceMode === mode.value
+                  onClick={() => toggleServiceType(type.value as ServiceTypeValue)}
+                  className={`flex items-center gap-3 rounded-xl border-2 p-4 transition-colors text-left ${
+                    selectedServiceTypes.includes(type.value)
                       ? "border-primary bg-primary/5"
                       : "border-border hover:border-primary/50"
                   }`}
                 >
-                  {mode.value === "center_based" && <Building2 className="h-6 w-6 text-[#5788FF]" />}
-                  {mode.value === "in_home" && <Home className="h-6 w-6 text-[#5788FF]" />}
-                  {mode.value === "both" && (
-                    <div className="flex">
-                      <Building2 className="h-5 w-5 text-[#5788FF]" />
-                      <Home className="h-5 w-5 text-[#5788FF]" />
-                    </div>
-                  )}
-                  <span className="font-medium">{mode.label}</span>
-                  <span className="text-xs text-muted-foreground text-center">{mode.description}</span>
+                  <div className={`flex h-6 w-6 items-center justify-center rounded border-2 ${
+                    selectedServiceTypes.includes(type.value)
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-muted-foreground/30"
+                  }`}>
+                    {selectedServiceTypes.includes(type.value) && (
+                      <CheckCircle2 className="h-4 w-4" />
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {type.value === "in_home" && <Home className="h-5 w-5 text-[#5788FF]" />}
+                    {type.value === "in_center" && <Building2 className="h-5 w-5 text-[#5788FF]" />}
+                    {type.value === "telehealth" && <Video className="h-5 w-5 text-[#5788FF]" />}
+                    {type.value === "school_based" && <GraduationCap className="h-5 w-5 text-[#5788FF]" />}
+                    <span className="font-medium">{type.label}</span>
+                  </div>
                 </button>
               ))}
             </div>
+            {errors.serviceTypes && (
+              <p className="mt-2 text-sm text-destructive">{errors.serviceTypes.message}</p>
+            )}
           </CardContent>
         </Card>
 
@@ -365,7 +396,7 @@ export default function OnboardingLocationPage() {
           </CardContent>
         </Card>
 
-        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-between">
+        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
           <Button
             type="button"
             variant="ghost"
@@ -376,24 +407,27 @@ export default function OnboardingLocationPage() {
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back
           </Button>
-          <Button
-            type="submit"
-            disabled={isPending}
-            size="lg"
-            className="w-full rounded-full px-8 sm:w-auto"
-          >
-            {isPending ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Saving...
-              </>
-            ) : (
-              <>
-                Continue
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </>
-            )}
-          </Button>
+          <div className="flex flex-col items-end gap-2">
+            {hasErrors && <FormErrorSummary errorCount={errorCount} />}
+            <Button
+              type="submit"
+              disabled={isPending}
+              size="lg"
+              className="w-full rounded-full px-8 sm:w-auto"
+            >
+              {isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  Continue
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </>
+              )}
+            </Button>
+          </div>
         </div>
       </form>
     </div>

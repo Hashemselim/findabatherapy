@@ -116,7 +116,7 @@ export function HomeSearchCard({
     }
 
     if (serviceModes.length > 0 && serviceModes.length < SERVICE_MODES.length) {
-      filters.serviceModes = serviceModes;
+      filters.serviceTypes = serviceModes;
     }
 
     if (insurance) {
@@ -145,6 +145,8 @@ export function HomeSearchCard({
             onPlaceSelect={handlePlaceSelect}
             placeholder="City, State or ZIP"
             showIcon={true}
+            showPillWhenValidated={true}
+            initialValidated={!!defaultLocation}
             className="mt-2"
             inputClassName="h-12 rounded-2xl pl-10 text-sm"
           />

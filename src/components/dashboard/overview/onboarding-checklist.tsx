@@ -29,7 +29,7 @@ export function OnboardingChecklist({ listing, isPaidPlan }: OnboardingChecklist
     {
       label: "Add your services and insurances",
       completed: hasServices,
-      href: "/dashboard/listing",
+      href: "/dashboard/company",
     },
     {
       label: "Confirm your location and contact info",
@@ -44,7 +44,7 @@ export function OnboardingChecklist({ listing, isPaidPlan }: OnboardingChecklist
     {
       label: "View your public listing",
       completed: isPublished,
-      href: isPublished ? `/provider/${listing.slug}` : "/dashboard/listing",
+      href: isPublished ? `/provider/${listing.slug}` : "/dashboard/company",
     },
   ];
 
@@ -114,7 +114,7 @@ export function OnboardingChecklist({ listing, isPaidPlan }: OnboardingChecklist
         {!isPublished && (
           <div className="mt-4 flex justify-end">
             <Button asChild className="w-full sm:w-auto">
-              <Link href="/dashboard/listing">
+              <Link href="/dashboard/company">
                 Continue Setup
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>

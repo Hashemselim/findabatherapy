@@ -8,11 +8,22 @@ const PROTECTED_ROUTES = ["/dashboard"];
 // Routes that should redirect authenticated users (auth pages)
 const AUTH_ROUTES = ["/auth/sign-in", "/auth/sign-up"];
 
+// Public routes that look like dashboard but don't require auth
+const PUBLIC_DASHBOARD_ROUTES = ["/demo"];
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Update session and get user
   const { supabaseResponse, user, supabase } = await updateSession(request);
+
+  // Allow demo routes without auth
+  const isDemoRoute = PUBLIC_DASHBOARD_ROUTES.some((route) =>
+    pathname.startsWith(route)
+  );
+  if (isDemoRoute) {
+    return supabaseResponse;
+  }
 
   // Check if the route is protected
   const isProtectedRoute = PROTECTED_ROUTES.some((route) =>

@@ -56,7 +56,7 @@ export async function linkGoogleBusiness(
   }
 
   revalidatePath("/dashboard");
-  revalidatePath("/dashboard/listing");
+  revalidatePath("/dashboard/company");
   revalidatePath("/dashboard/locations");
   return { success: true };
 }
@@ -104,7 +104,7 @@ export async function unlinkGoogleBusiness(locationId: string): Promise<ActionRe
   }
 
   revalidatePath("/dashboard");
-  revalidatePath("/dashboard/listing");
+  revalidatePath("/dashboard/company");
   revalidatePath("/dashboard/locations");
   return { success: true };
 }
@@ -183,7 +183,7 @@ export async function refreshGoogleRating(locationId: string): Promise<ActionRes
     }
 
     revalidatePath("/dashboard");
-    revalidatePath("/dashboard/listing");
+    revalidatePath("/dashboard/company");
     return { success: true, data: { rating, ratingCount } };
   } catch (err) {
     console.error("Error refreshing Google rating:", err);

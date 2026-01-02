@@ -45,6 +45,7 @@ import {
 import { BubbleBackground } from "@/components/ui/bubble-background";
 import { BillingPortalButton } from "@/components/billing/billing-portal-button";
 import { CancelDowngradeButton } from "@/components/billing/cancel-downgrade-button";
+import { EnterpriseUpgradeCard } from "@/components/billing/enterprise-upgrade-card";
 import { FeaturedManageButton } from "@/components/dashboard/featured-manage-button";
 import { getSubscription, getPendingDowngrade, getFeaturedAddonPrices, getFeaturedLocations } from "@/lib/stripe/actions";
 import { STRIPE_PLANS } from "@/lib/stripe/config";
@@ -285,46 +286,58 @@ export default async function DashboardBillingPage() {
           </div>
         )}
 
-        {pendingDowngrade && (
-          <div className="border-b border-blue-200 bg-blue-50 px-6 py-4">
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex items-start gap-3">
-                <Clock className="mt-0.5 h-5 w-5 flex-shrink-0 text-blue-600" />
-                <div>
-                  <p className="font-medium text-blue-800">
-                    {pendingDowngrade.pendingPlanTier === planTier ? "Billing Change Scheduled" : "Downgrade Scheduled"}
-                  </p>
-                  <p className="mt-1 text-sm text-blue-700">
-                    {pendingDowngrade.pendingPlanTier === planTier ? (
-                      <>
-                        Your billing will change to{" "}
-                        <span className="font-medium">{pendingDowngrade.pendingBillingInterval === "year" ? "annual" : "monthly"}</span> on{" "}
-                        {new Date(pendingDowngrade.effectiveDate).toLocaleDateString("en-US", {
-                          month: "long",
-                          day: "numeric",
-                          year: "numeric",
-                        })}
-                        .
-                      </>
-                    ) : (
-                      <>
-                        Your plan will change to{" "}
-                        <span className="font-medium capitalize">{pendingDowngrade.pendingPlanTier}</span> on{" "}
-                        {new Date(pendingDowngrade.effectiveDate).toLocaleDateString("en-US", {
-                          month: "long",
-                          day: "numeric",
-                          year: "numeric",
-                        })}
-                        . You&apos;ll keep your current features until then.
-                      </>
-                    )}
-                  </p>
+        {pendingDowngrade && (() => {
+          // Check if there's an actual change happening
+          const isPlanChanging = pendingDowngrade.pendingPlanTier !== planTier;
+          const isBillingIntervalChanging = pendingDowngrade.pendingBillingInterval &&
+            pendingDowngrade.pendingBillingInterval !== billingInterval;
+
+          // Don't show banner if nothing is actually changing (just a normal renewal)
+          if (!isPlanChanging && !isBillingIntervalChanging) {
+            return null;
+          }
+
+          return (
+            <div className="border-b border-blue-200 bg-blue-50 px-6 py-4">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-start gap-3">
+                  <Clock className="mt-0.5 h-5 w-5 flex-shrink-0 text-blue-600" />
+                  <div>
+                    <p className="font-medium text-blue-800">
+                      {isPlanChanging ? "Downgrade Scheduled" : "Billing Change Scheduled"}
+                    </p>
+                    <p className="mt-1 text-sm text-blue-700">
+                      {isPlanChanging ? (
+                        <>
+                          Your plan will change to{" "}
+                          <span className="font-medium capitalize">{pendingDowngrade.pendingPlanTier}</span> on{" "}
+                          {new Date(pendingDowngrade.effectiveDate).toLocaleDateString("en-US", {
+                            month: "long",
+                            day: "numeric",
+                            year: "numeric",
+                          })}
+                          . You&apos;ll keep your current features until then.
+                        </>
+                      ) : (
+                        <>
+                          Your billing will change to{" "}
+                          <span className="font-medium">{pendingDowngrade.pendingBillingInterval === "year" ? "annual" : "monthly"}</span> on{" "}
+                          {new Date(pendingDowngrade.effectiveDate).toLocaleDateString("en-US", {
+                            month: "long",
+                            day: "numeric",
+                            year: "numeric",
+                          })}
+                          .
+                        </>
+                      )}
+                    </p>
+                  </div>
                 </div>
+                <CancelDowngradeButton className="shrink-0" />
               </div>
-              <CancelDowngradeButton className="shrink-0" />
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         <CardContent className="pt-6">
           <h3 className="text-sm font-medium text-slate-700 mb-3">
@@ -481,30 +494,7 @@ export default async function DashboardBillingPage() {
       )}
 
       {/* Upgrade to Enterprise for Pro users */}
-      {isPro && (
-        <Card className="overflow-hidden border-slate-200 bg-gradient-to-br from-slate-50 to-white">
-          <CardContent className="flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-start gap-4">
-              <div className="rounded-xl bg-slate-100 p-3">
-                <Crown className="h-6 w-6 text-slate-600" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-slate-900">Upgrade to Enterprise</h3>
-                <p className="mt-1 text-sm text-slate-500">
-                  Get unlimited locations, top search placement, homepage features, and dedicated support.
-                  {isAnnual ? ` $${STRIPE_PLANS.enterprise.annual.price}/mo billed annually` : ` $${STRIPE_PLANS.enterprise.monthly.price}/mo`}
-                </p>
-              </div>
-            </div>
-            <Button asChild variant="outline" className="w-full shrink-0 rounded-full border-slate-200 hover:bg-slate-50 sm:w-auto">
-              <Link href={`/dashboard/billing/checkout?plan=enterprise&interval=${isAnnual ? "annual" : "monthly"}`}>
-                View Enterprise
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
-      )}
+      {isPro && <EnterpriseUpgradeCard isAnnual={isAnnual} />}
 
       {/* Featured Add-on */}
       {!isFreePlan && (

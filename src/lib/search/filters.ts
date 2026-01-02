@@ -19,10 +19,10 @@ export function parseFiltersFromParams(
   const city = searchParams.get("city");
   if (city) filters.city = city;
 
-  // Service modes (comma-separated)
-  const serviceModes = searchParams.get("services");
-  if (serviceModes) {
-    filters.serviceModes = serviceModes.split(",").filter(Boolean);
+  // Service types (comma-separated)
+  const serviceTypes = searchParams.get("services");
+  if (serviceTypes) {
+    filters.serviceTypes = serviceTypes.split(",").filter(Boolean);
   }
 
   // Insurances (comma-separated)
@@ -113,8 +113,8 @@ export function filtersToSearchParams(
   if (filters.state) params.set("state", filters.state);
   if (filters.city) params.set("city", filters.city);
 
-  if (filters.serviceModes?.length) {
-    params.set("services", filters.serviceModes.join(","));
+  if (filters.serviceTypes?.length) {
+    params.set("services", filters.serviceTypes.join(","));
   }
 
   if (filters.insurances?.length) {
@@ -172,17 +172,21 @@ export function buildSearchUrl(
 }
 
 /**
- * Common service modes
+ * Service type options for search filters
  */
-export const SERVICE_MODES = [
+export const SERVICE_TYPES = [
   { value: "in_home", label: "In-Home" },
   { value: "in_center", label: "Center-Based" },
   { value: "telehealth", label: "Telehealth" },
   { value: "school_based", label: "School-Based" },
 ] as const;
 
+// Alias for backward compatibility
+export const SERVICE_MODES = SERVICE_TYPES;
+
 /**
  * Common insurance options
+ * NOTE: Keep in sync with INSURANCE_OPTIONS in src/lib/validations/onboarding.ts
  */
 export const COMMON_INSURANCES = [
   "Aetna",
@@ -193,9 +197,10 @@ export const COMMON_INSURANCES = [
   "Kaiser Permanente",
   "Medicaid",
   "Medicare",
-  "Tricare",
+  "TRICARE",
   "UnitedHealthcare",
-  "Private Pay",
+  "Self-Pay",
+  "Other Commercial Insurance",
 ] as const;
 
 /**

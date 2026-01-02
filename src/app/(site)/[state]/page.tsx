@@ -87,12 +87,14 @@ export default async function StatePage({ params }: StatePageProps) {
   }
 
   // Fetch providers for this state (includes both real listings and Google Places)
+  // Note: State pages don't have user coordinates, so all results go into "other" section
   const result = await searchProviderLocationsWithGooglePlaces(
     { state: state.label },
-    { limit: 20 }
+    { limit: 50 }  // Match default limit
   );
   const locations = result.success ? result.data.results : [];
   const total = result.success ? result.data.total : 0;
+  const radiusMiles = result.success ? result.data.radiusMiles : 25;
 
   // Track search impressions for real listings only (non-blocking)
   const realListingsForTracking = locations
@@ -283,7 +285,7 @@ export default async function StatePage({ params }: StatePageProps) {
                 </p>
               </div>
 
-              <SearchResults results={locations} />
+              <SearchResults results={locations} radiusMiles={radiusMiles} hasProximitySearch={false} />
 
               {total > locations.length && (
                 <div className="flex justify-center pt-4">

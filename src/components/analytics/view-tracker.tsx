@@ -3,12 +3,17 @@
 import { useEffect, useRef } from "react";
 
 import { EVENT_TYPES } from "@/lib/analytics/events";
+import { trackListingViewed } from "@/lib/posthog/events";
 
 interface ViewTrackerProps {
   listingId: string;
   listingSlug: string;
+  listingName?: string;
   locationId?: string;
-  defaultSource?: "search" | "direct" | "state_page" | "homepage";
+  city?: string;
+  state?: string;
+  planTier?: string;
+  defaultSource?: "search" | "direct" | "state_page" | "city_page" | "homepage";
 }
 
 /**
@@ -51,8 +56,18 @@ function detectSource(referrer: string): "search" | "direct" | "state_page" | "h
 /**
  * Invisible component that tracks listing page views
  * Used to add client-side tracking to server components
+ * Sends to both Supabase (internal analytics) and PostHog
  */
-export function ViewTracker({ listingId, listingSlug, locationId, defaultSource = "direct" }: ViewTrackerProps) {
+export function ViewTracker({
+  listingId,
+  listingSlug,
+  listingName,
+  locationId,
+  city,
+  state,
+  planTier,
+  defaultSource = "direct",
+}: ViewTrackerProps) {
   const hasTracked = useRef(false);
 
   useEffect(() => {
@@ -62,7 +77,18 @@ export function ViewTracker({ listingId, listingSlug, locationId, defaultSource 
     // Detect source from referrer synchronously before tracking
     const source = detectSource(document.referrer) || defaultSource;
 
-    // Track view via API
+    // Track to PostHog (client-side)
+    trackListingViewed({
+      listingId,
+      listingSlug,
+      listingName: listingName || listingSlug,
+      city,
+      state,
+      planTier,
+      source,
+    });
+
+    // Track view via API (Supabase)
     fetch("/api/analytics/track", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -76,7 +102,7 @@ export function ViewTracker({ listingId, listingSlug, locationId, defaultSource 
     }).catch((error) => {
       console.error("Failed to track view:", error);
     });
-  }, [listingId, listingSlug, locationId, defaultSource]);
+  }, [listingId, listingSlug, listingName, locationId, city, state, planTier, defaultSource]);
 
   return null;
 }

@@ -2,41 +2,63 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Video, Loader2, ExternalLink, X, Sparkles, Play, Smile, MessageCircle, CheckCircle2 } from "lucide-react";
+import { Video, Loader2, ExternalLink, X, Sparkles, Play, Smile, MessageCircle, CheckCircle2, Pencil, Save } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { getVideoUrl, updateVideoUrl } from "@/lib/storage/actions";
 import { extractVideoId, getVideoEmbedUrl } from "@/lib/storage/config";
 
 interface VideoEmbedFormProps {
   planTier: string;
+  /** Enable demo mode - uses static data and disables editing */
+  isDemo?: boolean;
+  /** Static video URL for demo mode */
+  demoVideoUrl?: string | null;
+  /** Callback when user tries to edit in demo mode */
+  onDemoAction?: () => void;
+  /** data-tour attribute for guided tour */
+  dataTour?: string;
 }
 
-export function VideoEmbedForm({ planTier }: VideoEmbedFormProps) {
-  const [videoUrl, setVideoUrl] = useState<string>("");
-  const [isLoading, setIsLoading] = useState(true);
+export function VideoEmbedForm({
+  planTier,
+  isDemo = false,
+  demoVideoUrl,
+  onDemoAction,
+  dataTour,
+}: VideoEmbedFormProps) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [videoUrl, setVideoUrl] = useState<string>(isDemo && demoVideoUrl ? demoVideoUrl : "");
+  const [savedVideoUrl, setSavedVideoUrl] = useState<string>(isDemo && demoVideoUrl ? demoVideoUrl : ""); // Track saved state
+  const [isLoading, setIsLoading] = useState(!isDemo);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const isPremium = planTier !== "free";
   const embedUrl = videoUrl ? getVideoEmbedUrl(videoUrl) : null;
+  const savedEmbedUrl = savedVideoUrl ? getVideoEmbedUrl(savedVideoUrl) : null;
   const videoInfo = videoUrl ? extractVideoId(videoUrl) : null;
+  const savedVideoInfo = savedVideoUrl ? extractVideoId(savedVideoUrl) : null;
 
-  // Load current video URL on mount
+  // Load current video URL on mount (skip for demo)
   useEffect(() => {
+    if (isDemo) return;
+
     async function loadVideo() {
       const result = await getVideoUrl();
       if (result.success && result.data?.url) {
         setVideoUrl(result.data.url);
+        setSavedVideoUrl(result.data.url);
       }
       setIsLoading(false);
     }
     loadVideo();
-  }, []);
+  }, [isDemo]);
 
   const handleSave = async () => {
     setError(null);
@@ -53,13 +75,21 @@ export function VideoEmbedForm({ planTier }: VideoEmbedFormProps) {
     const result = await updateVideoUrl(videoUrl || null);
 
     if (result.success) {
+      setSavedVideoUrl(videoUrl);
       setSuccessMessage("Video updated successfully.");
+      setIsEditing(false);
       setTimeout(() => setSuccessMessage(null), 3000);
     } else {
       setError(result.error);
     }
 
     setIsSaving(false);
+  };
+
+  const handleCancel = () => {
+    setVideoUrl(savedVideoUrl);
+    setError(null);
+    setIsEditing(false);
   };
 
   const handleRemove = async () => {
@@ -71,6 +101,7 @@ export function VideoEmbedForm({ planTier }: VideoEmbedFormProps) {
 
     if (result.success) {
       setVideoUrl("");
+      setSavedVideoUrl("");
       setSuccessMessage("Video removed successfully.");
       setTimeout(() => setSuccessMessage(null), 3000);
     } else {
@@ -172,16 +203,120 @@ export function VideoEmbedForm({ planTier }: VideoEmbedFormProps) {
     );
   }
 
+  // View Mode - Read-only display
+  if (!isEditing) {
+    return (
+      <Card className="border-border/60" data-tour={dataTour}>
+        <CardHeader>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0">
+              <CardTitle className="flex items-center gap-2">
+                <Video className="h-5 w-5 shrink-0" />
+                <span>Video Introduction</span>
+              </CardTitle>
+              <CardDescription className="mt-1">Video displayed on your listing page</CardDescription>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                if (isDemo && onDemoAction) {
+                  onDemoAction();
+                } else {
+                  setIsEditing(true);
+                }
+              }}
+              className="shrink-0 self-start"
+            >
+              <Pencil className="mr-2 h-4 w-4" />
+              Edit
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : savedEmbedUrl ? (
+            <div className="space-y-3">
+              {successMessage && (
+                <div className="flex items-center gap-2 rounded-lg bg-emerald-500/10 p-3 text-sm text-emerald-600">
+                  <CheckCircle2 className="h-4 w-4" />
+                  {successMessage}
+                </div>
+              )}
+
+              {/* Video Preview - Read Only */}
+              <div className="relative aspect-video w-full overflow-hidden rounded-lg border bg-black">
+                <iframe
+                  src={savedEmbedUrl}
+                  className="absolute inset-0 h-full w-full"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              </div>
+
+              {/* Video info */}
+              <div className="flex items-center justify-between">
+                <Badge variant="secondary">
+                  {savedVideoInfo?.platform === "youtube" ? "YouTube" : "Vimeo"}
+                </Badge>
+                <a
+                  href={savedVideoUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1 text-xs text-primary hover:underline"
+                >
+                  <ExternalLink className="h-3 w-3" />
+                  View on {savedVideoInfo?.platform === "youtube" ? "YouTube" : "Vimeo"}
+                </a>
+              </div>
+            </div>
+          ) : (
+            <div className="rounded-lg border border-dashed border-border/60 p-8 text-center">
+              <Video className="mx-auto h-12 w-12 text-muted-foreground/50" />
+              <p className="mt-2 text-sm text-muted-foreground">No video added yet</p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-4"
+                onClick={() => {
+                  if (isDemo && onDemoAction) {
+                    onDemoAction();
+                  } else {
+                    setIsEditing(true);
+                  }
+                }}
+              >
+                Add Video
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Edit Mode - Full editing capability
   return (
-    <Card>
+    <Card className="border-border/60">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Video className="h-5 w-5" />
-          Video Embed
-        </CardTitle>
-        <CardDescription>
-          Add a YouTube or Vimeo video to your listing. Paste the video URL below.
-        </CardDescription>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
+            <CardTitle className="flex items-center gap-2">
+              <Video className="h-5 w-5 shrink-0" />
+              <span>Edit Video</span>
+            </CardTitle>
+            <CardDescription className="mt-1">
+              Add a YouTube or Vimeo video to your listing.
+            </CardDescription>
+          </div>
+          <Button variant="ghost" size="sm" onClick={handleCancel} className="shrink-0 self-start">
+            <X className="mr-2 h-4 w-4" />
+            Cancel
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
         {isLoading ? (
@@ -193,26 +328,16 @@ export function VideoEmbedForm({ planTier }: VideoEmbedFormProps) {
             {/* URL Input */}
             <div className="space-y-2">
               <Label htmlFor="video-url">Video URL</Label>
-              <div className="flex flex-col gap-2 sm:flex-row">
-                <Input
-                  id="video-url"
-                  placeholder="https://www.youtube.com/watch?v=..."
-                  value={videoUrl}
-                  onChange={(e) => {
-                    setVideoUrl(e.target.value);
-                    setError(null);
-                  }}
-                  disabled={isSaving}
-                  className="flex-1"
-                />
-                <Button onClick={handleSave} disabled={isSaving} className="w-full shrink-0 sm:w-auto">
-                  {isSaving ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    "Save"
-                  )}
-                </Button>
-              </div>
+              <Input
+                id="video-url"
+                placeholder="https://www.youtube.com/watch?v=..."
+                value={videoUrl}
+                onChange={(e) => {
+                  setVideoUrl(e.target.value);
+                  setError(null);
+                }}
+                disabled={isSaving}
+              />
               <p className="text-xs text-muted-foreground">
                 Supports YouTube and Vimeo URLs
               </p>
@@ -286,10 +411,25 @@ export function VideoEmbedForm({ planTier }: VideoEmbedFormProps) {
               <p className="text-sm text-destructive">{error}</p>
             )}
 
-            {/* Success Message */}
-            {successMessage && (
-              <p className="text-sm text-emerald-600">{successMessage}</p>
-            )}
+            {/* Action Buttons */}
+            <div className="flex justify-end gap-2 pt-2">
+              <Button type="button" variant="outline" onClick={handleCancel} disabled={isSaving}>
+                Cancel
+              </Button>
+              <Button onClick={handleSave} disabled={isSaving}>
+                {isSaving ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="mr-2 h-4 w-4" />
+                    Save Changes
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
         )}
       </CardContent>

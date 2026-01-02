@@ -97,7 +97,7 @@ export async function uploadLogo(
     return { success: false, error: "Failed to save logo" };
   }
 
-  revalidatePath("/dashboard/listing");
+  revalidatePath("/dashboard/company");
   return { success: true, data: { url: urlData.publicUrl } };
 }
 
@@ -146,7 +146,7 @@ export async function deleteLogo(): Promise<ActionResult> {
     return { success: false, error: "Failed to delete logo" };
   }
 
-  revalidatePath("/dashboard/listing");
+  revalidatePath("/dashboard/company");
   return { success: true };
 }
 
@@ -302,7 +302,7 @@ export async function uploadPhoto(
     return { success: false, error: "Failed to save photo" };
   }
 
-  revalidatePath("/dashboard/listing");
+  revalidatePath("/dashboard/company");
   return { success: true, data: { id: asset.id, url: urlData.publicUrl } };
 }
 
@@ -353,7 +353,7 @@ export async function deletePhoto(photoId: string): Promise<ActionResult> {
     return { success: false, error: "Failed to delete photo" };
   }
 
-  revalidatePath("/dashboard/listing");
+  revalidatePath("/dashboard/company");
   return { success: true };
 }
 
@@ -392,7 +392,7 @@ export async function reorderPhotos(
 
   await Promise.all(updates);
 
-  revalidatePath("/dashboard/listing");
+  revalidatePath("/dashboard/company");
   return { success: true };
 }
 
@@ -449,7 +449,7 @@ export async function updateVideoUrl(
     return { success: false, error: "Failed to update video URL" };
   }
 
-  revalidatePath("/dashboard/listing");
+  revalidatePath("/dashboard/company");
   return { success: true };
 }
 

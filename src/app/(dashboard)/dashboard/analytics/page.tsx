@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AnalyticsTimeFilter } from "@/components/dashboard/analytics-time-filter";
 import { AnalyticsLocationFilter, type LocationOption } from "@/components/dashboard/analytics-location-filter";
 import { AnalyticsMetricCard } from "@/components/dashboard/analytics-metric-card";
+import { ClickThroughRateCard } from "@/components/dashboard/click-through-rate-card";
 import { TrafficSources, TrafficSourcesSkeleton } from "@/components/dashboard/traffic-sources";
 import { LocationAnalyticsSection } from "@/components/dashboard/location-analytics-section";
 import { getListingAnalytics, getLocationAnalytics } from "@/lib/actions/analytics";
@@ -138,6 +139,12 @@ export default function AnalyticsPage() {
               data={metrics.timeSeries.clicks}
             />
           </div>
+
+          {/* Click-through Rate with Benchmark */}
+          <ClickThroughRateCard
+            currentCTR={metrics.current.clickThroughRate}
+            previousCTR={metrics.previous.clickThroughRate}
+          />
 
           {/* Traffic Sources */}
           <TrafficSources sources={metrics.topSources} />

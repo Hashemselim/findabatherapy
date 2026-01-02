@@ -9,15 +9,18 @@ import { ArrowRight, Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { LogoUploader } from "@/components/dashboard/logo-uploader";
+import { OnboardingTracker } from "@/components/analytics/onboarding-tracker";
+import { useFormErrorHandler, FormErrorSummary } from "@/hooks/use-form-error-handler";
 import {
   getOnboardingData,
   updateProfileBasics,
   updateListingDetails,
 } from "@/lib/actions/onboarding";
+import { SERVICES_OFFERED_OPTIONS } from "@/lib/validations/onboarding";
 
 // Schema for practice details (Step 1)
 const practiceDetailsSchema = z.object({
@@ -29,6 +32,8 @@ const practiceDetailsSchema = z.object({
   // Listing details
   headline: z.string().max(150, "Tagline must be less than 150 characters").optional().or(z.literal("")),
   description: z.string().min(50, "About text must be at least 50 characters").max(2000, "About text must be less than 2000 characters"),
+  // Services offered
+  servicesOffered: z.array(z.string()).min(1, "Please select at least one service"),
 });
 
 type PracticeDetailsData = z.infer<typeof practiceDetailsSchema>;
@@ -38,14 +43,14 @@ export default function OnboardingDetailsPage() {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [logoUrl, setLogoUrl] = useState<string | null>(null);
 
   const {
     register,
     handleSubmit,
-    formState: { errors },
+    formState: { errors, isSubmitting },
     watch,
     reset,
+    setValue,
   } = useForm<PracticeDetailsData>({
     resolver: zodResolver(practiceDetailsSchema),
     defaultValues: {
@@ -55,17 +60,37 @@ export default function OnboardingDetailsPage() {
       website: "",
       headline: "",
       description: "",
+      servicesOffered: ["aba"], // Default to ABA therapy
     },
   });
 
+  const { formRef, hasErrors, errorCount } = useFormErrorHandler({
+    errors,
+    isSubmitting,
+  });
+
   const description = watch("description");
+  const selectedServices = watch("servicesOffered") || [];
+
+  function toggleService(service: string) {
+    const current = selectedServices || [];
+    if (current.includes(service)) {
+      setValue(
+        "servicesOffered",
+        current.filter((s) => s !== service),
+        { shouldValidate: true }
+      );
+    } else {
+      setValue("servicesOffered", [...current, service], { shouldValidate: true });
+    }
+  }
 
   // Load existing data
   useEffect(() => {
     async function loadData() {
       const result = await getOnboardingData();
       if (result.success && result.data) {
-        const { profile, listing } = result.data;
+        const { profile, listing, attributes } = result.data;
 
         reset({
           agencyName: profile?.agencyName || "",
@@ -74,10 +99,8 @@ export default function OnboardingDetailsPage() {
           website: profile?.website || "",
           headline: listing?.headline || "",
           description: listing?.description || "",
+          servicesOffered: (attributes?.services_offered as string[]) || ["aba"],
         });
-
-        // Set logo URL from listing
-        setLogoUrl(listing?.logoUrl || null);
       }
       setIsLoading(false);
     }
@@ -106,6 +129,7 @@ export default function OnboardingDetailsPage() {
         headline: data.headline || "",
         description: data.description,
         serviceModes: ["in_home"], // Default, will be updated in location step
+        servicesOffered: data.servicesOffered,
       });
 
       if (!detailsResult.success) {
@@ -128,6 +152,9 @@ export default function OnboardingDetailsPage() {
 
   return (
     <div className="space-y-4 sm:space-y-6">
+      {/* PostHog onboarding tracking */}
+      <OnboardingTracker step="details" stepNumber={1} totalSteps={4} />
+
       <div>
         <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">
           Tell us about your ABA practice
@@ -137,7 +164,7 @@ export default function OnboardingDetailsPage() {
         </p>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <form ref={formRef} onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {error && (
           <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
             {error}
@@ -206,11 +233,40 @@ export default function OnboardingDetailsPage() {
                 </span>
               </div>
             </div>
+          </CardContent>
+        </Card>
 
-            {/* Logo Upload */}
-            <div className="pt-2">
-              <LogoUploader currentLogoUrl={logoUrl} />
+        {/* Services Offered */}
+        <Card className="border-border/60">
+          <CardHeader>
+            <CardTitle>Services Offered</CardTitle>
+            <CardDescription>
+              Select all therapy services your practice provides <span className="text-destructive">*</span>
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+              {SERVICES_OFFERED_OPTIONS.map((service) => (
+                <label
+                  key={service.value}
+                  className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors ${
+                    selectedServices.includes(service.value)
+                      ? "border-primary bg-primary/5"
+                      : "border-border/60 hover:bg-muted/50"
+                  }`}
+                >
+                  <Checkbox
+                    checked={selectedServices.includes(service.value)}
+                    onCheckedChange={() => toggleService(service.value)}
+                    disabled={isPending}
+                  />
+                  <span className="text-sm">{service.label}</span>
+                </label>
+              ))}
             </div>
+            {errors.servicesOffered && (
+              <p className="mt-2 text-sm text-destructive">{errors.servicesOffered.message}</p>
+            )}
           </CardContent>
         </Card>
 
@@ -269,7 +325,8 @@ export default function OnboardingDetailsPage() {
         </Card>
 
         {/* Submit */}
-        <div className="flex justify-end">
+        <div className="flex flex-col items-end gap-2">
+          {hasErrors && <FormErrorSummary errorCount={errorCount} />}
           <Button
             type="submit"
             disabled={isPending}

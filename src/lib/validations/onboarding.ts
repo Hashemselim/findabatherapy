@@ -54,11 +54,11 @@ export const locationSchema = z.object({
   longitude: z.number().optional(),
 });
 
-// Location with services schema (new - includes service mode and insurances)
+// Location with services schema (new - includes service types and insurances)
 export const locationWithServicesSchema = z
   .object({
     label: z.string().optional().or(z.literal("")),
-    serviceMode: z.enum(["center_based", "in_home", "both"]),
+    serviceTypes: z.array(z.enum(["in_home", "in_center", "telehealth", "school_based"])).min(1, "Please select at least one service type"),
     street: z.string().optional().or(z.literal("")),
     city: z.string().min(2, "City is required"),
     state: z.string().length(2, "Please select a state"),
@@ -75,14 +75,14 @@ export const locationWithServicesSchema = z
   })
   .refine(
     (data) => {
-      // If center_based or both, street address is required
-      if (data.serviceMode === "center_based" || data.serviceMode === "both") {
+      // If center-based or school-based is selected, street address is required
+      if (data.serviceTypes.includes("in_center") || data.serviceTypes.includes("school_based")) {
         return data.street && data.street.trim().length > 0;
       }
       return true;
     },
     {
-      message: "Street address is required for center-based services",
+      message: "Street address is required for center-based and school-based services",
       path: ["street"],
     }
   );
@@ -115,22 +115,19 @@ export type LocationWithServicesData = z.infer<typeof locationWithServicesSchema
 export type ServicesData = z.infer<typeof servicesSchema>;
 export type CompleteOnboarding = z.infer<typeof completeOnboardingSchema>;
 
-// Service mode options (legacy - for listing level)
-export const SERVICE_MODE_OPTIONS = [
-  { value: "in_home", label: "In-Home Services" },
-  { value: "in_center", label: "Center-Based Services" },
-  { value: "telehealth", label: "Telehealth Services" },
-  { value: "hybrid", label: "Hybrid (Multiple Modes)" },
+// Service type options - defines how services are delivered at a location
+export const SERVICE_TYPE_OPTIONS = [
+  { value: "in_home", label: "In-Home" },
+  { value: "in_center", label: "Center-Based" },
+  { value: "telehealth", label: "Telehealth" },
+  { value: "school_based", label: "School-Based" },
 ] as const;
 
-// Location service mode options (new - per location)
-export const LOCATION_SERVICE_MODES = [
-  { value: "center_based", label: "Center-Based", description: "Clients visit your facility" },
-  { value: "in_home", label: "In-Home", description: "You travel to client homes" },
-  { value: "both", label: "Both", description: "Center-based and in-home services" },
-] as const;
+// Alias for backward compatibility
+export const SERVICE_MODE_OPTIONS = SERVICE_TYPE_OPTIONS;
 
-export type LocationServiceMode = "center_based" | "in_home" | "both";
+// Service type values for locations
+export type ServiceType = "in_home" | "in_center" | "telehealth" | "school_based";
 
 // Service radius options
 export const SERVICE_RADIUS_OPTIONS = [
@@ -201,3 +198,15 @@ export const SPECIALTY_OPTIONS = [
   "Occupational Therapy (OT)",
   "Speech Therapy (SLP)",
 ] as const;
+
+// Services offered options (for location-level service types)
+export const SERVICES_OFFERED_OPTIONS = [
+  { value: "aba", label: "ABA Therapy" },
+  { value: "occupational_therapy", label: "Occupational Therapy (OT)" },
+  { value: "speech_therapy", label: "Speech Therapy (SLP)" },
+  { value: "physical_therapy", label: "Physical Therapy (PT)" },
+  { value: "feeding_therapy", label: "Feeding Therapy" },
+  { value: "social_skills", label: "Social Skills Groups" },
+] as const;
+
+export type ServiceOffered = (typeof SERVICES_OFFERED_OPTIONS)[number]["value"];

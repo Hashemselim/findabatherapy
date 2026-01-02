@@ -22,13 +22,6 @@ const footerLinks = [
     ],
   },
   {
-    title: "Partners",
-    links: [
-      { label: "Advertise", href: "/partners/advertise" },
-      { label: "Featured spots", href: "/#sponsored" },
-    ],
-  },
-  {
     title: "Company",
     links: [
       { label: "Contact", href: `mailto:${siteConfig.contactEmail}` },

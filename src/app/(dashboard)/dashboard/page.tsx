@@ -22,6 +22,7 @@ import {
   UpgradeSection,
   FeaturedUpsell,
 } from "@/components/dashboard/overview";
+import { DashboardTracker } from "@/components/analytics/dashboard-tracker";
 import { getListing } from "@/lib/actions/listings";
 import { getAnalyticsSummary } from "@/lib/actions/analytics";
 import { getUnreadInquiryCount } from "@/lib/actions/inquiries";
@@ -37,6 +38,7 @@ export default async function DashboardOverviewPage() {
   if (!profile?.onboarding_completed_at || !listingResult.success || !listingResult.data) {
     return (
       <div className="space-y-6 sm:space-y-8">
+        <DashboardTracker section="overview" />
         <div>
           <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">Overview</h1>
           <p className="mt-1 max-w-2xl text-sm text-muted-foreground sm:mt-2">
@@ -111,6 +113,7 @@ export default async function DashboardOverviewPage() {
 
   return (
     <div className="space-y-6 sm:space-y-8">
+      <DashboardTracker section="overview" />
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -128,7 +131,7 @@ export default async function DashboardOverviewPage() {
           </Button>
         ) : (
           <Button className="w-full rounded-full sm:w-auto" asChild>
-            <Link href="/dashboard/listing">
+            <Link href="/dashboard/company">
               Complete your listing
               <ArrowRight className="ml-2 h-4 w-4" aria-hidden />
             </Link>
@@ -157,7 +160,7 @@ export default async function DashboardOverviewPage() {
                 <Link
                   href={`/provider/${listing.slug}`}
                   target="_blank"
-                  className="text-[#5788FF] hover:underline"
+                  className="break-all text-[#5788FF] hover:underline"
                 >
                   findabatherapy.com/provider/{listing.slug}
                 </Link>

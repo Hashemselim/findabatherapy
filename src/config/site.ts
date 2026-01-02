@@ -16,7 +16,7 @@ export const siteConfig = {
     twitter: "https://twitter.com/findabatherapy",
     linkedin: "https://www.linkedin.com/company/findabatherapy",
   },
-  contactEmail: "hello@findabatherapy.com",
+  contactEmail: "support@findabatherapy.org",
 } as const;
 
 export type SiteConfig = typeof siteConfig;

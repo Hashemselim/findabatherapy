@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { MapPin, CheckCircle, BadgeCheck, Building2, Home, Navigation, Star, AlertCircle, ExternalLink, Globe } from "lucide-react";
+import { MapPin, CheckCircle, BadgeCheck, Building2, Home, Navigation, Star, AlertCircle, ExternalLink, Globe, Video, GraduationCap } from "lucide-react";
 
 import { ProviderLogo } from "@/components/provider/provider-logo";
 import { Badge } from "@/components/ui/badge";
@@ -30,6 +30,8 @@ interface CombinedSearchResultsProps {
   results: CombinedSearchResult[];
   searchQuery?: string;
   className?: string;
+  radiusMiles?: number;
+  hasProximitySearch?: boolean; // Whether user provided coordinates
 }
 
 // Union type for all result types
@@ -48,7 +50,7 @@ export function SearchResults(props: SearchResultsProps) {
 
   // Handle combined results (real + Google Places)
   if (isCombinedResults(props)) {
-    const { results } = props;
+    const { results, radiusMiles = 25, hasProximitySearch = false } = props;
 
     if (results.length === 0) {
       return (
@@ -61,29 +63,99 @@ export function SearchResults(props: SearchResultsProps) {
       );
     }
 
+    // Group results by section
+    const featured = results.filter((r) => r.section === "featured");
+    const nearby = results.filter((r) => r.section === "nearby");
+    const other = results.filter((r) => r.section === "other");
+
+    // Helper to render a result card
+    const renderResultCard = (result: CombinedSearchResult, index: number) => {
+      if (result.isPrePopulated) {
+        return (
+          <GooglePlacesResultCard
+            key={result.id}
+            listing={result}
+            position={index + 1}
+            searchQuery={searchQuery}
+          />
+        );
+      } else {
+        return (
+          <LocationResultCard
+            key={`${result.listingId}-${result.locationId}`}
+            location={result}
+            position={index + 1}
+            searchQuery={searchQuery}
+          />
+        );
+      }
+    };
+
+    // Calculate starting positions for each section
+    let currentPosition = 0;
+
+    // When no proximity search (no user coordinates), don't show distance-based section headers
+    // All non-featured results go into "nearby" section without the distance header
+    const showDistanceSections = hasProximitySearch;
+
     return (
-      <div className={cn("flex flex-col gap-6", className)}>
-        {results.map((result, index) => {
-          if (result.isPrePopulated) {
-            return (
-              <GooglePlacesResultCard
-                key={result.id}
-                listing={result}
-                position={index + 1}
-                searchQuery={searchQuery}
-              />
-            );
-          } else {
-            return (
-              <LocationResultCard
-                key={`${result.listingId}-${result.locationId}`}
-                location={result}
-                position={index + 1}
-                searchQuery={searchQuery}
-              />
-            );
-          }
-        })}
+      <div className={cn("flex flex-col gap-8", className)}>
+        {/* Featured Section - always show if present */}
+        {featured.length > 0 && (
+          <section>
+            <div className="mb-4 flex items-center gap-2">
+              <Star className="h-5 w-5 text-amber-500" />
+              <h2 className="text-lg font-semibold text-foreground">Featured Providers</h2>
+            </div>
+            <div className="flex flex-col gap-4">
+              {featured.map((result, idx) => {
+                const position = currentPosition + idx;
+                return renderResultCard(result, position);
+              })}
+            </div>
+            {(() => { currentPosition += featured.length; return null; })()}
+          </section>
+        )}
+
+        {/* Nearby Section */}
+        {nearby.length > 0 && (
+          <section>
+            {/* Only show distance header when we have proximity search */}
+            {showDistanceSections && (
+              <div className="mb-4 flex items-center gap-2">
+                <Navigation className="h-5 w-5 text-[#5788FF]" />
+                <h2 className="text-lg font-semibold text-foreground">
+                  Providers within {radiusMiles} miles
+                </h2>
+              </div>
+            )}
+            <div className="flex flex-col gap-4">
+              {nearby.map((result, idx) => {
+                const position = currentPosition + idx;
+                return renderResultCard(result, position);
+              })}
+            </div>
+            {(() => { currentPosition += nearby.length; return null; })()}
+          </section>
+        )}
+
+        {/* Other Section - only show when we have proximity search (distance matters) */}
+        {showDistanceSections && other.length > 0 && (
+          <section>
+            <div className="mb-4 flex items-center gap-2">
+              <MapPin className="h-5 w-5 text-muted-foreground" />
+              <h2 className="text-lg font-semibold text-muted-foreground">
+                Other providers more than {radiusMiles} miles away
+              </h2>
+            </div>
+            <div className="flex flex-col gap-4">
+              {other.map((result, idx) => {
+                const position = currentPosition + idx;
+                return renderResultCard(result, position);
+              })}
+            </div>
+          </section>
+        )}
       </div>
     );
   }
@@ -154,18 +226,26 @@ interface LocationResultCardProps {
 
 function LocationResultCard({ location, position, searchQuery }: LocationResultCardProps) {
   const isPremium = location.planTier !== "free";
-  const isInHomeService = location.serviceMode === "in_home" || location.serviceMode === "both";
+  const hasInHomeService = location.serviceTypes?.includes("in_home");
+  const hasCenterService = location.serviceTypes?.includes("in_center") || location.serviceTypes?.includes("school_based");
 
-  // Build location display based on service mode
+  // Build location display based on service types
   const displayAddress =
-    location.serviceMode === "in_home"
+    hasInHomeService && !hasCenterService
       ? `Serves ${location.city} area`
       : location.street
         ? `${location.street}, ${location.city}, ${location.state}`
         : `${location.city}, ${location.state}`;
 
   const handleClick = () => {
-    trackSearchResultClick(location.listingId, position, searchQuery, location.locationId);
+    trackSearchResultClick(
+      location.listingId,
+      position,
+      searchQuery,
+      location.locationId,
+      location.agencyName,
+      location.isFeatured
+    );
   };
 
   return (
@@ -241,7 +321,7 @@ function LocationResultCard({ location, position, searchQuery }: LocationResultC
                 <Navigation className="h-3.5 w-3.5" />
                 <span>{formatDistance(location.distanceMiles)} away</span>
                 {/* Show warning for in-home services outside coverage area */}
-                {isInHomeService && !location.isWithinServiceRadius && (
+                {hasInHomeService && !location.isWithinServiceRadius && (
                   <span className="ml-1 inline-flex items-center gap-0.5 text-xs text-amber-600">
                     <AlertCircle className="h-3 w-3" />
                     may not serve your area
@@ -257,20 +337,34 @@ function LocationResultCard({ location, position, searchQuery }: LocationResultC
               </p>
             )}
 
-            {/* Service mode badges */}
+            {/* Service type badges */}
             <div className="mt-3 flex flex-wrap items-center gap-2">
               {/* Center-based indicator */}
-              {(location.serviceMode === "center_based" || location.serviceMode === "both") && (
+              {location.serviceTypes?.includes("in_center") && (
                 <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-0.5 text-xs text-muted-foreground">
                   <Building2 className="h-3 w-3" />
                   Center-Based
                 </span>
               )}
               {/* In-home indicator */}
-              {(location.serviceMode === "in_home" || location.serviceMode === "both") && (
+              {location.serviceTypes?.includes("in_home") && (
                 <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2.5 py-0.5 text-xs text-green-700">
                   <Home className="h-3 w-3" />
                   In-Home ({location.serviceRadiusMiles} mi)
+                </span>
+              )}
+              {/* Telehealth indicator */}
+              {location.serviceTypes?.includes("telehealth") && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-0.5 text-xs text-blue-700">
+                  <Video className="h-3 w-3" />
+                  Telehealth
+                </span>
+              )}
+              {/* School-based indicator */}
+              {location.serviceTypes?.includes("school_based") && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-purple-50 px-2.5 py-0.5 text-xs text-purple-700">
+                  <GraduationCap className="h-3 w-3" />
+                  School-Based
                 </span>
               )}
             </div>

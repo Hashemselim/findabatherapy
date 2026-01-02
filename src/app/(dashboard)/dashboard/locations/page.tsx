@@ -1,12 +1,13 @@
 import Link from "next/link";
-import { ClipboardList, ArrowRight, CheckCircle2 } from "lucide-react";
+import { ClipboardList, ArrowRight, CheckCircle2, MapPin, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { BubbleBackground } from "@/components/ui/bubble-background";
-import { LocationsManager } from "@/components/dashboard/locations-manager";
+import { LocationsManager, type CompanyDefaults } from "@/components/dashboard/locations-manager";
 import { getProfile } from "@/lib/supabase/server";
 import { getLocations } from "@/lib/actions/locations";
+import { getListing } from "@/lib/actions/listings";
 import { getFeaturedAddonPrices } from "@/lib/stripe/actions";
 
 // PRD 4.5.2: Locations section
@@ -14,7 +15,13 @@ import { getFeaturedAddonPrices } from "@/lib/stripe/actions";
 const LOCATION_LIMITS: Record<string, number> = {
   free: 1,
   pro: 5,
-  enterprise: 100,
+  enterprise: Infinity,
+};
+
+const PLAN_NAMES: Record<string, string> = {
+  free: "Free",
+  pro: "Pro",
+  enterprise: "Enterprise",
 };
 
 export default async function LocationsPage() {
@@ -83,13 +90,15 @@ export default async function LocationsPage() {
     );
   }
 
-  const [locationsResult, featuredPricingResult] = await Promise.all([
+  const [locationsResult, featuredPricingResult, listingResult] = await Promise.all([
     getLocations(),
     getFeaturedAddonPrices(),
+    getListing(),
   ]);
 
   const locations = locationsResult.success && locationsResult.data ? locationsResult.data : [];
   const locationLimit = LOCATION_LIMITS[profile.plan_tier] || 1;
+  const isFreePlan = profile.plan_tier === "free";
 
   // Get featured pricing from Stripe - fallback to defaults if fetch fails
   const featuredPricing = featuredPricingResult.success && featuredPricingResult.data
@@ -99,21 +108,84 @@ export default async function LocationsPage() {
         annual: { price: 59, totalPrice: 708, savings: 480, savingsPercent: 40 },
       };
 
+  // Build company defaults for location contact overrides (phone/email/website)
+  const listing = listingResult.success && listingResult.data ? listingResult.data : null;
+
+  const companyDefaults: CompanyDefaults = {
+    phone: listing?.profile?.contactPhone || profile.contact_phone || null,
+    email: listing?.profile?.contactEmail || profile.contact_email || "",
+    website: listing?.profile?.website || profile.website || null,
+  };
+
+  // Count featured locations
+  const featuredCount = locations.filter(loc => loc.isFeatured).length;
+
   return (
     <div className="space-y-4 sm:space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">Locations</h1>
-        <p className="mt-1 text-sm text-muted-foreground sm:mt-2">
-          Manage where families can find your services. Your primary location appears prominently in search results.
-        </p>
+      {/* Page Header */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">Service Locations</h1>
+          <p className="mt-1 text-sm text-muted-foreground sm:mt-2">
+            Manage your service locations and coverage areas.
+          </p>
+        </div>
       </div>
 
+      {/* Location Limit Info Card */}
+      <Card className="border-[#5788FF]/30 bg-[#5788FF]/5">
+        <CardContent className="flex items-center justify-between py-4">
+          <div className="flex items-center gap-3">
+            <MapPin className="h-5 w-5 text-[#5788FF]" />
+            <div>
+              <p className="font-medium text-foreground">
+                {locationLimit === Infinity
+                  ? `${locations.length} location${locations.length !== 1 ? "s" : ""}`
+                  : `${locations.length} of ${locationLimit} location${locationLimit !== 1 ? "s" : ""} used`}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {profile.plan_tier === "enterprise"
+                  ? "Enterprise plan includes unlimited locations"
+                  : profile.plan_tier === "pro"
+                    ? "Pro plan includes up to 5 locations"
+                    : "Free plan includes 1 location"}
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Locations Manager */}
       <LocationsManager
         initialLocations={locations}
         locationLimit={locationLimit}
         planTier={profile.plan_tier}
         featuredPricing={featuredPricing}
+        companyDefaults={companyDefaults}
       />
+
+      {/* Featured Upsell Card - Show for Pro users who haven't featured all locations */}
+      {!isFreePlan && featuredCount < locations.length && locations.length > 0 && (
+        <Card className="border-amber-500/30 bg-gradient-to-r from-amber-50 to-yellow-50">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-amber-500" />
+              <CardTitle className="text-lg">Boost Your Visibility</CardTitle>
+            </div>
+            <CardDescription>
+              Featured locations appear at the top of search results and get up to
+              3x more visibility.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="text-sm text-muted-foreground">
+                <strong>{featuredCount} of {locations.length}</strong> locations currently featured
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

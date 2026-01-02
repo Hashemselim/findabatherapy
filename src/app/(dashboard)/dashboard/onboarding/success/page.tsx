@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ProfileRefresher } from "@/components/onboarding/profile-refresher";
+import { OnboardingTracker } from "@/components/analytics/onboarding-tracker";
 import { getListing } from "@/lib/actions/listings";
 import { getProfile } from "@/lib/supabase/server";
 
@@ -51,6 +52,8 @@ export default async function OnboardingSuccessPage() {
     <div className="flex flex-col items-center justify-center py-12 text-center">
       {/* Refresh profile to update sidebar (hide onboarding tab) */}
       <ProfileRefresher />
+      {/* PostHog onboarding completion tracking */}
+      <OnboardingTracker step="success" stepNumber={4} totalSteps={4} isComplete />
 
       {/* Success Icon */}
       <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-emerald-500/10">

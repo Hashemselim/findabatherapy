@@ -218,7 +218,7 @@ export async function setAttributes(
   }
 
   revalidatePath("/dashboard");
-  revalidatePath("/dashboard/listing");
+  revalidatePath("/dashboard/company");
   return { success: true };
 }
 
@@ -265,7 +265,7 @@ export async function clearAttributes(keys: string[]): Promise<ActionResult> {
   }
 
   revalidatePath("/dashboard");
-  revalidatePath("/dashboard/listing");
+  revalidatePath("/dashboard/company");
   return { success: true };
 }
 
@@ -301,6 +301,6 @@ export async function clearAllAttributes(): Promise<ActionResult> {
   }
 
   revalidatePath("/dashboard");
-  revalidatePath("/dashboard/listing");
+  revalidatePath("/dashboard/company");
   return { success: true };
 }

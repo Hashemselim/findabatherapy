@@ -237,9 +237,13 @@ export default function GetListedPage() {
                     <Link href="#pricing">View pricing</Link>
                   </Button>
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  Free plan available. No credit card required to start.
-                </p>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <span>Free plan available. No credit card required.</span>
+                  <span className="text-border">|</span>
+                  <Link href="/demo" className="font-medium text-[#5788FF] hover:underline">
+                    Try the demo
+                  </Link>
+                </div>
               </div>
             </div>
 
@@ -484,6 +488,34 @@ export default function GetListedPage() {
           <p className="mt-8 text-center text-sm text-muted-foreground">
             All plans include SSL security, HIPAA-compliant messaging, and 24/7 uptime monitoring.
           </p>
+
+          {/* Try the Demo Section */}
+          <div className="mt-12 rounded-2xl border-2 border-[#5788FF]/20 bg-gradient-to-br from-[#5788FF]/5 via-white to-[#5788FF]/5 p-6 sm:p-8">
+            <div className="flex flex-col items-center gap-6 sm:flex-row sm:justify-between">
+              <div className="text-center sm:text-left">
+                <div className="flex items-center justify-center gap-2 sm:justify-start">
+                  <Sparkles className="h-5 w-5 text-[#5788FF]" />
+                  <h3 className="text-xl font-semibold text-foreground">
+                    See the dashboard in action
+                  </h3>
+                </div>
+                <p className="mt-2 max-w-md text-muted-foreground">
+                  Explore an interactive demo of the Pro dashboard with sample data.
+                  See how easy it is to manage your listing, track analytics, and respond to inquiries.
+                </p>
+              </div>
+              <Button
+                asChild
+                size="lg"
+                className="shrink-0 rounded-full bg-[#5788FF] px-8 text-base font-semibold text-white hover:bg-[#4a77e8]"
+              >
+                <Link href="/demo">
+                  Try the Demo
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
+            </div>
+          </div>
 
           {/* Optional Add-ons */}
           <div className="mt-16">

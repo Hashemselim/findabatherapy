@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { timingSafeEqual } from "crypto";
 
 /**
  * IndexNow API endpoint for instant indexing on Bing, Yandex, Seznam, and Naver
@@ -34,11 +35,20 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Verify authorization (simple API key check)
+  // Verify authorization with timing-safe comparison
   const authHeader = request.headers.get("authorization");
   const expectedAuth = `Bearer ${process.env.INTERNAL_API_KEY || INDEXNOW_KEY}`;
 
-  if (authHeader !== expectedAuth) {
+  if (!authHeader || authHeader.length !== expectedAuth.length) {
+    return NextResponse.json(
+      { error: "Unauthorized" },
+      { status: 401 }
+    );
+  }
+
+  const authBuffer = Buffer.from(authHeader);
+  const expectedBuffer = Buffer.from(expectedAuth);
+  if (!timingSafeEqual(authBuffer, expectedBuffer)) {
     return NextResponse.json(
       { error: "Unauthorized" },
       { status: 401 }
@@ -123,29 +133,17 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// GET endpoint to check IndexNow configuration status
+// GET endpoint to check IndexNow configuration status (does not expose sensitive data)
 export async function GET() {
   if (!INDEXNOW_KEY) {
     return NextResponse.json({
       configured: false,
-      message: "IndexNow key not set. Add INDEXNOW_KEY to your environment variables.",
-      instructions: [
-        "1. Generate a key (any 32-character hex string)",
-        "2. Add INDEXNOW_KEY=your-key to .env.local",
-        "3. Create public/[your-key].txt containing just the key",
-      ],
+      message: "IndexNow key not configured.",
     });
   }
 
   return NextResponse.json({
     configured: true,
-    key: INDEXNOW_KEY,
-    keyFileUrl: `${SITE_URL}/${INDEXNOW_KEY}.txt`,
-    instructions: `Create a file at public/${INDEXNOW_KEY}.txt containing: ${INDEXNOW_KEY}`,
-    usage: {
-      method: "POST",
-      headers: { Authorization: `Bearer ${INDEXNOW_KEY}` },
-      body: { urls: ["https://www.findabatherapy.com/page1", "..."] },
-    },
+    message: "IndexNow is configured and ready to use.",
   });
 }

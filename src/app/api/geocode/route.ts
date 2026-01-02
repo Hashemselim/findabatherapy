@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { geocodeAddress } from "@/lib/geo/geocode";
+import { geocodeAddress, reverseGeocode } from "@/lib/geo/geocode";
 import { getGeoConfig } from "@/lib/geo/config";
 
 export async function POST(request: NextRequest) {
@@ -15,11 +15,33 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { address } = body;
+    const { address, latitude, longitude } = body;
 
+    // Reverse geocoding (coordinates to address)
+    if (typeof latitude === "number" && typeof longitude === "number") {
+      const result = await reverseGeocode(latitude, longitude);
+
+      if (!result) {
+        return NextResponse.json(
+          { error: "Could not reverse geocode coordinates" },
+          { status: 404 }
+        );
+      }
+
+      return NextResponse.json({
+        latitude: result.latitude,
+        longitude: result.longitude,
+        formattedAddress: result.formattedAddress,
+        city: result.city,
+        state: result.state,
+        postalCode: result.postalCode,
+      });
+    }
+
+    // Forward geocoding (address to coordinates)
     if (!address || typeof address !== "string") {
       return NextResponse.json(
-        { error: "Address is required" },
+        { error: "Address or coordinates are required" },
         { status: 400 }
       );
     }

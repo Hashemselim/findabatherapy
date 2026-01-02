@@ -59,11 +59,13 @@ export async function trackEvent(
     });
 
     if (error) {
+      console.error(`[Analytics] Failed to track ${eventType}:`, error.message);
       return { success: false };
     }
 
     return { success: true };
-  } catch {
+  } catch (e) {
+    console.error(`[Analytics] Exception tracking ${eventType}:`, e);
     return { success: false };
   }
 }
@@ -156,11 +158,13 @@ export async function trackSearchImpressions(
     const { error } = await supabase.from("audit_events").insert(events);
 
     if (error) {
+      console.error("[Analytics] Failed to track search impressions:", error.message);
       return { success: false };
     }
 
     return { success: true };
-  } catch {
+  } catch (e) {
+    console.error("[Analytics] Exception tracking search impressions:", e);
     return { success: false };
   }
 }

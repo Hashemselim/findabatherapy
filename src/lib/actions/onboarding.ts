@@ -27,7 +27,7 @@ function generateSlug(agencyName: string): string {
 }
 
 /**
- * Update profile with company basics
+ * Update profile with company basics (creates profile if it doesn't exist)
  */
 export async function updateProfileBasics(
   data: CompanyBasics
@@ -41,7 +41,8 @@ export async function updateProfileBasics(
 
   const { error } = await supabase
     .from("profiles")
-    .update({
+    .upsert({
+      id: user.id,
       agency_name: data.agencyName,
       contact_email: data.contactEmail,
       contact_phone: data.contactPhone || null,
@@ -94,7 +95,7 @@ export async function updateProfilePlan(
  * Create or update the listing with company details
  */
 export async function updateListingDetails(
-  data: CompanyDetails & { contactPhone?: string; website?: string }
+  data: CompanyDetails & { contactPhone?: string; website?: string; servicesOffered?: string[] }
 ): Promise<ActionResult<{ listingId: string }>> {
   const user = await getUser();
   if (!user) {
@@ -124,6 +125,21 @@ export async function updateListingDetails(
 
     if (error) {
       return { success: false, error: error.message };
+    }
+
+    // Save services_offered to listing_attribute_values
+    if (data.servicesOffered && data.servicesOffered.length > 0) {
+      await supabase
+        .from("listing_attribute_values")
+        .delete()
+        .eq("listing_id", existingListing.id)
+        .eq("attribute_key", "services_offered");
+
+      await supabase.from("listing_attribute_values").insert({
+        listing_id: existingListing.id,
+        attribute_key: "services_offered",
+        value_json: data.servicesOffered,
+      });
     }
 
     return { success: true, data: { listingId: existingListing.id } };
@@ -179,6 +195,15 @@ export async function updateListingDetails(
     return { success: false, error: error.message };
   }
 
+  // Save services_offered to listing_attribute_values for new listing
+  if (data.servicesOffered && data.servicesOffered.length > 0) {
+    await supabase.from("listing_attribute_values").insert({
+      listing_id: newListing.id,
+      attribute_key: "services_offered",
+      value_json: data.servicesOffered,
+    });
+  }
+
   return { success: true, data: { listingId: newListing.id } };
 }
 
@@ -223,6 +248,7 @@ export async function updateListingLocation(
     latitude: data.latitude || null,
     longitude: data.longitude || null,
     service_radius_miles: data.serviceRadiusMiles,
+    service_mode: "both", // Legacy column - still has NOT NULL constraint
     is_primary: true,
     label: "Primary Location",
   };
@@ -250,7 +276,7 @@ export async function updateListingLocation(
 }
 
 /**
- * Add or update primary location with service mode and insurances
+ * Add or update primary location with service types and insurances
  */
 export async function updateListingLocationWithServices(
   data: LocationWithServicesData
@@ -281,10 +307,18 @@ export async function updateListingLocationWithServices(
     .eq("is_primary", true)
     .single();
 
+  // Map service_types array to legacy service_mode value for backward compatibility
+  const legacyServiceMode = data.serviceTypes.includes("in_home") && data.serviceTypes.includes("in_center")
+    ? "both"
+    : data.serviceTypes.includes("in_home")
+    ? "in_home"
+    : "center_based";
+
   const locationData = {
     listing_id: listing.id,
     label: data.label || "Primary Location",
-    service_mode: data.serviceMode,
+    service_types: data.serviceTypes,
+    service_mode: legacyServiceMode, // Legacy column - still has NOT NULL constraint
     street: data.street || null,
     city: data.city,
     state: data.state,
@@ -315,6 +349,16 @@ export async function updateListingLocationWithServices(
       return { success: false, error: error.message };
     }
   }
+
+  // Also update is_accepting_clients on the listing to keep in sync
+  // This ensures the dashboard listing page shows the correct value
+  await supabase
+    .from("listings")
+    .update({
+      is_accepting_clients: data.isAcceptingClients ?? true,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", listing.id);
 
   return { success: true };
 }
@@ -462,7 +506,7 @@ export async function completeOnboarding(
   // Get profile and listing
   const { data: profile } = await supabase
     .from("profiles")
-    .select("plan_tier")
+    .select("plan_tier, billing_interval")
     .eq("id", user.id)
     .single();
 
@@ -512,7 +556,9 @@ export async function completeOnboarding(
   // Paid plan: Go to checkout to complete payment
   let redirectTo = "/dashboard";
   if (profile?.plan_tier === "pro" || profile?.plan_tier === "enterprise") {
-    redirectTo = `/dashboard/billing/checkout?plan=${profile.plan_tier}`;
+    // Normalize billing interval: convert "monthly"/"annual" to "month"/"year" for Stripe
+    const interval = profile.billing_interval === "annual" || profile.billing_interval === "year" ? "year" : "month";
+    redirectTo = `/dashboard/billing/checkout?plan=${profile.plan_tier}&interval=${interval}`;
   }
 
   return { success: true, data: { redirectTo } };
@@ -642,6 +688,7 @@ export async function getOnboardingData(): Promise<
       contactPhone: string | null;
       website: string | null;
       planTier: string;
+      billingInterval: string;
     } | null;
     listing: {
       id: string;
@@ -661,7 +708,7 @@ export async function getOnboardingData(): Promise<
       serviceRadiusMiles: number;
       latitude: number | null;
       longitude: number | null;
-      serviceMode: "center_based" | "in_home" | "both";
+      serviceTypes: ("in_home" | "in_center" | "telehealth" | "school_based")[];
       insurances: string[];
       isAcceptingClients: boolean;
     } | null;
@@ -678,7 +725,7 @@ export async function getOnboardingData(): Promise<
   // Get profile
   const { data: profile } = await supabase
     .from("profiles")
-    .select("agency_name, contact_email, contact_phone, website, plan_tier")
+    .select("agency_name, contact_email, contact_phone, website, plan_tier, billing_interval")
     .eq("id", user.id)
     .single();
 
@@ -694,7 +741,7 @@ export async function getOnboardingData(): Promise<
   if (listing) {
     const { data: loc } = await supabase
       .from("locations")
-      .select("street, city, state, postal_code, service_radius_miles, latitude, longitude, service_mode, insurances, is_accepting_clients")
+      .select("street, city, state, postal_code, service_radius_miles, latitude, longitude, service_types, insurances, is_accepting_clients")
       .eq("listing_id", listing.id)
       .eq("is_primary", true)
       .single();
@@ -708,7 +755,7 @@ export async function getOnboardingData(): Promise<
         serviceRadiusMiles: loc.service_radius_miles || 25,
         latitude: loc.latitude,
         longitude: loc.longitude,
-        serviceMode: (loc.service_mode as "center_based" | "in_home" | "both") || "both",
+        serviceTypes: (loc.service_types as ("in_home" | "in_center" | "telehealth" | "school_based")[]) || ["in_home", "in_center"],
         insurances: (loc.insurances as string[]) || [],
         isAcceptingClients: loc.is_accepting_clients ?? true,
       };
@@ -741,6 +788,7 @@ export async function getOnboardingData(): Promise<
             contactPhone: profile.contact_phone,
             website: profile.website,
             planTier: profile.plan_tier,
+            billingInterval: profile.billing_interval || "month",
           }
         : null,
       listing: listing

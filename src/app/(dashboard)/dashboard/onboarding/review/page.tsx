@@ -37,6 +37,7 @@ interface OnboardingData {
     contactPhone: string | null;
     website: string | null;
     planTier: string;
+    billingInterval: string;
   } | null;
   listing: {
     id: string;
@@ -167,7 +168,9 @@ export default function OnboardingReviewPage() {
       if (isPaid) {
         router.push("/dashboard/onboarding/success");
       } else if (isPaidPlanSelected) {
-        router.push(`/dashboard/billing/checkout?plan=${selectedPlan}`);
+        // Normalize billing interval: convert "monthly"/"annual" to "month"/"year" for Stripe
+        const interval = data?.profile?.billingInterval === "annual" || data?.profile?.billingInterval === "year" ? "year" : "month";
+        router.push(`/dashboard/billing/checkout?plan=${selectedPlan}&interval=${interval}`);
       } else {
         router.push("/dashboard/onboarding/success");
       }
@@ -231,9 +234,9 @@ export default function OnboardingReviewPage() {
       )}
 
       {/* Two Column Layout on Desktop */}
-      <div className="grid gap-8 lg:grid-cols-2">
+      <div className="grid gap-8 lg:grid-cols-2 min-w-0">
         {/* Left: Listing Preview */}
-        <div className="space-y-4">
+        <div className="space-y-4 min-w-0">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
               Listing Preview
@@ -244,20 +247,20 @@ export default function OnboardingReviewPage() {
               </Badge>
             )}
           </div>
-          <Card className="border-border/60 overflow-hidden">
+          <Card className="border-border/60 overflow-hidden min-w-0">
             {/* Preview Header */}
-            <div className="bg-gradient-to-r from-primary/5 to-primary/10 p-6">
-              <h3 className="text-xl font-semibold text-foreground">
+            <div className="bg-gradient-to-r from-primary/5 to-primary/10 p-4 sm:p-6">
+              <h3 className="text-lg sm:text-xl font-semibold text-foreground break-words">
                 {data?.profile?.agencyName || "Your Practice"}
               </h3>
               {data?.listing?.headline && (
-                <p className="mt-1 text-sm text-muted-foreground">
+                <p className="mt-1 text-sm text-muted-foreground break-words">
                   {data.listing.headline}
                 </p>
               )}
             </div>
 
-            <CardContent className="p-6 space-y-4">
+            <CardContent className="p-4 sm:p-6 space-y-4">
               {/* Location */}
               {data?.location && (
                 <div className="flex items-start gap-3">
@@ -292,8 +295,8 @@ export default function OnboardingReviewPage() {
                   </div>
                 )}
                 {data?.profile?.website && (
-                  <div className="flex items-center gap-3">
-                    <Globe className="h-4 w-4 text-[#5788FF]" />
+                  <div className="flex items-center gap-3 min-w-0">
+                    <Globe className="h-4 w-4 text-[#5788FF] flex-shrink-0" />
                     <span className="text-sm text-foreground truncate">
                       {data.profile.website}
                     </span>
@@ -457,7 +460,7 @@ export default function OnboardingReviewPage() {
         </div>
 
         {/* Right: Plan Selection (only for unpaid users) OR Current Plan Display (paid users) */}
-        <div className="space-y-4">
+        <div className="space-y-4 min-w-0">
           {isPaid ? (
             /* Paid User: Show current plan badge */
             <>
@@ -505,7 +508,7 @@ export default function OnboardingReviewPage() {
                   <Card
                     key={plan.id}
                     className={cn(
-                      "cursor-pointer transition-all border-2",
+                      "cursor-pointer transition-all border-2 min-w-0 overflow-hidden",
                       selectedPlan === plan.id
                         ? "border-primary shadow-md"
                         : "border-border/60 hover:border-border"
@@ -548,7 +551,7 @@ export default function OnboardingReviewPage() {
                       <CardDescription>{plan.description}</CardDescription>
                     </CardHeader>
                     <CardContent className="pt-0">
-                      <ul className="grid grid-cols-2 gap-x-4 gap-y-1">
+                      <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
                         {plan.features.map((feature) => (
                           <li
                             key={feature}

@@ -1,7 +1,7 @@
 import "server-only";
 
 import { createServerClient } from "@supabase/ssr";
-import type { User } from "@supabase/supabase-js";
+import { createClient as createSupabaseClient, type User } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 
 import { env } from "@/env";
@@ -38,35 +38,23 @@ export async function createClient() {
 
 /**
  * Creates a Supabase admin client with service role key for privileged operations.
- * Use this for operations that need to bypass RLS (e.g., creating profiles on signup).
+ * Use this for operations that need to bypass RLS (e.g., creating profiles on signup, analytics).
  *
  * WARNING: Only use this in trusted server-side contexts. Never expose to the client.
+ *
+ * NOTE: Uses the standard Supabase client (not SSR) because the service role key
+ * only bypasses RLS when used with createClient from @supabase/supabase-js.
+ * The SSR variant's createServerClient does not bypass RLS even with service role key.
  */
 export async function createAdminClient() {
-  const cookieStore = await cookies();
-
   if (!env.SUPABASE_SERVICE_ROLE_KEY) {
     throw new Error("SUPABASE_SERVICE_ROLE_KEY is required for admin operations");
   }
 
-  return createServerClient(
+  return createSupabaseClient(
     env.NEXT_PUBLIC_SUPABASE_URL,
     env.SUPABASE_SERVICE_ROLE_KEY,
     {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) => {
-              cookieStore.set(name, value, options);
-            });
-          } catch {
-            // Ignored in Server Components
-          }
-        },
-      },
       auth: {
         autoRefreshToken: false,
         persistSession: false,

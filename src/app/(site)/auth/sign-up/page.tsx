@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { signUpWithEmail, signInWithOAuth } from "@/lib/auth/actions";
+import { SignupPageTracker, useSignupTracking } from "@/components/analytics/signup-tracker";
 
 function SignUpForm() {
   const router = useRouter();
@@ -35,19 +36,27 @@ function SignUpForm() {
   const selectedPlan = searchParams.get("plan");
   const billingInterval = searchParams.get("interval") || "monthly";
 
+  // PostHog tracking
+  const tracking = useSignupTracking(selectedPlan);
+
   async function handleSubmit(formData: FormData) {
     if (!acceptedTerms) {
       setError("Please accept the terms of service and privacy policy");
+      tracking.trackError("Please accept the terms of service and privacy policy", "terms");
       return;
     }
 
     if (!turnstileToken) {
       setError("Please complete the security verification");
+      tracking.trackError("Please complete the security verification", "captcha");
       return;
     }
 
     setError(null);
     setSuccess(null);
+
+    // Track form submission
+    tracking.trackFormSubmitted("email", billingInterval);
 
     // Add selected plan, billing interval, and turnstile token to form data
     if (selectedPlan) {
@@ -61,14 +70,17 @@ function SignUpForm() {
 
       if ("error" in result) {
         setError(result.message);
+        tracking.trackError(result.message);
         // Reset Turnstile on error
         turnstileRef.current?.reset();
         setTurnstileToken(null);
       } else if (result.message) {
         // Email confirmation required
         setSuccess(result.message);
+        tracking.trackEmailSent();
       } else {
         // Direct signup - plan is already saved in DB
+        tracking.trackCompleted("email", billingInterval);
         router.push("/dashboard/onboarding");
         router.refresh();
       }
@@ -78,12 +90,15 @@ function SignUpForm() {
   async function handleGoogleSignIn() {
     setError(null);
     setIsGooglePending(true);
+    tracking.trackMethodSelected("google");
+    tracking.trackFormSubmitted("google", billingInterval);
 
     // For OAuth, we pass plan and interval via URL state (handled in callback)
     const result = await signInWithOAuth("google", selectedPlan || undefined, billingInterval);
 
     if ("error" in result) {
       setError(result.message);
+      tracking.trackError(result.message);
       setIsGooglePending(false);
     } else {
       window.location.href = result.url;
@@ -93,12 +108,15 @@ function SignUpForm() {
   async function handleMicrosoftSignIn() {
     setError(null);
     setIsMicrosoftPending(true);
+    tracking.trackMethodSelected("microsoft");
+    tracking.trackFormSubmitted("microsoft", billingInterval);
 
     // For OAuth, we pass plan and interval via URL state (handled in callback)
     const result = await signInWithOAuth("azure", selectedPlan || undefined, billingInterval);
 
     if ("error" in result) {
       setError(result.message);
+      tracking.trackError(result.message);
       setIsMicrosoftPending(false);
     } else {
       window.location.href = result.url;
@@ -109,8 +127,10 @@ function SignUpForm() {
 
   // PRD 3.2.1: Step 1 – Create Account
   return (
-    <Card>
-      <CardHeader className="space-y-4 text-center">
+    <>
+      <SignupPageTracker selectedPlan={selectedPlan} billingInterval={billingInterval} />
+      <Card>
+        <CardHeader className="space-y-4 text-center">
         <Badge className="mx-auto rounded-full border border-[#5788FF]/40 bg-gradient-to-r from-[#5788FF]/15 to-[#5788FF]/5 px-4 py-1.5 text-sm font-semibold text-[#5788FF] shadow-sm">
           For ABA Providers
         </Badge>
@@ -216,6 +236,10 @@ function SignUpForm() {
               type="email"
               required
               disabled={isLoading}
+              onFocus={() => tracking.trackFormStarted()}
+              onBlur={(e) => {
+                if (e.target.value) tracking.trackFieldCompleted("email");
+              }}
             />
           </div>
           <div className="space-y-2">
@@ -228,6 +252,9 @@ function SignUpForm() {
               minLength={8}
               required
               disabled={isLoading}
+              onBlur={(e) => {
+                if (e.target.value) tracking.trackFieldCompleted("password");
+              }}
             />
           </div>
 
@@ -236,9 +263,10 @@ function SignUpForm() {
             <Checkbox
               id="terms"
               checked={acceptedTerms}
-              onCheckedChange={(checked: boolean | "indeterminate") =>
-                setAcceptedTerms(checked === true)
-              }
+              onCheckedChange={(checked: boolean | "indeterminate") => {
+                setAcceptedTerms(checked === true);
+                if (checked === true) tracking.trackTermsAccepted();
+              }}
               disabled={isLoading}
             />
             <label
@@ -272,10 +300,14 @@ function SignUpForm() {
               <Turnstile
                 ref={turnstileRef}
                 siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!}
-                onSuccess={(token) => setTurnstileToken(token)}
+                onSuccess={(token) => {
+                  setTurnstileToken(token);
+                  tracking.trackCaptchaCompleted();
+                }}
                 onError={() => {
                   setTurnstileToken(null);
                   setError("Security verification failed. Please try again.");
+                  tracking.trackError("Security verification failed", "captcha");
                 }}
                 onExpire={() => setTurnstileToken(null)}
                 options={{
@@ -303,7 +335,8 @@ function SignUpForm() {
           </Button>
         </form>
       </CardContent>
-    </Card>
+      </Card>
+    </>
   );
 }
 

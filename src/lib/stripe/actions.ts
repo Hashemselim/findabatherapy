@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 
 import { stripe } from "@/lib/stripe";
@@ -207,7 +208,9 @@ export async function upgradeSubscription(
 
     // Determine if this is switching to annual (always treat as upgrade - immediate with proration)
     // Note: treat null/undefined billing_interval as "month" (the default for existing users)
-    const currentInterval = profile.billing_interval || "month";
+    // Also handle legacy "monthly"/"annual" values that might exist in the database
+    const rawInterval = profile.billing_interval || "month";
+    const currentInterval = rawInterval === "annual" || rawInterval === "year" ? "year" : "month";
     const isSwitchingToAnnual = currentInterval === "month" && billingInterval === "year";
 
     if (isUpgrade || isSwitchingToAnnual) {
@@ -234,6 +237,11 @@ export async function upgradeSubscription(
         .from("profiles")
         .update({ plan_tier: planTier, billing_interval: billingInterval })
         .eq("id", profile.id);
+
+      // Revalidate dashboard pages so the UI reflects the change immediately
+      revalidatePath("/dashboard");
+      revalidatePath("/dashboard/company");
+      revalidatePath("/dashboard/locations");
 
       const successUrl = returnTo
         ? `${origin}${CHECKOUT_URLS.success}?upgraded=true&return_to=${returnTo}`
@@ -295,6 +303,24 @@ export async function upgradeSubscription(
       error: error instanceof Error ? error.message : "Failed to change subscription",
     };
   }
+}
+
+/**
+ * Upgrade from Pro to Enterprise - used by the billing page upgrade card
+ * This is a wrapper around upgradeSubscription that doesn't redirect
+ */
+export async function upgradeToEnterprise(
+  billingInterval: BillingInterval = "month"
+): Promise<ActionResult<void>> {
+  const result = await upgradeSubscription("enterprise", billingInterval);
+
+  if (!result.success) {
+    return { success: false, error: result.error };
+  }
+
+  // The upgradeSubscription already updates the DB and revalidates paths
+  // We just need to return success (the URL it returns is for redirect, which we don't need)
+  return { success: true };
 }
 
 /**
@@ -536,6 +562,11 @@ export async function cancelPendingDowngrade(): Promise<ActionResult> {
         pending_plan_tier: "",
       },
     });
+
+    // Revalidate dashboard pages so the UI reflects the change
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/company");
+    revalidatePath("/dashboard/locations");
 
     return { success: true };
   } catch (error) {
@@ -843,6 +874,11 @@ export async function cancelFeaturedLocation(
       })
       .eq("id", featuredSub.id);
 
+    // Revalidate dashboard pages so the UI reflects the change
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/company");
+    revalidatePath("/dashboard/locations");
+
     return { success: true };
   } catch (error) {
     console.error("Cancel featured location error:", error);
@@ -901,6 +937,11 @@ export async function reactivateFeaturedLocation(
         updated_at: new Date().toISOString(),
       })
       .eq("id", featuredSub.id);
+
+    // Revalidate dashboard pages so the UI reflects the change
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/company");
+    revalidatePath("/dashboard/locations");
 
     return { success: true };
   } catch (error) {

@@ -4,6 +4,7 @@ import { CheckCircle2, ArrowRight, ExternalLink } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { CheckoutTracker } from "@/components/analytics/checkout-tracker";
 import { getListing, type ListingWithRelations } from "@/lib/actions/listings";
 
 interface BillingSuccessPageProps {
@@ -44,8 +45,14 @@ export default async function BillingSuccessPage({ searchParams }: BillingSucces
     description = "Your plan has been changed. You'll keep your current features until the end of your billing period.";
   }
 
+  // Determine checkout type for tracking
+  const checkoutType = isUpgrade ? "upgrade" : isDowngrade ? "downgrade" : "new";
+
   return (
     <div className="flex min-h-[60vh] items-center justify-center">
+      {/* PostHog checkout tracking */}
+      <CheckoutTracker type={checkoutType} />
+
       <Card className="w-full max-w-lg">
         <CardHeader className="text-center">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/10">

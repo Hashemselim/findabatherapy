@@ -92,10 +92,10 @@ export async function signUpWithEmail(formData: FormData): Promise<AuthResult> {
   }
 
   // Validate plan tier and billing interval
+  // Normalize to "month"/"year" to match Stripe's convention
   const validPlans = ["free", "pro", "enterprise"];
   const planTier = validPlans.includes(selectedPlan) ? selectedPlan : "free";
-  const validIntervals = ["monthly", "annual"];
-  const interval = validIntervals.includes(billingInterval) ? billingInterval : "monthly";
+  const interval = billingInterval === "annual" || billingInterval === "year" ? "year" : "month";
 
   if (!email || !password) {
     return {
@@ -173,10 +173,10 @@ export async function signInWithOAuth(
   const origin = headersList.get("origin") || process.env.NEXT_PUBLIC_SITE_URL;
 
   // Validate plan tier and billing interval
+  // Normalize to "month"/"year" to match Stripe's convention
   const validPlans = ["free", "pro", "enterprise"];
   const planTier = selectedPlan && validPlans.includes(selectedPlan) ? selectedPlan : "free";
-  const validIntervals = ["monthly", "annual"];
-  const interval = billingInterval && validIntervals.includes(billingInterval) ? billingInterval : "monthly";
+  const interval = billingInterval === "annual" || billingInterval === "year" ? "year" : "month";
 
   const supabase = await createClient();
 

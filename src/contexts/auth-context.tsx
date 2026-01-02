@@ -10,6 +10,7 @@ import {
 } from "react";
 import type { User, Session } from "@supabase/supabase-js";
 import { useRouter } from "next/navigation";
+import posthog from "posthog-js";
 
 import { createSupabaseBrowserClient } from "@/lib/supabase/clients";
 
@@ -99,9 +100,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       // Handle specific auth events
-      if (event === "SIGNED_IN") {
+      if (event === "SIGNED_IN" && session?.user) {
+        // Identify user in PostHog
+        posthog.identify(session.user.id, {
+          email: session.user.email,
+        });
         router.refresh();
       } else if (event === "SIGNED_OUT") {
+        // Reset PostHog on logout
+        posthog.reset();
         setProfile(null);
         router.refresh();
       }

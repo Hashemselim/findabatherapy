@@ -53,6 +53,8 @@ export function SearchFilters({ className }: SearchFiltersProps) {
 
   const [isOpen, setIsOpen] = useState(false);
   const [filters, setFilters] = useState<SearchFilters>(currentFilters);
+  // Track if there's unvalidated location text (typed but not selected from dropdown)
+  const [hasUnvalidatedLocation, setHasUnvalidatedLocation] = useState(false);
 
   // Sync local filters state when URL params change (e.g., from HomeSearchCard navigation)
   // We use a serialized version of searchParams as the dependency to avoid unnecessary re-renders
@@ -82,10 +84,11 @@ export function SearchFilters({ className }: SearchFiltersProps) {
       return;
     }
     // Only auto-apply when sheet is closed (desktop mode)
-    if (!isOpen) {
+    // Don't auto-apply if there's unvalidated location text
+    if (!isOpen && !hasUnvalidatedLocation) {
       debouncedApply();
     }
-  }, [filters, isOpen, debouncedApply]);
+  }, [filters, isOpen, debouncedApply, hasUnvalidatedLocation]);
 
   const handleFilterChange = (
     key: keyof SearchFilters,
@@ -95,7 +98,7 @@ export function SearchFilters({ className }: SearchFiltersProps) {
   };
 
   const handleArrayToggle = (
-    key: "serviceModes" | "insurances" | "languages",
+    key: "serviceTypes" | "insurances" | "languages",
     value: string
   ) => {
     setFilters((prev) => {
@@ -157,6 +160,8 @@ export function SearchFilters({ className }: SearchFiltersProps) {
               onFilterChange={handleFilterChange}
               onArrayToggle={handleArrayToggle}
               onLocationUpdate={handleLocationUpdate}
+              onUnvalidatedLocationChange={setHasUnvalidatedLocation}
+              hasUnvalidatedLocation={hasUnvalidatedLocation}
             />
           </div>
           {/* Sticky footer with Apply button */}
@@ -189,6 +194,8 @@ export function SearchFilters({ className }: SearchFiltersProps) {
             onFilterChange={handleFilterChange}
             onArrayToggle={handleArrayToggle}
             onLocationUpdate={handleLocationUpdate}
+            onUnvalidatedLocationChange={setHasUnvalidatedLocation}
+            hasUnvalidatedLocation={hasUnvalidatedLocation}
           />
         </div>
       </div>
@@ -203,10 +210,14 @@ interface FilterContentProps {
     value: SearchFilters[keyof SearchFilters]
   ) => void;
   onArrayToggle: (
-    key: "serviceModes" | "insurances" | "languages",
+    key: "serviceTypes" | "insurances" | "languages",
     value: string
   ) => void;
   onLocationUpdate: (lat: number | undefined, lng: number | undefined) => void;
+  /** Called when location input has unvalidated text (typed but not selected from dropdown) */
+  onUnvalidatedLocationChange?: (hasUnvalidated: boolean) => void;
+  /** Whether there is currently unvalidated location text */
+  hasUnvalidatedLocation?: boolean;
 }
 
 function FilterContent({
@@ -214,6 +225,8 @@ function FilterContent({
   onFilterChange,
   onArrayToggle,
   onLocationUpdate,
+  onUnvalidatedLocationChange,
+  hasUnvalidatedLocation,
 }: FilterContentProps) {
   const [addressInput, setAddressInput] = useState("");
   // Compute the location label from filters
@@ -245,20 +258,59 @@ function FilterContent({
     }
   }, [filters.userLat, filters.userLng, computeLocationLabel]);
 
+  const hasLocation = filters.userLat !== undefined && filters.userLng !== undefined;
+  const [isReverseGeocoding, setIsReverseGeocoding] = useState(false);
+
+  // Request location and automatically apply it when received
   const handleNearMe = useCallback(() => {
     geolocation.requestLocation();
   }, [geolocation]);
 
-  // Update filters when geolocation succeeds
-  const handleUseCurrentLocation = useCallback(() => {
-    if (geolocation.latitude && geolocation.longitude) {
-      onLocationUpdate(geolocation.latitude, geolocation.longitude);
-      setLocationLabel("Current location");
-      if (!filters.radiusMiles) {
-        onFilterChange("radiusMiles", 25);
-      }
+  // Automatically apply location when geolocation succeeds
+  // This effect does reverse geocoding to get the state, then applies the location
+  useEffect(() => {
+    if (geolocation.latitude && geolocation.longitude && !hasLocation && !isReverseGeocoding) {
+      setIsReverseGeocoding(true);
+
+      // Do reverse geocoding to get city/state
+      fetch("/api/geocode", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          latitude: geolocation.latitude,
+          longitude: geolocation.longitude,
+        }),
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          // Apply location with city/state from reverse geocoding
+          onLocationUpdate(geolocation.latitude!, geolocation.longitude!);
+
+          if (data.city) onFilterChange("city", data.city);
+          if (data.state) onFilterChange("state", data.state);
+
+          const label = data.city && data.state
+            ? `${data.city}, ${data.state}`
+            : "Current location";
+          setLocationLabel(label);
+
+          if (!filters.radiusMiles) {
+            onFilterChange("radiusMiles", 25);
+          }
+        })
+        .catch(() => {
+          // Fallback: apply location without city/state (will search all results)
+          onLocationUpdate(geolocation.latitude!, geolocation.longitude!);
+          setLocationLabel("Current location");
+          if (!filters.radiusMiles) {
+            onFilterChange("radiusMiles", 25);
+          }
+        })
+        .finally(() => {
+          setIsReverseGeocoding(false);
+        });
     }
-  }, [geolocation.latitude, geolocation.longitude, onLocationUpdate, onFilterChange, filters.radiusMiles]);
+  }, [geolocation.latitude, geolocation.longitude, hasLocation, isReverseGeocoding, onLocationUpdate, onFilterChange, filters.radiusMiles]);
 
   // Handle place selection from PlacesAutocomplete - get coordinates directly
   const handlePlaceSelect = useCallback((place: PlaceDetails) => {
@@ -286,8 +338,6 @@ function FilterContent({
     setLocationLabel(null);
     geolocation.clearLocation();
   }, [onLocationUpdate, onFilterChange, geolocation]);
-
-  const hasLocation = filters.userLat !== undefined && filters.userLng !== undefined;
 
   return (
     <>
@@ -321,31 +371,15 @@ function FilterContent({
                 size="sm"
                 className="w-full gap-2"
                 onClick={handleNearMe}
-                disabled={geolocation.loading}
+                disabled={geolocation.loading || isReverseGeocoding}
               >
-                {geolocation.loading ? (
+                {geolocation.loading || isReverseGeocoding ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
                   <Navigation className="h-4 w-4" />
                 )}
-                Use my location
+                {isReverseGeocoding ? "Finding your location..." : "Use my location"}
               </Button>
-
-              {/* Show location ready message */}
-              {geolocation.latitude && geolocation.longitude && (
-                <div className="space-y-2">
-                  <p className="text-xs text-muted-foreground">
-                    Location detected
-                  </p>
-                  <Button
-                    size="sm"
-                    className="w-full"
-                    onClick={handleUseCurrentLocation}
-                  >
-                    Search near me
-                  </Button>
-                </div>
-              )}
 
               {geolocation.error && (
                 <p className="text-xs text-destructive">{geolocation.error}</p>
@@ -366,12 +400,20 @@ function FilterContent({
                 value={addressInput}
                 onChange={setAddressInput}
                 onPlaceSelect={handlePlaceSelect}
+                onUnvalidatedInput={onUnvalidatedLocationChange}
                 placeholder="City, State or ZIP"
                 showIcon={true}
                 inputClassName="h-9 text-sm"
               />
-              <p className="text-xs text-muted-foreground">
-                Select a location from the suggestions
+              <p className={cn(
+                "text-xs",
+                hasUnvalidatedLocation
+                  ? "text-amber-600 font-medium"
+                  : "text-muted-foreground"
+              )}>
+                {hasUnvalidatedLocation
+                  ? "Please select a location from the suggestions"
+                  : "Select a location from the suggestions"}
               </p>
             </>
           )}
@@ -416,18 +458,18 @@ function FilterContent({
         </Label>
       </div>
 
-      {/* Service Modes */}
+      {/* Service Types */}
       <FilterSection title="Service Type" defaultOpen>
         <div className="space-y-2">
-          {SERVICE_MODES.map((mode) => (
-            <div key={mode.value} className="flex items-center space-x-2">
+          {SERVICE_MODES.map((type) => (
+            <div key={type.value} className="flex items-center space-x-2">
               <Checkbox
-                id={`mode-${mode.value}`}
-                checked={filters.serviceModes?.includes(mode.value) || false}
-                onCheckedChange={() => onArrayToggle("serviceModes", mode.value)}
+                id={`type-${type.value}`}
+                checked={filters.serviceTypes?.includes(type.value) || false}
+                onCheckedChange={() => onArrayToggle("serviceTypes", type.value)}
               />
-              <Label htmlFor={`mode-${mode.value}`} className="text-sm font-normal">
-                {mode.label}
+              <Label htmlFor={`type-${type.value}`} className="text-sm font-normal">
+                {type.label}
               </Label>
             </div>
           ))}
@@ -506,7 +548,7 @@ function FilterSection({ title, defaultOpen = false, children }: FilterSectionPr
 
 function countActiveFilters(filters: SearchFilters): number {
   let count = 0;
-  if (filters.serviceModes?.length) count += filters.serviceModes.length;
+  if (filters.serviceTypes?.length) count += filters.serviceTypes.length;
   if (filters.insurances?.length) count += filters.insurances.length;
   if (filters.languages?.length) count += filters.languages.length;
   if (filters.acceptingClients !== undefined) count++;
@@ -528,8 +570,8 @@ export function ActiveFilters({ className }: ActiveFiltersProps) {
   const removeFilter = (key: string, value?: string) => {
     const newFilters = { ...filters };
 
-    if (key === "serviceModes" && value) {
-      newFilters.serviceModes = filters.serviceModes?.filter((v) => v !== value);
+    if (key === "serviceTypes" && value) {
+      newFilters.serviceTypes = filters.serviceTypes?.filter((v) => v !== value);
     } else if (key === "insurances" && value) {
       newFilters.insurances = filters.insurances?.filter((v) => v !== value);
     } else if (key === "languages" && value) {
@@ -555,9 +597,9 @@ export function ActiveFilters({ className }: ActiveFiltersProps) {
   if (filters.city) {
     chips.push({ key: "city", label: filters.city });
   }
-  filters.serviceModes?.forEach((mode) => {
-    const modeLabel = SERVICE_MODES.find((m) => m.value === mode)?.label || mode;
-    chips.push({ key: "serviceModes", value: mode, label: modeLabel });
+  filters.serviceTypes?.forEach((type) => {
+    const typeLabel = SERVICE_MODES.find((t) => t.value === type)?.label || type;
+    chips.push({ key: "serviceTypes", value: type, label: typeLabel });
   });
   filters.insurances?.forEach((ins) => {
     chips.push({ key: "insurances", value: ins, label: ins });

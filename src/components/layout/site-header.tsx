@@ -6,6 +6,7 @@ import { siteConfig } from "@/config/site";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
+  SheetClose,
   SheetContent,
   SheetDescription,
   SheetHeader,
@@ -85,39 +86,46 @@ export async function SiteHeader() {
             </SheetHeader>
             <div className="mt-6 flex flex-col gap-4 text-base">
               {primaryNav.map((item) => (
-                <Button
-                  key={item.href}
-                  asChild
-                  variant="ghost"
-                  className="justify-start text-base font-medium"
-                >
-                  <Link href={item.href}>{item.label}</Link>
-                </Button>
+                <SheetClose asChild key={item.href}>
+                  <Button
+                    asChild
+                    variant="ghost"
+                    className="justify-start text-base font-medium"
+                  >
+                    <Link href={item.href}>{item.label}</Link>
+                  </Button>
+                </SheetClose>
               ))}
             </div>
             <div className="mt-8 border-t pt-6">
               <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">For Providers</span>
               <div className="mt-3 flex flex-col gap-2">
-                <Button
-                  asChild
-                  className="rounded-full border border-[#5788FF] bg-[#5788FF] text-base font-medium text-white hover:bg-[#88B0FF]"
-                >
-                  <Link href="/get-listed">Get Listed</Link>
-                </Button>
+                <SheetClose asChild>
+                  <Button
+                    asChild
+                    className="rounded-full border border-[#5788FF] bg-[#5788FF] text-base font-medium text-white hover:bg-[#88B0FF]"
+                  >
+                    <Link href="/get-listed">Get Listed</Link>
+                  </Button>
+                </SheetClose>
                 {user ? (
-                  <Button asChild variant="outline" className="rounded-full text-base font-medium">
-                    <Link href="/dashboard" className="gap-2">
-                      <LayoutDashboard className="h-4 w-4" aria-hidden />
-                      Dashboard
-                    </Link>
-                  </Button>
+                  <SheetClose asChild>
+                    <Button asChild variant="outline" className="rounded-full text-base font-medium">
+                      <Link href="/dashboard" className="gap-2">
+                        <LayoutDashboard className="h-4 w-4" aria-hidden />
+                        Dashboard
+                      </Link>
+                    </Button>
+                  </SheetClose>
                 ) : (
-                  <Button asChild variant="outline" className="rounded-full text-base font-medium">
-                    <Link href="/auth/sign-in" className="gap-2">
-                      <UserRound className="h-4 w-4" aria-hidden />
-                      Sign In
-                    </Link>
-                  </Button>
+                  <SheetClose asChild>
+                    <Button asChild variant="outline" className="rounded-full text-base font-medium">
+                      <Link href="/auth/sign-in" className="gap-2">
+                        <UserRound className="h-4 w-4" aria-hidden />
+                        Sign In
+                      </Link>
+                    </Button>
+                  </SheetClose>
                 )}
               </div>
             </div>

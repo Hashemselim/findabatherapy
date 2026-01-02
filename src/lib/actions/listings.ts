@@ -60,8 +60,14 @@ export interface ListingWithRelations extends ListingData {
     googlePlaceId?: string | null;
     googleRating?: number | null;
     googleRatingCount?: number | null;
+    // Contact info overrides
+    contactPhone?: string | null;
+    contactEmail?: string | null;
+    contactWebsite?: string | null;
+    useCompanyContact?: boolean;
   }>;
   attributes: Record<string, unknown>;
+  photoUrls?: string[];
 }
 
 /**
@@ -236,8 +242,86 @@ export async function updateListing(data: {
   }
 
   revalidatePath("/dashboard");
-  revalidatePath("/dashboard/listing");
+  revalidatePath("/dashboard/company");
   return { success: true };
+}
+
+/**
+ * Generate a URL-friendly slug from agency name
+ */
+function generateSlug(agencyName: string): string {
+  return agencyName
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .substring(0, 50);
+}
+
+/**
+ * Update company/agency name in profile and listing slug
+ */
+export async function updateAgencyName(agencyName: string): Promise<ActionResult<{ newSlug: string }>> {
+  const user = await getUser();
+  if (!user) {
+    return { success: false, error: "Not authenticated" };
+  }
+
+  if (!agencyName || agencyName.trim().length < 2) {
+    return { success: false, error: "Company name must be at least 2 characters" };
+  }
+
+  const supabase = await createClient();
+  const trimmedName = agencyName.trim();
+
+  // Update profile
+  const { error: profileError } = await supabase
+    .from("profiles")
+    .update({
+      agency_name: trimmedName,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", user.id);
+
+  if (profileError) {
+    return { success: false, error: profileError.message };
+  }
+
+  // Generate new slug and check for uniqueness
+  let newSlug = generateSlug(trimmedName);
+  let slugSuffix = 0;
+
+  while (true) {
+    const checkSlug = slugSuffix > 0 ? `${newSlug}-${slugSuffix}` : newSlug;
+    const { data: existingListing } = await supabase
+      .from("listings")
+      .select("id")
+      .eq("slug", checkSlug)
+      .neq("profile_id", user.id) // Exclude current user's listing
+      .single();
+
+    if (!existingListing) {
+      newSlug = checkSlug;
+      break;
+    }
+    slugSuffix++;
+  }
+
+  // Update listing slug
+  const { error: listingError } = await supabase
+    .from("listings")
+    .update({
+      slug: newSlug,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("profile_id", user.id);
+
+  if (listingError) {
+    return { success: false, error: listingError.message };
+  }
+
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/company");
+  return { success: true, data: { newSlug } };
 }
 
 /**
@@ -287,7 +371,7 @@ export async function updateListingStatus(
   }
 
   revalidatePath("/dashboard");
-  revalidatePath("/dashboard/listing");
+  revalidatePath("/dashboard/company");
   return { success: true };
 }
 
@@ -307,6 +391,7 @@ export async function unpublishListing(): Promise<ActionResult> {
 
 /**
  * Get listing attributes (insurance, ages, languages, etc.)
+ * Falls back to primary location data for insurances if not set in attributes
  */
 export async function getListingAttributes(): Promise<ActionResult<Record<string, unknown>>> {
   const user = await getUser();
@@ -327,11 +412,22 @@ export async function getListingAttributes(): Promise<ActionResult<Record<string
     return { success: false, error: "Listing not found" };
   }
 
-  // Get attributes
-  const { data: attrs } = await supabase
-    .from("listing_attribute_values")
-    .select("attribute_key, value_json, value_text, value_number, value_boolean")
-    .eq("listing_id", listing.id);
+  // Get attributes and primary location in parallel
+  const [attrsResult, locationResult] = await Promise.all([
+    supabase
+      .from("listing_attribute_values")
+      .select("attribute_key, value_json, value_text, value_number, value_boolean")
+      .eq("listing_id", listing.id),
+    supabase
+      .from("locations")
+      .select("insurances, is_accepting_clients")
+      .eq("listing_id", listing.id)
+      .eq("is_primary", true)
+      .single(),
+  ]);
+
+  const attrs = attrsResult.data;
+  const primaryLocation = locationResult.data;
 
   const attributes: Record<string, unknown> = {};
   if (attrs) {
@@ -339,6 +435,12 @@ export async function getListingAttributes(): Promise<ActionResult<Record<string
       attributes[attr.attribute_key] =
         attr.value_json ?? attr.value_text ?? attr.value_number ?? attr.value_boolean;
     });
+  }
+
+  // Fall back to primary location data if insurances not set in attributes
+  // This handles the case where onboarding saved to locations table
+  if (!attributes.insurances && primaryLocation?.insurances?.length) {
+    attributes.insurances = primaryLocation.insurances;
   }
 
   return { success: true, data: attributes };
@@ -349,6 +451,7 @@ export async function getListingAttributes(): Promise<ActionResult<Record<string
  */
 export async function updateListingAttributes(data: {
   insurances?: string[];
+  servicesOffered?: string[];
   agesServedMin?: number;
   agesServedMax?: number;
   languages?: string[];
@@ -400,6 +503,14 @@ export async function updateListingAttributes(data: {
     });
   }
 
+  if (data.servicesOffered !== undefined) {
+    attributesToUpsert.push({
+      listing_id: listing.id,
+      attribute_key: "services_offered",
+      value_json: data.servicesOffered,
+    });
+  }
+
   if (data.languages !== undefined) {
     attributesToUpsert.push({
       listing_id: listing.id,
@@ -444,15 +555,55 @@ export async function updateListingAttributes(data: {
       .eq("listing_id", attr.listing_id)
       .eq("attribute_key", attr.attribute_key);
 
-    await supabase.from("listing_attribute_values").insert({
+    const { error: insertError } = await supabase.from("listing_attribute_values").insert({
       listing_id: attr.listing_id,
       attribute_key: attr.attribute_key,
       value_json: attr.value_json,
     });
+
+    if (insertError) {
+      console.error(`Failed to insert attribute ${attr.attribute_key}:`, insertError);
+      return { success: false, error: `Failed to save ${attr.attribute_key}: ${insertError.message}` };
+    }
   }
 
   revalidatePath("/dashboard");
-  revalidatePath("/dashboard/listing");
+  revalidatePath("/dashboard/company");
+  return { success: true };
+}
+
+/**
+ * Update company contact info (stored in profiles table)
+ */
+export async function updateCompanyContact(data: {
+  contactEmail: string;
+  contactPhone?: string;
+  website?: string;
+}): Promise<ActionResult> {
+  const user = await getUser();
+  if (!user) {
+    return { success: false, error: "Not authenticated" };
+  }
+
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({
+      contact_email: data.contactEmail,
+      contact_phone: data.contactPhone || null,
+      website: data.website || null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", user.id);
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/company");
+  revalidatePath("/dashboard/locations");
   return { success: true };
 }
 
@@ -503,18 +654,20 @@ export async function updateContactFormEnabled(enabled: boolean): Promise<Action
   }
 
   revalidatePath("/dashboard");
-  revalidatePath("/dashboard/listing");
+  revalidatePath("/dashboard/company");
   return { success: true };
 }
 
 /**
  * Get listing by slug (for public view)
+ * Optimized: Parallel queries for locations, attributes, and photos
  */
 export async function getListingBySlug(
   slug: string
 ): Promise<ActionResult<ListingWithRelations>> {
   const supabase = await createClient();
 
+  // First, get the listing (required to get listing.id for subsequent queries)
   const { data: listing, error: listingError } = await supabase
     .from("listings")
     .select(`
@@ -550,18 +703,36 @@ export async function getListingBySlug(
     return { success: false, error: listingError.message };
   }
 
-  // Get all locations
-  const { data: locations } = await supabase
-    .from("locations")
-    .select("id, label, street, city, state, postal_code, latitude, longitude, service_radius_miles, is_primary, is_featured, service_mode, insurances, google_place_id, google_rating, google_rating_count")
-    .eq("listing_id", listing.id)
-    .order("is_primary", { ascending: false });
+  // Parallel fetch: locations, attributes, and photos
+  const [locationsResult, attrsResult, photosResult] = await Promise.all([
+    supabase
+      .from("locations")
+      .select("id, label, street, city, state, postal_code, latitude, longitude, service_radius_miles, is_primary, is_featured, service_mode, insurances, google_place_id, google_rating, google_rating_count, contact_phone, contact_email, contact_website, use_company_contact")
+      .eq("listing_id", listing.id)
+      .order("is_primary", { ascending: false }),
+    supabase
+      .from("listing_attribute_values")
+      .select("attribute_key, value_json, value_text, value_number, value_boolean")
+      .eq("listing_id", listing.id),
+    supabase
+      .from("media_assets")
+      .select("id, storage_path, sort_order")
+      .eq("listing_id", listing.id)
+      .eq("media_type", "photo")
+      .order("sort_order", { ascending: true }),
+  ]);
 
-  // Get attributes
-  const { data: attrs } = await supabase
-    .from("listing_attribute_values")
-    .select("attribute_key, value_json, value_text, value_number, value_boolean")
-    .eq("listing_id", listing.id);
+  const locations = locationsResult.data;
+  const attrs = attrsResult.data;
+  const photos = photosResult.data;
+
+  // Build photo URLs
+  const photoUrls = photos?.map((photo) => {
+    const { data } = supabase.storage
+      .from("photos")
+      .getPublicUrl(photo.storage_path);
+    return data.publicUrl;
+  }) || [];
 
   const attributes: Record<string, unknown> = {};
   if (attrs) {
@@ -633,8 +804,13 @@ export async function getListingBySlug(
           googlePlaceId: l.google_place_id,
           googleRating: l.google_rating,
           googleRatingCount: l.google_rating_count,
+          contactPhone: l.contact_phone,
+          contactEmail: l.contact_email,
+          contactWebsite: l.contact_website,
+          useCompanyContact: l.use_company_contact ?? true,
         })) || [],
       attributes,
+      photoUrls,
     },
   };
 }

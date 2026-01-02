@@ -133,9 +133,12 @@ export default async function CityPage({ params }: CityPageProps) {
     }
   );
 
-  const { results: locations, total } = result.success
+  const { results: locations, total, radiusMiles } = result.success
     ? result.data
-    : { results: [], total: 0 };
+    : { results: [], total: 0, radiusMiles: 25 };
+
+  // City pages have proximity search if geocoding succeeded
+  const hasProximitySearch = cityCoords !== null;
 
   // Track search impressions (non-blocking) - only for real listings
   const realListingsForTracking = locations
@@ -276,7 +279,7 @@ export default async function CityPage({ params }: CityPageProps) {
               </p>
             </div>
 
-            <SearchResults results={locations} />
+            <SearchResults results={locations} radiusMiles={radiusMiles} hasProximitySearch={hasProximitySearch} />
           </>
         ) : (
           <div className="py-12 text-center">
