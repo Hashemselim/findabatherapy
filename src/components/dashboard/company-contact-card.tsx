@@ -37,7 +37,11 @@ const companyContactSchema = z.object({
     }),
 });
 
-type CompanyContactFormValues = z.infer<typeof companyContactSchema>;
+type CompanyContactFormValues = {
+  contactEmail: string;
+  contactPhone?: string;
+  website?: string;
+};
 
 interface CompanyContactCardProps {
   initialData: {

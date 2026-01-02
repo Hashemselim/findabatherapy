@@ -125,7 +125,23 @@ const locationFormSchema = z
     }
   );
 
-type LocationFormValues = z.infer<typeof locationFormSchema>;
+type LocationFormValues = {
+  label?: string;
+  serviceTypes: string[];
+  street?: string;
+  city: string;
+  state: string;
+  postalCode?: string;
+  serviceRadiusMiles: number;
+  latitude?: number;
+  longitude?: number;
+  useCompanyContact: boolean;
+  contactPhone?: string;
+  contactEmail?: string;
+  contactWebsite?: string;
+  insurances: string[];
+  isAcceptingClients: boolean;
+};
 
 export interface CompanyDefaults {
   phone: string | null;
