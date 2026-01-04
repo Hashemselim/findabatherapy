@@ -29,10 +29,19 @@ import { getUnreadInquiryCount } from "@/lib/actions/inquiries";
 import { getProfile } from "@/lib/supabase/server";
 
 export default async function DashboardOverviewPage() {
-  const [profile, listingResult] = await Promise.all([
-    getProfile(),
-    getListing(),
-  ]);
+  let profile;
+  let listingResult;
+
+  try {
+    [profile, listingResult] = await Promise.all([
+      getProfile(),
+      getListing(),
+    ]);
+  } catch {
+    // If fetch fails, treat as incomplete onboarding
+    profile = null;
+    listingResult = { success: false, data: null };
+  }
 
   // If no profile or onboarding not complete, show onboarding prompt
   if (!profile?.onboarding_completed_at || !listingResult.success || !listingResult.data) {

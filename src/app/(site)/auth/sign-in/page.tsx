@@ -60,7 +60,9 @@ function SignInForm() {
           setTurnstileToken(null);
         }
       } else {
-        router.push(redirectTo);
+        // Use server-determined redirect, or fall back to URL param/dashboard
+        const destination = result.redirectTo || redirectTo;
+        router.push(destination);
         router.refresh();
       }
     });

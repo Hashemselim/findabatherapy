@@ -15,6 +15,7 @@ export type AuthError = {
 export type AuthSuccess = {
   success: true;
   message?: string;
+  redirectTo?: string;
 };
 
 export type AuthResult = AuthError | AuthSuccess;
@@ -59,8 +60,24 @@ export async function signInWithEmail(formData: FormData): Promise<AuthResult> {
     };
   }
 
+  // Check if user has completed onboarding to determine redirect
+  const { data: { user } } = await supabase.auth.getUser();
+  let redirectTo = "/dashboard";
+
+  if (user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("onboarding_completed_at")
+      .eq("id", user.id)
+      .single();
+
+    if (!profile || !profile.onboarding_completed_at) {
+      redirectTo = "/dashboard/onboarding";
+    }
+  }
+
   revalidatePath("/", "layout");
-  return { success: true };
+  return { success: true, redirectTo };
 }
 
 /**
