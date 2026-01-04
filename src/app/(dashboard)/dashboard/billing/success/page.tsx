@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { CheckoutTracker } from "@/components/analytics/checkout-tracker";
 import { getListing, type ListingWithRelations } from "@/lib/actions/listings";
+import { verifyAndSyncCheckoutSession } from "@/lib/stripe/actions";
 
 interface BillingSuccessPageProps {
   searchParams: Promise<{ return_to?: string; session_id?: string; upgraded?: string; downgraded?: string }>;
@@ -23,6 +24,13 @@ async function getListingData(): Promise<ListingWithRelations | null> {
 
 export default async function BillingSuccessPage({ searchParams }: BillingSuccessPageProps) {
   const params = await searchParams;
+
+  // If we have a session_id, verify and sync the subscription status FIRST
+  // This handles the race condition where webhook hasn't processed yet
+  // Must happen before any redirects to ensure subscription is synced
+  if (params.session_id) {
+    await verifyAndSyncCheckoutSession(params.session_id);
+  }
 
   // If user came from onboarding, redirect back to first step (Practice Details) with payment success
   if (params.return_to === "onboarding") {

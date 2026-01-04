@@ -33,7 +33,7 @@ export async function createCheckoutSession(
   // Get profile with subscription info
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, contact_email, stripe_customer_id, stripe_subscription_id, plan_tier")
+    .select("id, stripe_customer_id, stripe_subscription_id, plan_tier")
     .eq("id", user.id)
     .single();
 
@@ -67,7 +67,7 @@ export async function createCheckoutSession(
 
     if (!customerId) {
       const customer = await stripe.customers.create({
-        email: profile.contact_email,
+        email: user.email,
         metadata: {
           profile_id: profile.id,
         },
@@ -606,6 +606,99 @@ export async function redirectToBillingPortal(): Promise<void> {
   throw new Error(result.success ? "Failed to get portal URL" : result.error);
 }
 
+/**
+ * Verify a checkout session and sync subscription status to the database
+ * Called from the success page to ensure the subscription is activated
+ * even if the webhook hasn't processed yet (race condition fix)
+ */
+export async function verifyAndSyncCheckoutSession(
+  sessionId: string
+): Promise<ActionResult<{ planTier: string; subscriptionStatus: string }>> {
+  const user = await getUser();
+  if (!user) {
+    return { success: false, error: "Not authenticated" };
+  }
+
+  try {
+    // Retrieve the checkout session from Stripe
+    const session = await stripe.checkout.sessions.retrieve(sessionId, {
+      expand: ["subscription"],
+    });
+
+    // Verify the session belongs to this user
+    const profileId = session.metadata?.profile_id;
+    if (profileId !== user.id) {
+      return { success: false, error: "Session does not belong to this user" };
+    }
+
+    // Verify payment was successful
+    if (session.payment_status !== "paid") {
+      return { success: false, error: "Payment not completed" };
+    }
+
+    const subscription = session.subscription as import("stripe").Stripe.Subscription | null;
+    if (!subscription) {
+      return { success: false, error: "No subscription found" };
+    }
+
+    const planTier = session.metadata?.plan_tier || "pro";
+    const billingInterval = session.metadata?.billing_interval || "month";
+    const listingId = session.metadata?.listing_id;
+
+    // Update profile with subscription info
+    const adminClient = await createAdminClient();
+    const { error: profileError } = await adminClient
+      .from("profiles")
+      .update({
+        stripe_customer_id: session.customer as string,
+        stripe_subscription_id: subscription.id,
+        plan_tier: planTier,
+        billing_interval: billingInterval,
+        subscription_status: "active",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", user.id);
+
+    if (profileError) {
+      console.error("Error updating profile in verifyAndSyncCheckoutSession:", profileError);
+      return { success: false, error: "Failed to update subscription status" };
+    }
+
+    // Also update listing if exists
+    if (listingId) {
+      await adminClient
+        .from("listings")
+        .update({
+          status: "published",
+          plan_tier: planTier,
+          published_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", listingId);
+    }
+
+    // Revalidate dashboard pages
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/company");
+    revalidatePath("/dashboard/locations");
+    revalidatePath("/dashboard/billing");
+
+    return {
+      success: true,
+      data: {
+        planTier,
+        subscriptionStatus: "active",
+      },
+    };
+  } catch (error) {
+    console.error("Error verifying checkout session:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to verify checkout session",
+    };
+  }
+}
+
 // ============================================================================
 // Featured Location Actions
 // ============================================================================
@@ -643,8 +736,7 @@ export async function createFeaturedLocationCheckout(
           id,
           plan_tier,
           stripe_customer_id,
-          stripe_subscription_id,
-          contact_email
+          stripe_subscription_id
         )
       )
     `)
@@ -663,7 +755,6 @@ export async function createFeaturedLocationCheckout(
       plan_tier: string;
       stripe_customer_id: string | null;
       stripe_subscription_id: string | null;
-      contact_email: string;
     };
   };
 
@@ -694,7 +785,7 @@ export async function createFeaturedLocationCheckout(
 
     if (!customerId) {
       const customer = await stripe.customers.create({
-        email: listing.profiles.contact_email,
+        email: user.email,
         metadata: {
           profile_id: user.id,
         },
