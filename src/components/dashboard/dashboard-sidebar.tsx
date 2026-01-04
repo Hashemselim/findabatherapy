@@ -10,6 +10,7 @@ import {
   CreditCard,
   FileText,
   GaugeCircle,
+  HelpCircle,
   Image,
   LogOut,
   LucideIcon,
@@ -21,6 +22,7 @@ import {
 
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { SupportContactDialog } from "@/components/support-contact-dialog";
 import { cn } from "@/lib/utils";
 import { getUnreadInquiryCount } from "@/lib/actions/inquiries";
 import { signOut } from "@/lib/auth/actions";
@@ -199,6 +201,18 @@ export function DashboardSidebar({
       </div>
 
       <div className="space-y-2 border-t border-border/60 pt-4">
+        <SupportContactDialog>
+          <button
+            type="button"
+            className={cn(
+              buttonVariants({ variant: "ghost" }),
+              "w-full justify-start gap-3 text-sm font-medium text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <HelpCircle className="h-4 w-4" aria-hidden />
+            Need Help?
+          </button>
+        </SupportContactDialog>
         <Link
           href="/dashboard/feedback"
           className={cn(

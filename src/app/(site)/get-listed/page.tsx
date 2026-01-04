@@ -19,6 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { BubbleBackground } from "@/components/ui/bubble-background";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { SupportContactDialog } from "@/components/support-contact-dialog";
 import { cn } from "@/lib/utils";
 
 const stats = [
@@ -87,6 +88,7 @@ const plans = [
       "Direct contact form & inbox",
       "Photo gallery",
       "Video embed",
+      "Google star rating and reviews",
       "Verified badge",
     ],
     cta: "Get Found Free",
@@ -109,7 +111,7 @@ const plans = [
       { text: "Direct contact form & inbox", highlightWord: "Direct contact form", highlightType: "yellow" as const },
       { text: "Photo gallery (up to 10)", highlightWord: "Photo gallery", highlightType: "yellow" as const },
       { text: "Video embed", highlightWord: "Video", highlightType: "yellow" as const },
-      { text: "Google star rating", highlightWord: "Google", highlightType: "google" as const },
+      { text: "Google star rating and reviews", highlightWord: "Google", highlightType: "google" as const },
       "Verified badge",
       "Insurance list display",
       "SEO-boosting backlink",
@@ -134,7 +136,7 @@ const plans = [
       { text: "Direct contact form & inbox", highlightWord: "Direct contact form", highlightType: "yellow" as const },
       { text: "Photo gallery (up to 10)", highlightWord: "Photo gallery", highlightType: "yellow" as const },
       { text: "Video embed", highlightWord: "Video", highlightType: "yellow" as const },
-      { text: "Google star rating", highlightWord: "Google", highlightType: "google" as const },
+      { text: "Google star rating and reviews", highlightWord: "Google", highlightType: "google" as const },
       "Verified badge",
       "Insurance list display",
       "SEO-boosting backlink",
@@ -307,7 +309,7 @@ export default function GetListedPage() {
 
       {/* Pricing Section */}
       <section id="pricing" className="scroll-mt-8 bg-[#FDFAEE] py-16 sm:py-24">
-        <div className="mx-auto max-w-5xl px-4 sm:px-6">
+        <div className="mx-auto max-w-[1080px] px-4 sm:px-6">
           <header className="text-center">
             <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#5788FF]/10">
               <TrendingUp className="h-6 w-6 text-[#5788FF]" />
@@ -361,12 +363,15 @@ export default function GetListedPage() {
                     <CardTitle className="text-xl">{plan.name}</CardTitle>
                   </div>
                   {plan.tier === "free" ? (
-                    <div className="mt-4">
-                      <div className="flex items-baseline">
-                        <span className="text-4xl font-bold text-foreground">$0</span>
-                        <span className="ml-1 text-muted-foreground">/mo</span>
+                    <div className="mt-4 space-y-3">
+                      <div>
+                        <div className="flex items-baseline">
+                          <span className="text-4xl font-bold text-foreground">$0</span>
+                          <span className="ml-1 text-muted-foreground">/mo</span>
+                        </div>
+                        <p className="mt-2 text-sm text-muted-foreground">Free forever</p>
                       </div>
-                      <p className="mt-2 text-sm text-muted-foreground">Free forever</p>
+                      <p className="text-sm text-muted-foreground">Upgrade anytime.</p>
                     </div>
                   ) : (
                     <div className="mt-4 space-y-3">
@@ -420,7 +425,7 @@ export default function GetListedPage() {
                                 <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
                                 <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
                               </svg>
-                              <span className="font-semibold">⭐ star rating</span>
+                              <span className="font-semibold">⭐ star rating and reviews</span>
                             </span>
                           );
                         }
@@ -462,12 +467,14 @@ export default function GetListedPage() {
                     {"showEmailLink" in plan && plan.showEmailLink && (
                       <p className="text-center text-xs text-muted-foreground">
                         Questions?{" "}
-                        <a
-                          href="mailto:hello@findabatherapy.org"
-                          className="text-[#5788FF] transition-colors duration-300 hover:text-[#4a77e8] hover:underline"
-                        >
-                          Email us
-                        </a>
+                        <SupportContactDialog>
+                          <button
+                            type="button"
+                            className="text-[#5788FF] transition-colors duration-300 hover:text-[#4a77e8] hover:underline"
+                          >
+                            Email us
+                          </button>
+                        </SupportContactDialog>
                       </p>
                     )}
                     {plan.tier === "free" ? (
