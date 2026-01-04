@@ -3,8 +3,13 @@ import { AlertCircle, ArrowRight, HelpCircle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { resetPlanToFree } from "@/lib/actions/billing";
 
-export default function BillingCancelPage() {
+export default async function BillingCancelPage() {
+  // Reset plan to free since payment wasn't completed
+  // This is safe to call even if they have an active subscription (no-op)
+  await resetPlanToFree();
+
   return (
     <div className="flex min-h-[60vh] items-center justify-center">
       <Card className="w-full max-w-lg">
@@ -33,7 +38,7 @@ export default function BillingCancelPage() {
               </Link>
             </Button>
             <Button variant="outline" asChild>
-              <Link href="/dashboard/onboarding/success?plan=free">
+              <Link href="/dashboard">
                 Continue with Free Listing
               </Link>
             </Button>

@@ -14,6 +14,9 @@ type GuardResult<T = void> =
 
 /**
  * Get the current user's plan tier from the database
+ *
+ * During onboarding: Returns selected plan tier (allows Pro field access before payment)
+ * After onboarding: Returns "free" if subscription is not active, regardless of plan_tier
  */
 export async function getCurrentPlanTier(): Promise<PlanTier> {
   const user = await getUser();
@@ -24,11 +27,27 @@ export async function getCurrentPlanTier(): Promise<PlanTier> {
   const supabase = await createClient();
   const { data: profile } = await supabase
     .from("profiles")
-    .select("plan_tier")
+    .select("plan_tier, subscription_status, onboarding_completed_at")
     .eq("id", user.id)
     .single();
 
-  return (profile?.plan_tier as PlanTier) || "free";
+  const planTier = (profile?.plan_tier as PlanTier) || "free";
+
+  // During onboarding: respect selected plan (allows Pro field access before payment)
+  if (!profile?.onboarding_completed_at) {
+    return planTier;
+  }
+
+  // After onboarding: require active subscription for paid plans
+  const isActiveSubscription =
+    profile?.subscription_status === "active" ||
+    profile?.subscription_status === "trialing";
+
+  if (planTier !== "free" && !isActiveSubscription) {
+    return "free";
+  }
+
+  return planTier;
 }
 
 /**

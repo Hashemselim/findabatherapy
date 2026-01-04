@@ -100,7 +100,11 @@ export default async function DashboardOverviewPage() {
 
   const listing = listingResult.data;
   const isPublished = listing.status === "published";
-  const isPaidPlan = listing.profile.planTier !== "free";
+  // Paid plan requires both a paid tier AND an active subscription
+  const isActiveSubscription =
+    listing.profile.subscriptionStatus === "active" ||
+    listing.profile.subscriptionStatus === "trialing";
+  const isPaidPlan = listing.profile.planTier !== "free" && isActiveSubscription;
 
   // Fetch additional data in parallel for Pro users
   const [analyticsResult, inquiryResult] = await Promise.all([

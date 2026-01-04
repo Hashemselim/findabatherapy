@@ -35,7 +35,8 @@ const unreadCount = DEMO_INQUIRIES.filter((i) => i.status === "unread").length;
 const companyProfile = {
   name: DEMO_LISTING.profile.agencyName,
   logoUrl: DEMO_LISTING.logoUrl,
-  planTier: DEMO_LISTING.profile.planTier as "free" | "pro",
+  planTier: DEMO_LISTING.profile.planTier as "free" | "pro" | "enterprise",
+  subscriptionStatus: DEMO_LISTING.profile.subscriptionStatus,
 };
 
 export function DemoLayoutClient({ children }: PropsWithChildren) {

@@ -32,6 +32,7 @@ export interface ListingWithRelations extends ListingData {
     contactPhone: string | null;
     website: string | null;
     planTier: string;
+    subscriptionStatus: string | null;
   };
   primaryLocation: {
     id: string;
@@ -122,7 +123,8 @@ export async function getListing(): Promise<ActionResult<ListingWithRelations>> 
         contact_email,
         contact_phone,
         website,
-        plan_tier
+        plan_tier,
+        subscription_status
       )
     `)
     .eq("profile_id", user.id)
@@ -163,6 +165,7 @@ export async function getListing(): Promise<ActionResult<ListingWithRelations>> 
     contact_phone: string | null;
     website: string | null;
     plan_tier: string;
+    subscription_status: string | null;
   };
 
   return {
@@ -187,6 +190,7 @@ export async function getListing(): Promise<ActionResult<ListingWithRelations>> 
         contactPhone: profile.contact_phone,
         website: profile.website,
         planTier: profile.plan_tier,
+        subscriptionStatus: profile.subscription_status,
       },
       primaryLocation: primaryLocation
         ? {
@@ -708,7 +712,8 @@ export async function getListingBySlug(
         contact_email,
         contact_phone,
         website,
-        plan_tier
+        plan_tier,
+        subscription_status
       )
     `)
     .eq("slug", slug)
@@ -768,6 +773,7 @@ export async function getListingBySlug(
     contact_phone: string | null;
     website: string | null;
     plan_tier: string;
+    subscription_status: string | null;
   };
 
   return {
@@ -792,6 +798,7 @@ export async function getListingBySlug(
         contactPhone: profile.contact_phone,
         website: profile.website,
         planTier: profile.plan_tier,
+        subscriptionStatus: profile.subscription_status,
       },
       primaryLocation: primaryLocation
         ? {

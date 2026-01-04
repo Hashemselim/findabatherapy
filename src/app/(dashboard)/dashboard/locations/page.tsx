@@ -97,8 +97,17 @@ export default async function LocationsPage() {
   ]);
 
   const locations = locationsResult.success && locationsResult.data ? locationsResult.data : [];
-  const locationLimit = LOCATION_LIMITS[profile.plan_tier] || 1;
-  const isFreePlan = profile.plan_tier === "free";
+
+  // Determine effective plan tier based on subscription status
+  const isActiveSubscription =
+    profile.subscription_status === "active" ||
+    profile.subscription_status === "trialing";
+  const effectivePlanTier = (profile.plan_tier !== "free" && isActiveSubscription)
+    ? profile.plan_tier
+    : "free";
+
+  const locationLimit = LOCATION_LIMITS[effectivePlanTier] || 1;
+  const isFreePlan = effectivePlanTier === "free";
 
   // Get featured pricing from Stripe - fallback to defaults if fetch fails
   const featuredPricing = featuredPricingResult.success && featuredPricingResult.data
@@ -144,9 +153,9 @@ export default async function LocationsPage() {
                   : `${locations.length} of ${locationLimit} location${locationLimit !== 1 ? "s" : ""} used`}
               </p>
               <p className="text-sm text-muted-foreground">
-                {profile.plan_tier === "enterprise"
+                {effectivePlanTier === "enterprise"
                   ? "Enterprise plan includes unlimited locations"
-                  : profile.plan_tier === "pro"
+                  : effectivePlanTier === "pro"
                     ? "Pro plan includes up to 5 locations"
                     : "Free plan includes 1 location"}
               </p>
@@ -159,7 +168,7 @@ export default async function LocationsPage() {
       <LocationsManager
         initialLocations={locations}
         locationLimit={locationLimit}
-        planTier={profile.plan_tier}
+        planTier={effectivePlanTier}
         featuredPricing={featuredPricing}
         companyDefaults={companyDefaults}
       />

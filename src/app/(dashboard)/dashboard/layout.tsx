@@ -1,26 +1,43 @@
 import { PropsWithChildren } from "react";
 
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
-import { getListingSlug } from "@/lib/actions/listings";
+import { type CompanyProfile } from "@/components/dashboard/dashboard-sidebar";
+import { getListingSlug, getListing } from "@/lib/actions/listings";
 import { getProfile } from "@/lib/supabase/server";
 
 export default async function DashboardLayout({ children }: PropsWithChildren) {
   let isOnboardingComplete = false;
   let providerSlug: string | null = null;
+  let companyProfile: CompanyProfile | undefined;
 
   try {
-    const [profile, slug] = await Promise.all([
+    const [profile, slug, listingResult] = await Promise.all([
       getProfile(),
       getListingSlug(),
+      getListing(),
     ]);
     isOnboardingComplete = !!profile?.onboarding_completed_at;
     providerSlug = slug;
+
+    // Build company profile for sidebar
+    if (listingResult.success && listingResult.data) {
+      companyProfile = {
+        name: listingResult.data.profile.agencyName,
+        logoUrl: listingResult.data.logoUrl,
+        planTier: listingResult.data.profile.planTier as "free" | "pro" | "enterprise",
+        subscriptionStatus: listingResult.data.profile.subscriptionStatus,
+      };
+    }
   } catch {
     // If fetch fails (e.g., during redirect from external payment), continue with defaults
   }
 
   return (
-    <DashboardShell isOnboardingComplete={isOnboardingComplete} providerSlug={providerSlug}>
+    <DashboardShell
+      isOnboardingComplete={isOnboardingComplete}
+      providerSlug={providerSlug}
+      companyProfile={companyProfile}
+    >
       {children}
     </DashboardShell>
   );

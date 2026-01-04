@@ -140,7 +140,7 @@ async function handleCheckoutCompleted(
   // Get subscription details
   const subscriptionId = session.subscription as string;
 
-  // Update profile with Stripe IDs, plan tier, and billing interval
+  // Update profile with Stripe IDs, plan tier, billing interval, and subscription status
   const { error: profileError } = await supabase
     .from("profiles")
     .update({
@@ -148,6 +148,7 @@ async function handleCheckoutCompleted(
       stripe_subscription_id: subscriptionId,
       plan_tier: planTier || "pro",
       billing_interval: billingInterval,
+      subscription_status: "active", // New subscription is always active
       updated_at: new Date().toISOString(),
     })
     .eq("id", profileId);
@@ -235,13 +236,14 @@ async function updateProfileSubscription(
   const billingInterval = subscription.metadata?.billing_interval || "month";
   const isActive = subscription.status === "active" || subscription.status === "trialing";
 
-  // Update profile
+  // Update profile with subscription status
   const { error } = await supabase
     .from("profiles")
     .update({
       plan_tier: isActive ? planTier : "free",
       billing_interval: isActive ? billingInterval : "month",
       stripe_subscription_id: subscription.id,
+      subscription_status: subscription.status, // Sync Stripe subscription status
       updated_at: new Date().toISOString(),
     })
     .eq("id", profileId);
@@ -297,13 +299,14 @@ async function handleSubscriptionDeleted(
     return;
   }
 
-  // Downgrade to free
+  // Downgrade to free and clear subscription status
   const { error: profileError } = await supabase
     .from("profiles")
     .update({
       plan_tier: "free",
       billing_interval: "month",
       stripe_subscription_id: null,
+      subscription_status: null, // Clear subscription status
       updated_at: new Date().toISOString(),
     })
     .eq("id", targetProfileId);

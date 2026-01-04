@@ -64,7 +64,7 @@ export default async function DashboardBillingPage() {
   // Note: billing_interval is queried separately since it may not exist until migration runs
   const { data: profile } = await supabase
     .from("profiles")
-    .select("plan_tier, stripe_customer_id, stripe_subscription_id, onboarding_completed_at")
+    .select("plan_tier, stripe_customer_id, stripe_subscription_id, subscription_status, onboarding_completed_at")
     .eq("id", user.id)
     .single();
 
@@ -83,6 +83,14 @@ export default async function DashboardBillingPage() {
 
   const planTier = profile?.plan_tier || "free";
 
+  // Determine if user has an active subscription
+  const isActiveSubscription =
+    profile?.subscription_status === "active" ||
+    profile?.subscription_status === "trialing";
+
+  // Check if user selected a paid plan but never completed payment
+  const hasIncompletePayment = planTier !== "free" && !isActiveSubscription && !profile?.stripe_subscription_id;
+
   // Try to get billing_interval - defaults to "month" if column doesn't exist yet
   let billingInterval: "month" | "year" = "month";
   if (profile) {
@@ -96,9 +104,12 @@ export default async function DashboardBillingPage() {
     }
   }
   const isAnnual = billingInterval === "year";
-  const isFreePlan = planTier === "free";
-  const isPro = planTier === "pro";
-  const isEnterprise = planTier === "enterprise";
+
+  // For display and feature purposes, use effective plan tier based on subscription status
+  const effectivePlanTier = (planTier !== "free" && isActiveSubscription) ? planTier : "free";
+  const isFreePlan = effectivePlanTier === "free";
+  const isPro = effectivePlanTier === "pro";
+  const isEnterprise = effectivePlanTier === "enterprise";
 
   // Format the renewal date
   const renewalDate = subscription?.currentPeriodEnd
@@ -224,16 +235,22 @@ export default async function DashboardBillingPage() {
               <div>
                 <div className="flex items-center gap-2">
                   <h2 className="text-lg font-semibold text-slate-900 capitalize">
-                    {planTier} Plan
+                    {effectivePlanTier} Plan
                   </h2>
                   {!isFreePlan && subscription?.status === "active" && (
                     <Badge className="bg-emerald-500 hover:bg-emerald-600">Active</Badge>
+                  )}
+                  {!isFreePlan && subscription?.status === "trialing" && (
+                    <Badge className="bg-blue-500 hover:bg-blue-600">Trial</Badge>
                   )}
                   {subscription?.cancelAtPeriodEnd && (
                     <Badge variant="destructive">Cancelling</Badge>
                   )}
                   {subscription?.status === "past_due" && (
                     <Badge variant="destructive">Past Due</Badge>
+                  )}
+                  {hasIncompletePayment && (
+                    <Badge variant="outline" className="border-amber-300 bg-amber-50 text-amber-700">Payment Required</Badge>
                   )}
                 </div>
                 <p className="text-sm text-slate-500">
@@ -282,6 +299,28 @@ export default async function DashboardBillingPage() {
                   Your last payment failed. Please update your payment method to avoid service interruption.
                 </p>
               </div>
+            </div>
+          </div>
+        )}
+
+        {hasIncompletePayment && (
+          <div className="border-b border-amber-200 bg-amber-50 px-6 py-4">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-600" />
+                <div>
+                  <p className="font-medium text-amber-800">Payment Not Completed</p>
+                  <p className="mt-1 text-sm text-amber-700">
+                    You selected the {planTier} plan but haven&apos;t completed payment yet.
+                    Your listing is currently on the Free plan. Complete checkout to unlock premium features.
+                  </p>
+                </div>
+              </div>
+              <Button asChild size="sm" className="shrink-0">
+                <Link href={`/dashboard/billing/checkout?plan=${planTier}&interval=${billingInterval}`}>
+                  Complete Payment
+                </Link>
+              </Button>
             </div>
           </div>
         )}

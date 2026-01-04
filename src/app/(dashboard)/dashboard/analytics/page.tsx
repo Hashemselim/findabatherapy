@@ -1,344 +1,194 @@
-"use client";
+import Link from "next/link";
+import {
+  ArrowRight,
+  BarChart3,
+  CheckCircle2,
+  ClipboardList,
+  Eye,
+  MousePointer,
+  Search,
+  Sparkles,
+  TrendingUp,
+} from "lucide-react";
 
-import { useEffect, useState, useTransition } from "react";
-import { Eye, MessageSquare, MousePointer, Search, TrendingDown, TrendingUp } from "lucide-react";
-
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { AnalyticsTimeFilter } from "@/components/dashboard/analytics-time-filter";
-import { AnalyticsLocationFilter, type LocationOption } from "@/components/dashboard/analytics-location-filter";
-import { AnalyticsMetricCard } from "@/components/dashboard/analytics-metric-card";
-import { ClickThroughRateCard } from "@/components/dashboard/click-through-rate-card";
-import { TrafficSources, TrafficSourcesSkeleton } from "@/components/dashboard/traffic-sources";
-import { LocationAnalyticsSection } from "@/components/dashboard/location-analytics-section";
-import { getListingAnalytics, getLocationAnalytics } from "@/lib/actions/analytics";
-import type { TimePeriod, DashboardMetrics, LocationAnalytics, ListingMetrics } from "@/lib/analytics/events";
-import { cn } from "@/lib/utils";
+import { BubbleBackground } from "@/components/ui/bubble-background";
+import { AnalyticsClient } from "@/components/dashboard/analytics-client";
+import { getProfile } from "@/lib/supabase/server";
 
-export default function AnalyticsPage() {
-  const [period, setPeriod] = useState<TimePeriod>("month");
-  const [selectedLocationIds, setSelectedLocationIds] = useState<string[]>([]);
-  const [isPending, startTransition] = useTransition();
+export default async function AnalyticsPage() {
+  const profile = await getProfile();
 
-  const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
-  const [locationData, setLocationData] = useState<LocationAnalytics[]>([]);
-  const [error, setError] = useState<string | null>(null);
-
-  // Track if we've initialized location selection
-  const [isInitialized, setIsInitialized] = useState(false);
-
-  // Load location data on mount and when period changes
-  useEffect(() => {
-    startTransition(async () => {
-      try {
-        const locationResult = await getLocationAnalytics(period);
-        if (locationResult?.success) {
-          setLocationData(locationResult.data);
-          // Initialize selection to all locations on first load
-          if (!isInitialized && locationResult.data.length > 0) {
-            setSelectedLocationIds(locationResult.data.map((l) => l.locationId));
-            setIsInitialized(true);
-          }
-        }
-      } catch {
-        // Silently handle - location data is optional enhancement
-      }
-    });
-  }, [period, isInitialized]);
-
-  // Load metrics when period or location selection changes
-  useEffect(() => {
-    if (!isInitialized) return; // Wait for location initialization
-
-    startTransition(async () => {
-      setError(null);
-
-      try {
-        // Pass selected locationIds to filter the metrics
-        const metricsResult = await getListingAnalytics(
-          period,
-          selectedLocationIds.length > 0 ? selectedLocationIds : undefined
-        );
-
-        if (!metricsResult) {
-          setError("Failed to load analytics data");
-          return;
-        }
-
-        if (!metricsResult.success) {
-          setError(metricsResult.error);
-          return;
-        }
-
-        setMetrics(metricsResult.data);
-      } catch {
-        setError("Failed to load analytics data");
-      }
-    });
-  }, [period, selectedLocationIds, isInitialized]);
-
-  // Build location options for filter
-  const locationOptions: LocationOption[] = locationData.map((loc) => ({
-    id: loc.locationId,
-    label: loc.label,
-    city: loc.city,
-    state: loc.state,
-  }));
-
-  if (error) {
+  // If onboarding is not complete, show the gate message
+  if (!profile?.onboarding_completed_at) {
     return (
-      <div className="space-y-6 sm:space-y-8">
-        <PageHeader
-          period={period}
-          onPeriodChange={setPeriod}
-          locationOptions={[]}
-          selectedLocationIds={[]}
-          onLocationChange={() => {}}
-        />
-        <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-6">
-          <p className="text-destructive">{error}</p>
+      <div className="space-y-4 sm:space-y-6">
+        <div>
+          <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">Performance Analytics</h1>
+          <p className="mt-1 text-sm text-muted-foreground sm:mt-2">
+            Track how potential clients discover and interact with your listing.
+          </p>
+        </div>
+
+        <Card className="overflow-hidden border-slate-200">
+          <BubbleBackground
+            interactive={false}
+            size="default"
+            className="bg-gradient-to-br from-white via-yellow-50/50 to-blue-50/50"
+            colors={{
+              first: "255,255,255",
+              second: "255,236,170",
+              third: "135,176,255",
+              fourth: "255,248,210",
+              fifth: "190,210,255",
+              sixth: "240,248,255",
+            }}
+          >
+            <CardContent className="flex flex-col items-center py-12 px-6 text-center">
+              <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#5788FF] shadow-lg shadow-[#5788FF]/25">
+                <ClipboardList className="h-8 w-8 text-white" />
+              </div>
+
+              <h3 className="text-xl font-semibold text-slate-900">
+                Complete Onboarding to Access Analytics
+              </h3>
+
+              <p className="mt-3 max-w-md text-sm text-slate-600">
+                Finish setting up your practice profile to unlock all dashboard features.
+              </p>
+
+              <div className="mt-6 flex flex-wrap justify-center gap-3">
+                {["Track views", "Monitor clicks", "See traffic sources"].map((benefit) => (
+                  <span
+                    key={benefit}
+                    className="inline-flex items-center gap-1.5 rounded-full bg-white/80 px-3 py-1.5 text-xs font-medium text-slate-600"
+                  >
+                    <CheckCircle2 className="h-3.5 w-3.5 text-[#5788FF]" />
+                    {benefit}
+                  </span>
+                ))}
+              </div>
+
+              <Button asChild size="lg" className="mt-8">
+                <Link href="/dashboard/onboarding" className="gap-2">
+                  Continue Onboarding
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </Button>
+            </CardContent>
+          </BubbleBackground>
+        </Card>
+      </div>
+    );
+  }
+
+  // Check if user is on free plan - Analytics is a premium feature
+  // Must have paid plan AND active subscription
+  const isActiveSubscription =
+    profile.subscription_status === "active" ||
+    profile.subscription_status === "trialing";
+  const isFreePlan = profile.plan_tier === "free" || !isActiveSubscription;
+
+  if (isFreePlan) {
+    return (
+      <div className="space-y-4 sm:space-y-6">
+        <div>
+          <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">Performance Analytics</h1>
+          <p className="mt-1 text-sm text-muted-foreground sm:mt-2">
+            Track how potential clients discover and interact with your listing.
+          </p>
+        </div>
+
+        <div className="relative overflow-hidden rounded-xl border border-blue-100 bg-gradient-to-br from-blue-50/80 via-white to-slate-50 shadow-sm">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(59,130,246,0.08),transparent_50%)]" />
+
+          <div className="relative p-6">
+            {/* Header with strong value prop */}
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-start gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-100 text-blue-600">
+                  <BarChart3 className="h-6 w-6" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-lg font-semibold text-slate-900">Performance Analytics</h3>
+                    <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-700">
+                      <Sparkles className="h-3 w-3" />
+                      Pro
+                    </span>
+                  </div>
+                  <p className="mt-1 text-sm text-slate-600">
+                    Understand how families find and interact with your listing
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Feature highlights */}
+            <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {[
+                {
+                  icon: Eye,
+                  title: "Page Views",
+                  description: "Track how many families view your listing",
+                },
+                {
+                  icon: Search,
+                  title: "Search Impressions",
+                  description: "See how often you appear in search results",
+                },
+                {
+                  icon: MousePointer,
+                  title: "Click-through Rate",
+                  description: "Measure engagement with your listing",
+                },
+                {
+                  icon: TrendingUp,
+                  title: "Trend Analysis",
+                  description: "Compare performance over time periods",
+                },
+              ].map((feature) => {
+                const Icon = feature.icon;
+                return (
+                  <Card key={feature.title} className="border-slate-200/80 bg-white/50">
+                    <CardHeader className="pb-2">
+                      <div className="flex items-center gap-2">
+                        <Icon className="h-4 w-4 text-blue-600" />
+                        <CardTitle className="text-sm font-medium text-slate-900">
+                          {feature.title}
+                        </CardTitle>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-xs text-slate-500">{feature.description}</p>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+
+            {/* CTA */}
+            <div className="mt-6 flex flex-col items-center gap-3 rounded-lg border border-blue-200/60 bg-blue-50/50 p-4 sm:flex-row sm:justify-between">
+              <div>
+                <p className="font-medium text-slate-900">Unlock detailed analytics with Pro</p>
+                <p className="text-sm text-slate-600">
+                  Track views, clicks, and traffic sources to optimize your listing
+                </p>
+              </div>
+              <Button asChild className="w-full shrink-0 sm:w-auto">
+                <Link href="/dashboard/billing">
+                  Upgrade to Pro
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
     );
   }
 
-  return (
-    <div className="space-y-6 sm:space-y-8">
-      <PageHeader
-        period={period}
-        onPeriodChange={setPeriod}
-        locationOptions={locationOptions}
-        selectedLocationIds={selectedLocationIds}
-        onLocationChange={setSelectedLocationIds}
-      />
-
-      {isPending || !metrics ? (
-        <AnalyticsSkeleton />
-      ) : (
-        <div className="space-y-6">
-          {/* Overview Cards */}
-          <OverviewCards current={metrics.current} previous={metrics.previous} />
-
-          {/* Metric Charts - Full Width */}
-          <div className="space-y-6">
-            <AnalyticsMetricCard
-              title="Page Views"
-              total={metrics.current.views}
-              trend={calculateTrend(metrics.current.views, metrics.previous.views)}
-              data={metrics.timeSeries.views}
-            />
-            <AnalyticsMetricCard
-              title="Search Impressions"
-              total={metrics.current.searchImpressions}
-              trend={calculateTrend(metrics.current.searchImpressions, metrics.previous.searchImpressions)}
-              data={metrics.timeSeries.impressions}
-            />
-            <AnalyticsMetricCard
-              title="Search Clicks"
-              total={metrics.current.searchClicks}
-              trend={calculateTrend(metrics.current.searchClicks, metrics.previous.searchClicks)}
-              data={metrics.timeSeries.clicks}
-            />
-          </div>
-
-          {/* Click-through Rate with Benchmark */}
-          <ClickThroughRateCard
-            currentCTR={metrics.current.clickThroughRate}
-            previousCTR={metrics.previous.clickThroughRate}
-          />
-
-          {/* Traffic Sources */}
-          <TrafficSources sources={metrics.topSources} />
-
-          {/* Location Analytics */}
-          {locationData.length > 0 && (
-            <LocationAnalyticsSection
-              locations={locationData}
-              selectedLocationIds={selectedLocationIds}
-            />
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-interface PageHeaderProps {
-  period: TimePeriod;
-  onPeriodChange: (period: TimePeriod) => void;
-  locationOptions: LocationOption[];
-  selectedLocationIds: string[];
-  onLocationChange: (ids: string[]) => void;
-}
-
-function PageHeader({
-  period,
-  onPeriodChange,
-  locationOptions,
-  selectedLocationIds,
-  onLocationChange,
-}: PageHeaderProps) {
-  return (
-    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">Performance Analytics</h1>
-        <p className="mt-1 text-sm text-muted-foreground sm:mt-2">
-          Track how potential clients discover and interact with your listing.
-        </p>
-      </div>
-      <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-        <AnalyticsTimeFilter value={period} onChange={onPeriodChange} />
-        {locationOptions.length > 1 && (
-          <AnalyticsLocationFilter
-            locations={locationOptions}
-            selectedIds={selectedLocationIds}
-            onChange={onLocationChange}
-          />
-        )}
-      </div>
-    </div>
-  );
-}
-
-interface OverviewCardsProps {
-  current: ListingMetrics;
-  previous: ListingMetrics;
-}
-
-function OverviewCards({ current, previous }: OverviewCardsProps) {
-  const metrics = [
-    {
-      title: "Page Views",
-      value: current.views,
-      previousValue: previous.views,
-      icon: Eye,
-      format: "number" as const,
-    },
-    {
-      title: "Search Impressions",
-      value: current.searchImpressions,
-      previousValue: previous.searchImpressions,
-      icon: Search,
-      format: "number" as const,
-    },
-    {
-      title: "Click-through Rate",
-      value: current.clickThroughRate,
-      previousValue: previous.clickThroughRate,
-      icon: MousePointer,
-      format: "percent" as const,
-    },
-    {
-      title: "Inquiries",
-      value: current.inquiries,
-      previousValue: previous.inquiries,
-      icon: MessageSquare,
-      format: "number" as const,
-    },
-  ];
-
-  return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      {metrics.map((metric) => {
-        const Icon = metric.icon;
-        const change = metric.previousValue
-          ? ((metric.value - metric.previousValue) / metric.previousValue) * 100
-          : 0;
-        const isPositive = change > 0;
-        const isNeutral = change === 0;
-
-        return (
-          <Card key={metric.title}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                {metric.title}
-              </CardTitle>
-              <Icon className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {metric.format === "percent"
-                  ? `${metric.value.toFixed(1)}%`
-                  : metric.value.toLocaleString()}
-              </div>
-              {!isNeutral && (
-                <p
-                  className={cn(
-                    "mt-1 flex items-center gap-1 text-xs",
-                    isPositive ? "text-emerald-600" : "text-red-600"
-                  )}
-                >
-                  {isPositive ? (
-                    <TrendingUp className="h-3 w-3" />
-                  ) : (
-                    <TrendingDown className="h-3 w-3" />
-                  )}
-                  {Math.abs(change).toFixed(1)}% from previous period
-                </p>
-              )}
-            </CardContent>
-          </Card>
-        );
-      })}
-    </div>
-  );
-}
-
-function AnalyticsSkeleton() {
-  return (
-    <div className="space-y-6">
-      {/* Overview skeleton */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {[1, 2, 3, 4].map((i) => (
-          <Card key={i} className="animate-pulse">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <div className="h-4 w-24 rounded bg-muted" />
-              <div className="h-4 w-4 rounded bg-muted" />
-            </CardHeader>
-            <CardContent>
-              <div className="h-8 w-16 rounded bg-muted" />
-              <div className="mt-2 h-3 w-32 rounded bg-muted" />
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {/* Charts skeleton - Full Width */}
-      <div className="space-y-6">
-        {[1, 2, 3].map((i) => (
-          <Card key={i} className="animate-pulse">
-            <CardHeader>
-              <div className="h-4 w-24 rounded bg-muted" />
-              <div className="mt-2 h-8 w-16 rounded bg-muted" />
-            </CardHeader>
-            <CardContent>
-              <div className="h-32 rounded bg-muted" />
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {/* Traffic sources skeleton */}
-      <TrafficSourcesSkeleton />
-
-      {/* Location skeleton */}
-      <Card className="animate-pulse">
-        <CardHeader>
-          <div className="h-5 w-40 rounded bg-muted" />
-          <div className="mt-2 h-4 w-60 rounded bg-muted" />
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-16 rounded bg-muted" />
-          ))}
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
-
-function calculateTrend(current: number, previous: number): number {
-  if (previous === 0) {
-    return current > 0 ? 100 : 0;
-  }
-  return ((current - previous) / previous) * 100;
+  // User has Pro/Enterprise with active subscription - show analytics
+  return <AnalyticsClient />;
 }

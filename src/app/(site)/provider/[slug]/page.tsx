@@ -62,7 +62,11 @@ export async function generateMetadata({ params }: ProviderPageProps): Promise<M
   const listing = result.data;
   const primaryLocation = listing.locations.find((l) => l.isPrimary) || listing.locations[0];
   const insurances = (listing.attributes.insurances as string[]) || [];
-  const isPremium = listing.profile.planTier !== "free";
+  // Premium features require both a paid plan AND an active subscription
+  const isActiveSubscription =
+    listing.profile.subscriptionStatus === "active" ||
+    listing.profile.subscriptionStatus === "trialing";
+  const isPremium = listing.profile.planTier !== "free" && isActiveSubscription;
 
   // Build SEO-optimized title: "Agency | ABA Therapy in City, State"
   const locationStr = primaryLocation ? `${primaryLocation.city}, ${primaryLocation.state}` : "";
@@ -111,7 +115,11 @@ export default async function ProviderPage({ params, searchParams }: ProviderPag
   }
 
   const listing = result.data;
-  const isPremium = listing.profile.planTier !== "free";
+  // Premium features require both a paid plan AND an active subscription
+  const isActiveSubscription =
+    listing.profile.subscriptionStatus === "active" ||
+    listing.profile.subscriptionStatus === "trialing";
+  const isPremium = listing.profile.planTier !== "free" && isActiveSubscription;
 
   // Contact form is only available for premium plans with the toggle enabled
   const contactFormEnabled = isPremium && (listing.attributes.contact_form_enabled !== false);

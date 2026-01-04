@@ -79,7 +79,13 @@ export default async function InquiriesPage() {
   }
 
   // Check if user is on free plan - Messages is a premium feature
-  if (profile.plan_tier === "free") {
+  // Must have paid plan AND active subscription
+  const isActiveSubscription =
+    profile.subscription_status === "active" ||
+    profile.subscription_status === "trialing";
+  const isFreePlan = profile.plan_tier === "free" || !isActiveSubscription;
+
+  if (isFreePlan) {
     return (
       <div className="space-y-4 sm:space-y-6">
         <div>

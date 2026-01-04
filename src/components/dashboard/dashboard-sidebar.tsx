@@ -54,7 +54,8 @@ const onboardingNavItem: NavItem = {
 export interface CompanyProfile {
   name: string;
   logoUrl?: string | null;
-  planTier: "free" | "pro";
+  planTier: "free" | "pro" | "enterprise";
+  subscriptionStatus?: string | null;
 }
 
 interface DashboardSidebarProps {
@@ -137,7 +138,10 @@ export function DashboardSidebar({
                 {companyProfile.name}
               </p>
               <Badge variant="secondary" className="mt-0.5 text-xs">
-                {companyProfile.planTier === "pro" ? "Pro Plan" : "Free Plan"}
+                {(companyProfile.planTier === "pro" || companyProfile.planTier === "enterprise") &&
+                (companyProfile.subscriptionStatus === "active" || companyProfile.subscriptionStatus === "trialing")
+                  ? companyProfile.planTier === "enterprise" ? "Enterprise Plan" : "Pro Plan"
+                  : "Free Plan"}
               </Badge>
             </div>
           </div>

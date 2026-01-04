@@ -76,6 +76,14 @@ export default async function MediaPage() {
     );
   }
 
+  // Determine effective plan tier based on subscription status
+  const isActiveSubscription =
+    profile.subscription_status === "active" ||
+    profile.subscription_status === "trialing";
+  const effectivePlanTier = (profile.plan_tier !== "free" && isActiveSubscription)
+    ? profile.plan_tier
+    : "free";
+
   return (
     <div className="space-y-4 sm:space-y-6">
       <div>
@@ -86,8 +94,8 @@ export default async function MediaPage() {
       </div>
 
       <div className="grid gap-4 sm:gap-6">
-        <PhotoGalleryManager planTier={profile.plan_tier} />
-        <VideoEmbedForm planTier={profile.plan_tier} />
+        <PhotoGalleryManager planTier={effectivePlanTier} />
+        <VideoEmbedForm planTier={effectivePlanTier} />
       </div>
     </div>
   );

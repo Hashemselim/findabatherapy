@@ -66,6 +66,7 @@ We accept most major insurance plans and offer flexible scheduling to accommodat
     contactPhone: "(555) 123-4567",
     website: "https://sunriseaba.example.com",
     planTier: "pro",
+    subscriptionStatus: "active",
   },
   primaryLocation: {
     id: "demo-loc-1",

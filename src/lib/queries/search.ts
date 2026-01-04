@@ -4,6 +4,19 @@ import { calculateDistance } from "@/lib/geo/distance";
 import { STATE_NAMES, STATE_SLUG_TO_ABBREV } from "@/lib/data/cities";
 
 /**
+ * Calculate effective plan tier based on subscription status
+ * Returns "free" if subscription is not active, regardless of plan_tier in database
+ */
+function getEffectivePlanTier(planTier: string, subscriptionStatus: string | null): PlanTier {
+  if (planTier === "free") return "free";
+
+  const isActiveSubscription =
+    subscriptionStatus === "active" || subscriptionStatus === "trialing";
+
+  return isActiveSubscription ? (planTier as PlanTier) : "free";
+}
+
+/**
  * Get both state name and abbreviation for a given state input
  * Handles: "New Jersey", "NJ", "new-jersey" -> ["New Jersey", "NJ"]
  */
@@ -172,7 +185,8 @@ export async function searchListings(
       created_at,
       profiles!inner (
         agency_name,
-        plan_tier
+        plan_tier,
+        subscription_status
       ),
       locations!inner (
         city,
@@ -236,6 +250,7 @@ export async function searchListings(
     const profile = listing.profiles as unknown as {
       agency_name: string;
       plan_tier: string;
+      subscription_status: string | null;
     };
 
     const locations = listing.locations as unknown as Array<{
@@ -273,7 +288,7 @@ export async function searchListings(
       logoUrl: listing.logo_url,
       profile: {
         agencyName: profile.agency_name,
-        planTier: profile.plan_tier as PlanTier,
+        planTier: getEffectivePlanTier(profile.plan_tier, profile.subscription_status),
       },
       primaryLocation: primaryLocation
         ? { city: primaryLocation.city, state: primaryLocation.state }
@@ -365,7 +380,8 @@ export async function getFeaturedListings(limit: number = 6): Promise<SearchResu
       logo_url,
       profiles!inner (
         agency_name,
-        plan_tier
+        plan_tier,
+        subscription_status
       ),
       locations!inner (
         city,
@@ -376,6 +392,7 @@ export async function getFeaturedListings(limit: number = 6): Promise<SearchResu
     )
     .eq("status", "published")
     .in("profiles.plan_tier", ["enterprise", "pro"])
+    .in("profiles.subscription_status", ["active", "trialing"])
     .limit(limit);
 
   if (error || !data) {
@@ -386,6 +403,7 @@ export async function getFeaturedListings(limit: number = 6): Promise<SearchResu
     const profile = listing.profiles as unknown as {
       agency_name: string;
       plan_tier: string;
+      subscription_status: string | null;
     };
 
     const locations = listing.locations as unknown as Array<{
@@ -406,7 +424,7 @@ export async function getFeaturedListings(limit: number = 6): Promise<SearchResu
       logoUrl: listing.logo_url,
       profile: {
         agencyName: profile.agency_name,
-        planTier: profile.plan_tier as PlanTier,
+        planTier: getEffectivePlanTier(profile.plan_tier, profile.subscription_status),
       },
       primaryLocation: primaryLocation
         ? { city: primaryLocation.city, state: primaryLocation.state }
@@ -436,7 +454,8 @@ export async function getHomepageFeaturedListings(limit: number = 3): Promise<Se
       logo_url,
       profiles!inner (
         agency_name,
-        plan_tier
+        plan_tier,
+        subscription_status
       ),
       locations (
         city,
@@ -447,6 +466,7 @@ export async function getHomepageFeaturedListings(limit: number = 3): Promise<Se
     )
     .eq("status", "published")
     .eq("profiles.plan_tier", "enterprise")
+    .in("profiles.subscription_status", ["active", "trialing"])
     .limit(limit);
 
   if (error || !data) {
@@ -465,6 +485,7 @@ export async function getHomepageFeaturedListings(limit: number = 3): Promise<Se
     const profile = listing.profiles as unknown as {
       agency_name: string;
       plan_tier: string;
+      subscription_status: string | null;
     };
 
     const locations = (listing.locations || []) as unknown as Array<{
@@ -485,7 +506,7 @@ export async function getHomepageFeaturedListings(limit: number = 3): Promise<Se
       logoUrl: listing.logo_url,
       profile: {
         agencyName: profile.agency_name,
-        planTier: profile.plan_tier as PlanTier,
+        planTier: getEffectivePlanTier(profile.plan_tier, profile.subscription_status),
       },
       primaryLocation: primaryLocation
         ? { city: primaryLocation.city, state: primaryLocation.state }
@@ -545,7 +566,8 @@ export async function searchLocations(
         status,
         profiles!inner (
           agency_name,
-          plan_tier
+          plan_tier,
+          subscription_status
         )
       )
     `,
@@ -640,6 +662,7 @@ export async function searchLocations(
       profiles: {
         agency_name: string;
         plan_tier: string;
+        subscription_status: string | null;
       };
     };
 
@@ -691,7 +714,7 @@ export async function searchLocations(
       isAcceptingClients: listing.is_accepting_clients,
       logoUrl: listing.logo_url,
       agencyName: listing.profiles.agency_name,
-      planTier: listing.profiles.plan_tier as PlanTier,
+      planTier: getEffectivePlanTier(listing.profiles.plan_tier, listing.profiles.subscription_status),
       otherLocationsCount: totalLocations - 1,
       distanceMiles,
       isFeatured: location.is_featured || false,
@@ -973,7 +996,8 @@ async function fetchAllRealListings(
         status,
         profiles!inner (
           agency_name,
-          plan_tier
+          plan_tier,
+          subscription_status
         )
       )
     `
@@ -1039,6 +1063,7 @@ async function fetchAllRealListings(
       profiles: {
         agency_name: string;
         plan_tier: string;
+        subscription_status: string | null;
       };
     };
 
@@ -1087,7 +1112,7 @@ async function fetchAllRealListings(
       isAcceptingClients: listing.is_accepting_clients,
       logoUrl: listing.logo_url,
       agencyName: listing.profiles.agency_name,
-      planTier: listing.profiles.plan_tier as PlanTier,
+      planTier: getEffectivePlanTier(listing.profiles.plan_tier, listing.profiles.subscription_status),
       otherLocationsCount: totalLocations - 1,
       distanceMiles,
       isFeatured: location.is_featured || false,

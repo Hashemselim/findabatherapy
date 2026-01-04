@@ -43,7 +43,7 @@ export function QuickStats({ listing, isPaidPlan, inquiryCount }: QuickStatsProp
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-semibold capitalize text-foreground">
-            {listing.profile.planTier}
+            {isPaidPlan ? listing.profile.planTier : "Free"}
           </div>
           <p className="text-xs text-muted-foreground">
             <Link

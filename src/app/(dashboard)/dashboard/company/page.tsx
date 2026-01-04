@@ -108,7 +108,11 @@ export default async function DashboardListingPage() {
   const locations = locationsResult.success ? locationsResult.data || [] : [];
 
   const isPublished = listing.status === "published";
-  const isPaidPlan = listing.profile.planTier !== "free";
+  // Paid plan requires both a paid tier AND an active subscription
+  const isActiveSubscription =
+    listing.profile.subscriptionStatus === "active" ||
+    listing.profile.subscriptionStatus === "trialing";
+  const isPaidPlan = listing.profile.planTier !== "free" && isActiveSubscription;
 
   // Count media items
   const photoCount = listing.photoUrls?.length || 0;
