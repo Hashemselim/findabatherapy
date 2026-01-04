@@ -4,6 +4,7 @@ import { type ReactNode, useMemo, useState, useCallback, useEffect } from "react
 import { useRouter } from "next/navigation";
 import { Building2, Check, Stethoscope } from "lucide-react";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -12,9 +13,6 @@ import { cn } from "@/lib/utils";
 import { buildSearchUrl } from "@/lib/search/filters";
 import { COMMON_INSURANCES, SERVICE_MODES } from "@/lib/search/filters";
 import type { PlaceDetails } from "@/hooks/use-places-autocomplete";
-
-const pillClassName =
-  "inline-flex items-center rounded-full border border-primary bg-primary/10 px-3 py-1 text-xs font-semibold text-foreground";
 
 type HomeSearchCardProps = {
   heading?: ReactNode;
@@ -148,7 +146,7 @@ export function HomeSearchCard({
             showPillWhenValidated={true}
             initialValidated={!!defaultLocation}
             className="mt-2"
-            inputClassName="h-12 rounded-2xl pl-10 text-sm"
+            inputClassName="h-12 rounded-2xl pl-10 text-base md:text-sm"
           />
         </div>
 
@@ -164,9 +162,9 @@ export function HomeSearchCard({
                 <div className="flex min-w-0 flex-1 items-center gap-1.5">
                   {activeServices.length ? (
                     activeServices.slice(0, 2).map((service) => (
-                      <span key={service.value} className={cn(pillClassName, "min-w-0 shrink")}>
+                      <Badge key={service.value} variant="filter" className="min-w-0 shrink">
                         <span className="truncate">{service.label}</span>
-                      </span>
+                      </Badge>
                     ))
                   ) : (
                     <span className="text-muted-foreground">Select setting</span>
@@ -215,7 +213,7 @@ export function HomeSearchCard({
                 <Stethoscope className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
                 <div className="min-w-0 flex-1 overflow-hidden">
                   {insurance ? (
-                    <span className={pillClassName}>{insurance}</span>
+                    <Badge variant="filter">{insurance}</Badge>
                   ) : (
                     <span className="text-muted-foreground">Select plan</span>
                   )}

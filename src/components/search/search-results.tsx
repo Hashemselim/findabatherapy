@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { MapPin, CheckCircle, BadgeCheck, Building2, Home, Navigation, Star, AlertCircle, ExternalLink, Globe, Video, GraduationCap } from "lucide-react";
+import { MapPin, CheckCircle, BadgeCheck, Building2, Home, Navigation, Star, AlertCircle, ExternalLink, Globe, Video, GraduationCap, ShieldQuestion } from "lucide-react";
 
 import { ProviderLogo } from "@/components/provider/provider-logo";
 import { Badge } from "@/components/ui/badge";
+import { FeaturedBadge } from "@/components/ui/featured-badge";
 import { Card, CardContent } from "@/components/ui/card";
 import type { SearchResultListing, SearchResultLocation, GooglePlacesSearchResult, CombinedSearchResult } from "@/lib/queries/search";
 import { trackSearchResultClick } from "@/hooks/use-track-view";
@@ -103,9 +104,11 @@ export function SearchResults(props: SearchResultsProps) {
         {/* Featured Section - always show if present */}
         {featured.length > 0 && (
           <section>
-            <div className="mb-4 flex items-center gap-2">
-              <Star className="h-5 w-5 text-amber-500" />
-              <h2 className="text-lg font-semibold text-foreground">Featured Providers</h2>
+            <div className="mb-4 flex items-center gap-2.5">
+              <div className="flex h-7 w-7 items-center justify-center rounded-full border border-[#FEE720]/50 bg-[#FFF5C2]/30">
+                <Star className="h-3.5 w-3.5 fill-[#5788FF] text-[#5788FF]" />
+              </div>
+              <h2 className="text-base font-semibold text-foreground">Featured Providers</h2>
             </div>
             <div className="flex flex-col gap-4">
               {featured.map((result, idx) => {
@@ -122,8 +125,10 @@ export function SearchResults(props: SearchResultsProps) {
           <section>
             {/* Only show distance header when we have proximity search */}
             {showDistanceSections && (
-              <div className="mb-4 flex items-center gap-2">
-                <Navigation className="h-5 w-5 text-[#5788FF]" />
+              <div className="mb-4 flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#5788FF]/10">
+                  <Navigation className="h-5 w-5 text-[#5788FF]" />
+                </div>
                 <h2 className="text-lg font-semibold text-foreground">
                   Providers within {radiusMiles} miles
                 </h2>
@@ -142,8 +147,10 @@ export function SearchResults(props: SearchResultsProps) {
         {/* Other Section - only show when we have proximity search (distance matters) */}
         {showDistanceSections && other.length > 0 && (
           <section>
-            <div className="mb-4 flex items-center gap-2">
-              <MapPin className="h-5 w-5 text-muted-foreground" />
+            <div className="mb-4 flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted/50">
+                <MapPin className="h-5 w-5 text-muted-foreground" />
+              </div>
               <h2 className="text-lg font-semibold text-muted-foreground">
                 Other providers more than {radiusMiles} miles away
               </h2>
@@ -252,12 +259,14 @@ function LocationResultCard({ location, position, searchQuery }: LocationResultC
     <Link
       href={`/provider/${location.slug}?location=${location.locationId}`}
       onClick={handleClick}
+      className="group"
     >
       <Card
         className={cn(
-          "transition-all hover:shadow-md",
-          location.isFeatured && "border-amber-300 bg-amber-50/30",
-          !location.isFeatured && isPremium && "border-primary/30"
+          "border-border/60 transition-all duration-300 ease-premium hover:-translate-y-[2px] hover:shadow-[0_8px_30px_rgba(87,136,255,0.1)] active:translate-y-0 active:shadow-none",
+          location.isFeatured && "border-[#FEE720]/50 bg-[#FFF5C2]/30 hover:border-[#FEE720] hover:shadow-[0_8px_30px_rgba(254,231,32,0.15)]",
+          !location.isFeatured && isPremium && "border-[#5788FF]/20 hover:border-[#5788FF]/40",
+          !location.isFeatured && !isPremium && "hover:border-[#5788FF]/30"
         )}
       >
         <CardContent className="flex gap-4 p-4">
@@ -274,12 +283,12 @@ function LocationResultCard({ location, position, searchQuery }: LocationResultC
           <div className="min-w-0 flex-1">
             {/* Header */}
             <div className="flex flex-wrap items-center gap-2">
-              <h3 className="text-lg font-semibold text-foreground">
+              <h3 className="text-lg font-semibold text-foreground transition-colors duration-300 group-hover:text-[#5788FF]">
                 {location.agencyName}
               </h3>
               {/* Verified badge - shown for paid tiers */}
               {isPremium && (
-                <Badge variant="outline" className="gap-1 border-[#5788FF] text-[#5788FF]">
+                <Badge variant="outline" className="gap-1 border-[#5788FF] text-[#5788FF] transition-all duration-300 ease-premium group-hover:scale-[1.02] group-hover:bg-[#5788FF]/5">
                   <BadgeCheck className="h-3 w-3" />
                   Verified
                 </Badge>
@@ -355,7 +364,7 @@ function LocationResultCard({ location, position, searchQuery }: LocationResultC
               )}
               {/* Telehealth indicator */}
               {location.serviceTypes?.includes("telehealth") && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-0.5 text-xs text-blue-700">
+                <span className="inline-flex items-center gap-1 rounded-full bg-[#5788FF]/10 px-2.5 py-0.5 text-xs text-[#5788FF]">
                   <Video className="h-3 w-3" />
                   Telehealth
                 </span>
@@ -383,10 +392,7 @@ function LocationResultCard({ location, position, searchQuery }: LocationResultC
           {/* Featured badge on right side for desktop */}
           {location.isFeatured && (
             <div className="hidden flex-shrink-0 sm:block">
-              <Badge className="border-amber-300 bg-amber-100 text-amber-700">
-                <Star className="mr-1 h-3 w-3" />
-                Featured
-              </Badge>
+              <FeaturedBadge withHover />
             </div>
           )}
         </CardContent>
@@ -410,11 +416,12 @@ function SearchResultCard({ listing, position, searchQuery }: SearchResultCardPr
   };
 
   return (
-    <Link href={`/provider/${listing.slug}`} onClick={handleClick}>
+    <Link href={`/provider/${listing.slug}`} onClick={handleClick} className="group">
       <Card
         className={cn(
-          "transition-all hover:shadow-md",
-          isPremium && "border-primary/30"
+          "border-border/60 transition-all duration-300 ease-premium hover:-translate-y-[2px] hover:shadow-[0_8px_30px_rgba(87,136,255,0.1)] active:translate-y-0 active:shadow-none",
+          isPremium && "border-[#5788FF]/20 hover:border-[#5788FF]/40",
+          !isPremium && "hover:border-[#5788FF]/30"
         )}
       >
         <CardContent className="flex gap-4 p-4">
@@ -431,11 +438,11 @@ function SearchResultCard({ listing, position, searchQuery }: SearchResultCardPr
           <div className="min-w-0 flex-1">
             {/* Header */}
             <div className="flex flex-wrap items-center gap-2">
-              <h3 className="text-lg font-semibold text-foreground">
+              <h3 className="text-lg font-semibold text-foreground transition-colors duration-300 group-hover:text-[#5788FF]">
                 {listing.profile.agencyName}
               </h3>
               {isPremium && (
-                <Badge variant="outline" className="gap-1 border-[#5788FF] text-[#5788FF]">
+                <Badge variant="outline" className="gap-1 border-[#5788FF] text-[#5788FF] transition-all duration-300 ease-premium group-hover:scale-[1.02] group-hover:bg-[#5788FF]/5">
                   <BadgeCheck className="h-3 w-3" />
                   Verified
                 </Badge>
@@ -497,7 +504,7 @@ function SearchResultCard({ listing, position, searchQuery }: SearchResultCardPr
           {/* Plan Badge */}
           {listing.profile.planTier === "enterprise" && (
             <div className="hidden flex-shrink-0 sm:block">
-              <Badge className="bg-primary">Featured</Badge>
+              <FeaturedBadge withHover />
             </div>
           )}
         </CardContent>
@@ -543,8 +550,8 @@ function GooglePlacesResultCard({ listing, position, searchQuery }: GooglePlaces
     : `${listing.city}, ${listing.state}`;
 
   return (
-    <Link href={`/provider/p/${listing.slug}`}>
-      <Card className="border-dashed border-muted-foreground/30 transition-all hover:border-muted-foreground/50 hover:shadow-md">
+    <Link href={`/provider/p/${listing.slug}`} className="group">
+      <Card className="border-dashed border-muted-foreground/30 transition-all duration-300 ease-premium hover:-translate-y-[2px] hover:border-[#5788FF]/40 hover:shadow-[0_8px_30px_rgba(87,136,255,0.08)] active:translate-y-0 active:shadow-none">
         <CardContent className="flex gap-4 p-4">
           {/* Logo */}
           <div className="flex-shrink-0">
@@ -558,10 +565,10 @@ function GooglePlacesResultCard({ listing, position, searchQuery }: GooglePlaces
           <div className="min-w-0 flex-1">
             {/* Header */}
             <div className="flex flex-wrap items-center gap-2">
-              <h3 className="text-lg font-semibold text-foreground">
+              <h3 className="text-lg font-semibold text-foreground transition-colors duration-300 group-hover:text-[#5788FF]">
                 {listing.name}
               </h3>
-              <Badge variant="outline" className="border-muted-foreground/30 text-muted-foreground">
+              <Badge variant="outline" className="border-muted-foreground/30 text-muted-foreground transition-all duration-300 ease-premium group-hover:border-[#5788FF]/30 group-hover:text-[#5788FF]">
                 Directory
               </Badge>
               {listing.googleRating && (
@@ -586,7 +593,7 @@ function GooglePlacesResultCard({ listing, position, searchQuery }: GooglePlaces
               </div>
             )}
 
-            {/* External link indicator */}
+            {/* Info badges */}
             <div className="mt-3 flex flex-wrap items-center gap-2">
               {listing.website && (
                 <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-0.5 text-xs text-muted-foreground">
@@ -594,6 +601,11 @@ function GooglePlacesResultCard({ listing, position, searchQuery }: GooglePlaces
                   Website Available
                 </span>
               )}
+              {/* Insurance not listed notice - subtle amber styling to draw attention without alarm */}
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200/60 bg-amber-50/50 px-2.5 py-0.5 text-xs text-amber-700/80 transition-colors duration-200 group-hover:border-amber-300/70 group-hover:bg-amber-50">
+                <ShieldQuestion className="h-3 w-3 text-amber-500/70" />
+                <span>Insurance not listed</span>
+              </span>
               <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                 <ExternalLink className="h-3 w-3" />
                 Contact via external site

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, useEffect, useCallback } from "react";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, format } from "date-fns";
 import { MapPin } from "lucide-react";
 
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
@@ -189,10 +189,11 @@ export function InboxMessageList({
                         {inquiry.message}
                       </p>
                     </div>
-                    <span className="shrink-0 whitespace-nowrap text-xs text-muted-foreground">
-                      {formatDistanceToNow(new Date(inquiry.createdAt), {
-                        addSuffix: true,
-                      })}
+                    <span className="shrink-0 whitespace-nowrap text-right text-xs text-muted-foreground">
+                      <span className="block">{format(new Date(inquiry.createdAt), "MMM d, yyyy")}</span>
+                      <span className="block text-muted-foreground/70">
+                        {formatDistanceToNow(new Date(inquiry.createdAt), { addSuffix: true })}
+                      </span>
                     </span>
                   </div>
                   {locationName && (

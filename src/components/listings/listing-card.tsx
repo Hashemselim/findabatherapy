@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { ArrowUpRight, Star } from "lucide-react";
+import { ArrowUpRight, Sparkles } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
+import { FeaturedBadge } from "@/components/ui/featured-badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PLAN_TIERS } from "@/lib/constants/listings";
 
@@ -41,8 +42,8 @@ export function ListingCard({
   return (
     <Card className={`relative border-2 transition hover:-translate-y-0.5 ${planStyles[plan]}`}>
       {plan === "featured" && (
-        <div className="absolute -left-2 -top-2 rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground shadow-lg">
-          Featured
+        <div className="absolute -left-2 -top-2">
+          <FeaturedBadge className="shadow-lg" />
         </div>
       )}
       <CardHeader className="space-y-2">
@@ -50,7 +51,7 @@ export function ListingCard({
           <Badge variant={plan === "free" ? "outline" : "secondary"}>{planBadges[plan]}</Badge>
           {isAcceptingClients && (
             <span className="inline-flex items-center gap-1 rounded-full border border-[#FEE720] bg-[#FFF5C2] px-2 py-1 text-[#333333]">
-              <Star className="h-3 w-3" aria-hidden />
+              <Sparkles className="h-3 w-3 text-[#5788FF]" aria-hidden />
               Accepting new clients
             </span>
           )}

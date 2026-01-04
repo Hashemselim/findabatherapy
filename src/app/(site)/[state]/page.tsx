@@ -6,6 +6,7 @@ import { ArrowRight, CheckCircle, MapPin, HelpCircle } from "lucide-react";
 import { HomeSearchCard } from "@/components/home/home-search-card";
 import { SearchResults } from "@/components/search/search-results";
 import { JsonLd } from "@/components/seo/json-ld";
+import { Breadcrumbs } from "@/components/seo/breadcrumbs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,7 +19,7 @@ import { trackSearchImpressions } from "@/lib/analytics/track";
 import {
   generateItemListSchema,
   generateFAQSchema,
-  generateBreadcrumbSchema,
+  generateMedicalWebPageSchema,
 } from "@/lib/seo/schemas";
 import { generateStateFAQs } from "@/lib/seo/state-faqs";
 
@@ -138,19 +139,28 @@ export default async function StatePage({ params }: StatePageProps) {
     `ABA Therapy Providers in ${state.label}`
   );
 
-  const breadcrumbSchema = generateBreadcrumbSchema([
-    { name: "Home", url: "/" },
-    { name: state.label, url: `/${stateValue}` },
-  ]);
-
   const faqSchema = generateFAQSchema(faqs);
 
-  return (
-    <div className="space-y-10 pb-16">
-      {/* JSON-LD Schemas */}
-      <JsonLd data={[listSchema, breadcrumbSchema, faqSchema]} />
+  const medicalPageSchema = generateMedicalWebPageSchema({
+    title: `ABA Therapy in ${state.label}`,
+    description: `Find ABA therapy providers in ${state.label}. Browse verified autism therapy agencies offering in-home, center-based, and telehealth ABA services.`,
+    url: `${BASE_URL}/${stateValue}`,
+    lastReviewed: new Date().toISOString().split("T")[0],
+  });
 
-      {/* Hero Section */}
+  // Format last updated date for display
+  const lastUpdated = new Date().toLocaleDateString("en-US", {
+    month: "long",
+    year: "numeric",
+  });
+
+  return (
+    <>
+      {/* JSON-LD Schemas */}
+      <JsonLd data={[listSchema, faqSchema, medicalPageSchema]} />
+
+      <div className="space-y-10 pb-16">
+        {/* Hero Section */}
       <section className="px-0 pt-0">
         <BubbleBackground
           interactive
@@ -166,14 +176,11 @@ export default async function StatePage({ params }: StatePageProps) {
           }}
         >
           <div className="mx-auto max-w-5xl px-4 sm:px-6">
-            {/* Breadcrumb */}
-            <nav className="mb-6 flex items-center gap-2 text-sm text-muted-foreground">
-              <Link href="/" className="hover:text-foreground">
-                Home
-              </Link>
-              <span>/</span>
-              <span className="text-foreground">{state.label}</span>
-            </nav>
+            {/* Breadcrumb with JSON-LD schema */}
+            <Breadcrumbs
+              items={[{ label: state.label, href: `/${stateValue}` }]}
+              className="mb-6"
+            />
 
             <div className="flex flex-col items-center text-center">
               <Badge className="mb-4 gap-2 bg-[#FFF5C2] text-[#333333] uppercase">
@@ -196,6 +203,9 @@ export default async function StatePage({ params }: StatePageProps) {
                   {cities.length} cities covered
                 </span>
               </div>
+              <p className="mt-4 text-xs text-muted-foreground">
+                Last updated: {lastUpdated}
+              </p>
               <Button asChild size="lg" className="mt-8">
                 <Link href={`/search?state=${encodeURIComponent(state.label)}`}>
                   Search {state.label} Providers
@@ -372,6 +382,11 @@ export default async function StatePage({ params }: StatePageProps) {
               Resources to help you understand ABA therapy and make informed decisions.
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
+              <Link href={`/${stateValue}/guide`}>
+                <Badge variant="secondary" className="cursor-pointer bg-[#FFF5C2] text-[#333333] hover:bg-[#FEE720]">
+                  {state.label} ABA Guide
+                </Badge>
+              </Link>
               <Link href="/learn/what-is-aba-therapy">
                 <Badge variant="outline" className="cursor-pointer hover:bg-primary hover:text-primary-foreground">
                   What is ABA Therapy?
@@ -410,7 +425,8 @@ export default async function StatePage({ params }: StatePageProps) {
             </CardContent>
           </Card>
         </div>
+        </div>
       </div>
-    </div>
+    </>
   );
 }

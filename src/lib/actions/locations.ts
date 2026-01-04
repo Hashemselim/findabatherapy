@@ -36,6 +36,7 @@ export interface LocationData {
   googlePlaceId: string | null;
   googleRating: number | null;
   googleRatingCount: number | null;
+  showGoogleReviews: boolean;
   // Featured subscription
   isFeatured: boolean;
   featuredSubscription: {
@@ -84,7 +85,7 @@ export async function getLocations(): Promise<ActionResult<LocationData[]>> {
       service_radius_miles, is_primary, is_accepting_clients, created_at, service_types,
       insurances,
       contact_phone, contact_email, contact_website, use_company_contact,
-      google_place_id, google_rating, google_rating_count,
+      google_place_id, google_rating, google_rating_count, show_google_reviews,
       is_featured,
       location_featured_subscriptions!left (
         status,
@@ -138,6 +139,7 @@ export async function getLocations(): Promise<ActionResult<LocationData[]>> {
         googlePlaceId: loc.google_place_id,
         googleRating: loc.google_rating,
         googleRatingCount: loc.google_rating_count,
+        showGoogleReviews: loc.show_google_reviews || false,
         isFeatured: loc.is_featured || false,
         featuredSubscription: featuredSub ? {
           status: featuredSub.status,

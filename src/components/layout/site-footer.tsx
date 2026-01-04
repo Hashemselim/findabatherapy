@@ -9,14 +9,21 @@ const footerLinks = [
       { label: "Home", href: "/" },
       { label: "Search Providers", href: "/search" },
       { label: "Browse by State", href: "/states" },
+      { label: "Browse by Insurance", href: "/insurance" },
+    ],
+  },
+  {
+    title: "Resources",
+    links: [
       { label: "Learn About ABA", href: "/learn" },
+      { label: "FAQ", href: "/faq" },
+      { label: "Glossary", href: "/learn/glossary" },
     ],
   },
   {
     title: "Providers",
     links: [
       { label: "Get Listed", href: "/get-listed" },
-      { label: "Sign up", href: "/auth/sign-up" },
       { label: "Sign in", href: "/auth/sign-in" },
       { label: "Dashboard", href: "/dashboard" },
     ],
@@ -72,9 +79,11 @@ const topInsurances = [
 // Popular guides for SEO internal linking
 const popularGuides = [
   { label: "What is ABA Therapy?", href: "/learn/what-is-aba-therapy" },
+  { label: "Benefits of ABA Therapy", href: "/learn/benefits-of-aba-therapy" },
   { label: "How to Choose a Provider", href: "/learn/how-to-choose-aba-provider" },
   { label: "ABA Therapy Cost Guide", href: "/learn/aba-therapy-cost" },
   { label: "Insurance Coverage", href: "/learn/insurance-coverage-aba" },
+  { label: "ABA for Adults", href: "/learn/aba-therapy-for-adults" },
   { label: "In-Home vs Center-Based", href: "/learn/in-home-vs-center-based-aba" },
 ];
 
@@ -82,8 +91,8 @@ export function SiteFooter() {
   return (
     <footer className="border-t border-border/60 bg-muted/30">
       {/* Main footer links */}
-      <div className="container grid gap-8 px-4 py-10 sm:px-6 md:grid-cols-12">
-        <div className="md:col-span-4">
+      <div className="container grid gap-8 px-4 py-10 sm:px-6 md:grid-cols-2 lg:grid-cols-6">
+        <div className="md:col-span-2">
           <h3 className="text-lg font-semibold text-foreground">{siteConfig.name}</h3>
           <p className="mt-2 text-sm text-muted-foreground">{siteConfig.description}</p>
           <p className="mt-4 text-xs text-muted-foreground">
@@ -91,7 +100,7 @@ export function SiteFooter() {
           </p>
         </div>
         {footerLinks.map((section) => (
-          <div key={section.title} className="md:col-span-2">
+          <div key={section.title} className="md:col-span-1">
             <h4 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
               {section.title}
             </h4>
@@ -168,6 +177,12 @@ export function SiteFooter() {
                   {insurance.label}
                 </Link>
               ))}
+              <Link
+                href="/insurance"
+                className="text-sm font-medium text-primary transition hover:text-primary/80"
+              >
+                All insurances →
+              </Link>
             </div>
           </div>
 

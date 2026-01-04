@@ -6,10 +6,10 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   BarChart3,
-  Bell,
   ChevronLeft,
   ChevronRight,
   CreditCard,
+  ExternalLink,
   FileText,
   GaugeCircle,
   Image as ImageIcon,
@@ -64,6 +64,8 @@ const demoQuickLinks: QuickLink[] = [
 interface DashboardTopbarProps {
   isOnboardingComplete: boolean;
   isDemo?: boolean;
+  /** Provider's listing slug for "View Listing" link */
+  providerSlug?: string | null;
   /** Custom quick links for the mobile nav */
   customQuickLinks?: QuickLink[];
   /** Custom mobile nav component for demo mode */
@@ -79,6 +81,7 @@ interface DashboardTopbarProps {
 export function DashboardTopbar({
   isOnboardingComplete,
   isDemo = false,
+  providerSlug,
   customQuickLinks,
   mobileNavComponent,
   sheetTitle,
@@ -147,13 +150,15 @@ export function DashboardTopbar({
         <Link href="/auth/sign-up?from=demo">Sign Up</Link>
       </Button>
     </div>
-  ) : (
-    <div className="flex items-center gap-3">
-      <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground" aria-label="Notifications">
-        <Bell className="h-5 w-5" aria-hidden />
-      </Button>
-    </div>
-  );
+  ) : providerSlug ? (
+    <Button asChild variant="outline" size="sm" className="gap-2 rounded-full">
+      <Link href={`/provider/${providerSlug}`} target="_blank">
+        <span className="hidden sm:inline">View Listing</span>
+        <span className="sm:hidden">View</span>
+        <ExternalLink className="h-4 w-4" aria-hidden />
+      </Link>
+    </Button>
+  ) : null;
 
   return (
     <header className="border-b border-border/60 bg-background">

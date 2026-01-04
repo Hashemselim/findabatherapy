@@ -8,7 +8,6 @@ import {
   MapPin,
   MessageSquare,
   Search,
-  Sparkles,
   Star,
   TrendingUp,
   Users,
@@ -23,9 +22,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { cn } from "@/lib/utils";
 
 const stats = [
-  { value: "50K+", label: "Monthly searches" },
-  { value: "500+", label: "Listed providers" },
-  { value: "89%", label: "Find a match" },
+  { value: "50K+", label: "Monthly searches", icon: Search },
+  { value: "500+", label: "Listed providers", icon: Users },
+  { value: "89%", label: "Find a match", icon: Check },
 ];
 
 const features = [
@@ -33,26 +32,36 @@ const features = [
     icon: Search,
     title: "Get discovered",
     description: "Appear in search results when families look for ABA providers in your area.",
+    color: "bg-[#5788FF]/10",
+    iconColor: "text-[#5788FF]",
   },
   {
     icon: TrendingUp,
     title: "Boost your SEO",
     description: "High-authority backlinks improve your Google rankings and online visibility.",
+    color: "bg-emerald-500/10",
+    iconColor: "text-emerald-600",
   },
   {
     icon: Globe,
     title: "AI-ready listings",
     description: "Show up in ChatGPT, Google AI, and other AI search tools families use.",
+    color: "bg-violet-500/10",
+    iconColor: "text-violet-600",
   },
   {
     icon: MessageSquare,
     title: "Direct contact form",
     description: "Receive inquiry requests directly from families ready to start services.",
+    color: "bg-[#FFF5C2]",
+    iconColor: "text-[#5788FF]",
   },
   {
     icon: ImagePlus,
     title: "Rich media profiles",
     description: "Showcase your practice with photo galleries and YouTube video embeds.",
+    color: "bg-rose-500/10",
+    iconColor: "text-rose-600",
   },
 ];
 
@@ -210,7 +219,7 @@ export default function GetListedPage() {
         >
           <div className="mx-auto flex max-w-4xl flex-col gap-8 px-4 sm:px-6">
             <div className="space-y-6 text-center">
-              <Badge className="mx-auto rounded-full border border-[#5788FF]/40 bg-gradient-to-r from-[#5788FF]/15 to-[#5788FF]/5 px-4 py-1.5 text-sm font-semibold text-[#5788FF] shadow-sm">
+              <Badge className="mx-auto rounded-full border border-[#5788FF]/40 bg-gradient-to-r from-[#5788FF]/15 to-[#5788FF]/5 px-4 py-1.5 text-sm font-semibold text-[#5788FF] shadow-sm transition-all duration-300 ease-premium hover:shadow-md">
                 For ABA Providers
               </Badge>
               <h1 className="text-[32px] font-semibold leading-tight text-foreground sm:text-[48px] sm:leading-tight">
@@ -226,21 +235,26 @@ export default function GetListedPage() {
                   <Button
                     asChild
                     size="lg"
-                    className="rounded-full border border-[#FEE720] bg-[#FEE720] px-8 text-base font-semibold text-[#333333] hover:bg-[#FFF5C2]"
+                    className="rounded-full border border-[#FEE720] bg-[#FEE720] px-8 text-base font-semibold text-[#333333] shadow-[0_4px_14px_rgba(254,231,32,0.4)] transition-all duration-300 ease-premium hover:-translate-y-[2px] hover:bg-[#FFF5C2] hover:shadow-[0_8px_20px_rgba(254,231,32,0.5)] active:translate-y-0 active:shadow-[0_2px_8px_rgba(254,231,32,0.3)]"
                   >
                     <Link href="/auth/sign-up?plan=free">
                       Get listed free
-                      <ArrowRight className="ml-2 h-4 w-4" />
+                      <ArrowRight className="ml-2 h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
                     </Link>
                   </Button>
-                  <Button asChild size="lg" variant="outline" className="rounded-full px-8 text-base">
+                  <Button
+                    asChild
+                    size="lg"
+                    variant="outline"
+                    className="rounded-full px-8 text-base transition-all duration-300 ease-premium hover:-translate-y-[1px] hover:border-[#5788FF]/50 hover:shadow-[0_4px_12px_rgba(87,136,255,0.15)]"
+                  >
                     <Link href="#pricing">View pricing</Link>
                   </Button>
                 </div>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <span>Free plan available. No credit card required.</span>
                   <span className="text-border">|</span>
-                  <Link href="/demo" className="font-medium text-[#5788FF] hover:underline">
+                  <Link href="/demo" className="font-medium text-[#5788FF] transition-colors duration-300 hover:text-[#4a77e8] hover:underline">
                     Try the demo
                   </Link>
                 </div>
@@ -249,11 +263,15 @@ export default function GetListedPage() {
 
             {/* Stats */}
             <div className="mx-auto mt-4 grid w-full max-w-2xl grid-cols-3 gap-4">
-              {stats.map((stat) => (
+              {stats.map((stat, index) => (
                 <div
                   key={stat.label}
-                  className="rounded-2xl border border-border/60 bg-white/80 px-4 py-4 text-center backdrop-blur-sm"
+                  className="group rounded-2xl border border-border/60 bg-white/80 px-4 py-4 text-center backdrop-blur-sm transition-all duration-300 ease-premium hover:-translate-y-[2px] hover:border-[#5788FF]/30 hover:shadow-[0_8px_30px_rgba(87,136,255,0.1)]"
+                  style={{ animationDelay: `${index * 100}ms` }}
                 >
+                  <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-[#5788FF]/10 transition-all duration-300 group-hover:scale-[1.05]">
+                    <stat.icon className="h-5 w-5 text-[#5788FF]" />
+                  </div>
                   <p className="text-2xl font-bold text-foreground sm:text-3xl">{stat.value}</p>
                   <p className="text-sm text-muted-foreground">{stat.label}</p>
                 </div>
@@ -266,16 +284,22 @@ export default function GetListedPage() {
       {/* Social Proof Bar */}
       <section className="border-y border-border/60 bg-white py-6">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-center gap-x-8 gap-y-4 px-4 text-sm text-muted-foreground sm:px-6">
-          <span className="flex items-center gap-2">
-            <Users className="h-4 w-4 text-primary" aria-hidden />
+          <span className="flex items-center gap-2 transition-all duration-300 hover:text-foreground">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#5788FF]/10">
+              <Users className="h-4 w-4 text-[#5788FF]" aria-hidden />
+            </div>
             Trusted by 500+ providers
           </span>
-          <span className="flex items-center gap-2">
-            <Star className="h-4 w-4 text-primary" aria-hidden />
+          <span className="flex items-center gap-2 transition-all duration-300 hover:text-foreground">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#FFF5C2]">
+              <Star className="h-4 w-4 fill-[#5788FF] text-[#5788FF]" aria-hidden />
+            </div>
             4.9/5 provider satisfaction
           </span>
-          <span className="flex items-center gap-2">
-            <Zap className="h-4 w-4 text-primary" aria-hidden />
+          <span className="flex items-center gap-2 transition-all duration-300 hover:text-foreground">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/10">
+              <Zap className="h-4 w-4 text-emerald-600" aria-hidden />
+            </div>
             Set up in under 5 minutes
           </span>
         </div>
@@ -285,6 +309,9 @@ export default function GetListedPage() {
       <section id="pricing" className="scroll-mt-8 bg-[#FDFAEE] py-16 sm:py-24">
         <div className="mx-auto max-w-5xl px-4 sm:px-6">
           <header className="text-center">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#5788FF]/10">
+              <TrendingUp className="h-6 w-6 text-[#5788FF]" />
+            </div>
             <p className="text-sm font-semibold uppercase tracking-wide text-[#5788FF]">Pricing</p>
             <h2 className="mt-2 text-3xl font-semibold sm:text-4xl">
               Simple, transparent pricing
@@ -295,25 +322,42 @@ export default function GetListedPage() {
           </header>
 
           <div className="mt-12 grid gap-6 lg:grid-cols-3">
-            {plans.map((plan) => (
+            {plans.map((plan, index) => (
               <Card
                 key={plan.name}
                 className={cn(
-                  "relative flex flex-col border-2 bg-white shadow-sm transition hover:shadow-lg",
-                  plan.popular ? "border-primary shadow-md" : "border-border/60"
+                  "group relative flex flex-col border-2 bg-white shadow-sm transition-all duration-300 ease-premium hover:-translate-y-[2px]",
+                  plan.popular
+                    ? "border-[#5788FF] shadow-[0_8px_30px_rgba(87,136,255,0.15)] hover:shadow-[0_12px_40px_rgba(87,136,255,0.2)]"
+                    : "border-border/60 hover:border-[#5788FF]/30 hover:shadow-[0_8px_30px_rgba(87,136,255,0.1)]"
                 )}
+                style={{ animationDelay: `${index * 100}ms` }}
               >
                 {plan.popular && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    <Badge className="rounded-full border border-[#FEE720] bg-[#FEE720] px-4 py-1 text-sm font-semibold text-[#333333]">
-                      <Sparkles className="mr-1.5 h-3.5 w-3.5" />
+                    <Badge className="rounded-full border border-[#FEE720] bg-[#FEE720] px-4 py-1 text-sm font-semibold text-[#333333] shadow-[0_4px_12px_rgba(254,231,32,0.3)]">
+                      <Star className="mr-1.5 h-3.5 w-3.5 fill-[#5788FF] text-[#5788FF]" />
                       Most Popular
                     </Badge>
                   </div>
                 )}
                 <CardHeader className="pb-4">
                   <div className="flex items-center gap-2">
-                    {plan.name === "Enterprise" && <Crown className="h-5 w-5 text-primary" />}
+                    {plan.name === "Enterprise" && (
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-violet-500/10">
+                        <Crown className="h-4 w-4 text-violet-600" />
+                      </div>
+                    )}
+                    {plan.name === "Pro" && (
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#FFF5C2]">
+                        <Star className="h-4 w-4 fill-[#5788FF] text-[#5788FF]" />
+                      </div>
+                    )}
+                    {plan.name === "Free" && (
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#5788FF]/10">
+                        <Users className="h-4 w-4 text-[#5788FF]" />
+                      </div>
+                    )}
                     <CardTitle className="text-xl">{plan.name}</CardTitle>
                   </div>
                   {plan.tier === "free" ? (
@@ -335,7 +379,7 @@ export default function GetListedPage() {
                         </div>
                         <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
                           <span>Billed annually</span>
-                          <Badge className="border-green-200 bg-green-50 text-green-700">
+                          <Badge className="border-emerald-200 bg-emerald-50 text-emerald-700">
                             Save {plan.pricing.annual.savingsPercent}%
                           </Badge>
                         </div>
@@ -384,7 +428,7 @@ export default function GetListedPage() {
                         const highlightClass =
                           highlightType === "blue"
                             ? "font-semibold text-[#5788FF]"
-                            : "bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-400 bg-clip-text font-semibold text-transparent";
+                            : "font-semibold text-[#5788FF]";
 
                         return (
                           <span>
@@ -397,7 +441,9 @@ export default function GetListedPage() {
 
                       return (
                         <li key={text} className="flex items-start gap-3 text-sm">
-                          <Check className="mt-0.5 h-4 w-4 shrink-0 text-[#5788FF]" aria-hidden />
+                          <div className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#5788FF]/10">
+                            <Check className="h-3 w-3 text-[#5788FF]" aria-hidden />
+                          </div>
                           {renderFeatureText()}
                         </li>
                       );
@@ -418,7 +464,7 @@ export default function GetListedPage() {
                         Questions?{" "}
                         <a
                           href="mailto:hello@findabatherapy.com"
-                          className="text-primary hover:underline"
+                          className="text-[#5788FF] transition-colors duration-300 hover:text-[#4a77e8] hover:underline"
                         >
                           Email us
                         </a>
@@ -428,7 +474,7 @@ export default function GetListedPage() {
                       <Button
                         asChild
                         variant="outline"
-                        className="w-full rounded-full text-base font-semibold"
+                        className="w-full rounded-full text-base font-semibold transition-all duration-300 ease-premium hover:-translate-y-[1px] hover:border-[#5788FF]/50 hover:shadow-[0_4px_12px_rgba(87,136,255,0.15)]"
                       >
                         <Link href="/auth/sign-up?plan=free">{plan.cta}</Link>
                       </Button>
@@ -437,10 +483,10 @@ export default function GetListedPage() {
                         <Button
                           asChild
                           className={cn(
-                            "w-full rounded-full text-base font-semibold",
+                            "w-full rounded-full text-base font-semibold transition-all duration-300 ease-premium hover:-translate-y-[1px]",
                             plan.popular
-                              ? "border border-[#FEE720] bg-[#FEE720] text-[#333333] hover:bg-[#FFF5C2]"
-                              : "bg-primary text-primary-foreground hover:bg-primary/90"
+                              ? "border border-[#FEE720] bg-[#FEE720] text-[#333333] shadow-[0_4px_14px_rgba(254,231,32,0.4)] hover:bg-[#FFF5C2] hover:shadow-[0_8px_20px_rgba(254,231,32,0.5)]"
+                              : "bg-[#5788FF] text-white shadow-[0_4px_14px_rgba(87,136,255,0.3)] hover:bg-[#4a77e8] hover:shadow-[0_8px_20px_rgba(87,136,255,0.4)]"
                           )}
                         >
                           <Link href={`/auth/sign-up?plan=${plan.tier}&interval=annual`}>
@@ -450,7 +496,7 @@ export default function GetListedPage() {
                         <Button
                           asChild
                           variant="outline"
-                          className="w-full rounded-full text-base font-semibold"
+                          className="w-full rounded-full text-base font-semibold transition-all duration-300 ease-premium hover:-translate-y-[1px] hover:border-[#5788FF]/50 hover:shadow-[0_4px_12px_rgba(87,136,255,0.15)]"
                         >
                           <Link href={`/auth/sign-up?plan=${plan.tier}&interval=monthly`}>
                             Start Monthly
@@ -465,12 +511,12 @@ export default function GetListedPage() {
           </div>
 
           {/* Quick Testimonial Strip */}
-          <div className="mt-10 rounded-xl border border-border/60 bg-white p-5">
+          <div className="mt-10 rounded-xl border border-border/60 bg-white p-5 transition-all duration-300 ease-premium hover:border-[#5788FF]/30 hover:shadow-[0_8px_30px_rgba(87,136,255,0.08)]">
             <div className="flex flex-col items-center gap-3 sm:flex-row">
               <div className="flex -space-x-2">
                 {testimonials.slice(0, 3).map((t) => (
-                  <Avatar key={t.name} className="h-10 w-10 border-2 border-white bg-[#FFF5C2] text-[#333333]">
-                    <AvatarFallback className="text-xs">{t.initials}</AvatarFallback>
+                  <Avatar key={t.name} className="h-10 w-10 border-2 border-white bg-[#FFF5C2] text-[#333333] transition-transform duration-300 hover:scale-110 hover:z-10">
+                    <AvatarFallback className="text-xs font-semibold">{t.initials}</AvatarFallback>
                   </Avatar>
                 ))}
               </div>
@@ -490,11 +536,13 @@ export default function GetListedPage() {
           </p>
 
           {/* Try the Demo Section */}
-          <div className="mt-12 rounded-2xl border-2 border-[#5788FF]/20 bg-gradient-to-br from-[#5788FF]/5 via-white to-[#5788FF]/5 p-6 sm:p-8">
+          <div className="mt-12 overflow-hidden rounded-2xl border-2 border-[#5788FF]/20 bg-gradient-to-br from-[#5788FF]/5 via-white to-[#5788FF]/5 p-6 transition-all duration-300 ease-premium hover:border-[#5788FF]/40 hover:shadow-[0_8px_30px_rgba(87,136,255,0.1)] sm:p-8">
             <div className="flex flex-col items-center gap-6 sm:flex-row sm:justify-between">
               <div className="text-center sm:text-left">
                 <div className="flex items-center justify-center gap-2 sm:justify-start">
-                  <Sparkles className="h-5 w-5 text-[#5788FF]" />
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#5788FF]/10">
+                    <Star className="h-5 w-5 fill-[#5788FF] text-[#5788FF]" />
+                  </div>
                   <h3 className="text-xl font-semibold text-foreground">
                     See the dashboard in action
                   </h3>
@@ -507,11 +555,11 @@ export default function GetListedPage() {
               <Button
                 asChild
                 size="lg"
-                className="shrink-0 rounded-full bg-[#5788FF] px-8 text-base font-semibold text-white hover:bg-[#4a77e8]"
+                className="shrink-0 rounded-full bg-[#5788FF] px-8 text-base font-semibold text-white shadow-[0_4px_14px_rgba(87,136,255,0.3)] transition-all duration-300 ease-premium hover:-translate-y-[2px] hover:bg-[#4a77e8] hover:shadow-[0_8px_20px_rgba(87,136,255,0.4)]"
               >
                 <Link href="/demo">
                   Try the Demo
-                  <ArrowRight className="ml-2 h-4 w-4" />
+                  <ArrowRight className="ml-2 h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
                 </Link>
               </Button>
             </div>
@@ -520,6 +568,9 @@ export default function GetListedPage() {
           {/* Optional Add-ons */}
           <div className="mt-16">
             <header className="text-center">
+              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full border border-[#FEE720] bg-[#FFF5C2]">
+                <Star className="h-6 w-6 fill-[#5788FF] text-[#5788FF]" />
+              </div>
               <p className="text-sm font-semibold uppercase tracking-wide text-[#5788FF]">
                 Boost Your Visibility
               </p>
@@ -528,9 +579,9 @@ export default function GetListedPage() {
               </h3>
             </header>
             <div className="mt-8 grid gap-4 sm:grid-cols-2">
-              <div className="flex items-start gap-4 rounded-xl border border-border/60 bg-white p-5">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#FFF5C2]">
-                  <Sparkles className="h-5 w-5 text-[#333333]" aria-hidden />
+              <div className="group flex items-start gap-4 rounded-xl border border-border/60 bg-white p-5 transition-all duration-300 ease-premium hover:-translate-y-[2px] hover:border-[#FEE720]/50 hover:shadow-[0_8px_30px_rgba(254,231,32,0.15)]">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-[#FEE720] bg-[#FFF5C2] transition-all duration-300 group-hover:scale-[1.05]">
+                  <Star className="h-6 w-6 fill-[#5788FF] text-[#5788FF]" aria-hidden />
                 </div>
                 <div>
                   <p className="font-semibold text-foreground">Featured Listing</p>
@@ -539,9 +590,9 @@ export default function GetListedPage() {
                   </p>
                 </div>
               </div>
-              <div className="flex items-start gap-4 rounded-xl border border-border/60 bg-white p-5">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#FFF5C2]">
-                  <TrendingUp className="h-5 w-5 text-[#333333]" aria-hidden />
+              <div className="group flex items-start gap-4 rounded-xl border border-border/60 bg-white p-5 transition-all duration-300 ease-premium hover:-translate-y-[2px] hover:border-[#5788FF]/30 hover:shadow-[0_8px_30px_rgba(87,136,255,0.1)]">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#5788FF]/10 transition-all duration-300 group-hover:scale-[1.05]">
+                  <TrendingUp className="h-6 w-6 text-[#5788FF]" aria-hidden />
                 </div>
                 <div>
                   <p className="font-semibold text-foreground">Homepage Advertising</p>
@@ -562,6 +613,9 @@ export default function GetListedPage() {
       <section className="bg-white py-16 sm:py-24">
         <div className="mx-auto max-w-5xl px-4 sm:px-6">
           <header className="text-center">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#5788FF]/10">
+              <Zap className="h-6 w-6 text-[#5788FF]" />
+            </div>
             <p className="text-sm font-semibold uppercase tracking-wide text-[#5788FF]">
               Why list with us
             </p>
@@ -574,16 +628,20 @@ export default function GetListedPage() {
             </p>
           </header>
           <div className="mt-12 flex flex-wrap justify-center gap-6">
-            {features.map((feature) => (
+            {features.map((feature, index) => (
               <Card
                 key={feature.title}
-                className="w-full border border-border/60 bg-white shadow-sm transition hover:shadow-md sm:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)]"
+                className="group w-full border border-border/60 bg-white shadow-sm transition-all duration-300 ease-premium hover:-translate-y-[2px] hover:border-[#5788FF]/30 hover:shadow-[0_8px_30px_rgba(87,136,255,0.1)] sm:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)]"
+                style={{ animationDelay: `${index * 100}ms` }}
               >
                 <CardHeader>
-                  <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#FFF5C2]">
-                    <feature.icon className="h-6 w-6 text-[#333333]" aria-hidden />
+                  <div className={cn(
+                    "mb-2 flex h-12 w-12 items-center justify-center rounded-2xl transition-all duration-300 group-hover:scale-[1.05]",
+                    feature.color
+                  )}>
+                    <feature.icon className={cn("h-6 w-6", feature.iconColor)} aria-hidden />
                   </div>
-                  <CardTitle className="text-lg">{feature.title}</CardTitle>
+                  <CardTitle className="text-lg transition-colors duration-300 group-hover:text-[#5788FF]">{feature.title}</CardTitle>
                   <CardDescription className="text-muted-foreground">
                     {feature.description}
                   </CardDescription>
@@ -598,6 +656,9 @@ export default function GetListedPage() {
       <section className="bg-white py-16 sm:py-24">
         <div className="mx-auto max-w-5xl px-4 sm:px-6">
           <header className="text-center">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#FFF5C2]">
+              <MessageSquare className="h-6 w-6 text-[#5788FF]" />
+            </div>
             <p className="text-sm font-semibold uppercase tracking-wide text-[#5788FF]">
               Testimonials
             </p>
@@ -606,25 +667,27 @@ export default function GetListedPage() {
             </h2>
           </header>
           <div className="mt-12 grid gap-6 md:grid-cols-3">
-            {testimonials.map((testimonial) => (
+            {testimonials.map((testimonial, index) => (
               <Card
                 key={testimonial.name}
-                className="border border-border/60 bg-white shadow-sm"
+                className="group border border-border/60 bg-white shadow-sm transition-all duration-300 ease-premium hover:-translate-y-[2px] hover:border-[#5788FF]/30 hover:shadow-[0_8px_30px_rgba(87,136,255,0.1)]"
+                style={{ animationDelay: `${index * 100}ms` }}
               >
                 <CardContent className="flex flex-col gap-4 p-6">
                   <div className="flex gap-1">
                     {[...Array(5)].map((_, i) => (
                       <Star
                         key={i}
-                        className="h-4 w-4 fill-[#FEE720] text-[#FEE720]"
+                        className="h-4 w-4 fill-[#FEE720] text-[#FEE720] transition-transform duration-300 group-hover:scale-110"
+                        style={{ transitionDelay: `${i * 50}ms` }}
                         aria-hidden
                       />
                     ))}
                   </div>
                   <p className="flex-1 text-sm text-muted-foreground">&quot;{testimonial.quote}&quot;</p>
                   <div className="flex items-center gap-3">
-                    <Avatar className="h-10 w-10 bg-[#FFF5C2] text-[#333333]">
-                      <AvatarFallback>{testimonial.initials}</AvatarFallback>
+                    <Avatar className="h-10 w-10 bg-[#FFF5C2] text-[#333333] transition-transform duration-300 group-hover:scale-105">
+                      <AvatarFallback className="font-semibold">{testimonial.initials}</AvatarFallback>
                     </Avatar>
                     <div>
                       <p className="text-sm font-semibold text-foreground">{testimonial.name}</p>
@@ -644,6 +707,9 @@ export default function GetListedPage() {
       <section className="bg-[#FDFAEE] py-16 sm:py-24">
         <div className="mx-auto max-w-5xl px-4 sm:px-6">
           <header className="text-center">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#5788FF]/10">
+              <MapPin className="h-6 w-6 text-[#5788FF]" />
+            </div>
             <p className="text-sm font-semibold uppercase tracking-wide text-[#5788FF]">
               How it works
             </p>
@@ -658,6 +724,8 @@ export default function GetListedPage() {
                 icon: Users,
                 title: "Create your account",
                 description: "Sign up with your email and set up your provider profile.",
+                color: "bg-[#5788FF]/10",
+                iconColor: "text-[#5788FF]",
               },
               {
                 step: "2",
@@ -665,6 +733,8 @@ export default function GetListedPage() {
                 title: "Build your profile",
                 description:
                   "Add your services, insurance, locations, and photos to showcase your practice.",
+                color: "bg-[#FFF5C2]",
+                iconColor: "text-[#5788FF]",
               },
               {
                 step: "3",
@@ -672,13 +742,27 @@ export default function GetListedPage() {
                 title: "Start getting found",
                 description:
                   "Your listing goes live and families can discover and contact you directly.",
+                color: "bg-emerald-500/10",
+                iconColor: "text-emerald-600",
               },
-            ].map((item) => (
-              <div key={item.step} className="text-center">
-                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-white shadow-md">
-                  <span className="text-2xl font-bold text-primary">{item.step}</span>
+            ].map((item, index) => (
+              <div key={item.step} className="group text-center">
+                <div className="relative mx-auto mb-4">
+                  <div className={cn(
+                    "flex h-20 w-20 items-center justify-center rounded-full bg-white shadow-md transition-all duration-300 ease-premium group-hover:-translate-y-[2px] group-hover:shadow-[0_8px_30px_rgba(87,136,255,0.15)]",
+                  )}>
+                    <div className={cn(
+                      "flex h-12 w-12 items-center justify-center rounded-full transition-all duration-300 group-hover:scale-[1.1]",
+                      item.color
+                    )}>
+                      <item.icon className={cn("h-6 w-6", item.iconColor)} />
+                    </div>
+                  </div>
+                  <div className="absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-full border-2 border-white bg-[#5788FF] text-sm font-bold text-white shadow-md">
+                    {item.step}
+                  </div>
                 </div>
-                <h3 className="text-lg font-semibold text-foreground">{item.title}</h3>
+                <h3 className="text-lg font-semibold text-foreground transition-colors duration-300 group-hover:text-[#5788FF]">{item.title}</h3>
                 <p className="mt-2 text-sm text-muted-foreground">{item.description}</p>
               </div>
             ))}
@@ -690,14 +774,21 @@ export default function GetListedPage() {
       <section className="bg-white py-16 sm:py-24">
         <div className="mx-auto max-w-3xl px-4 sm:px-6">
           <header className="text-center">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-violet-500/10">
+              <MessageSquare className="h-6 w-6 text-violet-600" />
+            </div>
             <p className="text-sm font-semibold uppercase tracking-wide text-[#5788FF]">FAQ</p>
             <h2 className="mt-2 text-3xl font-semibold sm:text-4xl">Common questions</h2>
           </header>
-          <div className="mt-12 space-y-6">
-            {faqs.map((faq) => (
-              <Card key={faq.question} className="border border-border/60 bg-white">
+          <div className="mt-12 space-y-4">
+            {faqs.map((faq, index) => (
+              <Card
+                key={faq.question}
+                className="group border border-border/60 bg-white transition-all duration-300 ease-premium hover:border-[#5788FF]/30 hover:shadow-[0_4px_20px_rgba(87,136,255,0.08)]"
+                style={{ animationDelay: `${index * 50}ms` }}
+              >
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-base font-semibold">{faq.question}</CardTitle>
+                  <CardTitle className="text-base font-semibold transition-colors duration-300 group-hover:text-[#5788FF]">{faq.question}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-muted-foreground">{faq.answer}</p>
@@ -711,29 +802,38 @@ export default function GetListedPage() {
       {/* Final CTA */}
       <section className="bg-[#FDFAEE] py-16 sm:py-24">
         <div className="mx-auto max-w-4xl px-4 sm:px-6">
-          <div className="rounded-3xl border border-border bg-white p-8 text-center shadow-lg sm:p-12">
-            <h2 className="text-3xl font-semibold sm:text-4xl">
-              Ready to grow your ABA practice?
-            </h2>
-            <p className="mx-auto mt-4 max-w-xl text-lg text-muted-foreground">
-              Join hundreds of providers already connecting with families. Start with a free listing
-              and upgrade anytime.
-            </p>
-            <div className="mt-8">
-              <Button
-                asChild
-                size="lg"
-                className="rounded-full border border-[#FEE720] bg-[#FEE720] px-8 text-base font-semibold text-[#333333] hover:bg-[#FFF5C2]"
-              >
-                <Link href="/auth/sign-up?plan=free">
-                  Get started free
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
+          <div className="relative overflow-hidden rounded-3xl border border-border bg-white p-8 text-center shadow-lg transition-all duration-500 ease-premium hover:shadow-[0_20px_50px_rgba(87,136,255,0.15)] sm:p-12">
+            {/* Decorative background elements */}
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(87,136,255,0.05),transparent_40%)]" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_80%,rgba(254,231,32,0.08),transparent_40%)]" />
+
+            <div className="relative">
+              <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full border border-[#FEE720] bg-[#FFF5C2] shadow-[0_4px_14px_rgba(254,231,32,0.3)]">
+                <Star className="h-8 w-8 fill-[#5788FF] text-[#5788FF]" />
+              </div>
+              <h2 className="text-3xl font-semibold sm:text-4xl">
+                Ready to grow your ABA practice?
+              </h2>
+              <p className="mx-auto mt-4 max-w-xl text-lg text-muted-foreground">
+                Join hundreds of providers already connecting with families. Start with a free listing
+                and upgrade anytime.
+              </p>
+              <div className="mt-8">
+                <Button
+                  asChild
+                  size="lg"
+                  className="rounded-full border border-[#FEE720] bg-[#FEE720] px-8 text-base font-semibold text-[#333333] shadow-[0_4px_14px_rgba(254,231,32,0.4)] transition-all duration-300 ease-premium hover:-translate-y-[2px] hover:bg-[#FFF5C2] hover:shadow-[0_8px_20px_rgba(254,231,32,0.5)] active:translate-y-0"
+                >
+                  <Link href="/auth/sign-up?plan=free">
+                    Get started free
+                    <ArrowRight className="ml-2 h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+                  </Link>
+                </Button>
+              </div>
+              <p className="mt-6 text-sm text-muted-foreground">
+                Free plan available. No credit card required to start.
+              </p>
             </div>
-            <p className="mt-6 text-sm text-muted-foreground">
-              Free plan available. No credit card required to start.
-            </p>
           </div>
         </div>
       </section>

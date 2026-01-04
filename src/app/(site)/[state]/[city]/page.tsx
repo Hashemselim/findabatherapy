@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ArrowRight, Filter, MapPin, HelpCircle } from "lucide-react";
 
 import { SearchResults } from "@/components/search/search-results";
+import { Breadcrumbs } from "@/components/seo/breadcrumbs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,7 +22,7 @@ import { JsonLd } from "@/components/seo/json-ld";
 import {
   generateFAQSchema,
   generateItemListSchema,
-  generateBreadcrumbSchema,
+  generateMedicalWebPageSchema,
 } from "@/lib/seo/schemas";
 import { generateCityFAQs } from "@/lib/seo/city-faqs";
 
@@ -68,6 +69,9 @@ export async function generateMetadata({ params }: CityPageProps): Promise<Metad
   const city = getCity(stateAbbrev, citySlug);
   if (!city) return {};
 
+  // Geocode for geo meta tags
+  const coords = await geocodeCityState(city.name, city.stateName);
+
   const title = `ABA Therapy in ${city.name}, ${stateAbbrev}`;
   const description = `Find ABA therapy providers in ${city.name}, ${city.stateName}. Browse verified autism therapy agencies offering in-home, center-based, and telehealth ABA services. Compare providers and filter by insurance.`;
 
@@ -97,6 +101,15 @@ export async function generateMetadata({ params }: CityPageProps): Promise<Metad
     },
     alternates: {
       canonical: `/${stateSlug}/${citySlug}`,
+    },
+    // Geo meta tags for local SEO
+    other: {
+      "geo.region": `US-${stateAbbrev}`,
+      "geo.placename": city.name,
+      ...(coords && {
+        "geo.position": `${coords.latitude};${coords.longitude}`,
+        ICBM: `${coords.latitude}, ${coords.longitude}`,
+      }),
     },
   };
 }
@@ -170,12 +183,6 @@ export default async function CityPage({ params }: CityPageProps) {
   const faqs = generateCityFAQs(city.name, city.stateName, stateAbbrev, total);
 
   // Generate structured data
-  const breadcrumbSchema = generateBreadcrumbSchema([
-    { name: "Home", url: "/" },
-    { name: city.stateName, url: `/${stateSlug}` },
-    { name: city.name, url: `/${stateSlug}/${citySlug}` },
-  ]);
-
   const itemListSchema = locations.length > 0
     ? generateItemListSchema(
         locations.map((loc, i) => ({
@@ -189,25 +196,34 @@ export default async function CityPage({ params }: CityPageProps) {
 
   const faqSchema = generateFAQSchema(faqs);
 
+  const medicalPageSchema = generateMedicalWebPageSchema({
+    title: `ABA Therapy in ${city.name}, ${city.stateName}`,
+    description: `Find ABA therapy providers in ${city.name}, ${city.stateName}. Browse verified autism therapy agencies offering in-home, center-based, and telehealth ABA services.`,
+    url: `${BASE_URL}/${stateSlug}/${citySlug}`,
+    lastReviewed: new Date().toISOString().split("T")[0],
+  });
+
+  // Format last updated date for display
+  const lastUpdated = new Date().toLocaleDateString("en-US", {
+    month: "long",
+    year: "numeric",
+  });
+
   return (
     <div className="container px-4 py-12 sm:px-6">
       {/* Structured Data */}
       <JsonLd
-        data={[breadcrumbSchema, faqSchema, ...(itemListSchema ? [itemListSchema] : [])]}
+        data={[faqSchema, medicalPageSchema, ...(itemListSchema ? [itemListSchema] : [])]}
       />
 
-      {/* Breadcrumb */}
-      <nav className="mb-6 flex items-center gap-2 text-sm text-muted-foreground">
-        <Link href="/" className="hover:text-foreground">
-          Home
-        </Link>
-        <span>/</span>
-        <Link href={`/${stateSlug}`} className="hover:text-foreground">
-          {city.stateName}
-        </Link>
-        <span>/</span>
-        <span className="text-foreground">{city.name}</span>
-      </nav>
+      {/* Breadcrumb with JSON-LD schema */}
+      <Breadcrumbs
+        items={[
+          { label: city.stateName, href: `/${stateSlug}` },
+          { label: city.name, href: `/${stateSlug}/${citySlug}` },
+        ]}
+        className="mb-6"
+      />
 
       {/* Header */}
       <div className="flex flex-col gap-6 border-b border-border pb-10 md:flex-row md:items-end md:justify-between">
@@ -232,6 +248,9 @@ export default async function CityPage({ params }: CityPageProps) {
               Filter by insurance
             </span>
           </div>
+          <p className="mt-2 text-xs text-muted-foreground">
+            Last updated: {lastUpdated}
+          </p>
         </div>
         <Button asChild size="lg" className="w-full md:w-auto">
           <Link

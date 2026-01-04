@@ -6,6 +6,7 @@ import { Eye, Building2, MapPin, Stethoscope, Shield, Languages, Users, Brain } 
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { FeaturedBadge } from "@/components/ui/featured-badge";
 import {
   Card,
   CardContent,
@@ -198,12 +199,7 @@ export default function DemoListingPage() {
                         <Badge variant="secondary">Primary</Badge>
                       )}
                       {location.isFeatured && (
-                        <Badge
-                          data-tour="featured-badge"
-                          className="bg-amber-500 text-white"
-                        >
-                          Featured
-                        </Badge>
+                        <FeaturedBadge data-tour="featured-badge" />
                       )}
                     </div>
                   )}

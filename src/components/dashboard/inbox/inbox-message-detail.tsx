@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, format } from "date-fns";
 import {
   Mail,
   Phone,
@@ -174,10 +174,10 @@ export function InboxMessageDetail({
       </CardHeader>
       <CardContent className="min-h-0 flex-1 space-y-6 overflow-y-auto">
         {/* Contact Info */}
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="flex flex-wrap gap-x-6 gap-y-3">
           {inquiry.familyPhone && (
             <div className="flex items-center gap-2">
-              <Phone className="h-4 w-4 text-muted-foreground" />
+              <Phone className="h-4 w-4 shrink-0 text-muted-foreground" />
               <a
                 href={`tel:${inquiry.familyPhone}`}
                 className="text-sm text-[#5788FF] hover:underline"
@@ -188,16 +188,15 @@ export function InboxMessageDetail({
           )}
           {inquiry.childAge && (
             <div className="flex items-center gap-2">
-              <User className="h-4 w-4 text-muted-foreground" />
+              <User className="h-4 w-4 shrink-0 text-muted-foreground" />
               <span className="text-sm">Child age: {inquiry.childAge}</span>
             </div>
           )}
           <div className="flex items-center gap-2">
-            <Clock className="h-4 w-4 text-muted-foreground" />
+            <Clock className="h-4 w-4 shrink-0 text-muted-foreground" />
             <span className="text-sm">
-              {formatDistanceToNow(new Date(inquiry.createdAt), {
-                addSuffix: true,
-              })}
+              {format(new Date(inquiry.createdAt), "MMM d, yyyy")}
+              <span className="text-muted-foreground/70"> ({formatDistanceToNow(new Date(inquiry.createdAt), { addSuffix: true })})</span>
             </span>
           </div>
         </div>

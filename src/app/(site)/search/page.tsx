@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense, type ReactNode } from "react";
+import { Heart, ArrowRight, Users } from "lucide-react";
 
 import { HomeSearchCard } from "@/components/home/home-search-card";
 import { CompactSearchBar } from "@/components/search/compact-search-bar";
@@ -9,12 +10,16 @@ import { SearchResults, SearchResultsSkeleton } from "@/components/search/search
 import { SearchPagination } from "@/components/search/search-pagination";
 import { SearchTracker } from "@/components/search/search-tracker";
 import { SortToggle } from "@/components/search/sort-toggle";
+import { Breadcrumbs } from "@/components/seo/breadcrumbs";
+import { JsonLd } from "@/components/seo/json-ld";
+import { BackToTop } from "@/components/ui/back-to-top";
 import { BubbleBackground } from "@/components/ui/bubble-background";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { searchProviderLocationsWithGooglePlaces } from "@/lib/actions/search";
 import { trackSearch, trackSearchImpressions } from "@/lib/analytics/track";
 import { parseFiltersFromParams, parseOptionsFromParams } from "@/lib/search/filters";
+import { generateItemListSchema } from "@/lib/seo/schemas";
 
 interface SearchPageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -194,8 +199,44 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   // Hero variant toggle: "compact" (default) or "full" for A/B testing
   const heroVariant = params.hero === "full" ? "full" : "compact";
 
+  // Generate ItemList schema for search results (only for real listings)
+  const realListings = results.filter((r) => !r.isPrePopulated);
+  const itemListSchema = realListings.length > 0
+    ? generateItemListSchema(
+        realListings.map((loc, i) => ({
+          // Real listings have agencyName, Google Places have name
+          name: "agencyName" in loc ? loc.agencyName : loc.name,
+          slug: loc.slug,
+          position: i + 1,
+        })),
+        filters.city && filters.state
+          ? `ABA Therapy Providers in ${filters.city}, ${filters.state}`
+          : filters.state
+            ? `ABA Therapy Providers in ${filters.state}`
+            : "ABA Therapy Provider Search Results"
+      )
+    : null;
+
+  // Build breadcrumb items based on search filters
+  const breadcrumbItems: Array<{ label: string; href: string }> = [
+    { label: "Search", href: "/search" },
+  ];
+  if (filters.state) {
+    const stateSlug = filters.state.toLowerCase().replace(/\s+/g, "-");
+    breadcrumbItems.push({ label: filters.state, href: `/${stateSlug}` });
+  }
+
   return (
-    <div className="space-y-6 pb-16">
+    <>
+      {/* Structured Data */}
+      {itemListSchema && <JsonLd data={itemListSchema} />}
+
+      <div className="space-y-6 pb-16">
+        {/* Breadcrumb with JSON-LD schema */}
+      <div className="mx-auto max-w-6xl px-4 pt-4 sm:px-6">
+        <Breadcrumbs items={breadcrumbItems} />
+      </div>
+
       {/* Hero Section with Search */}
       <section className="px-0 pt-0">
         {heroVariant === "compact" ? (
@@ -261,9 +302,14 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
           <div className="flex-1 space-y-4">
             {/* Results Header */}
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <p className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-                {total} {total === 1 ? "provider" : "providers"} found
-              </p>
+              <div className="flex items-center gap-3">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#5788FF]/10">
+                  <Users className="h-4 w-4 text-[#5788FF]" />
+                </div>
+                <p className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                  {total} {total === 1 ? "provider" : "providers"} found
+                </p>
+              </div>
               <Suspense fallback={null}>
                 <SortToggle />
               </Suspense>
@@ -307,22 +353,35 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
             )}
 
             {/* CTA Card */}
-            <Card className="mt-8 border border-[#5788FF]/30 bg-gradient-to-br from-[#5788FF]/5 to-[#5788FF]/10">
-              <CardContent className="flex flex-col items-center gap-4 p-6 text-center sm:flex-row sm:text-left">
+            <Card className="group relative mt-8 overflow-hidden border border-[#5788FF]/20 bg-gradient-to-br from-[#5788FF]/[0.03] via-white to-[#5788FF]/[0.06] transition-all duration-500 ease-premium hover:border-[#5788FF]/30 hover:shadow-[0_8px_30px_rgba(87,136,255,0.12)]">
+              {/* Decorative elements */}
+              <div className="pointer-events-none absolute -right-16 -top-16 h-32 w-32 rounded-full bg-[#5788FF]/5 transition-transform duration-700 ease-premium group-hover:scale-150" />
+              <div className="pointer-events-none absolute -bottom-12 -left-12 h-24 w-24 rounded-full bg-primary/10 transition-transform duration-700 ease-premium group-hover:scale-150" />
+              <CardContent className="relative flex flex-col items-center gap-5 p-6 text-center sm:flex-row sm:text-left">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#5788FF]/10 transition-all duration-300 ease-premium group-hover:scale-[1.05] group-hover:bg-[#5788FF]/15">
+                  <Heart className="h-6 w-6 text-[#5788FF] transition-transform duration-300 ease-bounce-sm group-hover:scale-110" />
+                </div>
                 <div className="flex-1 space-y-1">
                   <p className="text-lg font-semibold text-foreground">Are you an ABA therapy provider?</p>
                   <p className="text-sm text-muted-foreground">
-                    List your practice and connect with families searching for ABA services.
+                    List your practice and connect with families searching for ABA services in your area.
                   </p>
                 </div>
-                <Button asChild className="shrink-0 rounded-full border border-[#5788FF] bg-[#5788FF] px-6 text-white hover:bg-[#5A84E6]">
-                  <Link href="/get-listed">Get Listed Free</Link>
+                <Button asChild className="group/btn shrink-0 rounded-full bg-[#5788FF] px-6 py-5 text-base font-semibold text-white shadow-[0_4px_14px_rgba(87,136,255,0.3)] transition-all duration-300 ease-premium hover:-translate-y-[2px] hover:bg-[#4A7AEE] hover:shadow-[0_8px_20px_rgba(87,136,255,0.4)] active:translate-y-0 active:shadow-[0_2px_8px_rgba(87,136,255,0.2)]">
+                  <Link href="/get-listed">
+                    Get Listed Free
+                    <ArrowRight className="ml-2 h-4 w-4 transition-transform duration-300 ease-bounce-sm group-hover/btn:translate-x-0.5" />
+                  </Link>
                 </Button>
               </CardContent>
             </Card>
           </div>
         </div>
       </section>
-    </div>
+
+        {/* Back to Top Button */}
+        <BackToTop threshold={600} />
+      </div>
+    </>
   );
 }

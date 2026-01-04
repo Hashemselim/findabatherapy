@@ -58,6 +58,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
+import { FeaturedBadge } from "@/components/ui/featured-badge";
 import {
   addLocation,
   updateLocation,
@@ -72,6 +73,7 @@ import {
   SERVICE_TYPE_OPTIONS,
 } from "@/lib/validations/onboarding";
 import { GoogleBusinessLinkModal } from "@/components/dashboard/google-business-link-modal";
+import { GoogleReviewsModal } from "@/components/dashboard/google-reviews-modal";
 import { FeaturedUpgradeButton, type FeaturedPricing } from "@/components/dashboard/featured-upgrade-button";
 import { FeaturedManageButton } from "@/components/dashboard/featured-manage-button";
 import { useFormErrorHandler, FormErrorSummary } from "@/hooks/use-form-error-handler";
@@ -174,6 +176,8 @@ export function LocationsManager({
   const [selectedPlace, setSelectedPlace] = useState<PlaceDetails | null>(null);
   const [googleLinkModalOpen, setGoogleLinkModalOpen] = useState(false);
   const [googleLinkLocation, setGoogleLinkLocation] = useState<LocationData | null>(null);
+  const [googleReviewsModalOpen, setGoogleReviewsModalOpen] = useState(false);
+  const [googleReviewsLocation, setGoogleReviewsLocation] = useState<LocationData | null>(null);
 
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -452,6 +456,7 @@ export function LocationsManager({
           googlePlaceId: null,
           googleRating: null,
           googleRatingCount: null,
+          showGoogleReviews: false,
           // Featured - not featured initially
           isFeatured: false,
           featuredSubscription: null,
@@ -941,9 +946,9 @@ export function LocationsManager({
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex items-start gap-3">
                       <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${
-                        isFeatured ? "bg-amber-100" : "bg-[#5788FF]/10"
+                        isFeatured ? "border border-[#FEE720] bg-[#FFF5C2]" : "bg-[#5788FF]/10"
                       }`}>
-                        <MapPin className={`h-5 w-5 ${isFeatured ? "text-amber-600" : "text-[#5788FF]"}`} />
+                        <MapPin className={`h-5 w-5 ${isFeatured ? "text-[#5788FF]" : "text-[#5788FF]"}`} />
                       </div>
                       <div>
                         <CardTitle className="text-base">{locationName}</CardTitle>
@@ -954,10 +959,7 @@ export function LocationsManager({
                         </CardDescription>
                         <div className="mt-2 flex flex-wrap gap-2">
                           {isFeatured && (
-                            <Badge className="bg-amber-500 text-white">
-                              <Sparkles className="mr-1 h-3 w-3" />
-                              Featured
-                            </Badge>
+                            <FeaturedBadge />
                           )}
                           {location.isPrimary && (
                             <Badge variant="secondary">Primary</Badge>
@@ -1070,6 +1072,17 @@ export function LocationsManager({
                         >
                           Edit
                         </button>
+                        <span className="text-muted-foreground/50">|</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setGoogleReviewsLocation(location);
+                            setGoogleReviewsModalOpen(true);
+                          }}
+                          className="text-xs text-[#5788FF] underline-offset-2 hover:underline"
+                        >
+                          {location.showGoogleReviews ? "Manage Reviews" : "Show Reviews"}
+                        </button>
                       </div>
                     ) : !isFreePlan ? (
                       <button
@@ -1102,14 +1115,14 @@ export function LocationsManager({
                       <>
                         {isFeatured && location.featuredSubscription ? (
                           <div className="flex items-center gap-2">
-                            <TrendingUp className="h-4 w-4 shrink-0 text-amber-600" />
-                            <span className="text-sm text-amber-700">
+                            <TrendingUp className="h-4 w-4 shrink-0 text-[#5788FF]" />
+                            <span className="text-sm text-[#5788FF]">
                               Appearing at top of {location.state} searches
                             </span>
                           </div>
                         ) : (
                           <div className="flex items-center gap-2">
-                            <Sparkles className="h-4 w-4 shrink-0 text-slate-400" />
+                            <Star className="h-4 w-4 shrink-0 text-muted-foreground" />
                             <span className="text-sm text-muted-foreground">
                               Boost to top of search results
                             </span>
@@ -1246,6 +1259,29 @@ export function LocationsManager({
             // Update local state optimistically - the modal will have passed the new data
             // We need to refetch to get updated google data
             window.location.reload();
+          }}
+        />
+      )}
+
+      {/* Google Reviews Modal */}
+      {googleReviewsLocation && (
+        <GoogleReviewsModal
+          open={googleReviewsModalOpen}
+          onOpenChange={setGoogleReviewsModalOpen}
+          locationId={googleReviewsLocation.id}
+          locationName={googleReviewsLocation.label || `${googleReviewsLocation.city}, ${googleReviewsLocation.state}`}
+          showGoogleReviews={googleReviewsLocation.showGoogleReviews}
+          onSuccess={() => {
+            setSuccess("Google reviews settings updated");
+            setTimeout(() => setSuccess(null), 3000);
+            // Update local state
+            setLocations((prev) =>
+              prev.map((loc) =>
+                loc.id === googleReviewsLocation.id
+                  ? { ...loc, showGoogleReviews: true }
+                  : loc
+              )
+            );
           }}
         />
       )}

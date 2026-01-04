@@ -91,16 +91,16 @@ export function FeaturedManageButton({
         <Button
           variant="outline"
           size="sm"
-          className="gap-1.5 border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100 hover:text-amber-800"
+          className="gap-1.5 border-[#FEE720] bg-[#FFF5C2] text-foreground hover:bg-[#FEE720] hover:text-[#333333]"
         >
-          <Star className="h-3.5 w-3.5 fill-amber-400" />
+          <Star className="h-3.5 w-3.5 fill-[#5788FF] text-[#5788FF]" />
           Manage
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Star className="h-5 w-5 fill-amber-400 text-amber-500" />
+            <Star className="h-5 w-5 fill-[#5788FF] text-[#5788FF]" />
             Featured Location
           </DialogTitle>
           <DialogDescription>

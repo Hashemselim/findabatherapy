@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Filter, X, ChevronDown, MapPin, Loader2, Navigation } from "lucide-react";
 import { useDebouncedCallback } from "@/hooks/use-debounce";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
@@ -167,10 +168,10 @@ export function SearchFilters({ className }: SearchFiltersProps) {
           {/* Sticky footer with Apply button */}
           <div className="sticky bottom-0 border-t bg-background pt-4 pb-2">
             <div className="flex gap-2">
-              <Button onClick={applyFilters} className="flex-1">
+              <Button onClick={applyFilters} className="flex-1 border border-[#FEE720] bg-[#FEE720] font-semibold text-[#333333] transition-all duration-300 ease-premium hover:bg-[#FFF5C2]">
                 Apply Filters
               </Button>
-              <Button variant="outline" onClick={clearFilters}>
+              <Button variant="outline" onClick={clearFilters} className="text-muted-foreground hover:text-[#5788FF] hover:border-[#5788FF]/50">
                 Clear
               </Button>
             </div>
@@ -180,10 +181,15 @@ export function SearchFilters({ className }: SearchFiltersProps) {
 
       {/* Desktop Sidebar - filters auto-apply with debounce */}
       <div className="hidden lg:block">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Filters</h2>
+        <div className="mb-6 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#5788FF]/10">
+              <Filter className="h-5 w-5 text-[#5788FF]" />
+            </div>
+            <h2 className="text-lg font-semibold">Filters</h2>
+          </div>
           {activeFilterCount > 0 && (
-            <Button variant="ghost" size="sm" onClick={clearFilters}>
+            <Button variant="ghost" size="sm" onClick={clearFilters} className="text-muted-foreground hover:text-[#5788FF]">
               Clear all
             </Button>
           )}
@@ -403,7 +409,7 @@ function FilterContent({
                 onUnvalidatedInput={onUnvalidatedLocationChange}
                 placeholder="City, State or ZIP"
                 showIcon={true}
-                inputClassName="h-9 text-sm"
+                inputClassName="h-9 text-base md:text-sm"
               />
               <p className={cn(
                 "text-xs",
@@ -532,11 +538,11 @@ function FilterSection({ title, defaultOpen = false, children }: FilterSectionPr
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-      <CollapsibleTrigger className="flex w-full items-center justify-between py-2">
+      <CollapsibleTrigger className="group flex w-full items-center justify-between py-2 transition-colors duration-300 hover:text-[#5788FF]">
         <span className="text-sm font-medium">{title}</span>
         <ChevronDown
           className={cn(
-            "h-4 w-4 transition-transform",
+            "h-4 w-4 transition-all duration-300 ease-premium group-hover:text-[#5788FF]",
             isOpen && "rotate-180"
           )}
         />
@@ -620,14 +626,15 @@ export function ActiveFilters({ className }: ActiveFiltersProps) {
   return (
     <div className={cn("flex flex-wrap gap-2", className)}>
       {chips.map((chip, index) => (
-        <button
+        <Badge
           key={`${chip.key}-${chip.value || index}`}
+          variant="filter"
+          className="cursor-pointer"
           onClick={() => removeFilter(chip.key, chip.value)}
-          className="inline-flex items-center gap-1 rounded-full border border-primary bg-primary/10 px-3 py-1 text-xs font-semibold text-foreground hover:bg-primary/20"
         >
           {chip.label}
-          <X className="h-3 w-3" />
-        </button>
+          <X className="h-3 w-3 transition-transform duration-300 ease-premium hover:scale-110" />
+        </Badge>
       ))}
     </div>
   );

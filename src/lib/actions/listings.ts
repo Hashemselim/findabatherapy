@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { createClient, getUser } from "@/lib/supabase/server";
+import { STORAGE_BUCKETS } from "@/lib/storage/config";
 
 type ActionResult<T = void> =
   | { success: true; data?: T }
@@ -60,6 +61,7 @@ export interface ListingWithRelations extends ListingData {
     googlePlaceId?: string | null;
     googleRating?: number | null;
     googleRatingCount?: number | null;
+    showGoogleReviews?: boolean;
     // Contact info overrides
     contactPhone?: string | null;
     contactEmail?: string | null;
@@ -68,6 +70,23 @@ export interface ListingWithRelations extends ListingData {
   }>;
   attributes: Record<string, unknown>;
   photoUrls?: string[];
+}
+
+/**
+ * Get just the listing slug for the current user (lightweight query for nav)
+ */
+export async function getListingSlug(): Promise<string | null> {
+  const user = await getUser();
+  if (!user) return null;
+
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("listings")
+    .select("slug")
+    .eq("user_id", user.id)
+    .single();
+
+  return data?.slug ?? null;
 }
 
 /**
@@ -707,7 +726,7 @@ export async function getListingBySlug(
   const [locationsResult, attrsResult, photosResult] = await Promise.all([
     supabase
       .from("locations")
-      .select("id, label, street, city, state, postal_code, latitude, longitude, service_radius_miles, is_primary, is_featured, service_mode, insurances, google_place_id, google_rating, google_rating_count, contact_phone, contact_email, contact_website, use_company_contact")
+      .select("id, label, street, city, state, postal_code, latitude, longitude, service_radius_miles, is_primary, is_featured, service_mode, insurances, google_place_id, google_rating, google_rating_count, show_google_reviews, contact_phone, contact_email, contact_website, use_company_contact")
       .eq("listing_id", listing.id)
       .order("is_primary", { ascending: false }),
     supabase
@@ -729,7 +748,7 @@ export async function getListingBySlug(
   // Build photo URLs
   const photoUrls = photos?.map((photo) => {
     const { data } = supabase.storage
-      .from("photos")
+      .from(STORAGE_BUCKETS.photos)
       .getPublicUrl(photo.storage_path);
     return data.publicUrl;
   }) || [];
@@ -804,6 +823,7 @@ export async function getListingBySlug(
           googlePlaceId: l.google_place_id,
           googleRating: l.google_rating,
           googleRatingCount: l.google_rating_count,
+          showGoogleReviews: l.show_google_reviews || false,
           contactPhone: l.contact_phone,
           contactEmail: l.contact_email,
           contactWebsite: l.contact_website,

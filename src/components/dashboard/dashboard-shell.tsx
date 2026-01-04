@@ -5,6 +5,8 @@ import { DashboardTopbar } from "@/components/dashboard/dashboard-topbar";
 
 interface DashboardShellProps extends PropsWithChildren {
   isOnboardingComplete: boolean;
+  /** Provider's listing slug for "View Listing" link */
+  providerSlug?: string | null;
   /** Enable demo mode styling and behavior */
   isDemo?: boolean;
   /** Optional banner to render above the topbar (for demo mode) */
@@ -22,6 +24,7 @@ interface DashboardShellProps extends PropsWithChildren {
 export function DashboardShell({
   children,
   isOnboardingComplete,
+  providerSlug,
   isDemo = false,
   demoBanner,
   companyProfile,
@@ -34,7 +37,7 @@ export function DashboardShell({
       {demoBanner}
       {/* Fixed header */}
       <div className="fixed left-0 right-0 top-0 z-40">
-        <DashboardTopbar isOnboardingComplete={isOnboardingComplete} isDemo={isDemo} />
+        <DashboardTopbar isOnboardingComplete={isOnboardingComplete} isDemo={isDemo} providerSlug={providerSlug} />
       </div>
 
       {/* Main layout with fixed sidebar */}

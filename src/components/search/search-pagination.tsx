@@ -49,6 +49,7 @@ export function SearchPagination({
           size="icon"
           onClick={() => goToPage(currentPage - 1)}
           disabled={currentPage <= 1}
+          className="transition-all duration-300 ease-premium hover:border-[#5788FF]/50 hover:bg-[#5788FF]/10 hover:text-[#5788FF] disabled:opacity-50"
         >
           <ChevronLeft className="h-4 w-4" />
         </Button>
@@ -68,6 +69,12 @@ export function SearchPagination({
               variant={page === currentPage ? "default" : "outline"}
               size="icon"
               onClick={() => goToPage(page)}
+              className={cn(
+                "transition-all duration-300 ease-premium",
+                page === currentPage
+                  ? "bg-[#5788FF] text-white hover:bg-[#4A7AEE]"
+                  : "hover:border-[#5788FF]/50 hover:bg-[#5788FF]/10 hover:text-[#5788FF]"
+              )}
             >
               {page}
             </Button>
@@ -79,6 +86,7 @@ export function SearchPagination({
           size="icon"
           onClick={() => goToPage(currentPage + 1)}
           disabled={currentPage >= totalPages}
+          className="transition-all duration-300 ease-premium hover:border-[#5788FF]/50 hover:bg-[#5788FF]/10 hover:text-[#5788FF] disabled:opacity-50"
         >
           <ChevronRight className="h-4 w-4" />
         </Button>

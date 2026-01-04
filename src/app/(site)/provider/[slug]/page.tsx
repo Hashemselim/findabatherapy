@@ -3,12 +3,13 @@ import { cache } from "react";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { CheckCircle, ChevronRight, Mail, MapPin, BadgeCheck, Phone, Globe, Building2, Home, Star } from "lucide-react";
+import { CheckCircle, ChevronRight, Mail, MapPin, BadgeCheck, Phone, Globe, Building2, Home, Star, Stethoscope, Shield, Navigation, Images, Users, Sparkles } from "lucide-react";
 
 import { ProviderLogo } from "@/components/provider/provider-logo";
 import { ContactForm } from "@/components/provider/contact-form";
 import { DirectionsButton } from "@/components/provider/directions-button";
 import { GoogleRatingCard } from "@/components/provider/google-rating-card";
+import { GoogleReviewsGallery, type GoogleReviewDisplay } from "@/components/provider/google-reviews-gallery";
 import { ViewTracker } from "@/components/analytics/view-tracker";
 import { Breadcrumbs } from "@/components/seo/breadcrumbs";
 import { JsonLd } from "@/components/seo/json-ld";
@@ -17,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { BubbleBackground } from "@/components/ui/bubble-background";
 import { getListingBySlug } from "@/lib/actions/listings";
+import { getSelectedGoogleReviews } from "@/lib/actions/google-business";
 import { getStateSlug } from "@/lib/data/cities";
 import { getVideoEmbedUrl } from "@/lib/storage/config";
 import { generateHealthcareBusinessSchema } from "@/lib/seo/schemas";
@@ -138,6 +140,31 @@ export default async function ProviderPage({ params, searchParams }: ProviderPag
   // Get primary location for schema
   const primaryLocation = listing.locations.find((l) => l.isPrimary) || listing.locations[0];
 
+  // Find location with Google rating for display
+  const highlightedLoc = highlightedLocationId
+    ? listing.locations.find(loc => loc.id === highlightedLocationId)
+    : null;
+  const locationWithRating = highlightedLoc && (highlightedLoc as { googleRating?: number | null }).googleRating
+    ? highlightedLoc
+    : listing.locations.find(loc => (loc as { googleRating?: number | null }).googleRating);
+
+  // Fetch Google reviews if available
+  let googleReviews: GoogleReviewDisplay[] = [];
+  if (isPremium && locationWithRating) {
+    const showGoogleReviews = (locationWithRating as { showGoogleReviews?: boolean }).showGoogleReviews;
+    if (showGoogleReviews) {
+      const fetchedReviews = await getSelectedGoogleReviews(locationWithRating.id);
+      googleReviews = fetchedReviews.map(r => ({
+        id: r.id,
+        authorName: r.authorName,
+        authorPhotoUrl: r.authorPhotoUrl,
+        rating: r.rating,
+        text: r.text,
+        relativeTimeDescription: r.relativeTimeDescription,
+      }));
+    }
+  }
+
   // Generate HealthcareBusiness schema (enhanced LocalBusiness for medical providers)
   const businessSchema = generateHealthcareBusinessSchema({
     name: listing.profile.agencyName,
@@ -216,13 +243,14 @@ export default async function ProviderPage({ params, searchParams }: ProviderPag
                 <div className="space-y-2">
                   <div className="flex flex-wrap items-center gap-2">
                     {isPremium && (
-                      <Badge variant="outline" className="gap-1 border-[#5788FF] text-[#5788FF]">
+                      <Badge variant="outline" className="gap-1 border-emerald-500/50 bg-emerald-50 text-emerald-700 transition-all duration-300 ease-premium hover:scale-[1.02] hover:bg-emerald-100 hover:shadow-[0_2px_8px_rgba(16,185,129,0.2)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50">
                         <BadgeCheck className="h-3 w-3" />
                         Verified
                       </Badge>
                     )}
                     {listing.isAcceptingClients && (
-                      <Badge variant="outline" className="border-[#FEE720] bg-[#FFF5C2] text-[#333333]">
+                      <Badge variant="outline" className="gap-1 border-primary/50 bg-primary/20 text-foreground transition-all duration-300 ease-premium hover:scale-[1.02] hover:shadow-[0_2px_8px_rgba(254,231,32,0.3)] active:scale-[0.98]">
+                        <Sparkles className="h-3 w-3 text-amber-600" />
                         Accepting New Clients
                       </Badge>
                     )}
@@ -243,6 +271,7 @@ export default async function ProviderPage({ params, searchParams }: ProviderPag
         const currentLocation = highlightedLocationId
           ? listing.locations.find(loc => loc.id === highlightedLocationId)
           : listing.locations[0];
+        const otherLocations = listing.locations.filter(loc => loc.id !== currentLocation?.id);
 
         // Use location-specific contact info if useCompanyContact is false
         const useLocationContact = currentLocation && currentLocation.useCompanyContact === false;
@@ -256,245 +285,283 @@ export default async function ProviderPage({ params, searchParams }: ProviderPag
           ? currentLocation.contactWebsite
           : listing.profile.website;
 
+        // Current location details
+        const currentServiceMode = currentLocation ? (currentLocation as { serviceMode?: string }).serviceMode : undefined;
+        const currentLocationInsurances = currentLocation ? ((currentLocation as { insurances?: string[] }).insurances || []) : [];
+
         return (
           <div className="mx-auto mt-10 max-w-5xl space-y-6 px-4 sm:px-6">
-            {/* Contact Info Card - shown for all providers */}
-            <Card className="border border-border/80">
+            {/* 1. Contact Info Card */}
+            <Card className="border border-border/80 transition-all duration-500 ease-premium hover:shadow-[0_8px_30px_rgba(0,0,0,0.08)]">
               <CardHeader>
-                <CardTitle>Contact {listing.profile.agencyName}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                  {/* Website URL display */}
-                  {contactWebsite && (
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Globe className="h-4 w-4 shrink-0 text-primary" aria-hidden />
-                      <span className="truncate text-sm" title={contactWebsite}>
-                        {contactWebsite.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, "")}
-                      </span>
-                    </div>
-                  )}
-                  {/* Action buttons */}
-                  <div className="flex flex-col gap-3 sm:flex-row md:shrink-0">
-                    {contactWebsite && (
-                      <Button asChild variant="outline" className="rounded-full text-base">
-                        <a href={contactWebsite} target="_blank" rel="noopener noreferrer">
-                          <Globe className="mr-2 h-4 w-4" />
-                          Visit Website
-                        </a>
-                      </Button>
-                    )}
-                    {contactFormEnabled && (
-                      <Button asChild className="rounded-full text-base">
-                        <a href="#contact-form">
-                          <Mail className="mr-2 h-4 w-4" />
-                          Contact Now
-                        </a>
-                      </Button>
-                    )}
+                <CardTitle className="flex items-center gap-2">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#5788FF]/10">
+                    <Phone className="h-4 w-4 text-[#5788FF]" />
                   </div>
+                  Contact {listing.profile.agencyName}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Contact info grid */}
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <a
+                    href={`mailto:${contactEmail}`}
+                    className="group flex items-center gap-3 rounded-xl border border-border/60 bg-muted/30 p-4 transition-all duration-300 ease-premium hover:-translate-y-[2px] hover:border-[#5788FF]/30 hover:bg-[#5788FF]/[0.03] hover:shadow-[0_4px_20px_rgba(87,136,255,0.12)] active:translate-y-0 active:shadow-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5788FF]/50"
+                  >
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#5788FF]/10 transition-all duration-300 ease-premium group-hover:bg-[#5788FF]/15 group-hover:scale-[1.05]">
+                      <Mail className="h-5 w-5 text-[#5788FF] transition-transform duration-300 ease-bounce-sm group-hover:scale-[1.1]" aria-hidden />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Email</p>
+                      <p className="truncate text-sm font-medium text-foreground transition-colors duration-300 group-hover:text-[#5788FF]">{contactEmail}</p>
+                    </div>
+                  </a>
+                  {contactPhone && (
+                    <a
+                      href={`tel:+1${contactPhone.replace(/\D/g, "")}`}
+                      className="group flex items-center gap-3 rounded-xl border border-border/60 bg-muted/30 p-4 transition-all duration-300 ease-premium hover:-translate-y-[2px] hover:border-[#5788FF]/30 hover:bg-[#5788FF]/[0.03] hover:shadow-[0_4px_20px_rgba(87,136,255,0.12)] active:translate-y-0 active:shadow-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5788FF]/50"
+                    >
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#5788FF]/10 transition-all duration-300 ease-premium group-hover:bg-[#5788FF]/15 group-hover:scale-[1.05]">
+                        <Phone className="h-5 w-5 text-[#5788FF] transition-transform duration-300 ease-bounce-sm group-hover:scale-[1.1]" aria-hidden />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Phone</p>
+                        <p className="text-sm font-medium text-foreground transition-colors duration-300 group-hover:text-[#5788FF]">{contactPhone}</p>
+                      </div>
+                    </a>
+                  )}
+                  {contactWebsite && (
+                    <a
+                      href={contactWebsite}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="group flex items-center gap-3 rounded-xl border border-border/60 bg-muted/30 p-4 transition-all duration-300 ease-premium hover:-translate-y-[2px] hover:border-[#5788FF]/30 hover:bg-[#5788FF]/[0.03] hover:shadow-[0_4px_20px_rgba(87,136,255,0.12)] active:translate-y-0 active:shadow-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5788FF]/50"
+                      title={contactWebsite}
+                    >
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#5788FF]/10 transition-all duration-300 ease-premium group-hover:bg-[#5788FF]/15 group-hover:scale-[1.05]">
+                        <Globe className="h-5 w-5 text-[#5788FF] transition-transform duration-300 ease-bounce-sm group-hover:scale-[1.1]" aria-hidden />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Website</p>
+                        <p className="truncate text-sm font-medium text-foreground transition-colors duration-300 group-hover:text-[#5788FF]">
+                          {contactWebsite.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, "")}
+                        </p>
+                      </div>
+                    </a>
+                  )}
+                </div>
+                {/* Action buttons */}
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  {contactWebsite && (
+                    <Button asChild variant="outline" className="group flex-1 rounded-full text-base transition-all duration-300 ease-premium hover:-translate-y-[2px] hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)] active:translate-y-0 active:shadow-none focus-visible:ring-2 focus-visible:ring-[#5788FF]/50">
+                      <a href={contactWebsite} target="_blank" rel="noopener noreferrer">
+                        <Globe className="mr-2 h-4 w-4 transition-transform duration-300 ease-bounce-sm group-hover:rotate-12" />
+                        Visit Website
+                      </a>
+                    </Button>
+                  )}
+                  {contactFormEnabled && (
+                    <Button asChild className="group flex-1 rounded-full text-base transition-all duration-300 ease-premium hover:-translate-y-[2px] hover:shadow-[0_4px_20px_rgba(254,231,32,0.35)] active:translate-y-0 active:shadow-[0_2px_8px_rgba(254,231,32,0.2)] focus-visible:ring-2 focus-visible:ring-primary/50">
+                      <a href="#contact-form">
+                        <Mail className="mr-2 h-4 w-4 transition-transform duration-300 ease-bounce-sm group-hover:scale-110" />
+                        Send Message
+                      </a>
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>
 
-            {/* Locations Card */}
-            {listing.locations.length > 0 && (() => {
-              // Separate current location from other locations
-              const currentLocation = highlightedLocationId
-                ? listing.locations.find(loc => loc.id === highlightedLocationId)
-                : listing.locations[0]; // Default to first location if none highlighted
-              const otherLocations = listing.locations.filter(loc => loc.id !== currentLocation?.id);
-
-              // Helper function to render a location item
-              const renderLocationItem = (location: typeof listing.locations[0], isCurrentLocation: boolean) => {
-                const serviceMode = (location as { serviceMode?: string }).serviceMode;
-                const locationInsurances = (location as { insurances?: string[] }).insurances || [];
-
-                return (
-                  <li
-                    key={location.id}
-                    id={`location-${location.id}`}
-                    className={`rounded-xl border p-4 transition-all ${
-                      isCurrentLocation
-                        ? "border-primary bg-primary/5 ring-2 ring-primary/20"
-                        : "border-border/60 bg-muted/30"
-                    }`}
-                  >
-                    <div className="flex items-start gap-3">
-                      <MapPin className="mt-0.5 h-5 w-5 flex-shrink-0 text-primary" />
-                      <div className="flex-1 space-y-2">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="font-medium text-foreground">
-                            {location.city}, {location.state}
-                          </span>
-                          {location.isPrimary && (
-                            <Badge variant="secondary" className="text-xs">Primary</Badge>
-                          )}
-                          {serviceMode && (
-                            <Badge variant="outline" className="gap-1 text-xs">
-                              {serviceMode === "center_based" && <Building2 className="h-3 w-3" />}
-                              {serviceMode === "in_home" && <Home className="h-3 w-3" />}
-                              {serviceMode === "both" && <CheckCircle className="h-3 w-3" />}
-                              {LOCATION_SERVICE_MODE_LABELS[serviceMode] || serviceMode}
+            {/* 2. Current Location - Prominent standalone section */}
+            {currentLocation && (
+              <div
+                id={`location-${currentLocation.id}`}
+                className="rounded-2xl border border-[#5788FF]/20 bg-[#5788FF]/[0.03] p-5 transition-all duration-500 ease-premium hover:border-[#5788FF]/30 hover:bg-[#5788FF]/[0.05] hover:shadow-[0_8px_30px_rgba(87,136,255,0.1)]"
+              >
+                <div className="mb-3 flex items-center gap-2">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#5788FF]/10">
+                    <Navigation className="h-4 w-4 text-[#5788FF]" />
+                  </div>
+                  <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                    {highlightedLocationId ? "Viewing This Location" : "Location"}
+                  </h3>
+                </div>
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="space-y-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-xl font-semibold text-foreground">
+                        {currentLocation.city}, {currentLocation.state}
+                      </span>
+                      {currentLocation.isPrimary && (
+                        <Badge variant="secondary" className="text-xs">Primary</Badge>
+                      )}
+                      {currentServiceMode && (
+                        <Badge variant="outline" className="gap-1 text-xs">
+                          {currentServiceMode === "center_based" && <Building2 className="h-3 w-3" />}
+                          {currentServiceMode === "in_home" && <Home className="h-3 w-3" />}
+                          {currentServiceMode === "both" && <CheckCircle className="h-3 w-3" />}
+                          {LOCATION_SERVICE_MODE_LABELS[currentServiceMode] || currentServiceMode}
+                        </Badge>
+                      )}
+                    </div>
+                    {currentLocation.street && (
+                      <p className="text-sm text-muted-foreground">
+                        {currentLocation.street}
+                        {currentLocation.postalCode && `, ${currentLocation.postalCode}`}
+                      </p>
+                    )}
+                    {(currentServiceMode === "in_home" || currentServiceMode === "both") && (
+                      <p className="text-xs text-muted-foreground">
+                        Service radius: {(currentLocation as { serviceRadiusMiles?: number }).serviceRadiusMiles || 25} miles
+                      </p>
+                    )}
+                    {currentLocationInsurances.length > 0 && (
+                      <div className="pt-1">
+                        <div className="flex flex-wrap gap-1">
+                          {currentLocationInsurances.slice(0, 4).map((ins) => (
+                            <Badge key={ins} variant="outline" className="text-xs font-normal">
+                              {ins}
                             </Badge>
+                          ))}
+                          {currentLocationInsurances.length > 4 && (
+                            <span className="text-xs text-muted-foreground">
+                              +{currentLocationInsurances.length - 4} more
+                            </span>
                           )}
                         </div>
-
-                        {/* Address for center-based */}
-                        {location.street && (
-                          <p className="text-sm text-muted-foreground">
-                            {location.street}
-                            {location.postalCode && `, ${location.postalCode}`}
-                          </p>
-                        )}
-
-                        {/* Get Directions button for center-based locations */}
-                        {(serviceMode === "center_based" || serviceMode === "both") && (
-                          <DirectionsButton
-                            latitude={(location as { latitude?: number }).latitude || null}
-                            longitude={(location as { longitude?: number }).longitude || null}
-                            address={[location.street, location.city, location.state, location.postalCode].filter(Boolean).join(", ")}
-                            className="mt-2"
-                          />
-                        )}
-
-                        {/* Service radius for in-home */}
-                        {(serviceMode === "in_home" || serviceMode === "both") && (
-                          <p className="text-xs text-muted-foreground">
-                            Service radius: {(location as { serviceRadiusMiles?: number }).serviceRadiusMiles || 25} miles
-                          </p>
-                        )}
-
-                        {/* Location-specific insurances */}
-                        {locationInsurances.length > 0 && (
-                          <div className="pt-2">
-                            <p className="text-xs font-medium text-muted-foreground">Insurance Accepted:</p>
-                            <div className="mt-1 flex flex-wrap gap-1">
-                              {locationInsurances.slice(0, 5).map((ins) => (
-                                <Badge key={ins} variant="outline" className="text-xs font-normal">
-                                  {ins}
-                                </Badge>
-                              ))}
-                              {locationInsurances.length > 5 && (
-                                <span className="text-xs text-muted-foreground">
-                                  +{locationInsurances.length - 5} more
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </li>
-                );
-              };
-
-              return (
-                <Card className="border border-border/80">
-                  <CardHeader>
-                    <CardTitle>Locations</CardTitle>
-                    <CardDescription>
-                      {listing.locations.length} service {listing.locations.length === 1 ? "location" : "locations"}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    {/* Current Location Section */}
-                    {currentLocation && (
-                      <div>
-                        <h4 className="mb-3 text-sm font-medium text-muted-foreground">
-                          {highlightedLocationId ? "You're Viewing This Location" : "Primary Location"}
-                        </h4>
-                        <ul>
-                          {renderLocationItem(currentLocation, true)}
-                        </ul>
                       </div>
                     )}
+                  </div>
+                  {(currentServiceMode === "center_based" || currentServiceMode === "both") && (
+                    <DirectionsButton
+                      latitude={(currentLocation as { latitude?: number }).latitude || null}
+                      longitude={(currentLocation as { longitude?: number }).longitude || null}
+                      address={[currentLocation.street, currentLocation.city, currentLocation.state, currentLocation.postalCode].filter(Boolean).join(", ")}
+                      className="shrink-0"
+                    />
+                  )}
+                </div>
+              </div>
+            )}
 
-                    {/* Other Locations Section - Compact Links */}
-                    {otherLocations.length > 0 && (
-                      <div>
-                        <h4 className="mb-3 text-sm font-medium text-muted-foreground">
-                          Other Locations ({otherLocations.length})
-                        </h4>
-                        <ul className="divide-y divide-border/60 rounded-xl border border-border/60 bg-muted/30">
-                          {otherLocations.map((location) => {
-                            const serviceMode = (location as { serviceMode?: string }).serviceMode;
-                            return (
-                              <li key={location.id}>
-                                <Link
-                                  href={`/provider/${listing.slug}?location=${location.id}`}
-                                  className="flex items-center gap-3 p-3 transition-colors hover:bg-muted/50"
-                                >
-                                  <MapPin className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
-                                  <span className="flex-1 text-sm font-medium">
-                                    {location.city}, {location.state}
-                                  </span>
-                                  {serviceMode && (
-                                    <Badge variant="outline" className="gap-1 text-xs">
-                                      {serviceMode === "center_based" && <Building2 className="h-3 w-3" />}
-                                      {serviceMode === "in_home" && <Home className="h-3 w-3" />}
-                                      {serviceMode === "both" && <CheckCircle className="h-3 w-3" />}
-                                      {LOCATION_SERVICE_MODE_LABELS[serviceMode] || serviceMode}
-                                    </Badge>
-                                  )}
-                                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                                </Link>
-                              </li>
-                            );
-                          })}
-                        </ul>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              );
-            })()}
-
-            {/* Google Rating Card - Premium only */}
-            {isPremium && (() => {
-              // Find the first location with Google rating data
-              // Prefer the highlighted location if it has a rating
-              const highlightedLoc = highlightedLocationId
-                ? listing.locations.find(loc => loc.id === highlightedLocationId)
-                : null;
-
-              const locationWithRating = highlightedLoc && (highlightedLoc as { googleRating?: number | null }).googleRating
-                ? highlightedLoc
-                : listing.locations.find(loc => (loc as { googleRating?: number | null }).googleRating);
-
-              if (!locationWithRating) return null;
-
+            {/* 3. Google Rating Card and Reviews - Premium only */}
+            {isPremium && locationWithRating && (() => {
               const googleRating = (locationWithRating as { googleRating?: number | null }).googleRating;
               const googleRatingCount = (locationWithRating as { googleRatingCount?: number | null }).googleRatingCount;
               const googlePlaceId = (locationWithRating as { googlePlaceId?: string | null }).googlePlaceId;
 
               if (!googleRating || !googlePlaceId) return null;
 
-              const googleMapsUrl = `https://www.google.com/maps/place/?q=place_id:${googlePlaceId}`;
+              // Use the Maps URLs API format which works on both desktop and mobile
+              const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(listing.profile.agencyName)}&query_place_id=${googlePlaceId}`;
 
               return (
-                <GoogleRatingCard
-                  rating={googleRating}
-                  reviewCount={googleRatingCount}
-                  googleMapsUrl={googleMapsUrl}
-                />
+                <>
+                  <GoogleRatingCard
+                    rating={googleRating}
+                    reviewCount={googleRatingCount}
+                    googleMapsUrl={googleMapsUrl}
+                  />
+                  {googleReviews.length > 0 && (
+                    <GoogleReviewsGallery
+                      reviews={googleReviews}
+                      googleMapsUrl={googleMapsUrl}
+                    />
+                  )}
+                </>
               );
             })()}
 
-            {/* Services Card */}
-            {listing.serviceModes.length > 0 && (
-              <Card className="border border-border/80">
+            {/* 4. About Card - Premium only, now includes Services */}
+            {isPremium && listing.description && (
+              <Card className="border border-border/80 transition-all duration-500 ease-premium hover:shadow-[0_8px_30px_rgba(0,0,0,0.08)]">
                 <CardHeader>
-                  <CardTitle>Services</CardTitle>
+                  <CardTitle className="flex items-center gap-2">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/10">
+                      <Users className="h-4 w-4 text-emerald-600" />
+                    </div>
+                    About {listing.profile.agencyName}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-5">
+                  {/* Services integrated into About */}
+                  {listing.serviceModes.length > 0 && (
+                    <div>
+                      <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Services Offered</p>
+                      <ul className="flex flex-wrap gap-2 text-sm text-muted-foreground">
+                        {listing.serviceModes.map((mode) => (
+                          <li
+                            key={mode}
+                            className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-muted/30 px-4 py-2 transition-all duration-300 ease-premium hover:scale-[1.03] hover:border-emerald-500/30 hover:bg-emerald-500/[0.08] hover:text-foreground hover:shadow-[0_2px_8px_rgba(16,185,129,0.15)] active:scale-[0.98]"
+                          >
+                            <Stethoscope className="h-4 w-4 text-emerald-600" aria-hidden />
+                            {serviceModeLabels[mode] || mode}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Description */}
+                  <p className="whitespace-pre-wrap text-sm text-muted-foreground">{listing.description}</p>
+
+                  {/* Additional Details */}
+                  {(agesServed || languages.length > 0 || diagnoses.length > 0 || clinicalSpecialties.length > 0) && (
+                    <div className="grid gap-4 pt-2 md:grid-cols-2">
+                      {agesServed && (agesServed.min !== undefined || agesServed.max !== undefined) && (
+                        <div className="rounded-xl border border-border/60 bg-muted/30 p-4 transition-all duration-300 ease-premium hover:border-[#5788FF]/20 hover:bg-[#5788FF]/[0.03] hover:shadow-[0_2px_12px_rgba(87,136,255,0.08)]">
+                          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Ages Served</p>
+                          <p className="mt-1 font-medium text-foreground">
+                            {agesServed.min ?? 0} - {agesServed.max ?? 18} years
+                          </p>
+                        </div>
+                      )}
+
+                      {languages.length > 0 && (
+                        <div className="rounded-xl border border-border/60 bg-muted/30 p-4 transition-all duration-300 ease-premium hover:border-[#5788FF]/20 hover:bg-[#5788FF]/[0.03] hover:shadow-[0_2px_12px_rgba(87,136,255,0.08)]">
+                          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Languages</p>
+                          <p className="mt-1 font-medium text-foreground">{languages.join(", ")}</p>
+                        </div>
+                      )}
+
+                      {diagnoses.length > 0 && (
+                        <div className="rounded-xl border border-border/60 bg-muted/30 p-4 transition-all duration-300 ease-premium hover:border-[#5788FF]/20 hover:bg-[#5788FF]/[0.03] hover:shadow-[0_2px_12px_rgba(87,136,255,0.08)]">
+                          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Diagnoses</p>
+                          <p className="mt-1 font-medium text-foreground">{diagnoses.join(", ")}</p>
+                        </div>
+                      )}
+
+                      {clinicalSpecialties.length > 0 && (
+                        <div className="rounded-xl border border-border/60 bg-muted/30 p-4 transition-all duration-300 ease-premium hover:border-[#5788FF]/20 hover:bg-[#5788FF]/[0.03] hover:shadow-[0_2px_12px_rgba(87,136,255,0.08)]">
+                          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Specialties</p>
+                          <p className="mt-1 font-medium text-foreground">{clinicalSpecialties.join(", ")}</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* 4b. Services Card - Only for free tier (non-premium don't have About) */}
+            {!isPremium && listing.serviceModes.length > 0 && (
+              <Card className="border border-border/80 transition-all duration-500 ease-premium hover:shadow-[0_8px_30px_rgba(0,0,0,0.08)]">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/10">
+                      <Stethoscope className="h-4 w-4 text-emerald-600" />
+                    </div>
+                    Services
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <ul className="flex flex-wrap gap-2 text-sm text-muted-foreground">
                     {listing.serviceModes.map((mode) => (
                       <li
                         key={mode}
-                        className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-muted/30 px-4 py-2"
+                        className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-muted/30 px-4 py-2 transition-all duration-300 ease-premium hover:scale-[1.03] hover:border-emerald-500/30 hover:bg-emerald-500/[0.08] hover:text-foreground hover:shadow-[0_2px_8px_rgba(16,185,129,0.15)] active:scale-[0.98]"
                       >
-                        <CheckCircle className="h-4 w-4 text-primary" aria-hidden />
+                        <Stethoscope className="h-4 w-4 text-emerald-600" aria-hidden />
                         {serviceModeLabels[mode] || mode}
                       </li>
                     ))}
@@ -503,16 +570,21 @@ export default async function ProviderPage({ params, searchParams }: ProviderPag
               </Card>
             )}
 
-            {/* Insurances Card */}
+            {/* 5. Insurance Card */}
             {insurances.length > 0 && (
-              <Card className="border border-border/80">
+              <Card className="border border-border/80 transition-all duration-500 ease-premium hover:shadow-[0_8px_30px_rgba(0,0,0,0.08)]">
                 <CardHeader>
-                  <CardTitle>Insurance Accepted</CardTitle>
+                  <CardTitle className="flex items-center gap-2">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-violet-500/10">
+                      <Shield className="h-4 w-4 text-violet-600" />
+                    </div>
+                    Insurance Accepted
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="flex flex-wrap gap-2">
                     {insurances.map((insurance) => (
-                      <Badge key={insurance} variant="outline" className="rounded-full px-4 py-2 text-sm">
+                      <Badge key={insurance} variant="outline" className="rounded-full px-4 py-2 text-sm transition-all duration-300 ease-premium hover:scale-[1.03] hover:border-violet-500/30 hover:bg-violet-500/[0.06] hover:text-violet-700 hover:shadow-[0_2px_8px_rgba(139,92,246,0.15)] active:scale-[0.98]">
                         {insurance}
                       </Badge>
                     ))}
@@ -521,63 +593,69 @@ export default async function ProviderPage({ params, searchParams }: ProviderPag
               </Card>
             )}
 
-            {/* About Card - Premium only */}
-            {isPremium && listing.description && (
-              <Card className="border border-border/80">
+            {/* 6. Other Locations Card - Only if multiple locations */}
+            {otherLocations.length > 0 && (
+              <Card className="border border-border/80 transition-all duration-500 ease-premium hover:shadow-[0_8px_30px_rgba(0,0,0,0.08)]">
                 <CardHeader>
-                  <CardTitle>About {listing.profile.agencyName}</CardTitle>
+                  <CardTitle className="flex items-center gap-2">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#5788FF]/10">
+                      <MapPin className="h-4 w-4 text-[#5788FF]" />
+                    </div>
+                    Other Locations
+                  </CardTitle>
+                  <CardDescription>
+                    {otherLocations.length} additional service {otherLocations.length === 1 ? "location" : "locations"}
+                  </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4 text-sm text-muted-foreground">
-                  <p className="whitespace-pre-wrap">{listing.description}</p>
-
-                  {/* Additional Details */}
-                  <div className="grid gap-4 pt-4 md:grid-cols-2">
-                    {agesServed && (agesServed.min !== undefined || agesServed.max !== undefined) && (
-                      <div className="rounded-xl border border-border/60 bg-muted/30 p-4">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Ages Served</p>
-                        <p className="mt-1 font-medium text-foreground">
-                          {agesServed.min ?? 0} - {agesServed.max ?? 18} years
-                        </p>
-                      </div>
-                    )}
-
-                    {languages.length > 0 && (
-                      <div className="rounded-xl border border-border/60 bg-muted/30 p-4">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Languages</p>
-                        <p className="mt-1 font-medium text-foreground">{languages.join(", ")}</p>
-                      </div>
-                    )}
-
-                    {diagnoses.length > 0 && (
-                      <div className="rounded-xl border border-border/60 bg-muted/30 p-4">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Diagnoses</p>
-                        <p className="mt-1 font-medium text-foreground">{diagnoses.join(", ")}</p>
-                      </div>
-                    )}
-
-                    {clinicalSpecialties.length > 0 && (
-                      <div className="rounded-xl border border-border/60 bg-muted/30 p-4">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Specialties</p>
-                        <p className="mt-1 font-medium text-foreground">{clinicalSpecialties.join(", ")}</p>
-                      </div>
-                    )}
-                  </div>
+                <CardContent>
+                  <ul className="divide-y divide-border/60 overflow-hidden rounded-xl border border-border/60 bg-muted/30">
+                    {otherLocations.map((location) => {
+                      const serviceMode = (location as { serviceMode?: string }).serviceMode;
+                      return (
+                        <li key={location.id}>
+                          <Link
+                            href={`/provider/${listing.slug}?location=${location.id}`}
+                            className="group flex items-center gap-3 p-3 transition-all duration-300 ease-premium hover:bg-[#5788FF]/[0.04] hover:pl-4 active:bg-[#5788FF]/[0.08] focus-visible:outline-none focus-visible:bg-[#5788FF]/[0.06]"
+                          >
+                            <MapPin className="h-4 w-4 flex-shrink-0 text-muted-foreground transition-all duration-300 ease-premium group-hover:text-[#5788FF] group-hover:scale-110" />
+                            <span className="flex-1 text-sm font-medium transition-colors duration-300 group-hover:text-[#5788FF]">
+                              {location.city}, {location.state}
+                            </span>
+                            {serviceMode && (
+                              <Badge variant="outline" className="gap-1 text-xs transition-all duration-300 ease-premium group-hover:border-[#5788FF]/30 group-hover:bg-[#5788FF]/10">
+                                {serviceMode === "center_based" && <Building2 className="h-3 w-3" />}
+                                {serviceMode === "in_home" && <Home className="h-3 w-3" />}
+                                {serviceMode === "both" && <CheckCircle className="h-3 w-3" />}
+                                {LOCATION_SERVICE_MODE_LABELS[serviceMode] || serviceMode}
+                              </Badge>
+                            )}
+                            <ChevronRight className="h-4 w-4 text-muted-foreground transition-all duration-300 ease-bounce-sm group-hover:translate-x-1 group-hover:text-[#5788FF]" />
+                          </Link>
+                        </li>
+                      );
+                    })}
+                  </ul>
                 </CardContent>
               </Card>
             )}
 
-            {/* Photos and Video Card - Premium only */}
+            {/* 7. Photos and Video Card - Premium only */}
             {isPremium && (photoUrls.length > 0 || videoEmbedUrl) && (
-              <Card className="border border-border/80">
+              <Card className="border border-border/80 transition-all duration-500 ease-premium hover:shadow-[0_8px_30px_rgba(0,0,0,0.08)]">
                 <CardHeader>
-                  <CardTitle>Photos & Video</CardTitle>
+                  <CardTitle className="flex items-center gap-2">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-500/10">
+                      <Images className="h-4 w-4 text-amber-600" />
+                    </div>
+                    Photos & Video
+                  </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   {/* Video Embed */}
                   {videoEmbedUrl && (
                     <div className="space-y-2">
                       <p className="text-sm font-medium text-muted-foreground">Video</p>
-                      <div className="relative aspect-video w-full overflow-hidden rounded-2xl border bg-black">
+                      <div className="group relative aspect-video w-full overflow-hidden rounded-2xl border bg-black shadow-sm transition-all duration-500 ease-premium hover:shadow-[0_8px_30px_rgba(0,0,0,0.15)]">
                         <iframe
                           src={videoEmbedUrl}
                           className="absolute inset-0 h-full w-full"
@@ -597,14 +675,15 @@ export default async function ProviderPage({ params, searchParams }: ProviderPag
                         {photoUrls.map((url, index) => (
                           <div
                             key={url}
-                            className="relative aspect-video overflow-hidden rounded-2xl bg-muted/40"
+                            className="group relative aspect-video cursor-pointer overflow-hidden rounded-2xl bg-muted/40 shadow-sm transition-all duration-500 ease-premium hover:shadow-[0_8px_30px_rgba(0,0,0,0.12)] active:scale-[0.99]"
                           >
                             <Image
                               src={url}
-                              alt={`${listing.profile.agencyName} photo ${index + 1}`}
+                              alt={`${listing.profile.agencyName} ABA therapy center${primaryLocation ? ` in ${primaryLocation.city}, ${primaryLocation.state}` : ""} - photo ${index + 1}`}
                               fill
-                              className="object-cover"
+                              className="object-cover transition-transform duration-700 ease-premium group-hover:scale-[1.05]"
                             />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
                           </div>
                         ))}
                       </div>
@@ -614,7 +693,7 @@ export default async function ProviderPage({ params, searchParams }: ProviderPag
               </Card>
             )}
 
-            {/* Contact Form - Premium providers with contact form enabled */}
+            {/* 8. Contact Form - Premium providers with contact form enabled */}
             {contactFormEnabled && (
               <div id="contact-form" className="scroll-mt-6">
                 <ContactForm

@@ -15,9 +15,11 @@ import {
   Star,
   ArrowLeft,
   ExternalLink,
+  Sparkles,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
+import { FeaturedBadge } from "@/components/ui/featured-badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -324,7 +326,7 @@ function DemoPreviewContent() {
                         </span>
                         <Badge variant="secondary" className="text-xs">Primary</Badge>
                         {primaryLocation.isFeatured && (
-                          <Badge className="bg-amber-500 text-white text-xs">Featured</Badge>
+                          <FeaturedBadge size="sm" />
                         )}
                         {primaryLocation.serviceMode && (
                           <Badge variant="outline" className="gap-1 text-xs">
@@ -370,7 +372,7 @@ function DemoPreviewContent() {
                         {location.label || `${location.city}, ${location.state}`}
                       </span>
                       {location.isFeatured && (
-                        <Badge className="bg-amber-500 text-white text-xs">Featured</Badge>
+                        <FeaturedBadge size="sm" />
                       )}
                       {location.serviceMode && (
                         <Badge variant="outline" className="gap-1 text-xs">

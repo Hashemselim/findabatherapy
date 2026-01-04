@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { MapPin, Loader2 } from "lucide-react";
 
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import {
@@ -29,9 +30,6 @@ interface PlacesAutocompleteProps {
   initialValidated?: boolean;
 }
 
-const defaultPillClassName =
-  "inline-flex items-center rounded-full border border-primary bg-primary/10 px-3 py-1 text-xs font-semibold text-foreground";
-
 export function PlacesAutocomplete({
   value,
   onChange,
@@ -42,7 +40,7 @@ export function PlacesAutocomplete({
   inputClassName,
   showIcon = true,
   showPillWhenValidated = false,
-  pillClassName = defaultPillClassName,
+  pillClassName,
   initialValidated = false,
 }: PlacesAutocompleteProps) {
   const [isOpen, setIsOpen] = useState(false);
@@ -186,7 +184,7 @@ export function PlacesAutocomplete({
           {showIcon && (
             <MapPin className="h-4 w-4 shrink-0 text-muted-foreground" />
           )}
-          <span className={pillClassName}>{inputValue}</span>
+          <Badge variant="filter" className={pillClassName}>{inputValue}</Badge>
         </button>
       ) : (
         // Input mode - regular text input with autocomplete

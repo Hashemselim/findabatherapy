@@ -5,12 +5,12 @@ import {
   CheckCircle2,
   Clock,
   ExternalLink,
-  Sparkles,
+  Star,
   Crown,
   Shield,
   AlertCircle,
   ArrowRight,
-  Zap,
+  Sparkles,
   MapPin,
   TrendingUp,
 } from "lucide-react";
@@ -501,17 +501,17 @@ export default async function DashboardBillingPage() {
         <Card className="border-slate-200 bg-white">
           <CardHeader>
             <div className="flex items-center gap-3">
-              <div className="rounded-xl bg-amber-100 p-2.5">
-                <Zap className="h-6 w-6 text-amber-600" />
+              <div className="rounded-xl border border-[#FEE720] bg-[#FFF5C2] p-2.5">
+                <Star className="h-6 w-6 fill-[#5788FF] text-[#5788FF]" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <CardTitle className="text-slate-900">Featured Placement</CardTitle>
+                  <CardTitle className="text-foreground">Featured Placement</CardTitle>
                   <Badge variant="outline" className="border-slate-200 text-slate-600">
                     Add-on
                   </Badge>
                   {featuredLocations.length > 0 && (
-                    <Badge className="bg-amber-100 text-amber-700 border-amber-200">
+                    <Badge className="border-[#FEE720] bg-[#FFF5C2] text-foreground">
                       {featuredLocations.length} active
                     </Badge>
                   )}
@@ -531,16 +531,16 @@ export default async function DashboardBillingPage() {
                   {featuredLocations.map((loc) => (
                     <div
                       key={loc.id}
-                      className="flex items-center justify-between rounded-lg border border-amber-200 bg-gradient-to-r from-amber-50 to-white p-3"
+                      className="flex items-center justify-between rounded-lg border border-[#FEE720] bg-gradient-to-r from-[#FFF5C2]/50 to-white p-3"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="rounded-lg bg-amber-100 p-2">
-                          <MapPin className="h-4 w-4 text-amber-600" />
+                        <div className="rounded-lg border border-[#FEE720] bg-[#FFF5C2] p-2">
+                          <MapPin className="h-4 w-4 text-[#5788FF]" />
                         </div>
                         <div>
-                          <p className="font-medium text-slate-900">{loc.locationLabel}</p>
-                          <div className="flex items-center gap-2 text-xs text-slate-500">
-                            <TrendingUp className="h-3 w-3 text-amber-500" />
+                          <p className="font-medium text-foreground">{loc.locationLabel}</p>
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <TrendingUp className="h-3 w-3 text-[#5788FF]" />
                             <span>Featured in {loc.state} searches</span>
                             <span className="text-slate-400">•</span>
                             <span>
@@ -594,16 +594,16 @@ export default async function DashboardBillingPage() {
                   ))}
                 </ul>
               </div>
-              <div className="flex flex-col items-center justify-center rounded-xl border border-amber-200 bg-amber-50/50 p-6">
+              <div className="flex flex-col items-center justify-center rounded-xl border border-[#FEE720] bg-[#FFF5C2]/50 p-6">
                 <div className="text-center">
-                  <Sparkles className="mx-auto h-8 w-8 text-amber-500" />
-                  <p className="mt-2 font-medium text-slate-700">
+                  <Star className="mx-auto h-8 w-8 fill-[#5788FF] text-[#5788FF]" />
+                  <p className="mt-2 font-medium text-foreground">
                     {featuredLocations.length > 0 ? "Feature More Locations" : "Feature Individual Locations"}
                   </p>
-                  <p className="mt-1 text-sm text-slate-500">
+                  <p className="mt-1 text-sm text-muted-foreground">
                     Go to your Locations page to feature specific locations
                   </p>
-                  <Button asChild size="sm" className="mt-4 gap-2 bg-amber-500 hover:bg-amber-600">
+                  <Button asChild size="sm" className="mt-4 gap-2 border border-[#FEE720] bg-[#FEE720] text-[#333333] hover:bg-[#FFF5C2]">
                     <Link href="/dashboard/locations">
                       Manage Locations
                       <ArrowRight className="h-4 w-4" />

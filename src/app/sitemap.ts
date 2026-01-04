@@ -45,6 +45,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.9,
     },
     {
+      url: `${BASE_URL}/insurance`,
+      lastModified: new Date(),
+      changeFrequency: "weekly",
+      priority: 0.9,
+    },
+    {
+      url: `${BASE_URL}/faq`,
+      lastModified: new Date(),
+      changeFrequency: "weekly",
+      priority: 0.85,
+    },
+    {
       url: `${BASE_URL}/get-listed`,
       lastModified: new Date(),
       changeFrequency: "monthly",
@@ -54,6 +66,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       url: `${BASE_URL}/learn`,
       lastModified: new Date(),
       changeFrequency: "weekly",
+      priority: 0.8,
+    },
+    {
+      url: `${BASE_URL}/learn/glossary`,
+      lastModified: new Date(),
+      changeFrequency: "monthly",
       priority: 0.8,
     },
     {
@@ -88,6 +106,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     })
   );
 
+  // State guide pages (comprehensive state-specific content)
+  const stateGuidePages: MetadataRoute.Sitemap = Object.entries(STATE_NAMES).map(
+    ([, name]) => ({
+      url: `${BASE_URL}/${name.toLowerCase().replace(/\s+/g, "-")}/guide`,
+      lastModified: new Date(),
+      changeFrequency: "monthly" as const,
+      priority: 0.85,
+    })
+  );
+
   // City pages
   const allCities = getAllCities();
   const cityPages: MetadataRoute.Sitemap = allCities.map((city) => ({
@@ -109,6 +137,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...staticPages,
     ...insurancePages,
     ...statePages,
+    ...stateGuidePages,
     ...cityPages,
     ...articlePages,
     ...providerPages,

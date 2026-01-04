@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CheckCircle2, Eye, MapPin, MessageSquare, Sparkles, TrendingUp } from "lucide-react";
+import { CheckCircle2, Eye, MapPin, MessageSquare, Sparkles, Star, TrendingUp } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -188,11 +188,11 @@ export default function DemoOverviewPage() {
       {/* Featured Upsell */}
       <Card
         data-tour="featured-badge"
-        className="border-amber-500/30 bg-gradient-to-r from-amber-50 to-yellow-50"
+        className="border-[#FEE720] bg-gradient-to-r from-[#FFF5C2]/50 to-[#FFF5C2]/30"
       >
         <CardHeader>
           <div className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-amber-500" />
+            <Star className="h-5 w-5 fill-[#5788FF] text-[#5788FF]" />
             <CardTitle className="text-lg">Featured Location Active</CardTitle>
           </div>
           <CardDescription>

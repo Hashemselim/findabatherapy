@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ClipboardList, ArrowRight, CheckCircle2, MapPin, Sparkles } from "lucide-react";
+import { ClipboardList, ArrowRight, CheckCircle2, MapPin, Star } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -166,10 +166,10 @@ export default async function LocationsPage() {
 
       {/* Featured Upsell Card - Show for Pro users who haven't featured all locations */}
       {!isFreePlan && featuredCount < locations.length && locations.length > 0 && (
-        <Card className="border-amber-500/30 bg-gradient-to-r from-amber-50 to-yellow-50">
+        <Card className="border-[#FEE720] bg-gradient-to-r from-[#FFF5C2]/50 to-[#FFF5C2]/30">
           <CardHeader>
             <div className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-amber-500" />
+              <Star className="h-5 w-5 fill-[#5788FF] text-[#5788FF]" />
               <CardTitle className="text-lg">Boost Your Visibility</CardTitle>
             </div>
             <CardDescription>

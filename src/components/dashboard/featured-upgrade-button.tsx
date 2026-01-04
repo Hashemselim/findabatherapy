@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Sparkles, Loader2, Check, CheckCircle2 } from "lucide-react";
+import { Star, Loader2, Check, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -19,7 +19,7 @@ import { cn } from "@/lib/utils";
 const FEATURED_FEATURES = [
   "Pinned to top of state search results",
   "Featured badge on listing card",
-  "Amber highlight in search results",
+  "Highlighted in search results",
   "Priority placement over non-featured",
 ];
 
@@ -87,17 +87,17 @@ export function FeaturedUpgradeButton({
         <Button
           variant="outline"
           size="sm"
-          className="gap-1.5 border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100 hover:text-amber-800"
+          className="gap-1.5 border-[#FEE720] bg-[#FFF5C2] text-foreground hover:bg-[#FEE720] hover:text-[#333333]"
           disabled={disabled}
         >
-          <Sparkles className="h-3.5 w-3.5" />
+          <Star className="h-3.5 w-3.5 fill-[#5788FF] text-[#5788FF]" />
           Feature
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-amber-500" />
+            <Star className="h-5 w-5 fill-[#5788FF] text-[#5788FF]" />
             Feature This Location
           </DialogTitle>
           <DialogDescription>
@@ -154,23 +154,23 @@ export function FeaturedUpgradeButton({
             </div>
 
             {/* Pricing card */}
-            <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+            <div className="rounded-lg border border-[#FEE720] bg-[#FFF5C2] p-4">
               <div className="flex items-baseline gap-1">
-                <span className="text-3xl font-bold text-slate-900">
+                <span className="text-3xl font-bold text-foreground">
                   ${billingInterval === "year" ? pricing.annual.price : pricing.monthly.price}
                 </span>
-                <span className="text-sm text-slate-500">/month</span>
+                <span className="text-sm text-muted-foreground">/month</span>
               </div>
               {billingInterval === "year" && (
-                <p className="mt-1 text-sm text-slate-600">
+                <p className="mt-1 text-sm text-muted-foreground">
                   ${pricing.annual.totalPrice} billed annually — save {pricing.annual.savingsPercent}% (${pricing.annual.savings})
                 </p>
               )}
 
               <ul className="mt-4 space-y-2">
                 {FEATURED_FEATURES.map((feature) => (
-                  <li key={feature} className="flex items-start gap-2 text-sm text-slate-700">
-                    <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-600" />
+                  <li key={feature} className="flex items-start gap-2 text-sm text-foreground">
+                    <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#5788FF]" />
                     {feature}
                   </li>
                 ))}
@@ -188,7 +188,7 @@ export function FeaturedUpgradeButton({
               <Button
                 onClick={handleUpgrade}
                 disabled={isPending}
-                className="gap-2 bg-amber-500 text-white hover:bg-amber-600"
+                className="gap-2 border border-[#FEE720] bg-[#FEE720] text-[#333333] hover:bg-[#FFF5C2]"
               >
                 {isPending ? (
                   <>
@@ -197,7 +197,7 @@ export function FeaturedUpgradeButton({
                   </>
                 ) : (
                   <>
-                    <Sparkles className="h-4 w-4" />
+                    <Star className="h-4 w-4 fill-[#5788FF] text-[#5788FF]" />
                     {billingInterval === "year"
                       ? `Subscribe for $${pricing.annual.totalPrice}/yr`
                       : `Subscribe for $${pricing.monthly.price}/mo`}

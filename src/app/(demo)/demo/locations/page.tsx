@@ -4,6 +4,7 @@ import { MapPin, Star, Plus, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { FeaturedBadge } from "@/components/ui/featured-badge";
 import {
   Card,
   CardContent,
@@ -65,9 +66,9 @@ export default function DemoLocationsPage() {
               {/* Header: Icon + Content */}
               <div className="flex items-start gap-3">
                 <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${
-                  location.isFeatured ? "bg-amber-100" : "bg-[#5788FF]/10"
+                  location.isFeatured ? "border border-[#FEE720] bg-[#FFF5C2]" : "bg-[#5788FF]/10"
                 }`}>
-                  <MapPin className={`h-5 w-5 ${location.isFeatured ? "text-amber-600" : "text-[#5788FF]"}`} />
+                  <MapPin className="h-5 w-5 text-[#5788FF]" />
                 </div>
                 <div className="min-w-0 flex-1 space-y-2">
                   {/* Title and Address */}
@@ -87,13 +88,7 @@ export default function DemoLocationsPage() {
                       <Badge variant="secondary">Primary</Badge>
                     )}
                     {location.isFeatured && (
-                      <Badge
-                        data-tour="featured-badge"
-                        className="bg-amber-500 text-white"
-                      >
-                        <Sparkles className="mr-1 h-3 w-3" />
-                        Featured
-                      </Badge>
+                      <FeaturedBadge data-tour="featured-badge" />
                     )}
                     <Button variant="outline" size="sm" onClick={handleAction} className="ml-auto">
                       Edit
@@ -157,10 +152,10 @@ export default function DemoLocationsPage() {
       </div>
 
       {/* Featured Upsell */}
-      <Card className="border-amber-500/30 bg-gradient-to-r from-amber-50 to-yellow-50">
+      <Card className="border-[#FEE720] bg-gradient-to-r from-[#FFF5C2]/50 to-[#FFF5C2]/30">
         <CardHeader>
           <div className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-amber-500" />
+            <Star className="h-5 w-5 fill-[#5788FF] text-[#5788FF]" />
             <CardTitle className="text-lg">Boost Your Visibility</CardTitle>
           </div>
           <CardDescription>

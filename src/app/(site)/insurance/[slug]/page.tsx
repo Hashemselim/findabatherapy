@@ -1,17 +1,20 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowRight, CheckCircle, MapPin, Shield } from "lucide-react";
+import { ArrowRight, BadgeCheck, CheckCircle, MapPin, Shield } from "lucide-react";
 import * as StateIcons from "@state-icons/react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BubbleBackground } from "@/components/ui/bubble-background";
+import { Breadcrumbs } from "@/components/seo/breadcrumbs";
 import { INSURANCES, getInsurance, getAllInsuranceSlugs } from "@/lib/data/insurances";
 import { US_STATES } from "@/lib/data/us-states";
 import { JsonLd } from "@/components/seo/json-ld";
-import { generateFAQSchema } from "@/lib/seo/schemas";
+import { generateFAQSchema, generateMedicalWebPageSchema } from "@/lib/seo/schemas";
+
+const BASE_URL = "https://www.findabatherapy.com";
 
 // Revalidate every hour
 export const revalidate = 3600;
@@ -85,10 +88,19 @@ export default async function InsurancePage({ params }: InsurancePageProps) {
     },
   ];
 
+  // Generate medical page schema for E-E-A-T signals
+  const medicalPageSchema = generateMedicalWebPageSchema({
+    title: `ABA Therapy Providers Accepting ${insurance.name}`,
+    description: `Find ABA therapy providers that accept ${insurance.name} insurance. Browse our directory of verified autism therapy agencies with ${insurance.shortName} coverage nationwide.`,
+    url: `${BASE_URL}/insurance/${slug}`,
+    lastReviewed: new Date().toISOString().split("T")[0],
+  });
+
   return (
-    <div className="space-y-10 pb-16">
-      <JsonLd data={generateFAQSchema(faqs)} />
-      {/* Hero Section */}
+    <>
+      <JsonLd data={[generateFAQSchema(faqs), medicalPageSchema]} />
+      <div className="space-y-10 pb-16">
+        {/* Hero Section */}
       <section className="px-0 pt-0">
         <BubbleBackground
           interactive
@@ -104,6 +116,15 @@ export default async function InsurancePage({ params }: InsurancePageProps) {
           }}
         >
           <div className="mx-auto max-w-5xl px-4 sm:px-6">
+            {/* Breadcrumb with JSON-LD schema */}
+            <Breadcrumbs
+              items={[
+                { label: "Insurance", href: "/insurance" },
+                { label: insurance.name, href: `/insurance/${slug}` },
+              ]}
+              className="mb-6"
+            />
+
             <div className="flex flex-col items-center text-center">
               <Badge className="mb-4 gap-2 bg-[#FFF5C2] text-[#333333]">
                 <Shield className="h-3 w-3" />
@@ -147,6 +168,10 @@ export default async function InsurancePage({ params }: InsurancePageProps) {
           </CardHeader>
           <CardContent>
             <p className="text-muted-foreground">{insurance.coverageInfo}</p>
+            <div className="mt-4 flex items-center gap-2 text-xs text-muted-foreground">
+              <BadgeCheck className="h-4 w-4 text-emerald-600" />
+              <span>Information reviewed by certified BCBAs</span>
+            </div>
           </CardContent>
         </Card>
 
@@ -247,7 +272,8 @@ export default async function InsurancePage({ params }: InsurancePageProps) {
             </Button>
           </CardContent>
         </Card>
+        </div>
       </div>
-    </div>
+    </>
   );
 }
