@@ -6,8 +6,13 @@
 -- ============================================================
 
 create extension if not exists "uuid-ossp";
-create extension if not exists "pg_trgm";
-create extension if not exists "unaccent";
+
+-- Create extensions schema for better security
+CREATE SCHEMA IF NOT EXISTS extensions;
+GRANT USAGE ON SCHEMA extensions TO postgres, anon, authenticated, service_role;
+
+create extension if not exists "pg_trgm" WITH SCHEMA extensions;
+create extension if not exists "unaccent" WITH SCHEMA extensions;
 
 -- Create types (skip if they already exist)
 DO $$ BEGIN
@@ -292,11 +297,15 @@ create index if not exists listing_search_index_document_idx on public.listing_s
 
 -- Helper function to refresh materialized view
 create or replace function public.refresh_listing_search_index()
-returns void as $$
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
 begin
   refresh materialized view concurrently public.listing_search_index;
 end;
-$$ language plpgsql security definer;
+$$;
 
 -- ============================================================
 -- Done! Schema is ready for seeding providers.

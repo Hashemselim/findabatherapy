@@ -2,8 +2,13 @@
 -- Generated as a starting point for migrations. Adjust types and constraints before production.
 
 create extension if not exists "uuid-ossp";
-create extension if not exists "pg_trgm";
-create extension if not exists "unaccent";
+
+-- Create extensions schema for better security
+CREATE SCHEMA IF NOT EXISTS extensions;
+GRANT USAGE ON SCHEMA extensions TO postgres, anon, authenticated, service_role;
+
+create extension if not exists "pg_trgm" WITH SCHEMA extensions;
+create extension if not exists "unaccent" WITH SCHEMA extensions;
 
 create type public.plan_tier as enum ('free', 'premium', 'featured');
 create type public.listing_status as enum ('draft', 'published', 'suspended');
@@ -192,8 +197,12 @@ create policy "Agencies manage attributes" on public.listing_attribute_values
 
 -- Helper function to refresh materialized view
 create or replace function public.refresh_listing_search_index()
-returns void as $$
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
 begin
   refresh materialized view concurrently public.listing_search_index;
 end;
-$$ language plpgsql security definer;
+$$;

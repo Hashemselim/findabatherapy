@@ -1,8 +1,13 @@
 -- Initial schema for Find ABA Therapy
 
 create extension if not exists "uuid-ossp";
-create extension if not exists "pg_trgm";
-create extension if not exists "unaccent";
+
+-- Create extensions schema for better security
+CREATE SCHEMA IF NOT EXISTS extensions;
+GRANT USAGE ON SCHEMA extensions TO postgres, anon, authenticated, service_role;
+
+create extension if not exists "pg_trgm" WITH SCHEMA extensions;
+create extension if not exists "unaccent" WITH SCHEMA extensions;
 
 -- Note: Using 'pro' and 'enterprise' directly (skipping the rename migration)
 create type public.plan_tier as enum ('free', 'pro', 'enterprise');
