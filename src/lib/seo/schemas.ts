@@ -12,7 +12,7 @@ export function generateOrganizationSchema() {
     "@type": "Organization",
     name: "Find ABA Therapy",
     url: BASE_URL,
-    logo: `${BASE_URL}/logo.png`,
+    logo: `${BASE_URL}/logo-full.png`,
     description:
       "Find ABA Therapy is the leading directory for finding Applied Behavior Analysis therapy providers for autism treatment.",
     sameAs: [
@@ -243,7 +243,7 @@ export function generateArticleSchema(article: {
       name: "Find ABA Therapy",
       logo: {
         "@type": "ImageObject",
-        url: `${BASE_URL}/logo.png`,
+        url: `${BASE_URL}/logo-full.png`,
       },
     },
     mainEntityOfPage: {
