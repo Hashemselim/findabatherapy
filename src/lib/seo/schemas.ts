@@ -12,7 +12,7 @@ export function generateOrganizationSchema() {
     "@type": "Organization",
     name: "Find ABA Therapy",
     url: BASE_URL,
-    logo: `${BASE_URL}/logo-full.png`,
+    logo: `${BASE_URL}/logo-icon.png`,
     description:
       "Find ABA Therapy is the leading directory for finding Applied Behavior Analysis therapy providers for autism treatment.",
     sameAs: [
