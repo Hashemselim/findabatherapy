@@ -658,7 +658,7 @@ RESEND_API_KEY=re_xxx
 GOOGLE_MAPS_API_KEY=xxx  # or MAPBOX_ACCESS_TOKEN
 
 # New - Site
-NEXT_PUBLIC_SITE_URL=https://findabatherapy.com
+NEXT_PUBLIC_SITE_URL=https://findabatherapy.org
 ```
 
 ---

@@ -12,7 +12,7 @@ import { JsonLd } from "@/components/seo/json-ld";
 import { FAQSearch } from "@/components/content/faq-search";
 import { generateFAQSchema } from "@/lib/seo/schemas";
 
-const BASE_URL = "https://www.findabatherapy.com";
+const BASE_URL = "https://www.findabatherapy.org";
 
 export const metadata: Metadata = {
   title: "ABA Therapy FAQ | Frequently Asked Questions | Find ABA Therapy",

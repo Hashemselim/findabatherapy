@@ -17,7 +17,7 @@ import { getHomepageFeaturedListings } from "@/lib/queries/search";
 import { JsonLd } from "@/components/seo/json-ld";
 import { generateOrganizationSchema, generateWebSiteSchema, generateFAQSchema } from "@/lib/seo/schemas";
 
-const BASE_URL = "https://www.findabatherapy.com";
+const BASE_URL = "https://www.findabatherapy.org";
 
 export const metadata: Metadata = {
   title: "Find ABA Therapy Providers Near You | Find ABA Therapy",

@@ -17,7 +17,7 @@ import { timingSafeEqual } from "crypto";
  */
 
 const INDEXNOW_KEY = process.env.INDEXNOW_KEY;
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://www.findabatherapy.com";
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://www.findabatherapy.org";
 const SITE_HOST = new URL(SITE_URL).host;
 
 // IndexNow endpoints - notifying one will share with all participating search engines

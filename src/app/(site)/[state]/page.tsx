@@ -36,7 +36,7 @@ type StatePageProps = {
   params: Promise<StatePageParams>;
 };
 
-const BASE_URL = "https://www.findabatherapy.com";
+const BASE_URL = "https://www.findabatherapy.org";
 
 export async function generateMetadata({ params }: StatePageProps): Promise<Metadata> {
   const { state: stateValue } = await params;

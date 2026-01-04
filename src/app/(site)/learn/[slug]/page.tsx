@@ -24,7 +24,7 @@ import {
   DEFAULT_REVIEWER,
 } from "@/lib/content/articles";
 
-const BASE_URL = "https://www.findabatherapy.com";
+const BASE_URL = "https://www.findabatherapy.org";
 
 // Revalidate every day
 export const revalidate = 86400;

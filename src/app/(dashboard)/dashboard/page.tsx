@@ -162,7 +162,7 @@ export default async function DashboardOverviewPage() {
                   target="_blank"
                   className="break-all text-[#5788FF] hover:underline"
                 >
-                  findabatherapy.com/provider/{listing.slug}
+                  findabatherapy.org/provider/{listing.slug}
                 </Link>
               </CardDescription>
             </div>

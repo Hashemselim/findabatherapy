@@ -5,7 +5,7 @@ import { getAllCities, STATE_NAMES } from "@/lib/data/cities";
 import { INSURANCES } from "@/lib/data/insurances";
 import { ARTICLES } from "@/lib/content/articles";
 
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://www.findabatherapy.com";
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://www.findabatherapy.org";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const supabase = await createClient();

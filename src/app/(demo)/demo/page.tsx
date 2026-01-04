@@ -127,7 +127,7 @@ export default function DemoOverviewPage() {
                 target="_blank"
                 className="text-[#5788FF] hover:underline"
               >
-                findabatherapy.com/provider/{listing.slug}
+                findabatherapy.org/provider/{listing.slug}
               </Link>
             </CardDescription>
           </div>

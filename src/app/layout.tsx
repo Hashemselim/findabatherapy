@@ -17,7 +17,7 @@ const poppins = Poppins({
   variable: "--font-poppins",
 });
 
-const BASE_URL = "https://www.findabatherapy.com";
+const BASE_URL = "https://www.findabatherapy.org";
 
 export const metadata: Metadata = {
   title: {

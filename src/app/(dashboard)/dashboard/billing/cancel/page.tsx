@@ -45,7 +45,7 @@ export default function BillingCancelPage() {
               <p className="font-medium text-foreground">Need help?</p>
               <p className="text-muted-foreground">
                 If you experienced any issues during checkout, please{" "}
-                <a href="mailto:support@findabatherapy.com" className="text-primary hover:underline">
+                <a href="mailto:support@findabatherapy.org" className="text-primary hover:underline">
                   contact our support team
                 </a>
                 .

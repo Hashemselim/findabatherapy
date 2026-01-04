@@ -86,8 +86,8 @@ Human tasks required before and after launching Find ABA Therapy.
 - [ ] **Connect GitHub repo to Vercel**
 - [ ] **Add all environment variables to Vercel**
   - Use production values (live Stripe keys, production Supabase)
-- [ ] **Set custom domain**: `www.findabatherapy.com`
-- [ ] **Configure redirects**: `findabatherapy.com` → `www.findabatherapy.com`
+- [ ] **Set custom domain**: `www.findabatherapy.org`
+- [ ] **Configure redirects**: `findabatherapy.org` → `www.findabatherapy.org`
 - [ ] **Test deployment** - verify pages load correctly
 
 ---
@@ -95,9 +95,9 @@ Human tasks required before and after launching Find ABA Therapy.
 ## Post-Launch SEO Setup
 
 ### Google Search Console
-- [ ] **Add property** for `www.findabatherapy.com`
+- [ ] **Add property** for `www.findabatherapy.org`
 - [ ] **Verify ownership** (auto-verifies via DNS on Vercel)
-- [ ] **Submit sitemap**: `https://www.findabatherapy.com/sitemap.xml`
+- [ ] **Submit sitemap**: `https://www.findabatherapy.org/sitemap.xml`
 - [ ] **Request indexing** for priority pages:
   - Homepage `/`
   - `/search`
@@ -198,13 +198,13 @@ TURNSTILE_SECRET_KEY=0x...
 
 # Email (Resend)
 RESEND_API_KEY=re_...
-EMAIL_FROM=Find ABA Therapy <noreply@findabatherapy.com>
+EMAIL_FROM=Find ABA Therapy <noreply@findabatherapy.org>
 
 # IndexNow (generate with: openssl rand -hex 16)
 INDEXNOW_KEY=your-32-char-hex-key
 
 # Site
-NEXT_PUBLIC_SITE_URL=https://www.findabatherapy.com
+NEXT_PUBLIC_SITE_URL=https://www.findabatherapy.org
 
 # Analytics (optional - choose one)
 NEXT_PUBLIC_GA_MEASUREMENT_ID=G-XXXXXXXXXX

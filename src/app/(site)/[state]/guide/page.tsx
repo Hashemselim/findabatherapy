@@ -13,7 +13,7 @@ import { generateFAQSchema, generateMedicalWebPageSchema } from "@/lib/seo/schem
 import { type StateValue, US_STATES } from "@/lib/data/us-states";
 import { INSURANCES } from "@/lib/data/insurances";
 
-const BASE_URL = "https://www.findabatherapy.com";
+const BASE_URL = "https://www.findabatherapy.org";
 
 const stateLookup = new Map(US_STATES.map((state) => [state.value, state]));
 

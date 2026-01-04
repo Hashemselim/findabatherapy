@@ -463,7 +463,7 @@ export default function GetListedPage() {
                       <p className="text-center text-xs text-muted-foreground">
                         Questions?{" "}
                         <a
-                          href="mailto:hello@findabatherapy.com"
+                          href="mailto:hello@findabatherapy.org"
                           className="text-[#5788FF] transition-colors duration-300 hover:text-[#4a77e8] hover:underline"
                         >
                           Email us

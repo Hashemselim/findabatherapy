@@ -11,7 +11,7 @@ import { InsuranceSearchInput } from "@/components/insurance/insurance-search-in
 import { generateFAQSchema } from "@/lib/seo/schemas";
 import { INSURANCES } from "@/lib/data/insurances";
 
-const BASE_URL = "https://www.findabatherapy.com";
+const BASE_URL = "https://www.findabatherapy.org";
 
 export const metadata: Metadata = {
   title: "ABA Therapy by Insurance | Find ABA Therapy",

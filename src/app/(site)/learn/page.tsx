@@ -9,7 +9,7 @@ import { JsonLd } from "@/components/seo/json-ld";
 import { generateBreadcrumbSchema } from "@/lib/seo/schemas";
 import { ArticleList } from "@/components/content/article-list";
 
-const BASE_URL = "https://www.findabatherapy.com";
+const BASE_URL = "https://www.findabatherapy.org";
 
 export const metadata: Metadata = {
   title: "Learn About ABA Therapy | Guides & Resources",

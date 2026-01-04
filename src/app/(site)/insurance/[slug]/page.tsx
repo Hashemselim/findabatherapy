@@ -14,7 +14,7 @@ import { US_STATES } from "@/lib/data/us-states";
 import { JsonLd } from "@/components/seo/json-ld";
 import { generateFAQSchema, generateMedicalWebPageSchema } from "@/lib/seo/schemas";
 
-const BASE_URL = "https://www.findabatherapy.com";
+const BASE_URL = "https://www.findabatherapy.org";
 
 // Revalidate every hour
 export const revalidate = 3600;

@@ -552,7 +552,7 @@ export async function sendFeedbackNotification(
   params: FeedbackNotificationParams
 ): Promise<{ success: boolean; error?: string }> {
   const client = getResendClient();
-  const supportEmail = "support@findabatherapy.com";
+  const supportEmail = "support@findabatherapy.org";
 
   if (!client) {
     console.log("[EMAIL] Resend not configured - would send feedback notification:", {

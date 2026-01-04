@@ -10,7 +10,7 @@ import { Breadcrumbs } from "@/components/seo/breadcrumbs";
 import { JsonLd } from "@/components/seo/json-ld";
 import { GlossarySearch } from "@/components/content/glossary-search";
 
-const BASE_URL = "https://www.findabatherapy.com";
+const BASE_URL = "https://www.findabatherapy.org";
 
 export const metadata: Metadata = {
   title: "ABA Therapy Glossary | Terms & Definitions | Find ABA Therapy",

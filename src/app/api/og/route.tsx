@@ -211,7 +211,7 @@ export async function GET(request: NextRequest) {
             fontSize: 18,
           }}
         >
-          findabatherapy.com
+          findabatherapy.org
         </div>
       </div>
     ),

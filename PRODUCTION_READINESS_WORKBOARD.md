@@ -355,7 +355,7 @@ GOOGLE_MAPS_API_KEY: z.string().min(1),
 - `src/app/sitemap.ts`
 
 **Task**:
-1. Replace hardcoded `https://www.findabatherapy.com` with `env.NEXT_PUBLIC_SITE_URL`
+1. Replace hardcoded `https://www.findabatherapy.org` with `env.NEXT_PUBLIC_SITE_URL`
 2. Import env config
 
 **Acceptance criteria**:

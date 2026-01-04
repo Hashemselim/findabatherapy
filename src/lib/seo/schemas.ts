@@ -3,7 +3,7 @@
  * These create structured data for rich search results
  */
 
-const BASE_URL = "https://www.findabatherapy.com";
+const BASE_URL = "https://www.findabatherapy.org";
 
 // Organization schema for the main site
 export function generateOrganizationSchema() {
@@ -22,7 +22,7 @@ export function generateOrganizationSchema() {
     contactPoint: {
       "@type": "ContactPoint",
       contactType: "customer service",
-      email: "support@findabatherapy.com",
+      email: "support@findabatherapy.org",
     },
   };
 }

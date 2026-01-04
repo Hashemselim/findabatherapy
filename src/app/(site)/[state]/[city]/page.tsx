@@ -58,7 +58,7 @@ function getStateAbbrev(stateSlug: string): string | undefined {
   return undefined;
 }
 
-const BASE_URL = "https://www.findabatherapy.com";
+const BASE_URL = "https://www.findabatherapy.org";
 
 export async function generateMetadata({ params }: CityPageProps): Promise<Metadata> {
   const { state: stateSlug, city: citySlug } = await params;
