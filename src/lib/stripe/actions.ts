@@ -677,8 +677,8 @@ export async function verifyAndSyncCheckoutSession(
         .eq("id", listingId);
     }
 
-    // Revalidate dashboard pages
-    revalidatePath("/dashboard");
+    // Revalidate dashboard pages (use "layout" to also revalidate sidebar)
+    revalidatePath("/dashboard", "layout");
     revalidatePath("/dashboard/company");
     revalidatePath("/dashboard/locations");
     revalidatePath("/dashboard/billing");
