@@ -46,11 +46,16 @@ export function AnalyticsPreview({ isPaidPlan, analytics }: AnalyticsPreviewProp
           icon={<Eye className="h-4 w-4" />}
         />
 
-        {/* Search Impressions */}
+        {/* Search Impressions - show user impressions as main value */}
         <MetricCard
           label="Search Impressions"
-          value={analytics?.searchImpressions ?? 0}
+          value={analytics?.userImpressions ?? analytics?.searchImpressions ?? 0}
           icon={<BarChart3 className="h-4 w-4" />}
+          subtitle={
+            analytics?.botImpressions
+              ? `${analytics.botImpressions.toLocaleString()} from bots (Google, etc.)`
+              : "Visitors who saw your listing"
+          }
         />
 
         {/* Click-through Rate */}
@@ -77,9 +82,10 @@ interface MetricCardProps {
   value: number | string;
   trend?: number;
   icon: React.ReactNode;
+  subtitle?: string;
 }
 
-function MetricCard({ label, value, trend, icon }: MetricCardProps) {
+function MetricCard({ label, value, trend, icon, subtitle }: MetricCardProps) {
   const showTrend = trend !== undefined && trend !== 0;
   const isPositive = trend !== undefined && trend > 0;
 
@@ -107,7 +113,7 @@ function MetricCard({ label, value, trend, icon }: MetricCardProps) {
             </span>
           )}
         </div>
-        <p className="text-xs text-muted-foreground">Last 30 days</p>
+        <p className="text-xs text-muted-foreground">{subtitle || "Last 30 days"}</p>
       </CardContent>
     </Card>
   );

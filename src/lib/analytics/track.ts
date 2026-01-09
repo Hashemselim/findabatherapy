@@ -14,6 +14,52 @@ import {
 } from "./events";
 
 /**
+ * Common bot/crawler user agent patterns
+ */
+const BOT_PATTERNS = [
+  /googlebot/i,
+  /bingbot/i,
+  /slurp/i, // Yahoo
+  /duckduckbot/i,
+  /baiduspider/i,
+  /yandexbot/i,
+  /facebot/i,
+  /facebookexternalhit/i,
+  /twitterbot/i,
+  /linkedinbot/i,
+  /pinterest/i,
+  /applebot/i,
+  /semrushbot/i,
+  /ahrefsbot/i,
+  /mj12bot/i,
+  /dotbot/i,
+  /petalbot/i,
+  /bytespider/i,
+  /gptbot/i,
+  /claudebot/i,
+  /anthropic/i,
+  /chatgpt/i,
+  /ccbot/i,
+  /crawler/i,
+  /spider/i,
+  /bot\b/i,
+  /scraper/i,
+  /headless/i,
+  /phantom/i,
+  /selenium/i,
+  /puppeteer/i,
+  /playwright/i,
+];
+
+/**
+ * Detect if the user agent is a bot/crawler
+ */
+function isBot(userAgent: string | null | undefined): boolean {
+  if (!userAgent) return false;
+  return BOT_PATTERNS.some((pattern) => pattern.test(userAgent));
+}
+
+/**
  * Generate a simple session ID from request headers
  * Used for deduplication of events
  */
@@ -115,29 +161,51 @@ export async function trackListingClick(
 
 /**
  * Track a search performed
+ * @param source - "user" for client-side tracking, "bot" for detected bots, "unknown" for server-side without detection
  */
 export async function trackSearch(
   query: string | undefined,
   filters: Record<string, unknown>,
   resultsCount: number,
-  page?: number
+  page?: number,
+  source?: "user" | "bot" | "unknown"
 ): Promise<{ success: boolean }> {
   const metadata: SearchEventMetadata = {
     query,
     filters,
     resultsCount,
     page,
+    source: source || "unknown",
   };
 
   return trackEvent(EVENT_TYPES.SEARCH_PERFORMED, metadata);
 }
 
 /**
+ * Track a search performed with automatic bot detection (server-side)
+ * Uses request headers to detect if the request is from a bot/crawler
+ */
+export async function trackSearchWithBotDetection(
+  query: string | undefined,
+  filters: Record<string, unknown>,
+  resultsCount: number,
+  page?: number
+): Promise<{ success: boolean }> {
+  const headersList = await headers();
+  const userAgent = headersList.get("user-agent");
+  const source = isBot(userAgent) ? "bot" : "unknown";
+
+  return trackSearch(query, filters, resultsCount, page, source);
+}
+
+/**
  * Track search impressions (listings shown in results)
+ * @param source - "user" for client-side, "bot" for detected bots, "unknown" for server-side
  */
 export async function trackSearchImpressions(
   listings: Array<{ id: string; locationId?: string; position: number }>,
-  searchQuery?: string
+  searchQuery?: string,
+  source?: "user" | "bot" | "unknown"
 ): Promise<{ success: boolean }> {
   try {
     const supabase = await createAdminClient();
@@ -152,6 +220,7 @@ export async function trackSearchImpressions(
         locationId: listing.locationId,
         position: listing.position,
         searchQuery,
+        source: source || "unknown",
       } as SearchImpressionMetadata,
     }));
 
@@ -167,6 +236,20 @@ export async function trackSearchImpressions(
     console.error("[Analytics] Exception tracking search impressions:", e);
     return { success: false };
   }
+}
+
+/**
+ * Track search impressions with automatic bot detection (server-side)
+ */
+export async function trackSearchImpressionsWithBotDetection(
+  listings: Array<{ id: string; locationId?: string; position: number }>,
+  searchQuery?: string
+): Promise<{ success: boolean }> {
+  const headersList = await headers();
+  const userAgent = headersList.get("user-agent");
+  const source = isBot(userAgent) ? "bot" : "unknown";
+
+  return trackSearchImpressions(listings, searchQuery, source);
 }
 
 /**

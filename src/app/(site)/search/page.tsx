@@ -17,7 +17,7 @@ import { BubbleBackground } from "@/components/ui/bubble-background";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { searchProviderLocationsWithGooglePlaces } from "@/lib/actions/search";
-import { trackSearch, trackSearchImpressions } from "@/lib/analytics/track";
+import { trackSearchImpressionsWithBotDetection, trackSearchWithBotDetection } from "@/lib/analytics/track";
 import { parseFiltersFromParams, parseOptionsFromParams } from "@/lib/search/filters";
 import { generateItemListSchema } from "@/lib/seo/schemas";
 
@@ -125,8 +125,10 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     ? result.data
     : { results: [], total: 0, page: 1, totalPages: 0, radiusMiles: 25 };
 
-  // Track search event with full filter metadata (non-blocking)
-  trackSearch(
+  // Track search event server-side with bot detection (non-blocking)
+  // This tracks ALL page renders but marks bots separately from real users
+  // Client-side SearchTracker also fires for confirmed user visits (source="user")
+  trackSearchWithBotDetection(
     filters.query,
     {
       state: filters.state,
@@ -159,7 +161,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
       };
     });
   if (realListingsForTracking.length > 0) {
-    trackSearchImpressions(realListingsForTracking, filters.query).catch(() => {
+    trackSearchImpressionsWithBotDetection(realListingsForTracking, filters.query).catch(() => {
       // Silently fail - don't block page render
     });
   }

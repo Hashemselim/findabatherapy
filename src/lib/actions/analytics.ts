@@ -102,13 +102,18 @@ export async function getListingAnalytics(
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type SupabaseClient = Awaited<ReturnType<typeof createClient>> | Awaited<ReturnType<typeof createAdminClient>>;
 
+interface MetricsResult extends ListingMetrics {
+  userImpressions: number;
+  botImpressions: number;
+}
+
 async function getMetricsForPeriod(
   supabase: SupabaseClient,
   listingId: string,
   start: Date,
   end: Date,
   locationIds?: string[]
-): Promise<ListingMetrics> {
+): Promise<MetricsResult> {
   const startStr = start.toISOString();
   const endStr = end.toISOString();
 
@@ -120,6 +125,8 @@ async function getMetricsForPeriod(
   let viewCount = 0;
   let uniqueSessions = new Set<unknown>();
   let impressionCount = 0;
+  let userImpressionCount = 0;
+  let botImpressionCount = 0;
   let clickCount = 0;
 
   // Get view count
@@ -166,29 +173,35 @@ async function getMetricsForPeriod(
     );
   }
 
-  // Get search impressions
-  if (filterByLocation) {
-    const { data: impressionData } = await supabase
-      .from("audit_events")
-      .select("metadata")
-      .eq("listing_id", listingId)
-      .eq("event_type", EVENT_TYPES.SEARCH_IMPRESSION)
-      .gte("created_at", startStr)
-      .lte("created_at", endStr);
+  // Get search impressions (always fetch metadata to count by source)
+  const { data: impressionData } = await supabase
+    .from("audit_events")
+    .select("metadata")
+    .eq("listing_id", listingId)
+    .eq("event_type", EVENT_TYPES.SEARCH_IMPRESSION)
+    .gte("created_at", startStr)
+    .lte("created_at", endStr);
 
-    impressionCount = impressionData?.filter((e) => {
+  if (filterByLocation) {
+    const filteredImpressions = impressionData?.filter((e) => {
       const locId = (e.metadata as Record<string, unknown>)?.locationId as string;
       return locationIds.includes(locId);
-    }).length || 0;
+    }) || [];
+    impressionCount = filteredImpressions.length;
+    userImpressionCount = filteredImpressions.filter((e) =>
+      (e.metadata as Record<string, unknown>)?.source === "user"
+    ).length;
+    botImpressionCount = filteredImpressions.filter((e) =>
+      (e.metadata as Record<string, unknown>)?.source === "bot"
+    ).length;
   } else {
-    const { count } = await supabase
-      .from("audit_events")
-      .select("id", { count: "exact", head: true })
-      .eq("listing_id", listingId)
-      .eq("event_type", EVENT_TYPES.SEARCH_IMPRESSION)
-      .gte("created_at", startStr)
-      .lte("created_at", endStr);
-    impressionCount = count || 0;
+    impressionCount = impressionData?.length || 0;
+    userImpressionCount = impressionData?.filter((e) =>
+      (e.metadata as Record<string, unknown>)?.source === "user"
+    ).length || 0;
+    botImpressionCount = impressionData?.filter((e) =>
+      (e.metadata as Record<string, unknown>)?.source === "bot"
+    ).length || 0;
   }
 
   // Get search clicks
@@ -247,6 +260,8 @@ async function getMetricsForPeriod(
     views,
     uniqueViews: uniqueSessions.size,
     searchImpressions: impressions,
+    userImpressions: userImpressionCount,
+    botImpressions: botImpressionCount,
     searchClicks: clicks,
     contactClicks: contactClickCount || 0,
     inquiries,
@@ -369,6 +384,10 @@ export interface AnalyticsSummary {
   views: number;
   inquiries: number;
   searchImpressions: number;
+  /** Impressions from confirmed real users (client-side tracking) */
+  userImpressions: number;
+  /** Impressions from detected bot/crawler traffic */
+  botImpressions: number;
   clickThroughRate: number;
   viewsTrend: number; // percentage change from previous period
   inquiriesTrend: number;
@@ -423,6 +442,8 @@ export async function getAnalyticsSummary(): Promise<ActionResult<AnalyticsSumma
         views: current.views,
         inquiries: current.inquiries,
         searchImpressions: current.searchImpressions,
+        userImpressions: current.userImpressions,
+        botImpressions: current.botImpressions,
         clickThroughRate: current.clickThroughRate,
         viewsTrend: Math.round(viewsTrend * 10) / 10,
         inquiriesTrend: Math.round(inquiriesTrend * 10) / 10,

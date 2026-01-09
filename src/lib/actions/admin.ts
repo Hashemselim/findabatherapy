@@ -608,6 +608,10 @@ export interface AnalyticsTimeSeries {
 
 export interface ConversionMetrics {
   searches: number;
+  /** Searches confirmed from real users (client-side tracking) */
+  userSearches: number;
+  /** Searches detected as bot/crawler traffic */
+  botSearches: number;
   impressions: number;
   clicks: number;
   views: number;
@@ -1044,15 +1048,39 @@ export async function getConversionMetrics(
     return query;
   };
 
+  // Build query for search_performed with source filter
+  const buildSearchQuery = (source?: "user" | "bot") => {
+    let query = adminClient
+      .from("audit_events")
+      .select("*", { count: "exact", head: true })
+      .eq("event_type", "search_performed");
+
+    if (source) {
+      query = query.eq("metadata->>source", source);
+    }
+
+    if (dateRange) {
+      query = query
+        .gte("created_at", dateRange.start.toISOString())
+        .lte("created_at", dateRange.end.toISOString());
+    }
+
+    return query;
+  };
+
   // Fetch counts in parallel
   const [
     { count: searches },
+    { count: userSearches },
+    { count: botSearches },
     { count: impressions },
     { count: clicks },
     { count: views },
     { count: inquiries },
   ] = await Promise.all([
     buildQuery("search_performed"),
+    buildSearchQuery("user"),
+    buildSearchQuery("bot"),
     buildQuery("search_impression"),
     buildQuery("search_click"),
     buildQuery("listing_view"),
@@ -1064,6 +1092,8 @@ export async function getConversionMetrics(
   ]);
 
   const searchCount = searches || 0;
+  const userSearchCount = userSearches || 0;
+  const botSearchCount = botSearches || 0;
   const impressionCount = impressions || 0;
   const clickCount = clicks || 0;
   const viewCount = views || 0;
@@ -1073,6 +1103,8 @@ export async function getConversionMetrics(
     success: true,
     data: {
       searches: searchCount,
+      userSearches: userSearchCount,
+      botSearches: botSearchCount,
       impressions: impressionCount,
       clicks: clickCount,
       views: viewCount,

@@ -458,8 +458,8 @@ export default function AdminAnalyticsPage() {
                 />
                 <AdminMetricCard
                   title="Searches"
-                  value={conversionMetrics?.searches || 0}
-                  subtitle="Search queries performed"
+                  value={conversionMetrics?.userSearches || 0}
+                  subtitle={`${(conversionMetrics?.botSearches || 0).toLocaleString()} bot · ${((conversionMetrics?.searches || 0) - (conversionMetrics?.userSearches || 0) - (conversionMetrics?.botSearches || 0)).toLocaleString()} other`}
                   icon={<Search className="h-4 w-4 text-purple-600" />}
                 />
                 <AdminMetricCard
@@ -513,9 +513,9 @@ export default function AdminAnalyticsPage() {
             ) : conversionMetrics ? (
               <AdminConversionFunnel
                 title="Search to Inquiry Journey"
-                description="How visitors progress from search to contacting a provider"
+                description="How real users progress from search to contacting a provider"
                 steps={[
-                  { label: "Searches", value: conversionMetrics.searches, color: "bg-purple-500" },
+                  { label: "User Searches", value: conversionMetrics.userSearches, color: "bg-purple-500" },
                   { label: "Impressions", value: conversionMetrics.impressions, color: "bg-blue-500" },
                   { label: "Clicks", value: conversionMetrics.clicks, color: "bg-cyan-500" },
                   { label: "Page Views", value: conversionMetrics.views, color: "bg-green-500" },

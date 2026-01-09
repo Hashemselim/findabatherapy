@@ -56,6 +56,8 @@ export interface SearchEventMetadata extends BaseEventMetadata {
   filters?: Record<string, unknown>;
   resultsCount: number;
   page?: number;
+  /** Distinguishes real user searches from bot/crawler traffic */
+  source?: "user" | "bot" | "unknown";
 }
 
 export interface SearchImpressionMetadata extends BaseEventMetadata {
@@ -63,6 +65,8 @@ export interface SearchImpressionMetadata extends BaseEventMetadata {
   locationId?: string;
   position: number;
   searchQuery?: string;
+  /** Distinguishes real user impressions from bot/crawler traffic */
+  source?: "user" | "bot" | "unknown";
 }
 
 export interface SearchClickMetadata extends BaseEventMetadata {
