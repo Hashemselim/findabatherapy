@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createAdminClient } from "@/lib/supabase/server";
 
 export interface RemovalRequestWithDetails {
   id: string;
@@ -452,15 +452,17 @@ export async function getApplicationAnalytics(): Promise<ActionResult<Applicatio
   }
 
   const supabase = await createClient();
+  // Use admin client to read audit_events (RLS only allows service_role access)
+  const adminClient = await createAdminClient();
 
   const now = new Date();
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
   const weekStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
 
-  // Helper to count events by type
+  // Helper to count events by type (uses admin client for audit_events)
   async function countEvents(eventType: string, since?: string): Promise<number> {
-    let query = supabase
+    let query = adminClient
       .from("audit_events")
       .select("*", { count: "exact", head: true })
       .eq("event_type", eventType);
@@ -793,10 +795,11 @@ export async function getSearchAnalytics(
     return { success: false, error: "Unauthorized" };
   }
 
-  const supabase = await createClient();
+  // Use admin client to read audit_events (RLS only allows service_role access)
+  const adminClient = await createAdminClient();
 
   // Build base query
-  let query = supabase
+  let query = adminClient
     .from("audit_events")
     .select("metadata")
     .eq("event_type", "search_performed");
@@ -909,13 +912,15 @@ export async function getAnalyticsTimeSeries(
   }
 
   const supabase = await createClient();
+  // Use admin client to read audit_events (RLS only allows service_role access)
+  const adminClient = await createAdminClient();
 
   // Default to last 30 days if no range provided
   const end = dateRange?.end || new Date();
   const start = dateRange?.start || new Date(end.getTime() - 30 * 24 * 60 * 60 * 1000);
 
   // Fetch events
-  const { data: events, error: eventsError } = await supabase
+  const { data: events, error: eventsError } = await adminClient
     .from("audit_events")
     .select("event_type, created_at")
     .in("event_type", ["listing_view", "search_performed"])
@@ -1020,10 +1025,12 @@ export async function getConversionMetrics(
   }
 
   const supabase = await createClient();
+  // Use admin client to read audit_events (RLS only allows service_role access)
+  const adminClient = await createAdminClient();
 
-  // Build base query helper
+  // Build base query helper (uses admin client for audit_events)
   const buildQuery = (eventType: string) => {
-    let query = supabase
+    let query = adminClient
       .from("audit_events")
       .select("*", { count: "exact", head: true })
       .eq("event_type", eventType);

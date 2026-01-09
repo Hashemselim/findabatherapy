@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient, getUser } from "@/lib/supabase/server";
+import { createClient, createAdminClient, getUser } from "@/lib/supabase/server";
 import {
   EVENT_TYPES,
   type DashboardMetrics,
@@ -47,13 +47,16 @@ export async function getListingAnalytics(
   }
 
   try {
+    // Use admin client to read audit_events (RLS only allows service_role access)
+    const adminClient = await createAdminClient();
+
     const dateRange = getDateRangeForPeriod(period);
     const previousRange = getPreviousPeriodRange(period);
     const granularity = getGranularityForPeriod(period);
 
     // Get current period metrics
     const currentMetrics = await getMetricsForPeriod(
-      supabase,
+      adminClient,
       listing.id,
       dateRange.start,
       dateRange.end,
@@ -62,7 +65,7 @@ export async function getListingAnalytics(
 
     // Get previous period metrics for comparison
     const previousMetrics = await getMetricsForPeriod(
-      supabase,
+      adminClient,
       listing.id,
       previousRange.start,
       previousRange.end,
@@ -70,7 +73,7 @@ export async function getListingAnalytics(
     );
 
     // Get time series data (daily, then aggregate)
-    const rawTimeSeries = await getTimeSeriesData(supabase, listing.id, dateRange.start, dateRange.end, locationIds);
+    const rawTimeSeries = await getTimeSeriesData(adminClient, listing.id, dateRange.start, dateRange.end, locationIds);
 
     // Aggregate to appropriate granularity
     const timeSeries = {
@@ -80,7 +83,7 @@ export async function getListingAnalytics(
     };
 
     // Get top sources
-    const topSources = await getTopSources(supabase, listing.id, dateRange.start, dateRange.end, locationIds);
+    const topSources = await getTopSources(adminClient, listing.id, dateRange.start, dateRange.end, locationIds);
 
     return {
       success: true,
@@ -96,8 +99,11 @@ export async function getListingAnalytics(
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type SupabaseClient = Awaited<ReturnType<typeof createClient>> | Awaited<ReturnType<typeof createAdminClient>>;
+
 async function getMetricsForPeriod(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: SupabaseClient,
   listingId: string,
   start: Date,
   end: Date,
@@ -250,7 +256,7 @@ async function getMetricsForPeriod(
 }
 
 async function getTimeSeriesData(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: SupabaseClient,
   listingId: string,
   start: Date,
   end: Date,
@@ -316,7 +322,7 @@ async function getTimeSeriesData(
 }
 
 async function getTopSources(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: SupabaseClient,
   listingId: string,
   start: Date,
   end: Date,
@@ -388,6 +394,9 @@ export async function getAnalyticsSummary(): Promise<ActionResult<AnalyticsSumma
   }
 
   try {
+    // Use admin client to read audit_events (RLS only allows service_role access)
+    const adminClient = await createAdminClient();
+
     const now = new Date();
     const thirtyDaysAgo = new Date(now);
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -395,10 +404,10 @@ export async function getAnalyticsSummary(): Promise<ActionResult<AnalyticsSumma
     sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 30);
 
     // Current period metrics
-    const current = await getMetricsForPeriod(supabase, listing.id, thirtyDaysAgo, now);
+    const current = await getMetricsForPeriod(adminClient, listing.id, thirtyDaysAgo, now);
 
     // Previous period for trends
-    const previous = await getMetricsForPeriod(supabase, listing.id, sixtyDaysAgo, thirtyDaysAgo);
+    const previous = await getMetricsForPeriod(adminClient, listing.id, sixtyDaysAgo, thirtyDaysAgo);
 
     // Calculate trends
     const viewsTrend = previous.views > 0
@@ -458,13 +467,16 @@ export async function getLocationAnalytics(
   }
 
   try {
+    // Use admin client to read audit_events (RLS only allows service_role access)
+    const adminClient = await createAdminClient();
+
     const dateRange = getDateRangeForPeriod(period);
     const granularity = getGranularityForPeriod(period);
     const startStr = dateRange.start.toISOString();
     const endStr = dateRange.end.toISOString();
 
     // Get all events with locationId
-    const { data: events } = await supabase
+    const { data: events } = await adminClient
       .from("audit_events")
       .select("event_type, metadata, created_at")
       .eq("listing_id", listing.id)
