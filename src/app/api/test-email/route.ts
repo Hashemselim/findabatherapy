@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const validTypes = ["inquiry", "payment_failure", "subscription", "subscription_enterprise", "feedback"];
+    const validTypes = ["inquiry", "payment_failure", "subscription", "subscription_enterprise", "feedback", "admin_signup", "admin_first_payment"];
     if (!validTypes.includes(type)) {
       return NextResponse.json(
         { error: `Invalid type. Must be one of: ${validTypes.join(", ")}` },
@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const result = await sendTestEmail(to, type as "inquiry" | "payment_failure" | "subscription" | "subscription_enterprise" | "feedback");
+    const result = await sendTestEmail(to, type as "inquiry" | "payment_failure" | "subscription" | "subscription_enterprise" | "feedback" | "admin_signup" | "admin_first_payment");
 
     if (result.success) {
       return NextResponse.json({

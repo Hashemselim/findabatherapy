@@ -234,6 +234,24 @@ export interface FeedbackNotificationParams {
   pageUrl?: string | null;
 }
 
+export interface AdminNewSignupNotificationParams {
+  agencyName: string;
+  email: string;
+  planTier: string;
+  billingInterval: string;
+  signupMethod: "email" | "google" | "microsoft";
+}
+
+export interface AdminFirstPaymentNotificationParams {
+  agencyName: string;
+  email: string;
+  planTier: string;
+  billingInterval: string;
+  amountPaid: number;
+  currency: string;
+  state?: string | null;
+}
+
 /**
  * Send email notification to provider when a new inquiry is submitted
  */
@@ -650,12 +668,210 @@ export async function sendFeedbackNotification(
   }
 }
 
+// Admin email for notifications
+const ADMIN_EMAIL = "support@findabatherapy.org";
+
+/**
+ * Send email notification to admins when a new provider signs up
+ */
+export async function sendAdminNewSignupNotification(
+  params: AdminNewSignupNotificationParams
+): Promise<{ success: boolean; error?: string }> {
+  const client = getResendClient();
+
+  const signupMethodLabels: Record<string, string> = {
+    email: "Email",
+    google: "Google OAuth",
+    microsoft: "Microsoft OAuth",
+  };
+
+  if (!client) {
+    console.log("[EMAIL] Resend not configured - would send admin signup notification:", {
+      agency: params.agencyName,
+      email: params.email,
+      plan: params.planTier,
+      method: params.signupMethod,
+    });
+    return { success: true };
+  }
+
+  try {
+    const siteUrl = getSiteUrl();
+    const planLabel = params.planTier.charAt(0).toUpperCase() + params.planTier.slice(1);
+    const intervalLabel = params.billingInterval === "year" ? "Annual" : "Monthly";
+
+    const content = `
+      <h1 style="color: ${BRAND.textDark}; font-size: 24px; font-weight: 700; margin: 0 0 8px 0;">
+        New Provider Signup
+      </h1>
+      <p style="color: ${BRAND.success}; font-size: 14px; font-weight: 600; margin: 0 0 24px 0; text-transform: uppercase; letter-spacing: 0.5px;">
+        A new provider just created an account
+      </p>
+
+      ${infoCard("Provider Details", `
+        <p style="color: ${BRAND.textMedium}; margin: 8px 0; font-size: 14px;">
+          <strong style="color: ${BRAND.textDark};">Company Name:</strong> ${params.agencyName}
+        </p>
+        <p style="color: ${BRAND.textMedium}; margin: 8px 0; font-size: 14px;">
+          <strong style="color: ${BRAND.textDark};">Email:</strong>
+          <a href="mailto:${params.email}" style="color: ${BRAND.primary}; text-decoration: none;">${params.email}</a>
+        </p>
+        <p style="color: ${BRAND.textMedium}; margin: 8px 0; font-size: 14px;">
+          <strong style="color: ${BRAND.textDark};">Selected Plan:</strong>
+          <span style="color: ${BRAND.primary}; font-weight: 500;">${planLabel}</span>
+          ${params.planTier !== "free" ? `<span style="color: ${BRAND.textLight};"> (${intervalLabel})</span>` : ""}
+        </p>
+        <p style="color: ${BRAND.textMedium}; margin: 8px 0; font-size: 14px;">
+          <strong style="color: ${BRAND.textDark};">Signup Method:</strong> ${signupMethodLabels[params.signupMethod] || params.signupMethod}
+        </p>
+      `)}
+
+      ${primaryButton("View in Admin Dashboard", `${siteUrl}/admin`)}
+
+      <p style="color: ${BRAND.textLight}; font-size: 13px; margin-top: 24px;">
+        This is an automated notification for new provider signups.
+      </p>
+    `.trim();
+
+    const { error } = await client.emails.send({
+      from: getFromEmail(),
+      to: ADMIN_EMAIL,
+      subject: `New Provider Signup: ${params.agencyName}`,
+      html: emailWrapper(content, { preheader: `${params.agencyName} just signed up for Find ABA Therapy` }),
+    });
+
+    if (error) {
+      console.error("[EMAIL] Failed to send admin signup notification:", error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (err) {
+    console.error("[EMAIL] Error sending admin signup notification:", err);
+    return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
+  }
+}
+
+/**
+ * Send email notification to admins when a provider makes their first payment
+ */
+export async function sendAdminFirstPaymentNotification(
+  params: AdminFirstPaymentNotificationParams
+): Promise<{ success: boolean; error?: string }> {
+  const client = getResendClient();
+
+  if (!client) {
+    console.log("[EMAIL] Resend not configured - would send admin first payment notification:", {
+      agency: params.agencyName,
+      email: params.email,
+      plan: params.planTier,
+      amount: `${(params.amountPaid / 100).toFixed(2)} ${params.currency.toUpperCase()}`,
+      state: params.state,
+    });
+    return { success: true };
+  }
+
+  try {
+    const siteUrl = getSiteUrl();
+    const planLabel = params.planTier.charAt(0).toUpperCase() + params.planTier.slice(1);
+    const intervalLabel = params.billingInterval === "year" ? "Annual" : "Monthly";
+    const formattedAmount = `$${(params.amountPaid / 100).toFixed(2)} ${params.currency.toUpperCase()}`;
+
+    const content = `
+      <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom: 32px;">
+        <tr>
+          <td align="center">
+            <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+              <tr>
+                <td align="center" valign="middle" width="64" height="64" style="background-color: ${BRAND.success}; border-radius: 32px; margin-bottom: 16px;">
+                  <span style="color: white; font-size: 28px; line-height: 1;">$</span>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+        <tr>
+          <td align="center" style="padding-top: 16px;">
+            <h1 style="color: ${BRAND.textDark}; font-size: 28px; font-weight: 700; margin: 0 0 8px 0;">
+              First Payment Received!
+            </h1>
+            <p style="color: ${BRAND.accent}; font-size: 14px; font-weight: 600; margin: 0; text-transform: uppercase; letter-spacing: 0.5px;">
+              A provider just became a paying customer
+            </p>
+          </td>
+        </tr>
+      </table>
+
+      ${alertBox(`<strong>${params.agencyName}</strong> just made their first payment of <strong>${formattedAmount}</strong>!`, "success")}
+
+      ${infoCard("Customer Details", `
+        <p style="color: ${BRAND.textMedium}; margin: 8px 0; font-size: 14px;">
+          <strong style="color: ${BRAND.textDark};">Company Name:</strong> ${params.agencyName}
+        </p>
+        <p style="color: ${BRAND.textMedium}; margin: 8px 0; font-size: 14px;">
+          <strong style="color: ${BRAND.textDark};">Email:</strong>
+          <a href="mailto:${params.email}" style="color: ${BRAND.primary}; text-decoration: none;">${params.email}</a>
+        </p>
+        ${params.state ? `
+          <p style="color: ${BRAND.textMedium}; margin: 8px 0; font-size: 14px;">
+            <strong style="color: ${BRAND.textDark};">State:</strong> ${params.state}
+          </p>
+        ` : ""}
+      `)}
+
+      ${infoCard("Subscription Details", `
+        <p style="color: ${BRAND.textMedium}; margin: 8px 0; font-size: 14px;">
+          <strong style="color: ${BRAND.textDark};">Plan:</strong>
+          <span style="color: ${BRAND.primary}; font-weight: 600;">${planLabel}</span>
+        </p>
+        <p style="color: ${BRAND.textMedium}; margin: 8px 0; font-size: 14px;">
+          <strong style="color: ${BRAND.textDark};">Billing:</strong> ${intervalLabel}
+        </p>
+        <p style="color: ${BRAND.textMedium}; margin: 8px 0; font-size: 14px;">
+          <strong style="color: ${BRAND.textDark};">Amount:</strong>
+          <span style="color: ${BRAND.success}; font-weight: 600;">${formattedAmount}</span>
+        </p>
+      `)}
+
+      ${primaryButton("View in Admin Dashboard", `${siteUrl}/admin`, BRAND.success)}
+
+      <p style="color: ${BRAND.textLight}; font-size: 13px; margin-top: 24px;">
+        This is an automated notification for first-time payments.
+      </p>
+    `.trim();
+
+    const { error } = await client.emails.send({
+      from: getFromEmail(),
+      to: ADMIN_EMAIL,
+      subject: `First Payment: ${params.agencyName} - ${formattedAmount}`,
+      html: emailWrapper(content, { preheader: `${params.agencyName} just made their first payment on Find ABA Therapy` }),
+    });
+
+    if (error) {
+      console.error("[EMAIL] Failed to send admin first payment notification:", error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (err) {
+    console.error("[EMAIL] Error sending admin first payment notification:", err);
+    return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
+  }
+}
+
 /**
  * Send a test email to verify the email templates are working
  */
 export async function sendTestEmail(
   to: string,
-  type: "inquiry" | "payment_failure" | "subscription" | "subscription_enterprise" | "feedback" = "inquiry"
+  type:
+    | "inquiry"
+    | "payment_failure"
+    | "subscription"
+    | "subscription_enterprise"
+    | "feedback"
+    | "admin_signup"
+    | "admin_first_payment" = "inquiry"
 ): Promise<{ success: boolean; error?: string }> {
   const testData = {
     inquiry: () =>
@@ -702,6 +918,24 @@ export async function sendTestEmail(
         message:
           "I love the platform! It would be great if you could add a feature to schedule consultations directly through the contact form. This would save time for both families and providers.",
         pageUrl: "https://findabatherapy.org/provider/abc-therapy",
+      }),
+    admin_signup: () =>
+      sendAdminNewSignupNotification({
+        agencyName: "Sunshine ABA Services",
+        email: "contact@sunshineaba.com",
+        planTier: "pro",
+        billingInterval: "month",
+        signupMethod: "google",
+      }),
+    admin_first_payment: () =>
+      sendAdminFirstPaymentNotification({
+        agencyName: "Sunshine ABA Services",
+        email: "contact@sunshineaba.com",
+        planTier: "pro",
+        billingInterval: "month",
+        amountPaid: 9900,
+        currency: "usd",
+        state: "Texas",
       }),
   };
 

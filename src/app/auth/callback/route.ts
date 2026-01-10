@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { createClient, createAdminClient } from "@/lib/supabase/server";
+import { sendAdminNewSignupNotification } from "@/lib/email/notifications";
 
 /**
  * OAuth callback handler.
@@ -70,6 +71,18 @@ export async function GET(request: Request) {
         if (profileError) {
           console.error("Profile creation error:", profileError);
         }
+
+        // Send admin notification for new signup
+        // Determine signup method from OAuth provider
+        const provider = data.user.app_metadata?.provider;
+        const signupMethod = provider === "google" ? "google" : provider === "azure" ? "microsoft" : "email";
+        await sendAdminNewSignupNotification({
+          agencyName,
+          email: data.user.email!,
+          planTier: userPlan,
+          billingInterval: userInterval,
+          signupMethod,
+        });
 
         // For paid plans selected from pricing page, redirect to payment first
         if (userPlan === "pro" || userPlan === "enterprise") {

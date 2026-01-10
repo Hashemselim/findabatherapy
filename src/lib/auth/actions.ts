@@ -6,6 +6,7 @@ import { headers } from "next/headers";
 
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { verifyTurnstileToken } from "@/lib/turnstile";
+import { sendAdminNewSignupNotification } from "@/lib/email/notifications";
 
 export type AuthError = {
   error: string;
@@ -164,12 +165,22 @@ export async function signUpWithEmail(formData: FormData): Promise<AuthResult> {
   // If user was created and confirmed (e.g., in development), create profile
   if (data.user) {
     const adminClient = await createAdminClient();
+    const finalAgencyName = agencyName || email.split("@")[0];
     await adminClient.from("profiles").insert({
       id: data.user.id,
-      agency_name: agencyName || email.split("@")[0],
+      agency_name: finalAgencyName,
       contact_email: email,
       plan_tier: planTier,
       billing_interval: interval,
+    });
+
+    // Send admin notification for new signup
+    await sendAdminNewSignupNotification({
+      agencyName: finalAgencyName,
+      email,
+      planTier,
+      billingInterval: interval,
+      signupMethod: "email",
     });
   }
 

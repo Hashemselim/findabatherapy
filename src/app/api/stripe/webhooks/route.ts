@@ -6,7 +6,7 @@ import type Stripe from "stripe";
 import { stripe } from "@/lib/stripe";
 import { createAdminClient } from "@/lib/supabase/server";
 import { env } from "@/env";
-import { sendPaymentFailureNotification } from "@/lib/email/notifications";
+import { sendPaymentFailureNotification, sendAdminFirstPaymentNotification } from "@/lib/email/notifications";
 
 /**
  * Stripe webhook handler
@@ -351,10 +351,10 @@ async function handleInvoicePaid(
 ) {
   const customerId = invoice.customer as string;
 
-  // Find profile
+  // Find profile with details needed for first payment notification
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id")
+    .select("id, agency_name, contact_email, plan_tier, billing_interval")
     .eq("stripe_customer_id", customerId)
     .single();
 
@@ -371,8 +371,38 @@ async function handleInvoicePaid(
       invoice_id: invoice.id,
       amount_paid: invoice.amount_paid,
       currency: invoice.currency,
+      billing_reason: invoice.billing_reason,
     },
   });
+
+  // Check if this is the first payment (subscription creation)
+  // billing_reason === 'subscription_create' indicates the first invoice for a new subscription
+  if (invoice.billing_reason === "subscription_create" && invoice.amount_paid > 0) {
+    // Try to get the first location's state for additional context
+    let state: string | null = null;
+    const { data: locations } = await supabase
+      .from("locations")
+      .select("state")
+      .eq("profile_id", profile.id)
+      .limit(1);
+
+    if (locations && locations.length > 0) {
+      state = locations[0].state;
+    }
+
+    // Send admin notification for first payment
+    await sendAdminFirstPaymentNotification({
+      agencyName: profile.agency_name || "Unknown",
+      email: profile.contact_email || "unknown@example.com",
+      planTier: profile.plan_tier || "pro",
+      billingInterval: profile.billing_interval || "month",
+      amountPaid: invoice.amount_paid,
+      currency: invoice.currency,
+      state,
+    });
+
+    console.log(`First payment notification sent for profile ${profile.id}`);
+  }
 
   // Revalidate dashboard pages so the UI reflects the change
   revalidatePath("/dashboard");
