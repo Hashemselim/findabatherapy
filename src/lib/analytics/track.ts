@@ -14,7 +14,24 @@ import {
 } from "./events";
 
 /**
- * Common bot/crawler user agent patterns
+ * AI assistant user agent patterns - these are valuable as they represent
+ * real users asking AI to find information (e.g., "find me a therapist in NYC")
+ */
+const AI_ASSISTANT_PATTERNS = [
+  /gptbot/i,           // OpenAI's crawler
+  /chatgpt/i,          // ChatGPT browsing for users
+  /claudebot/i,        // Anthropic's crawler
+  /anthropic/i,        // Anthropic
+  /perplexity/i,       // Perplexity AI
+  /cohere/i,           // Cohere AI
+  /ai2bot/i,           // Allen Institute for AI
+  /google-extended/i,  // Google Gemini/Bard crawler
+  /gemini/i,           // Google Gemini
+  /meta-externalagent/i, // Meta AI
+];
+
+/**
+ * SEO and other bot/crawler user agent patterns - these are not direct user traffic
  */
 const BOT_PATTERNS = [
   /googlebot/i,
@@ -35,11 +52,7 @@ const BOT_PATTERNS = [
   /dotbot/i,
   /petalbot/i,
   /bytespider/i,
-  /gptbot/i,
-  /claudebot/i,
-  /anthropic/i,
-  /chatgpt/i,
-  /ccbot/i,
+  /ccbot/i,            // Common Crawl (training data)
   /crawler/i,
   /spider/i,
   /bot\b/i,
@@ -52,16 +65,31 @@ const BOT_PATTERNS = [
 ];
 
 /**
- * Detect if the user agent is a bot/crawler
- * Returns true if:
- * - User agent is missing (real browsers always send one)
- * - User agent matches known bot patterns
+ * Detect the source type from user agent
+ * Returns: "ai" for AI assistants, "bot" for SEO/crawlers, or null for unknown
+ */
+function detectBotType(userAgent: string | null | undefined): "ai" | "bot" | null {
+  // No user agent = likely automated traffic
+  if (!userAgent) return "bot";
+
+  // Check AI assistants first (more specific)
+  if (AI_ASSISTANT_PATTERNS.some((pattern) => pattern.test(userAgent))) {
+    return "ai";
+  }
+
+  // Check general bots
+  if (BOT_PATTERNS.some((pattern) => pattern.test(userAgent))) {
+    return "bot";
+  }
+
+  return null;
+}
+
+/**
+ * Detect if the user agent is a bot/crawler (includes AI assistants)
  */
 function isBot(userAgent: string | null | undefined): boolean {
-  // No user agent = likely automated traffic (bots, scripts, curl, etc.)
-  // Real browsers always send a user agent
-  if (!userAgent) return true;
-  return BOT_PATTERNS.some((pattern) => pattern.test(userAgent));
+  return detectBotType(userAgent) !== null;
 }
 
 /**
@@ -173,7 +201,7 @@ export async function trackSearch(
   filters: Record<string, unknown>,
   resultsCount: number,
   page?: number,
-  source?: "user" | "bot" | "unknown"
+  source?: "user" | "ai" | "bot" | "unknown"
 ): Promise<{ success: boolean }> {
   const metadata: SearchEventMetadata = {
     query,
@@ -188,7 +216,7 @@ export async function trackSearch(
 
 /**
  * Track a search performed with automatic bot detection (server-side)
- * Uses request headers to detect if the request is from a bot/crawler
+ * Uses request headers to detect if the request is from a bot/crawler or AI assistant
  */
 export async function trackSearchWithBotDetection(
   query: string | undefined,
@@ -198,7 +226,8 @@ export async function trackSearchWithBotDetection(
 ): Promise<{ success: boolean }> {
   const headersList = await headers();
   const userAgent = headersList.get("user-agent");
-  const source = isBot(userAgent) ? "bot" : "unknown";
+  const botType = detectBotType(userAgent);
+  const source = botType || "unknown";
 
   return trackSearch(query, filters, resultsCount, page, source);
 }
@@ -210,7 +239,7 @@ export async function trackSearchWithBotDetection(
 export async function trackSearchImpressions(
   listings: Array<{ id: string; locationId?: string; position: number }>,
   searchQuery?: string,
-  source?: "user" | "bot" | "unknown"
+  source?: "user" | "ai" | "bot" | "unknown"
 ): Promise<{ success: boolean }> {
   try {
     const supabase = await createAdminClient();
@@ -252,7 +281,8 @@ export async function trackSearchImpressionsWithBotDetection(
 ): Promise<{ success: boolean }> {
   const headersList = await headers();
   const userAgent = headersList.get("user-agent");
-  const source = isBot(userAgent) ? "bot" : "unknown";
+  const botType = detectBotType(userAgent);
+  const source = botType || "unknown";
 
   return trackSearchImpressions(listings, searchQuery, source);
 }

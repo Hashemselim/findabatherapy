@@ -302,7 +302,9 @@ export interface ApplicationAnalytics {
   totalSearches: number;
   /** Searches confirmed from real users (client-side tracking) */
   totalUserSearches: number;
-  /** Searches detected as bot/crawler traffic */
+  /** Searches from AI assistants (ChatGPT, Claude, Perplexity, etc.) */
+  totalAiSearches: number;
+  /** Searches detected as SEO bots/crawlers */
   totalBotSearches: number;
   totalInquiries: number;
   totalContactClicks: number;
@@ -494,7 +496,7 @@ export async function getApplicationAnalytics(): Promise<ActionResult<Applicatio
   }
 
   // Helper to count search_performed by source
-  async function countSearchesBySource(source: "user" | "bot"): Promise<number> {
+  async function countSearchesBySource(source: "user" | "ai" | "bot"): Promise<number> {
     const { count } = await adminClient
       .from("audit_events")
       .select("*", { count: "exact", head: true })
@@ -508,6 +510,7 @@ export async function getApplicationAnalytics(): Promise<ActionResult<Applicatio
     totalViews,
     totalSearches,
     totalUserSearches,
+    totalAiSearches,
     totalBotSearches,
     totalInquiries,
     totalContactClicks,
@@ -528,6 +531,7 @@ export async function getApplicationAnalytics(): Promise<ActionResult<Applicatio
     countEvents("listing_view"),
     countEvents("search_performed"),
     countSearchesBySource("user"),
+    countSearchesBySource("ai"),
     countSearchesBySource("bot"),
     countInquiries(),
     countEvents("listing_contact_click"),
@@ -554,6 +558,7 @@ export async function getApplicationAnalytics(): Promise<ActionResult<Applicatio
       totalViews,
       totalSearches,
       totalUserSearches,
+      totalAiSearches,
       totalBotSearches,
       totalInquiries,
       totalContactClicks,

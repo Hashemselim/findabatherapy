@@ -205,11 +205,21 @@ interface OverviewCardsProps {
 }
 
 function OverviewCards({ current, previous }: OverviewCardsProps) {
-  // Calculate impressions excluding bots
+  // Calculate impressions excluding SEO bots (but including AI assistants as valuable traffic)
   const botImpressions = current.botImpressions || 0;
+  const aiImpressions = current.aiImpressions || 0;
   const prevBotImpressions = previous.botImpressions || 0;
   const impressionsExcludingBots = (current.searchImpressions || 0) - botImpressions;
   const prevImpressionsExcludingBots = (previous.searchImpressions || 0) - prevBotImpressions;
+
+  // Build subtitle showing AI visits and excluded bots
+  const impressionSubtitleParts: string[] = [];
+  if (aiImpressions > 0) {
+    impressionSubtitleParts.push(`${aiImpressions.toLocaleString()} via AI assistants`);
+  }
+  if (botImpressions > 0) {
+    impressionSubtitleParts.push(`${botImpressions.toLocaleString()} bots excluded`);
+  }
 
   const metrics = [
     {
@@ -226,8 +236,8 @@ function OverviewCards({ current, previous }: OverviewCardsProps) {
       previousValue: prevImpressionsExcludingBots,
       icon: Search,
       format: "number" as const,
-      subtitle: botImpressions > 0
-        ? `${botImpressions.toLocaleString()} bot visits excluded`
+      subtitle: impressionSubtitleParts.length > 0
+        ? impressionSubtitleParts.join(" · ")
         : undefined,
     },
     {

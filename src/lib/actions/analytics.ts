@@ -121,6 +121,7 @@ async function getMetricsForPeriod(
   let uniqueSessions = new Set<unknown>();
   let impressionCount = 0;
   let userImpressionCount = 0;
+  let aiImpressionCount = 0;
   let botImpressionCount = 0;
   let clickCount = 0;
 
@@ -186,6 +187,9 @@ async function getMetricsForPeriod(
     userImpressionCount = filteredImpressions.filter((e) =>
       (e.metadata as Record<string, unknown>)?.source === "user"
     ).length;
+    aiImpressionCount = filteredImpressions.filter((e) =>
+      (e.metadata as Record<string, unknown>)?.source === "ai"
+    ).length;
     botImpressionCount = filteredImpressions.filter((e) =>
       (e.metadata as Record<string, unknown>)?.source === "bot"
     ).length;
@@ -193,6 +197,9 @@ async function getMetricsForPeriod(
     impressionCount = impressionData?.length || 0;
     userImpressionCount = impressionData?.filter((e) =>
       (e.metadata as Record<string, unknown>)?.source === "user"
+    ).length || 0;
+    aiImpressionCount = impressionData?.filter((e) =>
+      (e.metadata as Record<string, unknown>)?.source === "ai"
     ).length || 0;
     botImpressionCount = impressionData?.filter((e) =>
       (e.metadata as Record<string, unknown>)?.source === "bot"
@@ -256,6 +263,7 @@ async function getMetricsForPeriod(
     uniqueViews: uniqueSessions.size,
     searchImpressions: impressions,
     userImpressions: userImpressionCount,
+    aiImpressions: aiImpressionCount,
     botImpressions: botImpressionCount,
     searchClicks: clicks,
     contactClicks: contactClickCount || 0,
@@ -381,7 +389,9 @@ export interface AnalyticsSummary {
   searchImpressions: number;
   /** Impressions from confirmed real users (client-side tracking) */
   userImpressions: number;
-  /** Impressions from detected bot/crawler traffic */
+  /** Impressions from AI assistants (ChatGPT, Claude, Perplexity, etc.) */
+  aiImpressions: number;
+  /** Impressions from SEO bots/crawlers */
   botImpressions: number;
   clickThroughRate: number;
   viewsTrend: number; // percentage change from previous period
@@ -438,6 +448,7 @@ export async function getAnalyticsSummary(): Promise<ActionResult<AnalyticsSumma
         inquiries: current.inquiries,
         searchImpressions: current.searchImpressions,
         userImpressions: current.userImpressions,
+        aiImpressions: current.aiImpressions,
         botImpressions: current.botImpressions,
         clickThroughRate: current.clickThroughRate,
         viewsTrend: Math.round(viewsTrend * 10) / 10,

@@ -46,16 +46,21 @@ export function AnalyticsPreview({ isPaidPlan, analytics }: AnalyticsPreviewProp
           icon={<Eye className="h-4 w-4" />}
         />
 
-        {/* Search Impressions - show total minus bots */}
+        {/* Search Impressions - show total minus bots, highlight AI visits */}
         <MetricCard
           label="Search Impressions"
           value={(analytics?.searchImpressions || 0) - (analytics?.botImpressions || 0)}
           icon={<BarChart3 className="h-4 w-4" />}
-          subtitle={
-            analytics?.botImpressions
-              ? `${analytics.botImpressions.toLocaleString()} bot visits excluded`
-              : "Visitors who saw your listing"
-          }
+          subtitle={(() => {
+            const parts: string[] = [];
+            if (analytics?.aiImpressions) {
+              parts.push(`${analytics.aiImpressions.toLocaleString()} via AI assistants`);
+            }
+            if (analytics?.botImpressions) {
+              parts.push(`${analytics.botImpressions.toLocaleString()} bots excluded`);
+            }
+            return parts.length > 0 ? parts.join(" · ") : "Visitors who saw your listing";
+          })()}
         />
 
         {/* Click-through Rate */}
