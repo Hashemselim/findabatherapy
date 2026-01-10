@@ -53,9 +53,14 @@ const BOT_PATTERNS = [
 
 /**
  * Detect if the user agent is a bot/crawler
+ * Returns true if:
+ * - User agent is missing (real browsers always send one)
+ * - User agent matches known bot patterns
  */
 function isBot(userAgent: string | null | undefined): boolean {
-  if (!userAgent) return false;
+  // No user agent = likely automated traffic (bots, scripts, curl, etc.)
+  // Real browsers always send a user agent
+  if (!userAgent) return true;
   return BOT_PATTERNS.some((pattern) => pattern.test(userAgent));
 }
 
