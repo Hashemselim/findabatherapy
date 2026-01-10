@@ -102,18 +102,13 @@ export async function getListingAnalytics(
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type SupabaseClient = Awaited<ReturnType<typeof createClient>> | Awaited<ReturnType<typeof createAdminClient>>;
 
-interface MetricsResult extends ListingMetrics {
-  userImpressions: number;
-  botImpressions: number;
-}
-
 async function getMetricsForPeriod(
   supabase: SupabaseClient,
   listingId: string,
   start: Date,
   end: Date,
   locationIds?: string[]
-): Promise<MetricsResult> {
+): Promise<ListingMetrics> {
   const startStr = start.toISOString();
   const endStr = end.toISOString();
 

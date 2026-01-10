@@ -116,6 +116,10 @@ export interface ListingMetrics {
   views: number;
   uniqueViews: number;
   searchImpressions: number;
+  /** Impressions from confirmed real users (client-side tracking) */
+  userImpressions: number;
+  /** Impressions from detected bot/crawler traffic */
+  botImpressions: number;
   searchClicks: number;
   contactClicks: number;
   inquiries: number;

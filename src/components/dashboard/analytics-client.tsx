@@ -205,6 +205,11 @@ interface OverviewCardsProps {
 }
 
 function OverviewCards({ current, previous }: OverviewCardsProps) {
+  // Calculate bot/other breakdown for impressions
+  const botImpressions = current.botImpressions || 0;
+  const userImpressions = current.userImpressions || 0;
+  const otherImpressions = (current.searchImpressions || 0) - userImpressions - botImpressions;
+
   const metrics = [
     {
       title: "Page Views",
@@ -212,13 +217,17 @@ function OverviewCards({ current, previous }: OverviewCardsProps) {
       previousValue: previous.views,
       icon: Eye,
       format: "number" as const,
+      subtitle: undefined as string | undefined,
     },
     {
       title: "Search Impressions",
-      value: current.searchImpressions,
-      previousValue: previous.searchImpressions,
+      value: userImpressions || current.searchImpressions,
+      previousValue: previous.userImpressions || previous.searchImpressions,
       icon: Search,
       format: "number" as const,
+      subtitle: botImpressions > 0 || otherImpressions > 0
+        ? `${botImpressions.toLocaleString()} bot · ${otherImpressions.toLocaleString()} other`
+        : undefined,
     },
     {
       title: "Click-through Rate",
@@ -226,6 +235,7 @@ function OverviewCards({ current, previous }: OverviewCardsProps) {
       previousValue: previous.clickThroughRate,
       icon: MousePointer,
       format: "percent" as const,
+      subtitle: undefined as string | undefined,
     },
     {
       title: "Inquiries",
@@ -233,6 +243,7 @@ function OverviewCards({ current, previous }: OverviewCardsProps) {
       previousValue: previous.inquiries,
       icon: MessageSquare,
       format: "number" as const,
+      subtitle: undefined as string | undefined,
     },
   ];
 
@@ -260,6 +271,9 @@ function OverviewCards({ current, previous }: OverviewCardsProps) {
                   ? `${metric.value.toFixed(1)}%`
                   : metric.value.toLocaleString()}
               </div>
+              {metric.subtitle && (
+                <p className="text-xs text-muted-foreground">{metric.subtitle}</p>
+              )}
               {!isNeutral && (
                 <p
                   className={cn(
