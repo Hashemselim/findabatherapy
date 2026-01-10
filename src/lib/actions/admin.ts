@@ -300,6 +300,10 @@ export interface ApplicationAnalytics {
   // Overall counts
   totalViews: number;
   totalSearches: number;
+  /** Searches confirmed from real users (client-side tracking) */
+  totalUserSearches: number;
+  /** Searches detected as bot/crawler traffic */
+  totalBotSearches: number;
   totalInquiries: number;
   totalContactClicks: number;
   // Today's counts
@@ -489,10 +493,22 @@ export async function getApplicationAnalytics(): Promise<ActionResult<Applicatio
     return count || 0;
   }
 
+  // Helper to count search_performed by source
+  async function countSearchesBySource(source: "user" | "bot"): Promise<number> {
+    const { count } = await adminClient
+      .from("audit_events")
+      .select("*", { count: "exact", head: true })
+      .eq("event_type", "search_performed")
+      .filter("metadata->>source", "eq", source);
+    return count || 0;
+  }
+
   // Fetch all counts in parallel
   const [
     totalViews,
     totalSearches,
+    totalUserSearches,
+    totalBotSearches,
     totalInquiries,
     totalContactClicks,
     todayViews,
@@ -511,6 +527,8 @@ export async function getApplicationAnalytics(): Promise<ActionResult<Applicatio
     // Total counts
     countEvents("listing_view"),
     countEvents("search_performed"),
+    countSearchesBySource("user"),
+    countSearchesBySource("bot"),
     countInquiries(),
     countEvents("listing_contact_click"),
     // Today's counts
@@ -535,6 +553,8 @@ export async function getApplicationAnalytics(): Promise<ActionResult<Applicatio
     data: {
       totalViews,
       totalSearches,
+      totalUserSearches,
+      totalBotSearches,
       totalInquiries,
       totalContactClicks,
       todayViews,
@@ -1056,7 +1076,7 @@ export async function getConversionMetrics(
       .eq("event_type", "search_performed");
 
     if (source) {
-      query = query.eq("metadata->>source", source);
+      query = query.filter("metadata->>source", "eq", source);
     }
 
     if (dateRange) {

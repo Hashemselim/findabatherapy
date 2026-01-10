@@ -14,6 +14,11 @@ const PUBLIC_DASHBOARD_ROUTES = ["/demo"];
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // Skip middleware for PostHog proxy routes
+  if (pathname.startsWith("/ingest")) {
+    return NextResponse.next();
+  }
+
   // Update session and get user
   const { supabaseResponse, user, supabase } = await updateSession(request);
 
