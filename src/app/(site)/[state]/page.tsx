@@ -15,7 +15,7 @@ import { type StateValue, US_STATES } from "@/lib/data/us-states";
 import { getCitiesForState, STATE_SLUG_TO_ABBREV, STATE_NAMES } from "@/lib/data/cities";
 import { INSURANCES } from "@/lib/data/insurances";
 import { searchProviderLocationsWithGooglePlaces } from "@/lib/actions/search";
-import { trackSearchImpressions } from "@/lib/analytics/track";
+import { trackSearchImpressionsWithBotDetection } from "@/lib/analytics/track";
 import {
   generateItemListSchema,
   generateFAQSchema,
@@ -109,7 +109,7 @@ export default async function StatePage({ params }: StatePageProps) {
       };
     });
   if (realListingsForTracking.length > 0) {
-    trackSearchImpressions(realListingsForTracking, state.label).catch(() => {
+    trackSearchImpressionsWithBotDetection(realListingsForTracking, state.label).catch(() => {
       // Silently fail - don't block page render
     });
   }

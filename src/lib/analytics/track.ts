@@ -288,6 +288,44 @@ export async function trackSearchImpressionsWithBotDetection(
 }
 
 /**
+ * Track search impressions from client-side API calls (source already confirmed as "user")
+ * This bypasses the headers() call since it's called from an API route handler
+ */
+export async function trackSearchImpressionsFromClient(
+  listings: Array<{ id: string; locationId?: string; position: number }>,
+  searchQuery?: string
+): Promise<{ success: boolean }> {
+  try {
+    const supabase = await createAdminClient();
+
+    const events = listings.map((listing) => ({
+      event_type: EVENT_TYPES.SEARCH_IMPRESSION,
+      listing_id: listing.id,
+      metadata: {
+        timestamp: new Date().toISOString(),
+        listingId: listing.id,
+        locationId: listing.locationId,
+        position: listing.position,
+        searchQuery,
+        source: "user", // Client-side = confirmed real user
+      } as SearchImpressionMetadata,
+    }));
+
+    const { error } = await supabase.from("audit_events").insert(events);
+
+    if (error) {
+      console.error("[Analytics] Failed to track client impressions:", error.message);
+      return { success: false };
+    }
+
+    return { success: true };
+  } catch (e) {
+    console.error("[Analytics] Exception tracking client impressions:", e);
+    return { success: false };
+  }
+}
+
+/**
  * Track a search result click
  */
 export async function trackSearchClick(

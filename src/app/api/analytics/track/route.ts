@@ -6,6 +6,7 @@ import {
   trackListingClick,
   trackSearchClick,
   trackSearch,
+  trackSearchImpressionsFromClient,
 } from "@/lib/analytics/track";
 import { EVENT_TYPES } from "@/lib/analytics/events";
 
@@ -18,6 +19,7 @@ const trackEventSchema = z.object({
     EVENT_TYPES.LISTING_WEBSITE_CLICK,
     EVENT_TYPES.SEARCH_CLICK,
     EVENT_TYPES.SEARCH_PERFORMED,
+    EVENT_TYPES.SEARCH_IMPRESSION,
   ]),
   listingId: z.string().uuid().optional(),
   listingSlug: z.string().optional(),
@@ -31,6 +33,12 @@ const trackEventSchema = z.object({
   resultsCount: z.number().optional(),
   page: z.number().optional(),
   searchSource: z.enum(["user", "bot", "unknown"]).optional(),
+  // Search impression specific fields
+  impressions: z.array(z.object({
+    id: z.string().uuid(),
+    locationId: z.string().uuid().optional(),
+    position: z.number(),
+  })).optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -45,7 +53,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { eventType, listingId, listingSlug, locationId, source, clickType, position, searchQuery, filters, resultsCount, page, searchSource } =
+    const { eventType, listingId, listingSlug, locationId, source, clickType, position, searchQuery, filters, resultsCount, page, searchSource, impressions } =
       parsed.data;
 
     let result: { success: boolean };
@@ -77,6 +85,13 @@ export async function POST(request: NextRequest) {
 
       case EVENT_TYPES.SEARCH_PERFORMED:
         result = await trackSearch(searchQuery, filters || {}, resultsCount || 0, page, searchSource);
+        break;
+
+      case EVENT_TYPES.SEARCH_IMPRESSION:
+        if (!impressions || impressions.length === 0) {
+          return NextResponse.json({ error: "impressions array required for search_impression" }, { status: 400 });
+        }
+        result = await trackSearchImpressionsFromClient(impressions, searchQuery);
         break;
 
       default:

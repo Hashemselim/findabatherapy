@@ -496,16 +496,25 @@ export async function getApplicationAnalytics(): Promise<ActionResult<Applicatio
   }
 
   // Helper to count search_performed by source
-  async function countSearchesBySource(source: "user" | "ai" | "bot"): Promise<number> {
-    const { count } = await adminClient
+  async function countSearchesBySource(source: "user" | "ai" | "bot", since?: string): Promise<number> {
+    let query = adminClient
       .from("audit_events")
       .select("*", { count: "exact", head: true })
       .eq("event_type", "search_performed")
       .filter("metadata->>source", "eq", source);
+
+    if (since) {
+      query = query.gte("created_at", since);
+    }
+
+    const { count } = await query;
     return count || 0;
   }
 
   // Fetch all counts in parallel
+  // NOTE: For searches, we only count source="user" events (confirmed browser visits)
+  // Server-side tracking marks all non-bot traffic as "unknown", so counting those
+  // would double-count (client-side also tracks with source="user")
   const [
     totalViews,
     totalSearches,
@@ -515,15 +524,15 @@ export async function getApplicationAnalytics(): Promise<ActionResult<Applicatio
     totalInquiries,
     totalContactClicks,
     todayViews,
-    todaySearches,
+    todayUserSearches,
     todayInquiries,
     todayContactClicks,
     weekViews,
-    weekSearches,
+    weekUserSearches,
     weekInquiries,
     weekContactClicks,
     monthViews,
-    monthSearches,
+    monthUserSearches,
     monthInquiries,
     monthContactClicks,
   ] = await Promise.all([
@@ -535,19 +544,19 @@ export async function getApplicationAnalytics(): Promise<ActionResult<Applicatio
     countSearchesBySource("bot"),
     countInquiries(),
     countEvents("listing_contact_click"),
-    // Today's counts
+    // Today's counts - use user-only for searches
     countEvents("listing_view", todayStart),
-    countEvents("search_performed", todayStart),
+    countSearchesBySource("user", todayStart),
     countInquiries(todayStart),
     countEvents("listing_contact_click", todayStart),
-    // This week's counts
+    // This week's counts - use user-only for searches
     countEvents("listing_view", weekStart),
-    countEvents("search_performed", weekStart),
+    countSearchesBySource("user", weekStart),
     countInquiries(weekStart),
     countEvents("listing_contact_click", weekStart),
-    // This month's counts
+    // This month's counts - use user-only for searches
     countEvents("listing_view", monthStart),
-    countEvents("search_performed", monthStart),
+    countSearchesBySource("user", monthStart),
     countInquiries(monthStart),
     countEvents("listing_contact_click", monthStart),
   ]);
@@ -556,22 +565,24 @@ export async function getApplicationAnalytics(): Promise<ActionResult<Applicatio
     success: true,
     data: {
       totalViews,
-      totalSearches,
+      // totalSearches is all search events (for reference/debugging)
+      // totalUserSearches is confirmed real user searches (from client-side tracking)
+      totalSearches: totalUserSearches, // Show only confirmed user searches as the main count
       totalUserSearches,
       totalAiSearches,
       totalBotSearches,
       totalInquiries,
       totalContactClicks,
       todayViews,
-      todaySearches,
+      todaySearches: todayUserSearches, // Use user-only count
       todayInquiries,
       todayContactClicks,
       weekViews,
-      weekSearches,
+      weekSearches: weekUserSearches, // Use user-only count
       weekInquiries,
       weekContactClicks,
       monthViews,
-      monthSearches,
+      monthSearches: monthUserSearches, // Use user-only count
       monthInquiries,
       monthContactClicks,
     },
@@ -827,11 +838,13 @@ export async function getSearchAnalytics(
   // Use admin client to read audit_events (RLS only allows service_role access)
   const adminClient = await createAdminClient();
 
-  // Build base query
+  // Build base query - only count confirmed user searches (source="user")
+  // This excludes bot/ai/unknown traffic for accurate user intent analysis
   let query = adminClient
     .from("audit_events")
     .select("metadata")
-    .eq("event_type", "search_performed");
+    .eq("event_type", "search_performed")
+    .filter("metadata->>source", "eq", "user");
 
   if (dateRange) {
     query = query
@@ -948,16 +961,30 @@ export async function getAnalyticsTimeSeries(
   const end = dateRange?.end || new Date();
   const start = dateRange?.start || new Date(end.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-  // Fetch events
-  const { data: events, error: eventsError } = await adminClient
+  // Fetch listing views (all views for now - bot detection added in Phase 3)
+  const { data: views, error: viewsError } = await adminClient
     .from("audit_events")
-    .select("event_type, created_at")
-    .in("event_type", ["listing_view", "search_performed"])
+    .select("created_at")
+    .eq("event_type", "listing_view")
     .gte("created_at", start.toISOString())
     .lte("created_at", end.toISOString());
 
-  if (eventsError) {
-    return { success: false, error: eventsError.message };
+  if (viewsError) {
+    return { success: false, error: viewsError.message };
+  }
+
+  // Fetch searches - only count confirmed user searches (source="user")
+  // This excludes bot/ai/unknown traffic for consistent human-only analytics
+  const { data: searches, error: searchesError } = await adminClient
+    .from("audit_events")
+    .select("created_at")
+    .eq("event_type", "search_performed")
+    .filter("metadata->>source", "eq", "user")
+    .gte("created_at", start.toISOString())
+    .lte("created_at", end.toISOString());
+
+  if (searchesError) {
+    return { success: false, error: searchesError.message };
   }
 
   // Fetch inquiries
@@ -1003,13 +1030,14 @@ export async function getAnalyticsTimeSeries(
   const inquiriesByDate: Record<string, number> = {};
   const signupsByDate: Record<string, number> = {};
 
-  for (const event of events || []) {
-    const key = getDateKey(event.created_at);
-    if (event.event_type === "listing_view") {
-      viewsByDate[key] = (viewsByDate[key] || 0) + 1;
-    } else if (event.event_type === "search_performed") {
-      searchesByDate[key] = (searchesByDate[key] || 0) + 1;
-    }
+  for (const view of views || []) {
+    const key = getDateKey(view.created_at);
+    viewsByDate[key] = (viewsByDate[key] || 0) + 1;
+  }
+
+  for (const search of searches || []) {
+    const key = getDateKey(search.created_at);
+    searchesByDate[key] = (searchesByDate[key] || 0) + 1;
   }
 
   for (const inq of inquiries || []) {
@@ -1093,12 +1121,35 @@ export async function getConversionMetrics(
     return query;
   };
 
+  // Build query for search_impression with source filter
+  // userOnly=true filters to source="user" (client-side confirmed human)
+  // This matches how we filter searches for accurate funnel metrics
+  const buildImpressionQuery = (userOnly?: boolean) => {
+    let query = adminClient
+      .from("audit_events")
+      .select("*", { count: "exact", head: true })
+      .eq("event_type", "search_impression");
+
+    if (userOnly) {
+      query = query.filter("metadata->>source", "eq", "user");
+    }
+
+    if (dateRange) {
+      query = query
+        .gte("created_at", dateRange.start.toISOString())
+        .lte("created_at", dateRange.end.toISOString());
+    }
+
+    return query;
+  };
+
   // Fetch counts in parallel
   const [
     { count: searches },
     { count: userSearches },
     { count: botSearches },
     { count: impressions },
+    { count: humanImpressions },
     { count: clicks },
     { count: views },
     { count: inquiries },
@@ -1106,7 +1157,8 @@ export async function getConversionMetrics(
     buildQuery("search_performed"),
     buildSearchQuery("user"),
     buildSearchQuery("bot"),
-    buildQuery("search_impression"),
+    buildQuery("search_impression"), // Total impressions
+    buildImpressionQuery(true), // User impressions (source="user" only, client-side confirmed)
     buildQuery("search_click"),
     buildQuery("listing_view"),
     supabase
@@ -1120,6 +1172,7 @@ export async function getConversionMetrics(
   const userSearchCount = userSearches || 0;
   const botSearchCount = botSearches || 0;
   const impressionCount = impressions || 0;
+  const humanImpressionCount = humanImpressions || 0;
   const clickCount = clicks || 0;
   const viewCount = views || 0;
   const inquiryCount = inquiries || 0;
@@ -1130,11 +1183,11 @@ export async function getConversionMetrics(
       searches: searchCount,
       userSearches: userSearchCount,
       botSearches: botSearchCount,
-      impressions: impressionCount,
+      impressions: humanImpressionCount, // Use human-only impressions for display
       clicks: clickCount,
       views: viewCount,
       inquiries: inquiryCount,
-      searchToClickRate: impressionCount > 0 ? (clickCount / impressionCount) * 100 : 0,
+      searchToClickRate: humanImpressionCount > 0 ? (clickCount / humanImpressionCount) * 100 : 0,
       viewToInquiryRate: viewCount > 0 ? (inquiryCount / viewCount) * 100 : 0,
     },
   };
@@ -1549,4 +1602,172 @@ export async function exportAnalyticsCSV(
   }
 
   return { success: true, data: csvContent };
+}
+
+// ============================================
+// BOT/SEO TRAFFIC ANALYTICS
+// ============================================
+
+export interface BotAnalytics {
+  summary: {
+    totalBotImpressions: number;
+    totalAiImpressions: number;
+    totalBotSearches: number;
+    totalAiSearches: number;
+    botToHumanRatio: number;
+  };
+  timeSeries: Array<{
+    date: string;
+    botImpressions: number;
+    aiImpressions: number;
+    botSearches: number;
+    aiSearches: number;
+  }>;
+  botBreakdown: {
+    searchEngine: number;
+    aiAssistant: number;
+    socialMedia: number;
+    seo: number;
+    other: number;
+  };
+}
+
+/**
+ * Get bot and SEO traffic analytics (admin only)
+ * Shows crawler activity, AI assistant visits, and human vs bot ratios
+ */
+export async function getBotAnalytics(
+  dateRange?: DateRange
+): Promise<ActionResult<BotAnalytics>> {
+  const isAdmin = await isCurrentUserAdmin();
+  if (!isAdmin) {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  const adminClient = await createAdminClient();
+
+  // Default to last 30 days if no range provided
+  const end = dateRange?.end || new Date();
+  const start = dateRange?.start || new Date(end.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+  // Helper to build count queries
+  const buildCountQuery = (eventType: string, source: string) => {
+    return adminClient
+      .from("audit_events")
+      .select("*", { count: "exact", head: true })
+      .eq("event_type", eventType)
+      .filter("metadata->>source", "eq", source)
+      .gte("created_at", start.toISOString())
+      .lte("created_at", end.toISOString());
+  };
+
+  // Get accurate counts using count queries (not limited to 1000 rows)
+  const [
+    { count: botImpressions },
+    { count: aiImpressions },
+    { count: botSearches },
+    { count: aiSearches },
+    { count: userImpressions },
+  ] = await Promise.all([
+    buildCountQuery("search_impression", "bot"),
+    buildCountQuery("search_impression", "ai"),
+    buildCountQuery("search_performed", "bot"),
+    buildCountQuery("search_performed", "ai"),
+    buildCountQuery("search_impression", "user"),
+  ]);
+
+  const totalBotImpressions = botImpressions || 0;
+  const totalAiImpressions = aiImpressions || 0;
+  const totalBotSearches = botSearches || 0;
+  const totalAiSearches = aiSearches || 0;
+  const totalUserImpressions = userImpressions || 0;
+
+  // Calculate bot to human ratio
+  const totalBotTraffic = totalBotImpressions + totalAiImpressions;
+  const botToHumanRatio = totalUserImpressions > 0
+    ? totalBotTraffic / totalUserImpressions
+    : totalBotTraffic > 0 ? Infinity : 0;
+
+  // For bot breakdown and time series, fetch a sample (limited to 5000 for performance)
+  // This gives approximate breakdown by bot type
+  const { data: events } = await adminClient
+    .from("audit_events")
+    .select("event_type, metadata, created_at")
+    .in("event_type", ["search_impression", "search_performed"])
+    .in("metadata->>source", ["bot", "ai"])
+    .gte("created_at", start.toISOString())
+    .lte("created_at", end.toISOString())
+    .limit(5000);
+
+  const dateMap = new Map<string, {
+    botImpressions: number;
+    aiImpressions: number;
+    botSearches: number;
+    aiSearches: number;
+  }>();
+
+  // Bot type classification based on common user agents (approximate from sample)
+  const botBreakdown = {
+    searchEngine: 0,
+    aiAssistant: 0,
+    socialMedia: 0,
+    seo: 0,
+    other: 0,
+  };
+
+  for (const event of events || []) {
+    const metadata = event.metadata as { source?: string; userAgent?: string } | null;
+    const source = metadata?.source;
+    const userAgent = metadata?.userAgent?.toLowerCase() || "";
+    const date = event.created_at.split("T")[0];
+
+    // Initialize date entry if needed
+    if (!dateMap.has(date)) {
+      dateMap.set(date, { botImpressions: 0, aiImpressions: 0, botSearches: 0, aiSearches: 0 });
+    }
+    const dateEntry = dateMap.get(date)!;
+
+    if (event.event_type === "search_impression") {
+      if (source === "bot") dateEntry.botImpressions++;
+      else if (source === "ai") dateEntry.aiImpressions++;
+    } else if (event.event_type === "search_performed") {
+      if (source === "bot") dateEntry.botSearches++;
+      else if (source === "ai") dateEntry.aiSearches++;
+    }
+
+    // Classify bot type based on user agent
+    if (source === "ai") {
+      botBreakdown.aiAssistant++;
+    } else if (source === "bot") {
+      if (/googlebot|bingbot|slurp|duckduckbot|baiduspider|yandex/i.test(userAgent)) {
+        botBreakdown.searchEngine++;
+      } else if (/facebot|facebook|twitter|linkedin|pinterest/i.test(userAgent)) {
+        botBreakdown.socialMedia++;
+      } else if (/semrush|ahrefs|moz|majestic|dotbot/i.test(userAgent)) {
+        botBreakdown.seo++;
+      } else {
+        botBreakdown.other++;
+      }
+    }
+  }
+
+  // Convert date map to sorted array
+  const timeSeries = Array.from(dateMap.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([date, data]) => ({ date, ...data }));
+
+  return {
+    success: true,
+    data: {
+      summary: {
+        totalBotImpressions,
+        totalAiImpressions,
+        totalBotSearches,
+        totalAiSearches,
+        botToHumanRatio,
+      },
+      timeSeries,
+      botBreakdown,
+    },
+  };
 }

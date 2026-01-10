@@ -254,21 +254,25 @@ async function getMetricsForPeriod(
     .lte("created_at", endStr);
 
   const views = viewCount;
-  const impressions = impressionCount;
   const clicks = clickCount;
   const inquiries = inquiryCount || 0;
+
+  // For impressions: only server-side tracking exists, so "unknown" = real users, "bot" = bots
+  // Unlike search_performed which has client-side tracking (source="user"), impressions don't
+  // So we use total - bot for human impressions
+  const humanImpressions = impressionCount - botImpressionCount;
 
   return {
     views,
     uniqueViews: uniqueSessions.size,
-    searchImpressions: impressions,
-    userImpressions: userImpressionCount,
+    searchImpressions: impressionCount, // Total for reference
+    userImpressions: humanImpressions, // Human impressions (total - bots) for display
     aiImpressions: aiImpressionCount,
     botImpressions: botImpressionCount,
     searchClicks: clicks,
     contactClicks: contactClickCount || 0,
     inquiries,
-    clickThroughRate: impressions > 0 ? (clicks / impressions) * 100 : 0,
+    clickThroughRate: humanImpressions > 0 ? (clicks / humanImpressions) * 100 : 0,
     conversionRate: views > 0 ? (inquiries / views) * 100 : 0,
   };
 }
@@ -304,9 +308,11 @@ async function getTimeSeriesData(
   const clicksByDate = new Map<string, number>();
 
   for (const event of events || []) {
+    const metadata = event.metadata as Record<string, unknown>;
+
     // Filter by locationId if specified
     if (filterByLocation) {
-      const locId = (event.metadata as Record<string, unknown>)?.locationId as string;
+      const locId = metadata?.locationId as string;
       if (!locationIds.includes(locId)) continue;
     }
 
@@ -315,7 +321,11 @@ async function getTimeSeriesData(
     if (event.event_type === EVENT_TYPES.LISTING_VIEW) {
       viewsByDate.set(date, (viewsByDate.get(date) || 0) + 1);
     } else if (event.event_type === EVENT_TYPES.SEARCH_IMPRESSION) {
-      impressionsByDate.set(date, (impressionsByDate.get(date) || 0) + 1);
+      // Exclude bot impressions from time series
+      const source = metadata?.source as string;
+      if (source !== "bot") {
+        impressionsByDate.set(date, (impressionsByDate.get(date) || 0) + 1);
+      }
     } else if (event.event_type === EVENT_TYPES.SEARCH_CLICK) {
       clicksByDate.set(date, (clicksByDate.get(date) || 0) + 1);
     }
@@ -563,8 +573,12 @@ export async function getLocationAnalytics(
         metrics.views++;
         metrics.viewsByDate.set(date, (metrics.viewsByDate.get(date) || 0) + 1);
       } else if (event.event_type === EVENT_TYPES.SEARCH_IMPRESSION) {
-        metrics.impressions++;
-        metrics.impressionsByDate.set(date, (metrics.impressionsByDate.get(date) || 0) + 1);
+        // Exclude bot impressions for consistent filtering across all analytics
+        const source = metadata?.source as string;
+        if (source !== "bot") {
+          metrics.impressions++;
+          metrics.impressionsByDate.set(date, (metrics.impressionsByDate.get(date) || 0) + 1);
+        }
       } else if (event.event_type === EVENT_TYPES.SEARCH_CLICK) {
         metrics.clicks++;
         metrics.clicksByDate.set(date, (metrics.clicksByDate.get(date) || 0) + 1);

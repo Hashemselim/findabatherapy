@@ -9,6 +9,7 @@ import { SearchFilters, ActiveFilters } from "@/components/search/search-filters
 import { SearchResults, SearchResultsSkeleton } from "@/components/search/search-results";
 import { SearchPagination } from "@/components/search/search-pagination";
 import { SearchTracker } from "@/components/search/search-tracker";
+import { ImpressionTracker } from "@/components/search/impression-tracker";
 import { SortToggle } from "@/components/search/sort-toggle";
 import { Breadcrumbs } from "@/components/seo/breadcrumbs";
 import { JsonLd } from "@/components/seo/json-ld";
@@ -17,7 +18,7 @@ import { BubbleBackground } from "@/components/ui/bubble-background";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { searchProviderLocationsWithGooglePlaces } from "@/lib/actions/search";
-import { trackSearchImpressionsWithBotDetection, trackSearchWithBotDetection } from "@/lib/analytics/track";
+import { trackSearchImpressionsWithBotDetection } from "@/lib/analytics/track";
 import { parseFiltersFromParams, parseOptionsFromParams } from "@/lib/search/filters";
 import { generateItemListSchema } from "@/lib/seo/schemas";
 
@@ -125,30 +126,12 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     ? result.data
     : { results: [], total: 0, page: 1, totalPages: 0, radiusMiles: 25 };
 
-  // Track search event server-side with bot detection (non-blocking)
-  // This tracks ALL page renders but marks bots separately from real users
-  // Client-side SearchTracker also fires for confirmed user visits (source="user")
-  trackSearchWithBotDetection(
-    filters.query,
-    {
-      state: filters.state,
-      city: filters.city,
-      serviceTypes: filters.serviceTypes,
-      insurances: filters.insurances,
-      languages: filters.languages,
-      agesServed: filters.agesServed,
-      acceptingClients: filters.acceptingClients,
-      userLat: filters.userLat,
-      userLng: filters.userLng,
-      radiusMiles: filters.radiusMiles,
-    },
-    total,
-    page
-  ).catch(() => {
-    // Silently fail - don't block page render
-  });
+  // NOTE: Server-side search tracking removed to prevent double-counting
+  // Client-side SearchTracker component (below) tracks searches with source="user"
+  // This ensures accurate human-only search counts
 
   // Track search impressions for real listings only (non-blocking)
+  // Server-side impression tracking is kept until client-side ImpressionTracker is added
   const realListingsForTracking = results
     .filter((r) => !r.isPrePopulated)
     .map((r, index) => {
@@ -335,6 +318,12 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
               acceptingClients={filters.acceptingClients}
               resultsCount={total}
               page={page}
+            />
+
+            {/* Client-side Impression Tracking (source="user") */}
+            <ImpressionTracker
+              impressions={realListingsForTracking}
+              searchQuery={filters.query}
             />
 
             {/* Results List */}

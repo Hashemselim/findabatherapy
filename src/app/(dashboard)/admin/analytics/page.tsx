@@ -14,6 +14,7 @@ import {
   AlertTriangle,
   CreditCard,
   Loader2,
+  Bot,
 } from "lucide-react";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -95,6 +96,7 @@ import {
   getAnalyticsTimeSeries,
   getConversionMetrics,
   getCustomerConversionFunnel,
+  getBotAnalytics,
   type CustomerMetrics,
   type OnboardingMetrics,
   type CustomersByState,
@@ -102,6 +104,7 @@ import {
   type AnalyticsTimeSeries,
   type ConversionMetrics,
   type CustomerConversionFunnel,
+  type BotAnalytics,
   type DateRange as AdminDateRange,
 } from "@/lib/actions/admin";
 
@@ -119,6 +122,7 @@ export default function AdminAnalyticsPage() {
   const [timeSeries, setTimeSeries] = useState<AnalyticsTimeSeries | null>(null);
   const [conversionMetrics, setConversionMetrics] = useState<ConversionMetrics | null>(null);
   const [customerFunnel, setCustomerFunnel] = useState<CustomerConversionFunnel | null>(null);
+  const [botAnalytics, setBotAnalytics] = useState<BotAnalytics | null>(null);
 
   const dateRange = getDateRangeFromPreset(datePreset, customDateRange);
 
@@ -143,6 +147,7 @@ export default function AdminAnalyticsPage() {
         timeSeriesResult,
         conversionResult,
         customerFunnelResult,
+        botAnalyticsResult,
       ] = await Promise.all([
         getCustomerMetrics(),
         getOnboardingMetrics(),
@@ -151,6 +156,7 @@ export default function AdminAnalyticsPage() {
         getAnalyticsTimeSeries(adminDateRange),
         getConversionMetrics(adminDateRange),
         getCustomerConversionFunnel(),
+        getBotAnalytics(adminDateRange),
       ]);
 
       if (customerResult.success && customerResult.data) {
@@ -173,6 +179,9 @@ export default function AdminAnalyticsPage() {
       }
       if (customerFunnelResult.success && customerFunnelResult.data) {
         setCustomerFunnel(customerFunnelResult.data);
+      }
+      if (botAnalyticsResult.success && botAnalyticsResult.data) {
+        setBotAnalytics(botAnalyticsResult.data);
       }
 
       // Mark initial load as complete
@@ -658,6 +667,145 @@ export default function AdminAnalyticsPage() {
                       </TableBody>
                     </Table>
                   )}
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
+          {/* Bot & SEO Traffic */}
+          <div className={`space-y-4 transition-opacity duration-200 ${isPending && !isInitialLoad ? "opacity-50" : ""}`}>
+            <div className="flex items-center gap-2">
+              <Bot className="h-5 w-5 text-primary" />
+              <h2 className="text-xl font-semibold">Bot & SEO Traffic</h2>
+            </div>
+
+            {isInitialLoad ? (
+              <>
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                  <MetricCardSkeleton />
+                  <MetricCardSkeleton />
+                  <MetricCardSkeleton />
+                  <MetricCardSkeleton />
+                </div>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <ChartSkeleton height="h-[200px]" />
+                  <ChartSkeleton height="h-[200px]" />
+                </div>
+              </>
+            ) : botAnalytics ? (
+              <>
+                {/* Summary Cards */}
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                  <AdminMetricCard
+                    title="Bot Impressions"
+                    value={botAnalytics.summary.totalBotImpressions}
+                    subtitle="Search engine crawlers"
+                    icon={<Bot className="h-4 w-4 text-gray-500" />}
+                  />
+                  <AdminMetricCard
+                    title="AI Assistant Impressions"
+                    value={botAnalytics.summary.totalAiImpressions}
+                    subtitle="ChatGPT, Claude, Perplexity"
+                    icon={<Bot className="h-4 w-4 text-purple-600" />}
+                  />
+                  <AdminMetricCard
+                    title="Bot Searches"
+                    value={botAnalytics.summary.totalBotSearches}
+                    subtitle="Crawlers indexing search pages"
+                    icon={<Search className="h-4 w-4 text-gray-500" />}
+                  />
+                  <AdminMetricCard
+                    title="AI Searches"
+                    value={botAnalytics.summary.totalAiSearches}
+                    subtitle="AI assistants browsing"
+                    icon={<Search className="h-4 w-4 text-purple-600" />}
+                  />
+                </div>
+
+                {/* Bot Type Breakdown & Time Series */}
+                <div className="grid gap-4 md:grid-cols-2">
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base">Traffic by Bot Type</CardTitle>
+                      <CardDescription>Breakdown of automated traffic sources</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        {[
+                          { label: "Search Engines", value: botAnalytics.botBreakdown.searchEngine, color: "bg-blue-500" },
+                          { label: "AI Assistants", value: botAnalytics.botBreakdown.aiAssistant, color: "bg-purple-500" },
+                          { label: "Social Media", value: botAnalytics.botBreakdown.socialMedia, color: "bg-pink-500" },
+                          { label: "SEO Tools", value: botAnalytics.botBreakdown.seo, color: "bg-orange-500" },
+                          { label: "Other", value: botAnalytics.botBreakdown.other, color: "bg-gray-500" },
+                        ].map((item) => {
+                          const total = Object.values(botAnalytics.botBreakdown).reduce((a, b) => a + b, 0);
+                          const percentage = total > 0 ? (item.value / total) * 100 : 0;
+                          return (
+                            <div key={item.label} className="space-y-1">
+                              <div className="flex items-center justify-between text-sm">
+                                <span>{item.label}</span>
+                                <span className="font-medium">{item.value.toLocaleString()}</span>
+                              </div>
+                              <div className="h-2 overflow-hidden rounded-full bg-muted">
+                                <div
+                                  className={`h-full ${item.color} transition-all`}
+                                  style={{ width: `${percentage}%` }}
+                                />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base">Bot vs Human Traffic</CardTitle>
+                      <CardDescription>Compare automated vs real user traffic</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4 text-center">
+                          <div>
+                            <div className="text-2xl font-bold text-gray-600">
+                              {(botAnalytics.summary.totalBotImpressions + botAnalytics.summary.totalAiImpressions).toLocaleString()}
+                            </div>
+                            <div className="text-xs text-muted-foreground">Bot Traffic</div>
+                          </div>
+                          <div>
+                            <div className="text-2xl font-bold text-green-600">
+                              {conversionMetrics?.impressions?.toLocaleString() || 0}
+                            </div>
+                            <div className="text-xs text-muted-foreground">Human Traffic</div>
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between text-sm">
+                            <span>Bot to Human Ratio</span>
+                            <span className="font-medium">
+                              {botAnalytics.summary.botToHumanRatio === Infinity
+                                ? "N/A"
+                                : `${botAnalytics.summary.botToHumanRatio.toFixed(2)}:1`}
+                            </span>
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            {botAnalytics.summary.botToHumanRatio < 1
+                              ? "Healthy ratio - more humans than bots"
+                              : botAnalytics.summary.botToHumanRatio < 5
+                                ? "Moderate bot activity"
+                                : "High bot activity - verify SEO indexing"}
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </>
+            ) : (
+              <Card>
+                <CardContent className="py-8">
+                  <p className="text-center text-sm text-muted-foreground">No bot traffic data available</p>
                 </CardContent>
               </Card>
             )}

@@ -77,12 +77,9 @@ export default async function AdminDashboardPage() {
                 <Search className="h-4 w-4 text-purple-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{(analytics.totalSearches - analytics.totalBotSearches).toLocaleString()}</div>
+                <div className="text-2xl font-bold">{analytics.totalSearches.toLocaleString()}</div>
                 <p className="text-xs text-muted-foreground">
-                  {[
-                    analytics.totalAiSearches > 0 && `${analytics.totalAiSearches.toLocaleString()} via AI`,
-                    analytics.totalBotSearches > 0 && `${analytics.totalBotSearches.toLocaleString()} bots excluded`,
-                  ].filter(Boolean).join(" · ") || "Human searches"}
+                  Confirmed browser visits only
                 </p>
                 <div className="mt-1 space-y-0.5 text-xs text-muted-foreground">
                   <p>Today: {analytics.todaySearches.toLocaleString()}</p>

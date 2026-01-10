@@ -15,7 +15,7 @@ import {
   STATE_NAMES,
 } from "@/lib/data/cities";
 import { INSURANCES } from "@/lib/data/insurances";
-import { trackSearchImpressions } from "@/lib/analytics/track";
+import { trackSearchImpressionsWithBotDetection } from "@/lib/analytics/track";
 import { searchProviderLocationsWithGooglePlaces } from "@/lib/actions/search";
 import { geocodeCityState } from "@/lib/geo/geocode";
 import { JsonLd } from "@/components/seo/json-ld";
@@ -166,7 +166,7 @@ export default async function CityPage({ params }: CityPageProps) {
       };
     });
   if (realListingsForTracking.length > 0) {
-    trackSearchImpressions(realListingsForTracking, `${city.name}, ${city.state}`).catch(() => {
+    trackSearchImpressionsWithBotDetection(realListingsForTracking, `${city.name}, ${city.state}`).catch(() => {
       // Silently fail - don't block page render
     });
   }

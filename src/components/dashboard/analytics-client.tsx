@@ -128,8 +128,8 @@ export function AnalyticsClient() {
             />
             <AnalyticsMetricCard
               title="Search Impressions"
-              total={metrics.current.searchImpressions}
-              trend={calculateTrend(metrics.current.searchImpressions, metrics.previous.searchImpressions)}
+              total={metrics.current.userImpressions}
+              trend={calculateTrend(metrics.current.userImpressions, metrics.previous.userImpressions)}
               data={metrics.timeSeries.impressions}
             />
             <AnalyticsMetricCard
@@ -205,21 +205,10 @@ interface OverviewCardsProps {
 }
 
 function OverviewCards({ current, previous }: OverviewCardsProps) {
-  // Calculate impressions excluding SEO bots (but including AI assistants as valuable traffic)
-  const botImpressions = current.botImpressions || 0;
-  const aiImpressions = current.aiImpressions || 0;
-  const prevBotImpressions = previous.botImpressions || 0;
-  const impressionsExcludingBots = (current.searchImpressions || 0) - botImpressions;
-  const prevImpressionsExcludingBots = (previous.searchImpressions || 0) - prevBotImpressions;
-
-  // Build subtitle showing AI visits and excluded bots
-  const impressionSubtitleParts: string[] = [];
-  if (aiImpressions > 0) {
-    impressionSubtitleParts.push(`${aiImpressions.toLocaleString()} via AI assistants`);
-  }
-  if (botImpressions > 0) {
-    impressionSubtitleParts.push(`${botImpressions.toLocaleString()} bots excluded`);
-  }
+  // Use only confirmed user impressions (from client-side tracking)
+  // Server-side tracking marks non-bot traffic as "unknown" which would double-count
+  const userImpressions = current.userImpressions || 0;
+  const prevUserImpressions = previous.userImpressions || 0;
 
   const metrics = [
     {
@@ -232,13 +221,11 @@ function OverviewCards({ current, previous }: OverviewCardsProps) {
     },
     {
       title: "Search Impressions",
-      value: impressionsExcludingBots,
-      previousValue: prevImpressionsExcludingBots,
+      value: userImpressions,
+      previousValue: prevUserImpressions,
       icon: Search,
       format: "number" as const,
-      subtitle: impressionSubtitleParts.length > 0
-        ? impressionSubtitleParts.join(" · ")
-        : undefined,
+      subtitle: "Confirmed browser visits",
     },
     {
       title: "Click-through Rate",
