@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Poppins } from "next/font/google";
 import { PropsWithChildren } from "react";
+import { Analytics } from "@vercel/analytics/next";
 
 import "./globals.css";
 import { Providers } from "@/components/providers";
@@ -109,6 +110,7 @@ export default function RootLayout({ children }: PropsWithChildren) {
       </head>
       <body className={`${poppins.variable} min-h-screen`}>
         <Providers>{children}</Providers>
+        <Analytics />
       </body>
     </html>
   );
