@@ -77,10 +77,12 @@ export default async function AdminDashboardPage() {
                 <Search className="h-4 w-4 text-purple-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{analytics.totalUserSearches.toLocaleString()}</div>
-                <p className="text-xs text-muted-foreground">
-                  {analytics.totalBotSearches.toLocaleString()} bot · {(analytics.totalSearches - analytics.totalUserSearches - analytics.totalBotSearches).toLocaleString()} other
-                </p>
+                <div className="text-2xl font-bold">{(analytics.totalSearches - analytics.totalBotSearches).toLocaleString()}</div>
+                {analytics.totalBotSearches > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    {analytics.totalBotSearches.toLocaleString()} bot searches excluded
+                  </p>
+                )}
                 <div className="mt-1 space-y-0.5 text-xs text-muted-foreground">
                   <p>Today: {analytics.todaySearches.toLocaleString()}</p>
                   <p>This week: {analytics.weekSearches.toLocaleString()}</p>

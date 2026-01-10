@@ -205,10 +205,11 @@ interface OverviewCardsProps {
 }
 
 function OverviewCards({ current, previous }: OverviewCardsProps) {
-  // Calculate bot/other breakdown for impressions
+  // Calculate impressions excluding bots
   const botImpressions = current.botImpressions || 0;
-  const userImpressions = current.userImpressions || 0;
-  const otherImpressions = (current.searchImpressions || 0) - userImpressions - botImpressions;
+  const prevBotImpressions = previous.botImpressions || 0;
+  const impressionsExcludingBots = (current.searchImpressions || 0) - botImpressions;
+  const prevImpressionsExcludingBots = (previous.searchImpressions || 0) - prevBotImpressions;
 
   const metrics = [
     {
@@ -221,12 +222,12 @@ function OverviewCards({ current, previous }: OverviewCardsProps) {
     },
     {
       title: "Search Impressions",
-      value: userImpressions || current.searchImpressions,
-      previousValue: previous.userImpressions || previous.searchImpressions,
+      value: impressionsExcludingBots,
+      previousValue: prevImpressionsExcludingBots,
       icon: Search,
       format: "number" as const,
-      subtitle: botImpressions > 0 || otherImpressions > 0
-        ? `${botImpressions.toLocaleString()} bot · ${otherImpressions.toLocaleString()} other`
+      subtitle: botImpressions > 0
+        ? `${botImpressions.toLocaleString()} bot visits excluded`
         : undefined,
     },
     {
