@@ -2,9 +2,10 @@
 
 import { useRef, useState, useEffect, useCallback } from "react";
 import { formatDistanceToNow, format } from "date-fns";
-import { MapPin } from "lucide-react";
+import { MapPin, FileEdit } from "lucide-react";
 
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { Inquiry } from "@/lib/actions/inquiries";
 
@@ -196,12 +197,20 @@ export function InboxMessageList({
                       </span>
                     </span>
                   </div>
-                  {locationName && (
-                    <div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
-                      <MapPin className="h-3 w-3" />
-                      {locationName}
-                    </div>
-                  )}
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    {locationName && (
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <MapPin className="h-3 w-3" />
+                        {locationName}
+                      </div>
+                    )}
+                    {inquiry.source === "intake_standalone" && (
+                      <Badge variant="outline" className="gap-1 px-1.5 py-0 text-[10px] font-normal">
+                        <FileEdit className="h-2.5 w-2.5" />
+                        Via Intake Form
+                      </Badge>
+                    )}
+                  </div>
                 </button>
               );
             })

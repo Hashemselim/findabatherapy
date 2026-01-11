@@ -8,6 +8,7 @@ import {
   BarChart3,
   ClipboardList,
   CreditCard,
+  FileEdit,
   FileText,
   GaugeCircle,
   HelpCircle,
@@ -32,6 +33,7 @@ export type NavItem = {
   label: string;
   icon: LucideIcon;
   showBadge?: boolean;
+  proBadge?: boolean;
 };
 
 // PRD 4.2: Dashboard navigation structure
@@ -181,7 +183,19 @@ export function DashboardSidebar({
                 )}
               >
                 <Icon className="h-4 w-4" aria-hidden />
-                <span className="flex-1">{item.label}</span>
+                <span className="flex-1 flex items-center gap-1.5">
+                  {item.label}
+                  {item.proBadge && (
+                    <span className={cn(
+                      "text-[10px] font-semibold px-1.5 py-0.5 rounded",
+                      isActive
+                        ? "bg-primary-foreground/20 text-primary-foreground"
+                        : "bg-blue-100 text-blue-700"
+                    )}>
+                      Pro
+                    </span>
+                  )}
+                </span>
                 {showBadge && (
                   <span
                     className={cn(

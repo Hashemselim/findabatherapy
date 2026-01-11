@@ -14,6 +14,7 @@ import {
   Copy,
   Check,
   ArrowLeft,
+  FileEdit,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -159,17 +160,25 @@ export function InboxMessageDetail({
             <CardTitle>{inquiry.familyName}</CardTitle>
             <CardDescription>{inquiry.familyEmail}</CardDescription>
           </div>
-          <Badge
-            variant={
-              inquiry.status === "unread"
-                ? "default"
-                : inquiry.status === "replied"
-                  ? "secondary"
-                  : "outline"
-            }
-          >
-            {inquiry.status}
-          </Badge>
+          <div className="flex flex-wrap items-center gap-2">
+            {inquiry.source === "intake_standalone" && (
+              <Badge variant="outline" className="gap-1">
+                <FileEdit className="h-3 w-3" />
+                Via Intake Form
+              </Badge>
+            )}
+            <Badge
+              variant={
+                inquiry.status === "unread"
+                  ? "default"
+                  : inquiry.status === "replied"
+                    ? "secondary"
+                    : "outline"
+              }
+            >
+              {inquiry.status}
+            </Badge>
+          </div>
         </div>
       </CardHeader>
       <CardContent className="min-h-0 flex-1 space-y-6 overflow-y-auto">

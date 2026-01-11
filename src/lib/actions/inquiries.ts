@@ -18,6 +18,8 @@ export interface InquiryLocation {
   state: string;
 }
 
+export type InquirySource = "listing_page" | "intake_standalone";
+
 export interface Inquiry {
   id: string;
   listingId: string;
@@ -32,6 +34,7 @@ export interface Inquiry {
   repliedAt: string | null;
   locationId: string | null;
   location: InquiryLocation | null;
+  source: InquirySource;
 }
 
 /**
@@ -42,7 +45,8 @@ export async function submitInquiry(
   listingId: string,
   data: ContactFormData,
   turnstileToken: string,
-  locationId?: string
+  locationId?: string,
+  source: InquirySource = "listing_page"
 ): Promise<ActionResult> {
   // Validate input
   const parsed = contactFormSchema.safeParse(data);
@@ -101,6 +105,7 @@ export async function submitInquiry(
     child_age: parsed.data.childAge || null,
     message: parsed.data.message,
     status: "unread",
+    source,
   });
 
   if (insertError) {
@@ -208,6 +213,7 @@ export async function getInquiries(
             city: loc.city,
             state: loc.state,
           } : null,
+          source: (i.source as InquirySource) || "listing_page",
         };
       }),
       unreadCount: count || 0,
@@ -282,6 +288,7 @@ export async function getInquiry(
         city: loc.city,
         state: loc.state,
       } : null,
+      source: (inquiry.source as InquirySource) || "listing_page",
     },
   };
 }

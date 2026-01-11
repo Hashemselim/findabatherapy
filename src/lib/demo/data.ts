@@ -274,6 +274,7 @@ export const DEMO_INQUIRIES: Inquiry[] = [
       city: "Los Angeles",
       state: "CA",
     },
+    source: "listing_page",
   },
   {
     id: "demo-inq-2",
@@ -295,6 +296,7 @@ export const DEMO_INQUIRIES: Inquiry[] = [
       city: "San Diego",
       state: "CA",
     },
+    source: "intake_standalone",
   },
   {
     id: "demo-inq-3",
@@ -316,6 +318,7 @@ export const DEMO_INQUIRIES: Inquiry[] = [
       city: "Los Angeles",
       state: "CA",
     },
+    source: "listing_page",
   },
   {
     id: "demo-inq-4",
@@ -337,6 +340,7 @@ export const DEMO_INQUIRIES: Inquiry[] = [
       city: "Sacramento",
       state: "CA",
     },
+    source: "listing_page",
   },
   {
     id: "demo-inq-5",
@@ -358,6 +362,7 @@ export const DEMO_INQUIRIES: Inquiry[] = [
       city: "Irvine",
       state: "CA",
     },
+    source: "listing_page",
   },
   {
     id: "demo-inq-6",
@@ -379,6 +384,7 @@ export const DEMO_INQUIRIES: Inquiry[] = [
       city: "Los Angeles",
       state: "CA",
     },
+    source: "listing_page",
   },
   {
     id: "demo-inq-7",
@@ -400,6 +406,7 @@ export const DEMO_INQUIRIES: Inquiry[] = [
       city: "San Francisco",
       state: "CA",
     },
+    source: "intake_standalone",
   },
   {
     id: "demo-inq-8",
@@ -416,6 +423,7 @@ export const DEMO_INQUIRIES: Inquiry[] = [
     repliedAt: null,
     locationId: null,
     location: null,
+    source: "listing_page",
   },
 ];
 
