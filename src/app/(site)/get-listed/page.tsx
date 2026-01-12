@@ -20,7 +20,10 @@ import { BubbleBackground } from "@/components/ui/bubble-background";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { SupportContactDialog } from "@/components/support-contact-dialog";
+import { CrossBrandBenefits } from "@/components/marketing/cross-brand-benefits";
+import { AlsoIncludedBadge } from "@/components/marketing/also-included-badge";
 import { cn } from "@/lib/utils";
+import { PLAN_CONFIGS } from "@/lib/plans/features";
 
 const stats = [
   { value: "50K+", label: "Monthly searches", icon: Search },
@@ -68,17 +71,14 @@ const features = [
 
 const plans = [
   {
-    name: "Free",
+    name: PLAN_CONFIGS.free.displayName,
     tier: "free" as const,
-    pricing: {
-      monthly: { price: 0 },
-      annual: { price: 0, totalPrice: 0, savings: 0, savingsPercent: 0 },
-    },
-    description: "Get started with a basic listing",
+    pricing: PLAN_CONFIGS.free.pricing,
+    description: PLAN_CONFIGS.free.description,
     subtext: "No credit card required.",
     features: [
       { text: "Standard search placement", highlightWord: "Standard", highlightType: "blue" as const },
-      { text: "1 location", highlightWord: "1", highlightType: "blue" as const },
+      { text: `${PLAN_CONFIGS.free.features.maxLocations} location`, highlightWord: `${PLAN_CONFIGS.free.features.maxLocations}`, highlightType: "blue" as const },
       { text: "Basic profile", highlightWord: "Basic", highlightType: "blue" as const },
       "Insurance list display",
       "SEO-boosting backlink",
@@ -95,18 +95,15 @@ const plans = [
     ctaVariant: "outline" as const,
   },
   {
-    name: "Pro",
+    name: PLAN_CONFIGS.pro.displayName,
     tier: "pro" as const,
-    pricing: {
-      monthly: { price: 49 },
-      annual: { price: 29, totalPrice: 348, savings: 240, savingsPercent: 40 },
-    },
-    description: "Everything you need to stand out",
+    pricing: PLAN_CONFIGS.pro.pricing,
+    description: PLAN_CONFIGS.pro.description,
     subtext: "Cancel anytime. No long-term contract.",
     popular: true,
     features: [
       { text: "Priority search placement", highlightWord: "Priority", highlightType: "yellow" as const },
-      { text: "Up to 5 locations", highlightWord: "5", highlightType: "yellow" as const },
+      { text: `Up to ${PLAN_CONFIGS.pro.features.maxLocations} locations`, highlightWord: `${PLAN_CONFIGS.pro.features.maxLocations}`, highlightType: "yellow" as const },
       { text: "Services & specialties filters", highlightWord: "Services & specialties", highlightType: "yellow" as const },
       { text: "Direct contact form & inbox", highlightWord: "Direct contact form", highlightType: "yellow" as const },
       { text: "Photo gallery (up to 10)", highlightWord: "Photo gallery", highlightType: "yellow" as const },
@@ -121,13 +118,10 @@ const plans = [
     ctaVariant: "default" as const,
   },
   {
-    name: "Enterprise",
+    name: PLAN_CONFIGS.enterprise.displayName,
     tier: "enterprise" as const,
-    pricing: {
-      monthly: { price: 149 },
-      annual: { price: 89, totalPrice: 1068, savings: 720, savingsPercent: 40 },
-    },
-    description: "For multi-location agencies",
+    pricing: PLAN_CONFIGS.enterprise.pricing,
+    description: PLAN_CONFIGS.enterprise.description,
     subtext: "Cancel anytime. No long-term contract.",
     features: [
       { text: "Priority search placement", highlightWord: "Priority", highlightType: "yellow" as const },
@@ -219,91 +213,91 @@ export default function GetListedPage() {
             sixth: "240,248,255",
           }}
         >
-          <div className="mx-auto flex max-w-4xl flex-col gap-8 px-4 sm:px-6">
-            <div className="space-y-6 text-center">
-              <Badge className="mx-auto rounded-full border border-[#5788FF]/40 bg-gradient-to-r from-[#5788FF]/15 to-[#5788FF]/5 px-4 py-1.5 text-sm font-semibold text-[#5788FF] shadow-sm transition-all duration-300 ease-premium hover:shadow-md">
-                For ABA Providers
-              </Badge>
-              <h1 className="text-[32px] font-semibold leading-tight text-foreground sm:text-[48px] sm:leading-tight">
+          <div className="mx-auto flex max-w-4xl flex-col gap-5 px-4 sm:gap-8 sm:px-6">
+            <div className="space-y-3 text-center sm:space-y-5">
+              {/* Badge */}
+              <div className="hidden justify-center sm:flex">
+                <Badge
+                  variant="outline"
+                  className="gap-1.5 border-[#5788FF]/50 bg-[#5788FF]/5 px-4 py-1.5 text-[#5788FF] transition-all duration-300 ease-premium hover:scale-[1.02] hover:bg-[#5788FF]/10 hover:shadow-[0_2px_8px_rgba(87,136,255,0.2)]"
+                >
+                  <Users className="h-3.5 w-3.5" />
+                  For ABA Providers
+                </Badge>
+              </div>
+              <h1 className="text-[28px] font-semibold leading-[1.2] text-foreground sm:text-[48px]">
                 Get found by families{" "}
-                <span className="text-[#5788FF]">searching for ABA care</span>
+                <span className="bg-gradient-to-r from-[#5788FF] to-[#4a77e8] bg-clip-text text-transparent sm:whitespace-nowrap">
+                  searching for ABA care
+                </span>
               </h1>
-              <p className="mx-auto max-w-2xl text-lg text-muted-foreground sm:text-xl">
+              <p className="mx-auto hidden max-w-2xl text-lg text-muted-foreground sm:block">
                 Join 500+ ABA providers reaching thousands of families every month. List your
                 practice, boost your SEO, and grow your caseload.
               </p>
-              <div className="flex flex-col items-center gap-3">
-                <div className="flex flex-wrap justify-center gap-4">
-                  <Button
-                    asChild
-                    size="lg"
-                    className="rounded-full border border-[#FEE720] bg-[#FEE720] px-8 text-base font-semibold text-[#333333] shadow-[0_4px_14px_rgba(254,231,32,0.4)] transition-all duration-300 ease-premium hover:-translate-y-[2px] hover:bg-[#FFF5C2] hover:shadow-[0_8px_20px_rgba(254,231,32,0.5)] active:translate-y-0 active:shadow-[0_2px_8px_rgba(254,231,32,0.3)]"
-                  >
-                    <Link href="/auth/sign-up?plan=free">
-                      Get listed free
-                      <ArrowRight className="ml-2 h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
-                    </Link>
-                  </Button>
-                  <Button
-                    asChild
-                    size="lg"
-                    variant="outline"
-                    className="rounded-full px-8 text-base transition-all duration-300 ease-premium hover:-translate-y-[1px] hover:border-[#5788FF]/50 hover:shadow-[0_4px_12px_rgba(87,136,255,0.15)]"
-                  >
-                    <Link href="#pricing">View pricing</Link>
-                  </Button>
-                </div>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <span>Free plan available. No credit card required.</span>
-                  <span className="text-border">|</span>
-                  <Link href="/demo" className="font-medium text-[#5788FF] transition-colors duration-300 hover:text-[#4a77e8] hover:underline">
-                    Try the demo
-                  </Link>
-                </div>
-              </div>
             </div>
 
-            {/* Stats */}
-            <div className="mx-auto mt-4 grid w-full max-w-2xl grid-cols-3 gap-4">
-              {stats.map((stat, index) => (
-                <div
-                  key={stat.label}
-                  className="group rounded-2xl border border-border/60 bg-white/80 px-4 py-4 text-center backdrop-blur-sm transition-all duration-300 ease-premium hover:-translate-y-[2px] hover:border-[#5788FF]/30 hover:shadow-[0_8px_30px_rgba(87,136,255,0.1)]"
-                  style={{ animationDelay: `${index * 100}ms` }}
+            {/* CTA Buttons */}
+            <div className="flex flex-col items-center gap-4">
+              <div className="flex flex-wrap justify-center gap-4">
+                <Button
+                  asChild
+                  size="lg"
+                  className="rounded-full border border-[#FEE720] bg-[#FEE720] px-8 text-base font-semibold text-[#333333] shadow-[0_4px_14px_rgba(254,231,32,0.4)] transition-all duration-300 ease-premium hover:-translate-y-[2px] hover:bg-[#FFF5C2] hover:shadow-[0_8px_20px_rgba(254,231,32,0.5)] active:translate-y-0 active:shadow-[0_2px_8px_rgba(254,231,32,0.3)]"
                 >
-                  <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-[#5788FF]/10 transition-all duration-300 group-hover:scale-[1.05]">
-                    <stat.icon className="h-5 w-5 text-[#5788FF]" />
-                  </div>
-                  <p className="text-2xl font-bold text-foreground sm:text-3xl">{stat.value}</p>
-                  <p className="text-sm text-muted-foreground">{stat.label}</p>
-                </div>
-              ))}
+                  <Link href="/auth/sign-up?plan=free">
+                    Get listed free
+                    <ArrowRight className="ml-2 h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+                  </Link>
+                </Button>
+                <Button
+                  asChild
+                  size="lg"
+                  variant="outline"
+                  className="rounded-full px-8 text-base transition-all duration-300 ease-premium hover:-translate-y-[1px] hover:border-[#5788FF]/50 hover:shadow-[0_4px_12px_rgba(87,136,255,0.15)]"
+                >
+                  <Link href="#pricing">View pricing</Link>
+                </Button>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <span>Free plan available. No credit card required.</span>
+                <span className="text-border">|</span>
+                <Link href="/demo" className="font-medium text-[#5788FF] transition-colors duration-300 hover:text-[#4a77e8] hover:underline">
+                  Try the demo
+                </Link>
+              </div>
             </div>
           </div>
         </BubbleBackground>
       </section>
 
       {/* Social Proof Bar */}
-      <section className="border-y border-border/60 bg-white py-6">
-        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-center gap-x-8 gap-y-4 px-4 text-sm text-muted-foreground sm:px-6">
-          <span className="flex items-center gap-2 transition-all duration-300 hover:text-foreground">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#5788FF]/10">
+      <section className="!mt-0 border-y border-border/60 bg-gradient-to-r from-white via-[#FFF5C2]/30 to-white py-5">
+        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-center gap-x-10 gap-y-4 px-4 text-sm sm:px-6">
+          <div className="group flex items-center gap-2.5 transition-all duration-300 ease-premium hover:scale-[1.02]">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#5788FF]/10 transition-all duration-300 ease-premium group-hover:scale-[1.05] group-hover:bg-[#5788FF]/15">
+              <Search className="h-4 w-4 text-[#5788FF]" aria-hidden />
+            </div>
+            <span className="font-medium text-foreground">50K+ monthly searches</span>
+          </div>
+          <div className="group flex items-center gap-2.5 transition-all duration-300 ease-premium hover:scale-[1.02]">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#5788FF]/10 transition-all duration-300 ease-premium group-hover:scale-[1.05] group-hover:bg-[#5788FF]/15">
               <Users className="h-4 w-4 text-[#5788FF]" aria-hidden />
             </div>
-            Trusted by 500+ providers
-          </span>
-          <span className="flex items-center gap-2 transition-all duration-300 hover:text-foreground">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#FFF5C2]">
+            <span className="font-medium text-foreground">500+ providers</span>
+          </div>
+          <div className="group flex items-center gap-2.5 transition-all duration-300 ease-premium hover:scale-[1.02]">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#FFF5C2] transition-all duration-300 ease-premium group-hover:scale-[1.05]">
               <Star className="h-4 w-4 fill-[#5788FF] text-[#5788FF]" aria-hidden />
             </div>
-            4.9/5 provider satisfaction
-          </span>
-          <span className="flex items-center gap-2 transition-all duration-300 hover:text-foreground">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/10">
+            <span className="font-medium text-foreground">4.9/5 satisfaction</span>
+          </div>
+          <div className="group flex items-center gap-2.5 transition-all duration-300 ease-premium hover:scale-[1.02]">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/10 transition-all duration-300 ease-premium group-hover:scale-[1.05] group-hover:bg-emerald-500/15">
               <Zap className="h-4 w-4 text-emerald-600" aria-hidden />
             </div>
-            Set up in under 5 minutes
-          </span>
+            <span className="font-medium text-foreground">5 min setup</span>
+          </div>
         </div>
       </section>
 
@@ -402,7 +396,7 @@ export default function GetListedPage() {
                   </div>
                 </CardHeader>
                 <CardContent className="flex flex-1 flex-col">
-                  <ul className="flex-1 space-y-3">
+                  <ul className="space-y-3">
                     {plan.features.map((feature) => {
                       const isObject = typeof feature === "object";
                       const text = isObject ? feature.text : feature;
@@ -463,7 +457,10 @@ export default function GetListedPage() {
                       </li>
                     ))}
                   </ul>
-                  <div className="mt-8 space-y-3">
+
+                  {/* Bottom section - pushed to bottom for alignment */}
+                  <div className="mt-auto pt-4">
+                    <div className="space-y-3">
                     {"showEmailLink" in plan && plan.showEmailLink && (
                       <p className="text-center text-xs text-muted-foreground">
                         Questions?{" "}
@@ -511,6 +508,10 @@ export default function GetListedPage() {
                         </Button>
                       </div>
                     )}
+                    </div>
+
+                    {/* Also Included: Jobs - at the very bottom for alignment */}
+                    <AlsoIncludedBadge otherBrand="jobs" planTier={plan.tier} />
                   </div>
                 </CardContent>
               </Card>
@@ -615,6 +616,9 @@ export default function GetListedPage() {
           </div>
         </div>
       </section>
+
+      {/* Cross-Brand Benefits */}
+      <CrossBrandBenefits currentBrand="therapy" />
 
       {/* Features Section */}
       <section className="bg-white py-16 sm:py-24">

@@ -10,6 +10,7 @@ export interface PlanFeatures {
   // Limits
   maxLocations: number;
   maxPhotos: number;
+  maxJobPostings: number; // -1 for unlimited
 
   // Features
   hasContactForm: boolean;
@@ -39,6 +40,7 @@ export interface PlanPricing {
     price: number; // Per month equivalent
     totalPrice: number; // Total per year
     savings: number; // Savings vs monthly
+    savingsPercent: number; // Savings percentage
   };
 }
 
@@ -61,11 +63,12 @@ export const PLAN_CONFIGS: Record<PlanTier, PlanConfig> = {
     description: "Get started with basic visibility",
     pricing: {
       monthly: { price: 0 },
-      annual: { price: 0, totalPrice: 0, savings: 0 },
+      annual: { price: 0, totalPrice: 0, savings: 0, savingsPercent: 0 },
     },
     features: {
       maxLocations: 1,
       maxPhotos: 0,
+      maxJobPostings: 0,
       hasContactForm: false,
       hasPhotoGallery: false,
       hasVideoEmbed: false,
@@ -91,12 +94,13 @@ export const PLAN_CONFIGS: Record<PlanTier, PlanConfig> = {
     displayName: "Pro",
     description: "Stand out and connect with more families",
     pricing: {
-      monthly: { price: 49 },
-      annual: { price: 29, totalPrice: 348, savings: 240 },
+      monthly: { price: 79 },
+      annual: { price: 47, totalPrice: 564, savings: 384, savingsPercent: 40 },
     },
     features: {
       maxLocations: 5,
       maxPhotos: 10,
+      maxJobPostings: 5,
       hasContactForm: true,
       hasPhotoGallery: true,
       hasVideoEmbed: true,
@@ -121,6 +125,8 @@ export const PLAN_CONFIGS: Record<PlanTier, PlanConfig> = {
       "Analytics dashboard",
       "Priority in search results",
       "Ages, languages, diagnoses & specialties",
+      "Up to 5 job postings",
+      "Up to 250 CRM contacts",
     ],
   },
   enterprise: {
@@ -128,12 +134,13 @@ export const PLAN_CONFIGS: Record<PlanTier, PlanConfig> = {
     displayName: "Enterprise",
     description: "Maximum visibility for large agencies",
     pricing: {
-      monthly: { price: 149 },
-      annual: { price: 89, totalPrice: 1068, savings: 720 },
+      monthly: { price: 199 },
+      annual: { price: 119, totalPrice: 1428, savings: 960, savingsPercent: 40 },
     },
     features: {
       maxLocations: 999, // Essentially unlimited
       maxPhotos: 10,
+      maxJobPostings: -1, // Unlimited
       hasContactForm: true,
       hasPhotoGallery: true,
       hasVideoEmbed: true,
@@ -153,6 +160,8 @@ export const PLAN_CONFIGS: Record<PlanTier, PlanConfig> = {
       "Everything in Pro",
       "Homepage placement",
       "Dedicated support",
+      "Unlimited job postings",
+      "Unlimited CRM contacts",
     ],
   },
 };
@@ -173,6 +182,11 @@ export const FEATURE_METADATA: Record<
     name: "Photo Gallery",
     description: "Number of photos you can add to your listing",
     upgradeMessage: "Upgrade to Pro to showcase your facility with photos",
+  },
+  maxJobPostings: {
+    name: "Job Postings",
+    description: "Number of job postings you can create",
+    upgradeMessage: "Upgrade to Pro to post jobs",
   },
   hasContactForm: {
     name: "Contact Form",
@@ -290,4 +304,20 @@ export function comparePlanTiers(a: PlanTier, b: PlanTier): number {
  */
 export function hasMinimumTier(current: PlanTier, minimum: PlanTier): boolean {
   return comparePlanTiers(current, minimum) >= 0;
+}
+
+/**
+ * Calculate effective plan tier based on subscription status
+ * Returns "free" if subscription is not active, regardless of plan_tier in database
+ */
+export function getEffectivePlanTier(
+  planTier: string,
+  subscriptionStatus: string | null
+): PlanTier {
+  if (planTier === "free") return "free";
+
+  const isActiveSubscription =
+    subscriptionStatus === "active" || subscriptionStatus === "trialing";
+
+  return isActiveSubscription ? (planTier as PlanTier) : "free";
 }

@@ -1,53 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
-import type { PlanTier } from "@/lib/plans/features";
+import { getEffectivePlanTier, type PlanTier } from "@/lib/plans/features";
 import { calculateDistance } from "@/lib/geo/distance";
-import { STATE_NAMES, STATE_SLUG_TO_ABBREV } from "@/lib/data/cities";
-
-/**
- * Calculate effective plan tier based on subscription status
- * Returns "free" if subscription is not active, regardless of plan_tier in database
- */
-function getEffectivePlanTier(planTier: string, subscriptionStatus: string | null): PlanTier {
-  if (planTier === "free") return "free";
-
-  const isActiveSubscription =
-    subscriptionStatus === "active" || subscriptionStatus === "trialing";
-
-  return isActiveSubscription ? (planTier as PlanTier) : "free";
-}
-
-/**
- * Get both state name and abbreviation for a given state input
- * Handles: "New Jersey", "NJ", "new-jersey" -> ["New Jersey", "NJ"]
- */
-function getStateForms(state: string): { name: string; abbrev: string } | null {
-  if (!state) return null;
-
-  const normalized = state.trim();
-
-  // Check if it's an abbreviation (2 letters)
-  const upper = normalized.toUpperCase();
-  if (upper.length === 2 && STATE_NAMES[upper]) {
-    return { name: STATE_NAMES[upper], abbrev: upper };
-  }
-
-  // Check if it's a slug (e.g., "new-jersey")
-  const slugLower = normalized.toLowerCase().replace(/\s+/g, "-");
-  if (STATE_SLUG_TO_ABBREV[slugLower]) {
-    const abbrev = STATE_SLUG_TO_ABBREV[slugLower];
-    return { name: STATE_NAMES[abbrev], abbrev };
-  }
-
-  // Check if it's a full state name (case insensitive)
-  for (const [abbrev, name] of Object.entries(STATE_NAMES)) {
-    if (name.toLowerCase() === normalized.toLowerCase()) {
-      return { name, abbrev };
-    }
-  }
-
-  // Not found - return the input as-is for both (fallback)
-  return null;
-}
+import { getStateForms, sortSearchResultsByRelevance } from "@/lib/utils/location-utils";
 
 export interface SearchFilters {
   query?: string;
@@ -733,23 +687,8 @@ export async function searchLocations(
   }
 
   // Sort results by: Featured → Paid (Enterprise/Pro equal) → Free → Distance
-  filteredByRadius.sort((a, b) => {
-    // 1. Featured locations first (per-location is_featured flag)
-    if (a.isFeatured && !b.isFeatured) return -1;
-    if (!a.isFeatured && b.isFeatured) return 1;
-
-    // 2. Paid tiers (Enterprise OR Pro) vs Free
-    // Enterprise and Pro have EQUAL priority
-    const aIsPaid = a.planTier !== "free";
-    const bIsPaid = b.planTier !== "free";
-    if (aIsPaid && !bIsPaid) return -1;
-    if (!aIsPaid && bIsPaid) return 1;
-
-    // 3. Sort by distance (closest first)
-    const distA = a.distanceMiles ?? Infinity;
-    const distB = b.distanceMiles ?? Infinity;
-    return distA - distB;
-  });
+  // Uses shared utility for consistent sorting across therapy and job search
+  sortSearchResultsByRelevance(filteredByRadius);
 
   // Apply text filter client-side
   let filteredLocations = filteredByRadius;

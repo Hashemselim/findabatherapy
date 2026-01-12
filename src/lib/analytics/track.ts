@@ -11,6 +11,11 @@ import {
   type SearchEventMetadata,
   type SearchImpressionMetadata,
   type InquiryEventMetadata,
+  type JobViewMetadata,
+  type JobSearchEventMetadata,
+  type JobSearchImpressionMetadata,
+  type JobApplyClickMetadata,
+  type ApplicationEventMetadata,
 } from "./events";
 
 /**
@@ -391,4 +396,192 @@ export async function wasEventTracked(
   } catch {
     return false;
   }
+}
+
+// =============================================================================
+// JOB TRACKING FUNCTIONS
+// =============================================================================
+
+/**
+ * Track a job view
+ */
+export async function trackJobView(
+  jobId: string,
+  jobSlug: string,
+  profileId: string,
+  positionType: string,
+  source?: "search" | "direct" | "state_page" | "homepage"
+): Promise<{ success: boolean }> {
+  const metadata: JobViewMetadata = {
+    jobId,
+    jobSlug,
+    profileId,
+    positionType,
+    source,
+  };
+
+  return trackEvent(EVENT_TYPES.JOB_VIEW, metadata);
+}
+
+/**
+ * Track a job search performed
+ */
+export async function trackJobSearch(
+  query: string | undefined,
+  filters: Record<string, unknown>,
+  resultsCount: number,
+  page?: number,
+  source?: "user" | "ai" | "bot" | "unknown"
+): Promise<{ success: boolean }> {
+  const metadata: JobSearchEventMetadata = {
+    query,
+    filters,
+    resultsCount,
+    page,
+    source: source || "unknown",
+  };
+
+  return trackEvent(EVENT_TYPES.JOB_SEARCH_PERFORMED, metadata);
+}
+
+/**
+ * Track job search impressions (jobs shown in results)
+ */
+export async function trackJobSearchImpressions(
+  jobs: Array<{ id: string; position: number }>,
+  searchQuery?: string,
+  source?: "user" | "ai" | "bot" | "unknown"
+): Promise<{ success: boolean }> {
+  try {
+    const supabase = await createAdminClient();
+    const baseMetadata = await getBaseMetadata();
+
+    const events = jobs.map((job) => ({
+      event_type: EVENT_TYPES.JOB_SEARCH_IMPRESSION,
+      metadata: {
+        ...baseMetadata,
+        jobId: job.id,
+        position: job.position,
+        searchQuery,
+        source: source || "unknown",
+      } as JobSearchImpressionMetadata,
+    }));
+
+    const { error } = await supabase.from("audit_events").insert(events);
+
+    if (error) {
+      console.error("[Analytics] Failed to track job impressions:", error.message);
+      return { success: false };
+    }
+
+    return { success: true };
+  } catch (e) {
+    console.error("[Analytics] Exception tracking job impressions:", e);
+    return { success: false };
+  }
+}
+
+/**
+ * Track job search impressions from client-side (source confirmed as "user")
+ */
+export async function trackJobSearchImpressionsFromClient(
+  jobs: Array<{ id: string; position: number }>,
+  searchQuery?: string
+): Promise<{ success: boolean }> {
+  try {
+    const supabase = await createAdminClient();
+
+    const events = jobs.map((job) => ({
+      event_type: EVENT_TYPES.JOB_SEARCH_IMPRESSION,
+      metadata: {
+        timestamp: new Date().toISOString(),
+        jobId: job.id,
+        position: job.position,
+        searchQuery,
+        source: "user",
+      } as JobSearchImpressionMetadata,
+    }));
+
+    const { error } = await supabase.from("audit_events").insert(events);
+
+    if (error) {
+      console.error("[Analytics] Failed to track client job impressions:", error.message);
+      return { success: false };
+    }
+
+    return { success: true };
+  } catch (e) {
+    console.error("[Analytics] Exception tracking client job impressions:", e);
+    return { success: false };
+  }
+}
+
+/**
+ * Track a job search result click
+ */
+export async function trackJobSearchClick(
+  jobId: string,
+  position: number,
+  searchQuery?: string
+): Promise<{ success: boolean }> {
+  const metadata: JobSearchImpressionMetadata = {
+    jobId,
+    position,
+    searchQuery,
+  };
+
+  return trackEvent(EVENT_TYPES.JOB_SEARCH_CLICK, metadata);
+}
+
+/**
+ * Track an apply button click
+ */
+export async function trackJobApplyClick(
+  jobId: string,
+  jobSlug: string,
+  profileId: string,
+  positionType: string
+): Promise<{ success: boolean }> {
+  const metadata: JobApplyClickMetadata = {
+    jobId,
+    jobSlug,
+    profileId,
+    positionType,
+  };
+
+  return trackEvent(EVENT_TYPES.JOB_APPLY_CLICK, metadata);
+}
+
+/**
+ * Track a job application submission
+ */
+export async function trackApplicationSubmitted(
+  jobId: string,
+  applicationId: string,
+  profileId: string
+): Promise<{ success: boolean }> {
+  const metadata: ApplicationEventMetadata = {
+    jobId,
+    applicationId,
+    profileId,
+  };
+
+  return trackEvent(EVENT_TYPES.APPLICATION_SUBMITTED, metadata);
+}
+
+/**
+ * Track an application viewed by employer
+ */
+export async function trackApplicationViewed(
+  jobId: string,
+  applicationId: string,
+  profileId: string
+): Promise<{ success: boolean }> {
+  const metadata: ApplicationEventMetadata = {
+    jobId,
+    applicationId,
+    profileId,
+  };
+
+  return trackEvent(EVENT_TYPES.APPLICATION_VIEWED, metadata);
 }

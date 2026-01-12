@@ -7,6 +7,12 @@
 
 import { Resend } from "resend";
 import { STRIPE_PLANS } from "@/lib/stripe/config";
+import {
+  type Brand,
+  getFormattedFromEmail,
+  getSupportEmail,
+  domains,
+} from "@/lib/utils/domains";
 
 // Lazy initialization - only create client when needed
 let resend: Resend | null = null;
@@ -23,12 +29,32 @@ function getResendClient(): Resend | null {
   return resend;
 }
 
-function getFromEmail(): string {
-  return process.env.EMAIL_FROM || "onboarding@resend.dev";
+/**
+ * Get the formatted from email for a specific brand
+ * Returns format: "Brand Name <noreply@behaviorwork.com>"
+ * Defaults to therapy site if no brand specified
+ */
+function getFromEmail(brand: Brand = "therapy"): string {
+  return getFormattedFromEmail(brand);
+}
+
+/**
+ * Get the admin email for notifications
+ * Defaults to therapy support email
+ */
+function getAdminEmail(brand: Brand = "therapy"): string {
+  return getSupportEmail(brand);
 }
 
 function getSiteUrl(): string {
   return process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+}
+
+function getJobsSiteUrl(): string {
+  if (process.env.NODE_ENV === "development") {
+    return process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+  }
+  return domains.jobs.production;
 }
 
 // Brand colors
@@ -252,6 +278,31 @@ export interface AdminFirstPaymentNotificationParams {
   state?: string | null;
 }
 
+// =============================================================================
+// JOB APPLICATION EMAIL NOTIFICATIONS
+// =============================================================================
+
+export interface JobApplicationConfirmationParams {
+  to: string;
+  applicantName: string;
+  jobTitle: string;
+  providerName: string;
+  jobUrl: string;
+}
+
+export interface ProviderNewApplicationParams {
+  to: string;
+  providerName: string;
+  jobTitle: string;
+  applicantName: string;
+  applicantEmail: string;
+  applicantPhone?: string | null;
+  linkedinUrl?: string | null;
+  coverLetter?: string | null;
+  hasResume: boolean;
+  applicationId: string;
+}
+
 /**
  * Send email notification to provider when a new inquiry is submitted
  */
@@ -339,6 +390,91 @@ export async function sendProviderInquiryNotification(
     return { success: true };
   } catch (err) {
     console.error("[EMAIL] Error sending inquiry notification:", err);
+    return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
+  }
+}
+
+export interface FamilyInquiryConfirmationParams {
+  to: string;
+  familyName: string;
+  providerName: string;
+  providerSlug: string;
+}
+
+/**
+ * Send confirmation email to family when they submit an inquiry
+ */
+export async function sendFamilyInquiryConfirmation(
+  params: FamilyInquiryConfirmationParams
+): Promise<{ success: boolean; error?: string }> {
+  const client = getResendClient();
+
+  if (!client) {
+    console.log("[EMAIL] Resend not configured - would send family inquiry confirmation:", {
+      to: params.to,
+      family: params.familyName,
+      provider: params.providerName,
+    });
+    return { success: true };
+  }
+
+  try {
+    const siteUrl = getSiteUrl();
+    const providerUrl = `${siteUrl}/provider/${params.providerSlug}`;
+
+    const content = `
+      <h1 style="color: ${BRAND.textDark}; font-size: 24px; font-weight: 700; margin: 0 0 8px 0;">
+        Message Sent Successfully
+      </h1>
+      <p style="color: ${BRAND.accent}; font-size: 14px; font-weight: 600; margin: 0 0 24px 0; text-transform: uppercase; letter-spacing: 0.5px;">
+        Your inquiry has been delivered
+      </p>
+
+      <p style="color: ${BRAND.textMedium}; font-size: 15px; line-height: 1.6; margin: 0 0 16px 0;">
+        Hi <strong style="color: ${BRAND.textDark};">${params.familyName}</strong>,
+      </p>
+
+      <p style="color: ${BRAND.textMedium}; font-size: 15px; line-height: 1.6; margin: 0 0 24px 0;">
+        Thank you for reaching out to <strong style="color: ${BRAND.textDark};">${params.providerName}</strong> through Find ABA Therapy. Your message has been delivered and the provider will contact you directly.
+      </p>
+
+      ${infoCard("What happens next?", `
+        <p style="color: ${BRAND.textMedium}; margin: 8px 0; font-size: 14px;">
+          <strong style="color: ${BRAND.textDark};">1.</strong> The provider will review your inquiry
+        </p>
+        <p style="color: ${BRAND.textMedium}; margin: 8px 0; font-size: 14px;">
+          <strong style="color: ${BRAND.textDark};">2.</strong> They'll reach out via email or phone
+        </p>
+        <p style="color: ${BRAND.textMedium}; margin: 8px 0; font-size: 14px;">
+          <strong style="color: ${BRAND.textDark};">3.</strong> You can discuss services, availability, and next steps
+        </p>
+      `)}
+
+      ${alertBox("Most providers respond within <strong>1-2 business days</strong>. If you don't hear back, feel free to reach out again or explore other providers in your area.", "info")}
+
+      ${primaryButton("View Provider Profile", providerUrl)}
+
+      <p style="color: ${BRAND.textLight}; font-size: 13px; margin-top: 32px; text-align: center;">
+        Looking for more options?<br>
+        <a href="${siteUrl}/search" style="color: ${BRAND.primary}; text-decoration: none;">Browse other ABA therapy providers</a>
+      </p>
+    `.trim();
+
+    const { error } = await client.emails.send({
+      from: getFromEmail(),
+      to: params.to,
+      subject: `Your message to ${params.providerName} has been sent`,
+      html: emailWrapper(content, { preheader: `Thank you for contacting ${params.providerName} through Find ABA Therapy` }),
+    });
+
+    if (error) {
+      console.error("[EMAIL] Failed to send family inquiry confirmation:", error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (err) {
+    console.error("[EMAIL] Error sending family inquiry confirmation:", err);
     return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
   }
 }
@@ -668,8 +804,8 @@ export async function sendFeedbackNotification(
   }
 }
 
-// Admin email for notifications
-const ADMIN_EMAIL = "support@findabatherapy.org";
+// Admin email for notifications - now uses domain utility
+const ADMIN_EMAIL = getAdminEmail("therapy");
 
 /**
  * Send email notification to admins when a new provider signs up
@@ -859,21 +995,336 @@ export async function sendAdminFirstPaymentNotification(
   }
 }
 
+// =============================================================================
+// JOB APPLICATION EMAIL FUNCTIONS
+// =============================================================================
+
+// Jobs site brand colors (emerald)
+const JOBS_BRAND = {
+  primary: "#059669",      // Emerald 600
+  primaryLight: "#10b981", // Emerald 500
+  accent: "#d97706",       // Amber 600
+};
+
+/**
+ * Jobs-specific email wrapper with emerald branding
+ */
+function jobsEmailWrapper(content: string, options?: { preheader?: string }): string {
+  const jobsSiteUrl = getJobsSiteUrl();
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://ltihdvlduohufwcfwops.supabase.co";
+  // TODO: Add jobs site logo when available
+  const logoUrl = `${supabaseUrl}/storage/v1/object/public/listing-logos/brand/logo-full-background-70.png`;
+
+  return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>Find ABA Jobs</title>
+  <!--[if mso]>
+  <noscript>
+    <xml>
+      <o:OfficeDocumentSettings>
+        <o:PixelsPerInch>96</o:PixelsPerInch>
+      </o:OfficeDocumentSettings>
+    </xml>
+  </noscript>
+  <![endif]-->
+</head>
+<body style="margin: 0; padding: 0; background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; -webkit-font-smoothing: antialiased;">
+  ${options?.preheader ? `<div style="display: none; max-height: 0; overflow: hidden;">${options.preheader}</div>` : ""}
+
+  <!-- Outer container -->
+  <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f1f5f9;">
+    <tr>
+      <td align="center" style="padding: 40px 20px;">
+
+        <!-- Email container -->
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="max-width: 600px; width: 100%;">
+
+          <!-- Header with logo - emerald background -->
+          <tr>
+            <td style="background-color: ${JOBS_BRAND.primary}; border-radius: 12px 12px 0 0; padding: 20px 32px; text-align: center;">
+              <h1 style="color: white; font-size: 24px; font-weight: 700; margin: 0;">Find ABA Jobs</h1>
+              <p style="color: rgba(255,255,255,0.9); font-size: 14px; margin: 8px 0 0 0;">BCBA, RBT & Behavior Analyst Careers</p>
+            </td>
+          </tr>
+
+          <!-- Main content area -->
+          <tr>
+            <td style="background-color: ${BRAND.bgWhite}; padding: 40px;">
+              ${content}
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: ${BRAND.bgLight}; border-radius: 0 0 12px 12px; padding: 24px 40px; border-top: 1px solid ${BRAND.border};">
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                <tr>
+                  <td align="center" style="padding-bottom: 16px;">
+                    <a href="${jobsSiteUrl}" style="color: ${JOBS_BRAND.primary}; text-decoration: none; font-weight: 600; font-size: 14px;">Visit FindABAJobs.org</a>
+                  </td>
+                </tr>
+                <tr>
+                  <td align="center" style="color: ${BRAND.textLight}; font-size: 12px; line-height: 1.5;">
+                    <p style="margin: 0 0 8px 0;">Find ABA Jobs connects behavior analysts with top ABA therapy employers.</p>
+                    <p style="margin: 0;">Questions? Contact us at <a href="mailto:support@findabajobs.org" style="color: ${JOBS_BRAND.primary}; text-decoration: none;">support@findabajobs.org</a></p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+        </table>
+
+        <!-- Legal footer -->
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="max-width: 600px; width: 100%;">
+          <tr>
+            <td align="center" style="padding: 24px 20px; color: ${BRAND.textLight}; font-size: 11px; line-height: 1.5;">
+              <p style="margin: 0;">&copy; ${new Date().getFullYear()} Find ABA Jobs. All rights reserved.</p>
+              <p style="margin: 8px 0 0 0;">
+                <a href="${jobsSiteUrl}/legal/privacy" style="color: ${BRAND.textLight}; text-decoration: underline;">Privacy Policy</a>
+                &nbsp;&bull;&nbsp;
+                <a href="${jobsSiteUrl}/legal/terms" style="color: ${BRAND.textLight}; text-decoration: underline;">Terms of Service</a>
+              </p>
+            </td>
+          </tr>
+        </table>
+
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `.trim();
+}
+
+/**
+ * Send application confirmation email to applicant
+ */
+export async function sendJobApplicationConfirmation(
+  params: JobApplicationConfirmationParams
+): Promise<{ success: boolean; error?: string }> {
+  const client = getResendClient();
+
+  if (!client) {
+    console.log("[EMAIL] Resend not configured - would send application confirmation:", {
+      to: params.to,
+      applicant: params.applicantName,
+      job: params.jobTitle,
+      provider: params.providerName,
+    });
+    return { success: true };
+  }
+
+  try {
+    const content = `
+      <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom: 32px;">
+        <tr>
+          <td align="center">
+            <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+              <tr>
+                <td align="center" valign="middle" width="64" height="64" style="background-color: ${JOBS_BRAND.primary}; border-radius: 32px; margin-bottom: 16px;">
+                  <span style="color: white; font-size: 28px; line-height: 1;">&#10003;</span>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+        <tr>
+          <td align="center" style="padding-top: 16px;">
+            <h1 style="color: ${BRAND.textDark}; font-size: 28px; font-weight: 700; margin: 0 0 8px 0;">
+              Application Submitted!
+            </h1>
+            <p style="color: ${JOBS_BRAND.primary}; font-size: 14px; font-weight: 600; margin: 0; text-transform: uppercase; letter-spacing: 0.5px;">
+              Your application has been received
+            </p>
+          </td>
+        </tr>
+      </table>
+
+      <p style="color: ${BRAND.textMedium}; font-size: 15px; line-height: 1.6; margin: 0 0 16px 0;">
+        Hi <strong style="color: ${BRAND.textDark};">${params.applicantName}</strong>,
+      </p>
+
+      <p style="color: ${BRAND.textMedium}; font-size: 15px; line-height: 1.6; margin: 0 0 24px 0;">
+        Thank you for applying to the <strong style="color: ${BRAND.textDark};">${params.jobTitle}</strong> position at <strong style="color: ${BRAND.textDark};">${params.providerName}</strong>.
+      </p>
+
+      ${alertBox("Your application has been submitted successfully. The employer will review your application and contact you if they're interested in moving forward.", "success")}
+
+      ${infoCard("What's Next?", `
+        <p style="color: ${BRAND.textMedium}; margin: 8px 0; font-size: 14px;">
+          <strong style="color: ${BRAND.textDark};">1.</strong> The hiring team will review your application
+        </p>
+        <p style="color: ${BRAND.textMedium}; margin: 8px 0; font-size: 14px;">
+          <strong style="color: ${BRAND.textDark};">2.</strong> If your qualifications match, they'll reach out directly
+        </p>
+        <p style="color: ${BRAND.textMedium}; margin: 8px 0; font-size: 14px;">
+          <strong style="color: ${BRAND.textDark};">3.</strong> Keep an eye on your email for updates
+        </p>
+      `)}
+
+      <p style="color: ${BRAND.textMedium}; font-size: 15px; line-height: 1.6; margin: 24px 0;">
+        In the meantime, continue exploring other opportunities:
+      </p>
+
+      ${primaryButton("Browse More Jobs", `${getJobsSiteUrl()}/jobs`, JOBS_BRAND.primary)}
+
+      <p style="color: ${BRAND.textLight}; font-size: 13px; margin-top: 32px; text-align: center;">
+        You can view the original job posting at:<br>
+        <a href="${params.jobUrl}" style="color: ${JOBS_BRAND.primary}; text-decoration: none;">${params.jobUrl}</a>
+      </p>
+    `.trim();
+
+    const { error } = await client.emails.send({
+      from: getFromEmail("jobs"),
+      to: params.to,
+      subject: `Application Received: ${params.jobTitle} at ${params.providerName}`,
+      html: jobsEmailWrapper(content, { preheader: `Thank you for applying to ${params.jobTitle} at ${params.providerName}` }),
+    });
+
+    if (error) {
+      console.error("[EMAIL] Failed to send application confirmation:", error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (err) {
+    console.error("[EMAIL] Error sending application confirmation:", err);
+    return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
+  }
+}
+
+/**
+ * Send notification email to provider when they receive a new application
+ */
+export async function sendProviderNewApplicationNotification(
+  params: ProviderNewApplicationParams
+): Promise<{ success: boolean; error?: string }> {
+  const client = getResendClient();
+
+  if (!client) {
+    console.log("[EMAIL] Resend not configured - would send new application notification:", {
+      to: params.to,
+      provider: params.providerName,
+      job: params.jobTitle,
+      applicant: params.applicantName,
+    });
+    return { success: true };
+  }
+
+  try {
+    const siteUrl = getSiteUrl();
+
+    const contactDetails = `
+      <p style="color: ${BRAND.textMedium}; margin: 8px 0; font-size: 14px;">
+        <strong style="color: ${BRAND.textDark};">Name:</strong> ${params.applicantName}
+      </p>
+      <p style="color: ${BRAND.textMedium}; margin: 8px 0; font-size: 14px;">
+        <strong style="color: ${BRAND.textDark};">Email:</strong>
+        <a href="mailto:${params.applicantEmail}" style="color: ${JOBS_BRAND.primary}; text-decoration: none;">${params.applicantEmail}</a>
+      </p>
+      ${params.applicantPhone ? `
+        <p style="color: ${BRAND.textMedium}; margin: 8px 0; font-size: 14px;">
+          <strong style="color: ${BRAND.textDark};">Phone:</strong>
+          <a href="tel:${params.applicantPhone}" style="color: ${JOBS_BRAND.primary}; text-decoration: none;">${params.applicantPhone}</a>
+        </p>
+      ` : ""}
+      ${params.linkedinUrl ? `
+        <p style="color: ${BRAND.textMedium}; margin: 8px 0; font-size: 14px;">
+          <strong style="color: ${BRAND.textDark};">LinkedIn:</strong>
+          <a href="${params.linkedinUrl}" style="color: ${JOBS_BRAND.primary}; text-decoration: none;" target="_blank">View Profile</a>
+        </p>
+      ` : ""}
+      <p style="color: ${BRAND.textMedium}; margin: 8px 0; font-size: 14px;">
+        <strong style="color: ${BRAND.textDark};">Resume:</strong> ${params.hasResume ? '<span style="color: ' + JOBS_BRAND.primary + ';">Attached</span>' : '<span style="color: ' + BRAND.textLight + ';">Not provided</span>'}
+      </p>
+    `.trim();
+
+    const content = `
+      <h1 style="color: ${BRAND.textDark}; font-size: 24px; font-weight: 700; margin: 0 0 8px 0;">
+        New Application Received
+      </h1>
+      <p style="color: ${JOBS_BRAND.primary}; font-size: 14px; font-weight: 600; margin: 0 0 24px 0; text-transform: uppercase; letter-spacing: 0.5px;">
+        ${params.jobTitle}
+      </p>
+
+      <p style="color: ${BRAND.textMedium}; font-size: 15px; line-height: 1.6; margin: 0 0 16px 0;">
+        Hello <strong style="color: ${BRAND.textDark};">${params.providerName}</strong>,
+      </p>
+
+      <p style="color: ${BRAND.textMedium}; font-size: 15px; line-height: 1.6; margin: 0 0 24px 0;">
+        Great news! You have received a new application for your <strong style="color: ${BRAND.textDark};">${params.jobTitle}</strong> position.
+      </p>
+
+      ${infoCard("Applicant Information", contactDetails)}
+
+      ${params.coverLetter ? infoCard("Cover Letter", `<p style="color: ${BRAND.textMedium}; font-size: 14px; line-height: 1.6; margin: 0; white-space: pre-wrap;">${params.coverLetter.length > 500 ? params.coverLetter.substring(0, 500) + "..." : params.coverLetter}</p>`) : ""}
+
+      ${alertBox("<strong>Tip:</strong> Responding quickly to qualified candidates increases your chances of hiring top talent. We recommend reviewing applications within 48 hours.", "info")}
+
+      ${primaryButton("View Application", `${siteUrl}/dashboard/jobs/applications/${params.applicationId}`, JOBS_BRAND.primary)}
+
+      <p style="color: ${BRAND.textLight}; font-size: 13px; margin-top: 24px;">
+        You can also contact this applicant directly at
+        <a href="mailto:${params.applicantEmail}" style="color: ${JOBS_BRAND.primary}; text-decoration: none;">${params.applicantEmail}</a>.
+      </p>
+    `.trim();
+
+    const { error } = await client.emails.send({
+      from: getFromEmail("jobs"),
+      to: params.to,
+      subject: `New Application: ${params.applicantName} for ${params.jobTitle}`,
+      html: jobsEmailWrapper(content, { preheader: `${params.applicantName} applied for your ${params.jobTitle} position` }),
+    });
+
+    if (error) {
+      console.error("[EMAIL] Failed to send new application notification:", error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (err) {
+    console.error("[EMAIL] Error sending new application notification:", err);
+    return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
+  }
+}
+
+/**
+ * Send a test email to verify the email templates are working
+ */
+export type TestEmailType =
+  // Therapy brand emails (blue)
+  | "inquiry"
+  | "family_inquiry"
+  | "payment_failure"
+  | "subscription"
+  | "subscription_enterprise"
+  | "feedback"
+  | "admin_signup"
+  | "admin_first_payment"
+  // Jobs brand emails (emerald)
+  | "jobs_application_confirmation"
+  | "jobs_new_application";
+
 /**
  * Send a test email to verify the email templates are working
  */
 export async function sendTestEmail(
   to: string,
-  type:
-    | "inquiry"
-    | "payment_failure"
-    | "subscription"
-    | "subscription_enterprise"
-    | "feedback"
-    | "admin_signup"
-    | "admin_first_payment" = "inquiry"
+  type: TestEmailType = "inquiry"
 ): Promise<{ success: boolean; error?: string }> {
-  const testData = {
+  const jobsSiteUrl = getJobsSiteUrl();
+
+  const testData: Record<TestEmailType, () => Promise<{ success: boolean; error?: string }>> = {
+    // ==========================================================================
+    // THERAPY BRAND EMAILS (Blue #5788FF)
+    // From: "Find ABA Therapy <noreply@behaviorwork.com>"
+    // ==========================================================================
     inquiry: () =>
       sendProviderInquiryNotification({
         to,
@@ -885,6 +1336,13 @@ export async function sendTestEmail(
         message:
           "Hello, I am looking for ABA therapy services for my son. He was recently diagnosed and we're exploring options in our area. We're particularly interested in in-home therapy sessions. Could you please let me know your availability and the process to get started?\n\nThank you!",
         locationLabel: "Downtown Austin Center",
+      }),
+    family_inquiry: () =>
+      sendFamilyInquiryConfirmation({
+        to,
+        familyName: "John Smith",
+        providerName: "Sunshine ABA Services",
+        providerSlug: "sunshine-aba-services",
       }),
     payment_failure: () =>
       sendPaymentFailureNotification({
@@ -936,6 +1394,33 @@ export async function sendTestEmail(
         amountPaid: 9900,
         currency: "usd",
         state: "Texas",
+      }),
+
+    // ==========================================================================
+    // JOBS BRAND EMAILS (Emerald #059669)
+    // From: "Find ABA Jobs <noreply@behaviorwork.com>"
+    // ==========================================================================
+    jobs_application_confirmation: () =>
+      sendJobApplicationConfirmation({
+        to,
+        applicantName: "Sarah Johnson",
+        jobTitle: "Board Certified Behavior Analyst (BCBA)",
+        providerName: "Sunrise ABA Therapy",
+        jobUrl: `${jobsSiteUrl}/job/bcba-sunrise-aba-therapy`,
+      }),
+    jobs_new_application: () =>
+      sendProviderNewApplicationNotification({
+        to,
+        providerName: "Sunrise ABA Therapy",
+        jobTitle: "Board Certified Behavior Analyst (BCBA)",
+        applicantName: "Sarah Johnson",
+        applicantEmail: "sarah.johnson@example.com",
+        applicantPhone: "(555) 234-5678",
+        linkedinUrl: "https://linkedin.com/in/sarahjohnson",
+        coverLetter:
+          "Dear Hiring Manager,\n\nI am excited to apply for the BCBA position at Sunrise ABA Therapy. With 5 years of experience working with children on the autism spectrum and a passion for evidence-based interventions, I believe I would be a valuable addition to your team.\n\nI look forward to discussing how my skills and experience align with your organization's mission.",
+        hasResume: true,
+        applicationId: "test-application-123",
       }),
   };
 

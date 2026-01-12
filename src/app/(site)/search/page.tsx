@@ -11,7 +11,6 @@ import { SearchPagination } from "@/components/search/search-pagination";
 import { SearchTracker } from "@/components/search/search-tracker";
 import { ImpressionTracker } from "@/components/search/impression-tracker";
 import { SortToggle } from "@/components/search/sort-toggle";
-import { Breadcrumbs } from "@/components/seo/breadcrumbs";
 import { JsonLd } from "@/components/seo/json-ld";
 import { BackToTop } from "@/components/ui/back-to-top";
 import { BubbleBackground } from "@/components/ui/bubble-background";
@@ -202,26 +201,12 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
       )
     : null;
 
-  // Build breadcrumb items based on search filters
-  const breadcrumbItems: Array<{ label: string; href: string }> = [
-    { label: "Search", href: "/search" },
-  ];
-  if (filters.state) {
-    const stateSlug = filters.state.toLowerCase().replace(/\s+/g, "-");
-    breadcrumbItems.push({ label: filters.state, href: `/${stateSlug}` });
-  }
-
   return (
     <>
       {/* Structured Data */}
       {itemListSchema && <JsonLd data={itemListSchema} />}
 
       <div className="space-y-6 pb-16">
-        {/* Breadcrumb with JSON-LD schema */}
-      <div className="mx-auto max-w-6xl px-4 pt-4 sm:px-6">
-        <Breadcrumbs items={breadcrumbItems} />
-      </div>
-
       {/* Hero Section with Search */}
       <section className="px-0 pt-0">
         {heroVariant === "compact" ? (

@@ -6,8 +6,8 @@
  *
  * Plans:
  * - Free: $0/mo (no Stripe subscription needed)
- * - Pro: $49/mo or $348/yr ($29/mo equivalent - 40% off)
- * - Enterprise: $149/mo or $1,068/yr ($89/mo equivalent - 40% off)
+ * - Pro: $79/mo or $564/yr ($47/mo equivalent - 40% off)
+ * - Enterprise: $199/mo or $1,428/yr ($119/mo equivalent - 40% off)
  * - Featured Add-on: $99/mo (requires Pro or Enterprise)
  */
 
@@ -32,13 +32,13 @@ export const STRIPE_PLANS: Record<"pro" | "enterprise", StripePlan> = {
     name: "Pro",
     monthly: {
       priceId: process.env.STRIPE_PRO_MONTHLY_PRICE_ID || "price_pro_monthly",
-      price: 49,
+      price: 79,
     },
     annual: {
       priceId: process.env.STRIPE_PRO_ANNUAL_PRICE_ID || "price_pro_annual",
-      price: 29, // Per month equivalent
-      totalPrice: 348, // Total per year
-      savings: 240, // Savings vs monthly ($588 - $348)
+      price: 47, // Per month equivalent
+      totalPrice: 564, // Total per year
+      savings: 384, // Savings vs monthly ($948 - $564)
     },
     features: [
       "Priority search placement",
@@ -49,19 +49,21 @@ export const STRIPE_PLANS: Record<"pro" | "enterprise", StripePlan> = {
       "Video embed",
       "Verified badge",
       "Google star rating integration",
+      "Up to 5 job postings",
+      "Up to 250 CRM contacts",
     ],
   },
   enterprise: {
     name: "Enterprise",
     monthly: {
       priceId: process.env.STRIPE_ENTERPRISE_MONTHLY_PRICE_ID || "price_enterprise_monthly",
-      price: 149,
+      price: 199,
     },
     annual: {
       priceId: process.env.STRIPE_ENTERPRISE_ANNUAL_PRICE_ID || "price_enterprise_annual",
-      price: 89, // Per month equivalent
-      totalPrice: 1068, // Total per year
-      savings: 720, // Savings vs monthly ($1788 - $1068)
+      price: 119, // Per month equivalent
+      totalPrice: 1428, // Total per year
+      savings: 960, // Savings vs monthly ($2388 - $1428)
     },
     features: [
       "Priority search placement",
@@ -73,6 +75,8 @@ export const STRIPE_PLANS: Record<"pro" | "enterprise", StripePlan> = {
       "Verified badge",
       "Google star rating integration",
       "Featured homepage placement",
+      "Unlimited job postings",
+      "Unlimited CRM contacts",
     ],
   },
 };

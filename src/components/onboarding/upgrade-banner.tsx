@@ -3,6 +3,7 @@
 import { Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { PLAN_CONFIGS } from "@/lib/plans/features";
 
 interface UpgradeBannerProps {
   /** Called when "Upgrade to Pro" is clicked */
@@ -40,7 +41,7 @@ export function UpgradeBanner({
             disabled={disabled}
             className="rounded-full border border-[#FEE720] bg-[#FEE720] text-[#333333] hover:bg-[#FFF5C2]"
           >
-            Upgrade to Pro ($49/mo)
+            Upgrade to Pro (${PLAN_CONFIGS.pro.pricing.monthly.price}/mo)
           </Button>
           <Button
             onClick={onUpgradeEnterprise}
@@ -48,7 +49,7 @@ export function UpgradeBanner({
             variant="outline"
             className="rounded-full"
           >
-            Upgrade to Enterprise ($149/mo)
+            Upgrade to Enterprise (${PLAN_CONFIGS.enterprise.pricing.monthly.price}/mo)
           </Button>
         </div>
       </div>

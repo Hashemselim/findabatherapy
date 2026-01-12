@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Filter, X, ChevronDown, MapPin, Loader2, Navigation } from "lucide-react";
+import { Filter, X, MapPin, Loader2, Navigation } from "lucide-react";
 import { useDebouncedCallback } from "@/hooks/use-debounce";
 
 import { Badge } from "@/components/ui/badge";
@@ -27,10 +27,9 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+  FilterSection,
+  FilterCheckboxGroup,
+} from "@/components/filters";
 import {
   SERVICE_MODES,
   COMMON_INSURANCES,
@@ -41,7 +40,7 @@ import {
 } from "@/lib/search/filters";
 import type { SearchFilters } from "@/lib/queries/search";
 import { cn } from "@/lib/utils";
-import { useGeolocation } from "@/hooks/use-geolocation";
+import { useLocationState, type LocationState } from "@/hooks/use-location-state";
 
 interface SearchFiltersProps {
   className?: string;
@@ -235,120 +234,79 @@ function FilterContent({
   hasUnvalidatedLocation,
 }: FilterContentProps) {
   const [addressInput, setAddressInput] = useState("");
-  // Compute the location label from filters
-  const computeLocationLabel = useCallback((): string | null => {
-    if (filters.city && filters.state) {
-      return `${filters.city}, ${filters.state}`;
-    } else if (filters.state) {
-      return filters.state;
-    } else if (filters.userLat !== undefined && filters.userLng !== undefined) {
-      return "Location set";
-    }
-    return null;
-  }, [filters.city, filters.state, filters.userLat, filters.userLng]);
 
-  const [locationLabel, setLocationLabel] = useState<string | null>(computeLocationLabel);
-  const geolocation = useGeolocation();
+  // Determine if we have location from parent filters
+  const hasLocationFromFilters = filters.userLat !== undefined && filters.userLng !== undefined;
 
-  // Update location label when filters change (e.g., from URL sync)
-  useEffect(() => {
-    // If there's no location coordinates, clear the label
-    if (filters.userLat === undefined || filters.userLng === undefined) {
-      setLocationLabel(null);
-    } else {
-      // Update label based on city/state or fallback to generic label
-      const newLabel = computeLocationLabel();
-      if (newLabel) {
-        setLocationLabel(newLabel);
+  // Compute initial location from filters for the hook
+  const initialLocation = hasLocationFromFilters
+    ? {
+        lat: filters.userLat!,
+        lng: filters.userLng!,
+        city: filters.city,
+        state: filters.state,
+        radius: filters.radiusMiles,
       }
-    }
-  }, [filters.userLat, filters.userLng, computeLocationLabel]);
+    : undefined;
 
-  const hasLocation = filters.userLat !== undefined && filters.userLng !== undefined;
-  const [isReverseGeocoding, setIsReverseGeocoding] = useState(false);
+  // Handle location changes from the hook - sync to parent filter state
+  const handleLocationChange = useCallback(
+    (loc: LocationState | null) => {
+      if (loc) {
+        onLocationUpdate(loc.lat, loc.lng);
+        if (loc.city) onFilterChange("city", loc.city);
+        if (loc.state) onFilterChange("state", loc.state);
+        if (!filters.radiusMiles) {
+          onFilterChange("radiusMiles", loc.radius);
+        }
+      } else {
+        onLocationUpdate(undefined, undefined);
+        onFilterChange("radiusMiles", undefined);
+        onFilterChange("city", undefined);
+        onFilterChange("state", undefined);
+      }
+    },
+    [onLocationUpdate, onFilterChange, filters.radiusMiles]
+  );
 
-  // Request location and automatically apply it when received
-  const handleNearMe = useCallback(() => {
-    geolocation.requestLocation();
-  }, [geolocation]);
+  // Use the shared location state hook
+  const {
+    hasLocation,
+    locationLabel,
+    setLocationFromPlace,
+    requestGeolocation,
+    clearLocation: hookClearLocation,
+    isGeolocating,
+    isReverseGeocoding,
+    error,
+  } = useLocationState({
+    initialLocation,
+    onLocationChange: handleLocationChange,
+  });
 
-  // Automatically apply location when geolocation succeeds
-  // This effect does reverse geocoding to get the state, then applies the location
-  useEffect(() => {
-    if (geolocation.latitude && geolocation.longitude && !hasLocation && !isReverseGeocoding) {
-      setIsReverseGeocoding(true);
+  // Handle place selection
+  const handlePlaceSelect = useCallback(
+    (place: PlaceDetails) => {
+      setLocationFromPlace(place);
+      setAddressInput("");
+    },
+    [setLocationFromPlace]
+  );
 
-      // Do reverse geocoding to get city/state
-      fetch("/api/geocode", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          latitude: geolocation.latitude,
-          longitude: geolocation.longitude,
-        }),
-      })
-        .then((res) => res.json())
-        .then((data) => {
-          // Apply location with city/state from reverse geocoding
-          onLocationUpdate(geolocation.latitude!, geolocation.longitude!);
-
-          if (data.city) onFilterChange("city", data.city);
-          if (data.state) onFilterChange("state", data.state);
-
-          const label = data.city && data.state
-            ? `${data.city}, ${data.state}`
-            : "Current location";
-          setLocationLabel(label);
-
-          if (!filters.radiusMiles) {
-            onFilterChange("radiusMiles", 25);
-          }
-        })
-        .catch(() => {
-          // Fallback: apply location without city/state (will search all results)
-          onLocationUpdate(geolocation.latitude!, geolocation.longitude!);
-          setLocationLabel("Current location");
-          if (!filters.radiusMiles) {
-            onFilterChange("radiusMiles", 25);
-          }
-        })
-        .finally(() => {
-          setIsReverseGeocoding(false);
-        });
-    }
-  }, [geolocation.latitude, geolocation.longitude, hasLocation, isReverseGeocoding, onLocationUpdate, onFilterChange, filters.radiusMiles]);
-
-  // Handle place selection from PlacesAutocomplete - get coordinates directly
-  const handlePlaceSelect = useCallback((place: PlaceDetails) => {
-    onLocationUpdate(place.latitude, place.longitude);
-    // Set a label for the selected place
-    const label = place.city && place.state
-      ? `${place.city}, ${place.state}`
-      : place.formattedAddress || addressInput;
-    setLocationLabel(label);
-    // Also update city/state filters for better search results display
-    if (place.city) onFilterChange("city", place.city);
-    if (place.state) onFilterChange("state", place.state);
-    if (!filters.radiusMiles) {
-      onFilterChange("radiusMiles", 25);
-    }
-    setAddressInput("");
-  }, [onLocationUpdate, onFilterChange, filters.radiusMiles, addressInput]);
-
+  // Handle clear
   const clearLocation = useCallback(() => {
-    onLocationUpdate(undefined, undefined);
-    onFilterChange("radiusMiles", undefined);
-    onFilterChange("city", undefined);
-    onFilterChange("state", undefined);
+    hookClearLocation();
     setAddressInput("");
-    setLocationLabel(null);
-    geolocation.clearLocation();
-  }, [onLocationUpdate, onFilterChange, geolocation]);
+  }, [hookClearLocation]);
+
+  // Create simple option arrays from string arrays for FilterCheckboxGroup
+  const insuranceOptions = COMMON_INSURANCES.map((ins) => ({ value: ins, label: ins }));
+  const languageOptions = COMMON_LANGUAGES.map((lang) => ({ value: lang, label: lang }));
 
   return (
     <>
       {/* Location / Proximity Search */}
-      <FilterSection title="Location" defaultOpen>
+      <FilterSection title="Location" defaultOpen accentColor="blue">
         <div className="space-y-3">
           {hasLocation ? (
             <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3">
@@ -376,10 +334,10 @@ function FilterContent({
                 variant="outline"
                 size="sm"
                 className="w-full gap-2"
-                onClick={handleNearMe}
-                disabled={geolocation.loading || isReverseGeocoding}
+                onClick={requestGeolocation}
+                disabled={isGeolocating || isReverseGeocoding}
               >
-                {geolocation.loading || isReverseGeocoding ? (
+                {isGeolocating || isReverseGeocoding ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
                   <Navigation className="h-4 w-4" />
@@ -387,8 +345,8 @@ function FilterContent({
                 {isReverseGeocoding ? "Finding your location..." : "Use my location"}
               </Button>
 
-              {geolocation.error && (
-                <p className="text-xs text-destructive">{geolocation.error}</p>
+              {error && (
+                <p className="text-xs text-destructive">{error}</p>
               )}
 
               {/* Divider */}
@@ -465,90 +423,34 @@ function FilterContent({
       </div>
 
       {/* Service Types */}
-      <FilterSection title="Service Type" defaultOpen>
-        <div className="space-y-2">
-          {SERVICE_MODES.map((type) => (
-            <div key={type.value} className="flex items-center space-x-2">
-              <Checkbox
-                id={`type-${type.value}`}
-                checked={filters.serviceTypes?.includes(type.value) || false}
-                onCheckedChange={() => onArrayToggle("serviceTypes", type.value)}
-              />
-              <Label htmlFor={`type-${type.value}`} className="text-sm font-normal">
-                {type.label}
-              </Label>
-            </div>
-          ))}
-        </div>
+      <FilterSection title="Service Type" defaultOpen accentColor="blue">
+        <FilterCheckboxGroup
+          options={SERVICE_MODES}
+          selected={filters.serviceTypes || []}
+          onChange={(value) => onArrayToggle("serviceTypes", value)}
+        />
       </FilterSection>
 
       {/* Insurance */}
-      <FilterSection title="Insurance Accepted">
-        <div className="max-h-48 space-y-2 overflow-y-auto">
-          {COMMON_INSURANCES.map((insurance) => (
-            <div key={insurance} className="flex items-center space-x-2">
-              <Checkbox
-                id={`insurance-${insurance}`}
-                checked={filters.insurances?.includes(insurance) || false}
-                onCheckedChange={() => onArrayToggle("insurances", insurance)}
-              />
-              <Label
-                htmlFor={`insurance-${insurance}`}
-                className="text-sm font-normal"
-              >
-                {insurance}
-              </Label>
-            </div>
-          ))}
-        </div>
+      <FilterSection title="Insurance Accepted" accentColor="blue">
+        <FilterCheckboxGroup
+          options={insuranceOptions}
+          selected={filters.insurances || []}
+          onChange={(value) => onArrayToggle("insurances", value)}
+          maxHeight="12rem"
+        />
       </FilterSection>
 
       {/* Languages */}
-      <FilterSection title="Languages Spoken">
-        <div className="max-h-48 space-y-2 overflow-y-auto">
-          {COMMON_LANGUAGES.map((language) => (
-            <div key={language} className="flex items-center space-x-2">
-              <Checkbox
-                id={`language-${language}`}
-                checked={filters.languages?.includes(language) || false}
-                onCheckedChange={() => onArrayToggle("languages", language)}
-              />
-              <Label
-                htmlFor={`language-${language}`}
-                className="text-sm font-normal"
-              >
-                {language}
-              </Label>
-            </div>
-          ))}
-        </div>
+      <FilterSection title="Languages Spoken" accentColor="blue">
+        <FilterCheckboxGroup
+          options={languageOptions}
+          selected={filters.languages || []}
+          onChange={(value) => onArrayToggle("languages", value)}
+          maxHeight="12rem"
+        />
       </FilterSection>
     </>
-  );
-}
-
-interface FilterSectionProps {
-  title: string;
-  defaultOpen?: boolean;
-  children: React.ReactNode;
-}
-
-function FilterSection({ title, defaultOpen = false, children }: FilterSectionProps) {
-  const [isOpen, setIsOpen] = useState(defaultOpen);
-
-  return (
-    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-      <CollapsibleTrigger className="group flex w-full items-center justify-between py-2 transition-colors duration-300 hover:text-[#5788FF]">
-        <span className="text-sm font-medium">{title}</span>
-        <ChevronDown
-          className={cn(
-            "h-4 w-4 transition-all duration-300 ease-premium group-hover:text-[#5788FF]",
-            isOpen && "rotate-180"
-          )}
-        />
-      </CollapsibleTrigger>
-      <CollapsibleContent className="pt-2">{children}</CollapsibleContent>
-    </Collapsible>
   );
 }
 

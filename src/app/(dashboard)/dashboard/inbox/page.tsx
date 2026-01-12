@@ -5,12 +5,12 @@ import { ClipboardList, Mail, MessageSquare, Sparkles, ArrowRight, CheckCircle2,
 import { getInquiries } from "@/lib/actions/inquiries";
 import { getLocations } from "@/lib/actions/locations";
 import { getListingAttributes } from "@/lib/actions/listings";
-import { getProfile, createClient } from "@/lib/supabase/server";
-import { InboxTabs } from "@/components/dashboard/inbox/inbox-tabs";
+import { getProfile } from "@/lib/supabase/server";
+import { InquiriesList } from "@/components/dashboard/inquiries-list";
+import { ContactFormToggle } from "@/components/dashboard/inbox/contact-form-toggle";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { BubbleBackground } from "@/components/ui/bubble-background";
-import type { IntakeFormSettings } from "@/lib/actions/intake";
 
 export default async function InquiriesPage() {
   const profile = await getProfile();
@@ -20,7 +20,7 @@ export default async function InquiriesPage() {
     return (
       <div className="space-y-4 sm:space-y-6">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">Contact Form Inbox</h1>
+          <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">Inbox</h1>
           <p className="mt-1 text-sm text-muted-foreground sm:mt-2">
             Manage messages from families interested in your services.
           </p>
@@ -89,7 +89,7 @@ export default async function InquiriesPage() {
     return (
       <div className="space-y-4 sm:space-y-6">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">Contact Form Inbox</h1>
+          <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">Inbox</h1>
           <p className="mt-1 text-sm text-muted-foreground sm:mt-2">
             Manage messages from families interested in your services.
           </p>
@@ -190,24 +190,18 @@ export default async function InquiriesPage() {
     );
   }
 
-  // Fetch inquiries, locations, attributes, and listing slug in parallel
-  const supabase = await createClient();
-  const [result, locationsResult, attributesResult, listingResult] = await Promise.all([
+  // Fetch inquiries, locations, and attributes in parallel
+  const [result, locationsResult, attributesResult] = await Promise.all([
     getInquiries(),
     getLocations(),
     getListingAttributes(),
-    supabase
-      .from("listings")
-      .select("slug")
-      .eq("profile_id", profile.id)
-      .single(),
   ]);
 
   if (!result.success) {
     return (
       <div className="space-y-4 sm:space-y-6">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">Contact Form Inbox</h1>
+          <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">Inbox</h1>
           <p className="mt-1 text-sm text-muted-foreground sm:mt-2">
             Manage messages from families interested in your services.
           </p>
@@ -234,27 +228,17 @@ export default async function InquiriesPage() {
   const contactFormEnabled = attributesResult.success
     ? (attributesResult.data?.contact_form_enabled as boolean) !== false
     : true;
-  const listingSlug = listingResult.data?.slug ?? null;
-
-  // Get intake form settings with defaults
-  const defaultSettings: IntakeFormSettings = {
-    background_color: "#5788FF",
-    show_powered_by: true,
-  };
-  const intakeFormSettings = profile.intake_form_settings
-    ? {
-        ...defaultSettings,
-        ...(profile.intake_form_settings as Partial<IntakeFormSettings>),
-      }
-    : defaultSettings;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4 sm:gap-6 lg:overflow-hidden">
-      <div className="shrink-0">
-        <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">Contact Form Inbox</h1>
-        <p className="mt-1 text-sm text-muted-foreground sm:mt-2">
-          Manage messages from families interested in your services.
-        </p>
+      <div className="flex shrink-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">Inbox</h1>
+          <p className="mt-1 text-sm text-muted-foreground sm:mt-2">
+            Manage messages from families interested in your services.
+          </p>
+        </div>
+        <ContactFormToggle contactFormEnabled={contactFormEnabled} />
       </div>
 
       <Suspense
@@ -274,13 +258,10 @@ export default async function InquiriesPage() {
           </div>
         }
       >
-        <InboxTabs
-          inquiries={inquiries}
-          unreadCount={unreadCount}
+        <InquiriesList
+          initialInquiries={inquiries}
+          initialUnreadCount={unreadCount}
           locations={locations}
-          contactFormEnabled={contactFormEnabled}
-          listingSlug={listingSlug}
-          intakeFormSettings={intakeFormSettings}
         />
       </Suspense>
     </div>

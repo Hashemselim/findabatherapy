@@ -84,7 +84,7 @@ export async function getListingSlug(): Promise<string | null> {
   const { data } = await supabase
     .from("listings")
     .select("slug")
-    .eq("user_id", user.id)
+    .eq("profile_id", user.id)
     .single();
 
   return data?.slug ?? null;
@@ -678,6 +678,135 @@ export async function updateContactFormEnabled(enabled: boolean): Promise<Action
 
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/company");
+  return { success: true };
+}
+
+/**
+ * Get careers page settings for the current user
+ */
+export async function getCareersPageSettings(): Promise<ActionResult<{
+  brandColor: string;
+  headline: string | null;
+  ctaText: string;
+  hideBadge: boolean;
+}>> {
+  const user = await getUser();
+  if (!user) {
+    return { success: false, error: "Not authenticated" };
+  }
+
+  const supabase = await createClient();
+
+  const { data: listing, error } = await supabase
+    .from("listings")
+    .select("careers_brand_color, careers_headline, careers_cta_text, careers_hide_badge")
+    .eq("profile_id", user.id)
+    .single();
+
+  if (error || !listing) {
+    return { success: false, error: "Listing not found" };
+  }
+
+  return {
+    success: true,
+    data: {
+      brandColor: listing.careers_brand_color || "#10B981",
+      headline: listing.careers_headline,
+      ctaText: listing.careers_cta_text || "Join Our Team",
+      hideBadge: listing.careers_hide_badge || false,
+    },
+  };
+}
+
+/**
+ * Update careers page settings (brand color, headline, CTA text)
+ */
+export async function updateCareersPageSettings(data: {
+  brandColor?: string;
+  headline?: string;
+  ctaText?: string;
+}): Promise<ActionResult> {
+  const user = await getUser();
+  if (!user) {
+    return { success: false, error: "Not authenticated" };
+  }
+
+  const supabase = await createClient();
+
+  const updateData: Record<string, unknown> = {
+    updated_at: new Date().toISOString(),
+  };
+
+  // Validate brand color is a valid hex color
+  if (data.brandColor !== undefined) {
+    const hexPattern = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
+    if (!hexPattern.test(data.brandColor)) {
+      return { success: false, error: "Invalid color format. Please use a valid hex color (e.g., #10B981)" };
+    }
+    updateData.careers_brand_color = data.brandColor;
+  }
+
+  if (data.headline !== undefined) {
+    updateData.careers_headline = data.headline || null;
+  }
+
+  if (data.ctaText !== undefined) {
+    updateData.careers_cta_text = data.ctaText || "Join Our Team";
+  }
+
+  const { error } = await supabase
+    .from("listings")
+    .update(updateData)
+    .eq("profile_id", user.id);
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  revalidatePath("/dashboard/jobs/careers");
+  return { success: true };
+}
+
+/**
+ * Toggle careers page badge visibility (Pro+ feature)
+ */
+export async function updateCareersHideBadge(hideBadge: boolean): Promise<ActionResult> {
+  const user = await getUser();
+  if (!user) {
+    return { success: false, error: "Not authenticated" };
+  }
+
+  const supabase = await createClient();
+
+  // Get listing and verify Pro+ plan
+  const { data: listing, error: listingError } = await supabase
+    .from("listings")
+    .select("id, profiles!inner(plan_tier, subscription_status)")
+    .eq("profile_id", user.id)
+    .single();
+
+  if (listingError || !listing) {
+    return { success: false, error: "Listing not found" };
+  }
+
+  const profile = listing.profiles as unknown as { plan_tier: string; subscription_status: string };
+  const isActiveSubscription = profile.subscription_status === "active" || profile.subscription_status === "trialing";
+
+  // Only Pro+ users can hide the badge
+  if (!isActiveSubscription || profile.plan_tier === "free") {
+    return { success: false, error: "This feature requires a Pro subscription" };
+  }
+
+  const { error } = await supabase
+    .from("listings")
+    .update({ careers_hide_badge: hideBadge, updated_at: new Date().toISOString() })
+    .eq("profile_id", user.id);
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  revalidatePath("/dashboard/jobs/careers");
   return { success: true };
 }
 

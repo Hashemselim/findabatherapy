@@ -62,6 +62,7 @@ const BASE_URL = "https://www.findabatherapy.org";
 
 export async function generateMetadata({ params }: CityPageProps): Promise<Metadata> {
   const { state: stateSlug, city: citySlug } = await params;
+
   const stateAbbrev = getStateAbbrev(stateSlug);
 
   if (!stateAbbrev) return {};
@@ -116,6 +117,7 @@ export async function generateMetadata({ params }: CityPageProps): Promise<Metad
 
 export default async function CityPage({ params }: CityPageProps) {
   const { state: stateSlug, city: citySlug } = await params;
+
   const stateAbbrev = getStateAbbrev(stateSlug);
 
   if (!stateAbbrev) {

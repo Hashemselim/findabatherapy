@@ -1,0 +1,156 @@
+import Link from "next/link";
+import { ArrowRight, ClipboardList, CheckCircle2, Briefcase } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { BubbleBackground } from "@/components/ui/bubble-background";
+import { CareersPageShareCard } from "@/components/dashboard/jobs/careers-page-share-card";
+import { CareersPageSettings } from "@/components/dashboard/jobs/careers-page-settings";
+import { getProfile } from "@/lib/supabase/server";
+import { getListingSlug, getCareersPageSettings } from "@/lib/actions/listings";
+import { getJobsByProvider } from "@/lib/queries/jobs";
+
+export default async function CareersPageDashboard() {
+  const [profile, listingSlug] = await Promise.all([
+    getProfile(),
+    getListingSlug(),
+  ]);
+
+  // If onboarding is not complete, show the gate message
+  if (!profile?.onboarding_completed_at) {
+    return (
+      <div className="space-y-4 sm:space-y-6">
+        <div>
+          <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">Careers Page</h1>
+          <p className="mt-1 text-sm text-muted-foreground sm:mt-2">
+            Share a branded careers page with job seekers.
+          </p>
+        </div>
+
+        <Card className="overflow-hidden border-slate-200">
+          <BubbleBackground
+            interactive={false}
+            size="default"
+            className="bg-gradient-to-br from-white via-yellow-50/50 to-blue-50/50"
+            colors={{
+              first: "255,255,255",
+              second: "255,236,170",
+              third: "135,176,255",
+              fourth: "255,248,210",
+              fifth: "190,210,255",
+              sixth: "240,248,255",
+            }}
+          >
+            <CardContent className="flex flex-col items-center py-12 px-6 text-center">
+              <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#5788FF] shadow-lg shadow-[#5788FF]/25">
+                <ClipboardList className="h-8 w-8 text-white" />
+              </div>
+
+              <h3 className="text-xl font-semibold text-slate-900">
+                Complete Onboarding First
+              </h3>
+
+              <p className="mt-3 max-w-md text-sm text-slate-600">
+                Finish setting up your practice profile to access your branded careers page.
+              </p>
+
+              <div className="mt-6 flex flex-wrap justify-center gap-3">
+                {["Shareable link", "Custom branding", "All jobs in one place"].map((benefit) => (
+                  <span
+                    key={benefit}
+                    className="inline-flex items-center gap-1.5 rounded-full bg-white/80 px-3 py-1.5 text-xs font-medium text-slate-600"
+                  >
+                    <CheckCircle2 className="h-3.5 w-3.5 text-[#5788FF]" />
+                    {benefit}
+                  </span>
+                ))}
+              </div>
+
+              <Button asChild size="lg" className="mt-8">
+                <Link href="/dashboard/onboarding" className="gap-2">
+                  Continue Onboarding
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </Button>
+            </CardContent>
+          </BubbleBackground>
+        </Card>
+      </div>
+    );
+  }
+
+  // If no listing slug, something went wrong
+  if (!listingSlug) {
+    return (
+      <div className="space-y-4 sm:space-y-6">
+        <div>
+          <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">Careers Page</h1>
+          <p className="mt-1 text-sm text-muted-foreground sm:mt-2">
+            Share a branded careers page with job seekers.
+          </p>
+        </div>
+
+        <Card className="border-dashed">
+          <CardContent className="flex flex-col items-center py-12 text-center">
+            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+              <Briefcase className="h-6 w-6 text-muted-foreground" />
+            </div>
+            <h3 className="text-lg font-semibold">Unable to load careers page</h3>
+            <p className="mt-2 max-w-sm text-sm text-muted-foreground">
+              Please complete your company profile setup to access your branded careers page.
+            </p>
+            <Button asChild className="mt-6">
+              <Link href="/dashboard/company">
+                Go to Company Profile
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Get jobs count and careers page settings for this provider
+  const [jobs, settingsResult] = await Promise.all([
+    getJobsByProvider(listingSlug),
+    getCareersPageSettings(),
+  ]);
+
+  // Determine effective plan tier (free if no active subscription)
+  const isActiveSubscription =
+    profile.subscription_status === "active" ||
+    profile.subscription_status === "trialing";
+  const effectivePlanTier = isActiveSubscription ? (profile.plan_tier || "free") : "free";
+  const isFreeUser = effectivePlanTier === "free";
+
+  // Use defaults if settings failed to load
+  const brandColor = settingsResult.success && settingsResult.data ? settingsResult.data.brandColor : "#10B981";
+  const headline = settingsResult.success && settingsResult.data ? settingsResult.data.headline : null;
+  const ctaText = settingsResult.success && settingsResult.data ? settingsResult.data.ctaText : "Join Our Team";
+  const hideBadge = settingsResult.success && settingsResult.data ? settingsResult.data.hideBadge : false;
+
+  return (
+    <div className="space-y-4 sm:space-y-6">
+      <div>
+        <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">Careers Page</h1>
+        <p className="mt-1 text-sm text-muted-foreground sm:mt-2">
+          Share a branded careers page that showcases all your open positions.
+        </p>
+      </div>
+
+      <CareersPageShareCard
+        listingSlug={listingSlug}
+        companyName={profile.agency_name}
+        jobCount={jobs.length}
+      />
+
+      <CareersPageSettings
+        initialBrandColor={brandColor}
+        initialHeadline={headline}
+        initialCtaText={ctaText}
+        initialHideBadge={hideBadge}
+        isFreeUser={isFreeUser}
+      />
+    </div>
+  );
+}

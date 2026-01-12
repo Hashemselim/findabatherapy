@@ -40,6 +40,7 @@ const BASE_URL = "https://www.findabatherapy.org";
 
 export async function generateMetadata({ params }: StatePageProps): Promise<Metadata> {
   const { state: stateValue } = await params;
+
   const state = stateLookup.get(stateValue);
 
   if (!state) {
@@ -81,6 +82,7 @@ export async function generateMetadata({ params }: StatePageProps): Promise<Meta
 
 export default async function StatePage({ params }: StatePageProps) {
   const { state: stateValue } = await params;
+
   const state = stateLookup.get(stateValue);
 
   if (!state) {

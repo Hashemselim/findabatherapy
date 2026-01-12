@@ -19,6 +19,15 @@ export const EVENT_TYPES = {
   INQUIRY_SUBMITTED: "inquiry_submitted",
   INQUIRY_VIEWED: "inquiry_viewed",
 
+  // Job events
+  JOB_VIEW: "job_view",
+  JOB_SEARCH_PERFORMED: "job_search_performed",
+  JOB_SEARCH_IMPRESSION: "job_search_impression",
+  JOB_SEARCH_CLICK: "job_search_click",
+  JOB_APPLY_CLICK: "job_apply_click",
+  APPLICATION_SUBMITTED: "application_submitted",
+  APPLICATION_VIEWED: "application_viewed",
+
   // Subscription events
   SUBSCRIPTION_CREATED: "subscription_created",
   SUBSCRIPTION_UPDATED: "subscription_updated",
@@ -88,6 +97,49 @@ export interface SubscriptionEventMetadata extends BaseEventMetadata {
   stripeSubscriptionId?: string;
 }
 
+// Job-specific event metadata
+export interface JobViewMetadata extends BaseEventMetadata {
+  jobId: string;
+  jobSlug: string;
+  profileId: string;
+  positionType: string;
+  source?: "search" | "direct" | "state_page" | "homepage";
+}
+
+export interface JobSearchEventMetadata extends BaseEventMetadata {
+  query?: string;
+  filters?: Record<string, unknown>;
+  resultsCount: number;
+  page?: number;
+  source?: "user" | "ai" | "bot" | "unknown";
+}
+
+export interface JobSearchImpressionMetadata extends BaseEventMetadata {
+  jobId: string;
+  position: number;
+  searchQuery?: string;
+  source?: "user" | "ai" | "bot" | "unknown";
+}
+
+export interface JobSearchClickMetadata extends BaseEventMetadata {
+  jobId: string;
+  position: number;
+  searchQuery?: string;
+}
+
+export interface JobApplyClickMetadata extends BaseEventMetadata {
+  jobId: string;
+  jobSlug: string;
+  profileId: string;
+  positionType: string;
+}
+
+export interface ApplicationEventMetadata extends BaseEventMetadata {
+  jobId: string;
+  applicationId?: string;
+  profileId: string;
+}
+
 export type EventMetadata =
   | ListingViewMetadata
   | ListingClickMetadata
@@ -96,6 +148,12 @@ export type EventMetadata =
   | SearchClickMetadata
   | InquiryEventMetadata
   | SubscriptionEventMetadata
+  | JobViewMetadata
+  | JobSearchEventMetadata
+  | JobSearchImpressionMetadata
+  | JobSearchClickMetadata
+  | JobApplyClickMetadata
+  | ApplicationEventMetadata
   | BaseEventMetadata;
 
 /**

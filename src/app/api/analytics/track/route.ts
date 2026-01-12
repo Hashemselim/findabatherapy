@@ -7,6 +7,11 @@ import {
   trackSearchClick,
   trackSearch,
   trackSearchImpressionsFromClient,
+  trackJobView,
+  trackJobSearch,
+  trackJobSearchImpressionsFromClient,
+  trackJobSearchClick,
+  trackJobApplyClick,
 } from "@/lib/analytics/track";
 import { EVENT_TYPES } from "@/lib/analytics/events";
 
@@ -20,6 +25,12 @@ const trackEventSchema = z.object({
     EVENT_TYPES.SEARCH_CLICK,
     EVENT_TYPES.SEARCH_PERFORMED,
     EVENT_TYPES.SEARCH_IMPRESSION,
+    // Job events
+    EVENT_TYPES.JOB_VIEW,
+    EVENT_TYPES.JOB_SEARCH_PERFORMED,
+    EVENT_TYPES.JOB_SEARCH_IMPRESSION,
+    EVENT_TYPES.JOB_SEARCH_CLICK,
+    EVENT_TYPES.JOB_APPLY_CLICK,
   ]),
   listingId: z.string().uuid().optional(),
   listingSlug: z.string().optional(),
@@ -39,6 +50,15 @@ const trackEventSchema = z.object({
     locationId: z.string().uuid().optional(),
     position: z.number(),
   })).optional(),
+  // Job-specific fields
+  jobId: z.string().uuid().optional(),
+  jobSlug: z.string().optional(),
+  profileId: z.string().uuid().optional(),
+  positionType: z.string().optional(),
+  jobImpressions: z.array(z.object({
+    id: z.string().uuid(),
+    position: z.number(),
+  })).optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -53,8 +73,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { eventType, listingId, listingSlug, locationId, source, clickType, position, searchQuery, filters, resultsCount, page, searchSource, impressions } =
-      parsed.data;
+    const {
+      eventType, listingId, listingSlug, locationId, source, clickType, position,
+      searchQuery, filters, resultsCount, page, searchSource, impressions,
+      jobId, jobSlug, profileId, positionType, jobImpressions
+    } = parsed.data;
 
     let result: { success: boolean };
 
@@ -92,6 +115,39 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ error: "impressions array required for search_impression" }, { status: 400 });
         }
         result = await trackSearchImpressionsFromClient(impressions, searchQuery);
+        break;
+
+      // Job events
+      case EVENT_TYPES.JOB_VIEW:
+        if (!jobId || !profileId) {
+          return NextResponse.json({ error: "jobId and profileId required for job_view" }, { status: 400 });
+        }
+        result = await trackJobView(jobId, jobSlug || "", profileId, positionType || "", source);
+        break;
+
+      case EVENT_TYPES.JOB_SEARCH_PERFORMED:
+        result = await trackJobSearch(searchQuery, filters || {}, resultsCount || 0, page, searchSource);
+        break;
+
+      case EVENT_TYPES.JOB_SEARCH_IMPRESSION:
+        if (!jobImpressions || jobImpressions.length === 0) {
+          return NextResponse.json({ error: "jobImpressions array required for job_search_impression" }, { status: 400 });
+        }
+        result = await trackJobSearchImpressionsFromClient(jobImpressions, searchQuery);
+        break;
+
+      case EVENT_TYPES.JOB_SEARCH_CLICK:
+        if (!jobId) {
+          return NextResponse.json({ error: "jobId required for job_search_click" }, { status: 400 });
+        }
+        result = await trackJobSearchClick(jobId, position || 0, searchQuery);
+        break;
+
+      case EVENT_TYPES.JOB_APPLY_CLICK:
+        if (!jobId || !profileId) {
+          return NextResponse.json({ error: "jobId and profileId required for job_apply_click" }, { status: 400 });
+        }
+        result = await trackJobApplyClick(jobId, jobSlug || "", profileId, positionType || "");
         break;
 
       default:

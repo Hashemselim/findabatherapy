@@ -3,6 +3,7 @@
 import { Check, Sparkles, Crown } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { PLAN_CONFIGS, type PlanTier } from "@/lib/plans/features";
 
 type Plan = "free" | "pro" | "enterprise";
 
@@ -20,10 +21,10 @@ type PlanOption = {
 const PLANS: PlanOption[] = [
   {
     id: "free",
-    name: "Free",
-    price: "$0",
+    name: PLAN_CONFIGS.free.displayName,
+    price: `$${PLAN_CONFIGS.free.pricing.monthly.price}`,
     period: "forever",
-    description: "Get started with a basic listing",
+    description: PLAN_CONFIGS.free.description,
     features: [
       "1 service location",
       "Basic search placement",
@@ -33,33 +34,34 @@ const PLANS: PlanOption[] = [
   },
   {
     id: "pro",
-    name: "Pro",
-    price: "$49",
+    name: PLAN_CONFIGS.pro.displayName,
+    price: `$${PLAN_CONFIGS.pro.pricing.monthly.price}`,
     period: "/month",
-    description: "Everything you need to stand out",
+    description: PLAN_CONFIGS.pro.description,
     features: [
-      "Up to 5 locations",
+      `Up to ${PLAN_CONFIGS.pro.features.maxLocations} locations`,
       "Priority search placement",
       "Direct contact form",
       "Photo gallery (up to 10)",
       "YouTube video embed",
       "Verified badge",
+      "Up to 5 job postings",
     ],
     highlight: true,
     icon: <Sparkles className="h-5 w-5 text-primary" />,
   },
   {
     id: "enterprise",
-    name: "Enterprise",
-    price: "$149",
+    name: PLAN_CONFIGS.enterprise.displayName,
+    price: `$${PLAN_CONFIGS.enterprise.pricing.monthly.price}`,
     period: "/month",
-    description: "For multi-location agencies",
+    description: PLAN_CONFIGS.enterprise.description,
     features: [
       "Unlimited locations",
       "Priority search placement",
       "All Pro features",
       "Homepage placement",
-      "Featured add-on eligible",
+      "Unlimited job postings",
     ],
     icon: <Crown className="h-5 w-5 text-amber-500" />,
   },

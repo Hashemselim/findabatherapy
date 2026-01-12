@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient, createAdminClient, getUser } from "@/lib/supabase/server";
 import { contactFormSchema, type ContactFormData, type InquiryStatus } from "@/lib/validations/contact";
 import { verifyTurnstileToken } from "@/lib/turnstile";
-import { sendProviderInquiryNotification } from "@/lib/email/notifications";
+import { sendProviderInquiryNotification, sendFamilyInquiryConfirmation } from "@/lib/email/notifications";
 
 type ActionResult<T = void> =
   | { success: true; data?: T }
@@ -75,7 +75,7 @@ export async function submitInquiry(
   // Verify listing exists and is published
   const { data: listing, error: listingError } = await supabase
     .from("listings")
-    .select("id, profile_id, profiles!inner(plan_tier, contact_email, agency_name)")
+    .select("id, slug, profile_id, profiles!inner(plan_tier, contact_email, agency_name)")
     .eq("id", listingId)
     .eq("status", "published")
     .single();
@@ -89,6 +89,7 @@ export async function submitInquiry(
     contact_email: string;
     agency_name: string;
   };
+  const providerSlug = listing.slug;
 
   // Check if provider has premium plan (contact form is premium feature)
   if (profile.plan_tier === "free") {
@@ -112,8 +113,9 @@ export async function submitInquiry(
     return { success: false, error: "Failed to submit inquiry. Please try again." };
   }
 
-  // Send email notification to provider (placeholder - see lib/email/notifications.ts)
-  await sendProviderInquiryNotification({
+  // Send email notifications (fire and forget - don't block on email delivery)
+  // Notify the provider
+  sendProviderInquiryNotification({
     to: profile.contact_email,
     providerName: profile.agency_name,
     familyName: parsed.data.familyName,
@@ -121,6 +123,18 @@ export async function submitInquiry(
     familyPhone: parsed.data.familyPhone,
     childAge: parsed.data.childAge,
     message: parsed.data.message,
+  }).catch((err) => {
+    console.error("[INQUIRY] Failed to send provider notification:", err);
+  });
+
+  // Send confirmation to the family
+  sendFamilyInquiryConfirmation({
+    to: parsed.data.familyEmail,
+    familyName: parsed.data.familyName,
+    providerName: profile.agency_name,
+    providerSlug,
+  }).catch((err) => {
+    console.error("[INQUIRY] Failed to send family confirmation:", err);
   });
 
   return { success: true };

@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { Globe } from "lucide-react";
 
-import { ProviderLogo } from "@/components/provider/provider-logo";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import { ContactFormIntake } from "@/components/contact/contact-form-intake";
 import { getIntakePageData } from "@/lib/actions/intake";
 
@@ -37,6 +39,20 @@ export async function generateMetadata({ params }: IntakePageProps): Promise<Met
   };
 }
 
+// Helper to create a lighter shade of the brand color
+function getLighterShade(hexColor: string, opacity: number = 0.1) {
+  return `${hexColor}${Math.round(opacity * 255).toString(16).padStart(2, "0")}`;
+}
+
+// Helper to calculate contrasting text color
+function getContrastColor(hexColor: string) {
+  const r = parseInt(hexColor.slice(1, 3), 16);
+  const g = parseInt(hexColor.slice(3, 5), 16);
+  const b = parseInt(hexColor.slice(5, 7), 16);
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance > 0.5 ? "#000000" : "#FFFFFF";
+}
+
 export default async function IntakePage({ params }: IntakePageProps) {
   const { slug } = await params;
   const result = await getIntakePageData(slug);
@@ -47,86 +63,157 @@ export default async function IntakePage({ params }: IntakePageProps) {
 
   const { listing, profile } = result.data;
   const { background_color, show_powered_by } = profile.intakeFormSettings;
+  const contrastColor = getContrastColor(background_color);
+
+  // Generate initials for avatar fallback
+  const initials = profile.agencyName
+    .split(" ")
+    .map((w) => w[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
 
   return (
     <div
-      className="flex min-h-screen items-center justify-center p-4 sm:p-6"
+      className="min-h-screen"
       style={{
-        backgroundColor: background_color,
-        backgroundImage:
-          "radial-gradient(ellipse at top, rgba(255,255,255,0.1), transparent)",
+        background: `linear-gradient(135deg, ${background_color} 0%, ${background_color}dd 50%, ${background_color}bb 100%)`,
       }}
     >
-      {/* Card with form */}
-      <div
-        className="w-full max-w-lg animate-fade-up rounded-2xl bg-white p-6 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.15)] sm:p-8"
-        style={{
-          animationDelay: "0ms",
-          animationFillMode: "backwards",
-        }}
-      >
-        {/* Header section */}
-        <div className="mb-6 flex flex-col items-center text-center">
-          {listing.logoUrl && (
-            <ProviderLogo
-              name={profile.agencyName}
-              logoUrl={listing.logoUrl}
-              size="lg"
-              className="mb-4"
+      {/* Main Content Container */}
+      <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 sm:py-12">
+        {/* White Card Container */}
+        <div className="overflow-hidden rounded-2xl bg-white shadow-2xl sm:rounded-3xl">
+          {/* Header Section with tinted background */}
+          <div
+            className="px-6 py-8 text-center sm:px-8 sm:py-12"
+            style={{ backgroundColor: getLighterShade(background_color, 0.08) }}
+          >
+            {/* Logo */}
+            <div className="mx-auto mb-6">
+              <Avatar
+                className="mx-auto h-20 w-20 border-4 shadow-lg sm:h-24 sm:w-24"
+                style={{ borderColor: background_color }}
+              >
+                {listing.logoUrl ? (
+                  <AvatarImage src={listing.logoUrl} alt={profile.agencyName} />
+                ) : null}
+                <AvatarFallback
+                  className="text-xl font-bold sm:text-2xl"
+                  style={{ backgroundColor: getLighterShade(background_color, 0.15), color: background_color }}
+                >
+                  {initials}
+                </AvatarFallback>
+              </Avatar>
+            </div>
+
+            {/* Company Name & Form Title */}
+            <div className="space-y-3">
+              <h1 className="text-2xl font-bold text-foreground sm:text-3xl">
+                {profile.agencyName}
+              </h1>
+
+              {/* Divider */}
+              <div
+                className="mx-auto h-0.5 w-12 rounded-full"
+                style={{ backgroundColor: getLighterShade(background_color, 0.3) }}
+              />
+
+              <h2 className="text-lg font-medium text-foreground">Interest Form</h2>
+              <p className="mx-auto max-w-lg text-base text-muted-foreground sm:text-lg">
+                We&apos;d love to hear from you. Fill out the form below and we&apos;ll be in touch shortly.
+              </p>
+
+              {/* Website Link */}
+              {profile.website && (
+                <div className="pt-2">
+                  <Button
+                    asChild
+                    variant="outline"
+                    size="sm"
+                    className="rounded-full"
+                    style={{
+                      borderColor: background_color,
+                      color: background_color,
+                    }}
+                  >
+                    <a
+                      href={profile.website}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="gap-2"
+                    >
+                      <Globe className="h-4 w-4" />
+                      Visit Website
+                    </a>
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Form Section */}
+          <div className="px-6 py-8 sm:px-8 sm:py-10">
+            <ContactFormIntake
+              listingId={listing.id}
+              providerName={profile.agencyName}
+              websiteUrl={profile.website}
             />
-          )}
+          </div>
 
-          <h1 className="font-poppins text-2xl font-semibold text-foreground sm:text-3xl">
-            {profile.agencyName}
-          </h1>
-
-          {/* Divider */}
-          <div className="mx-auto my-4 h-px w-16 bg-border/50" />
-
-          <h2 className="text-lg font-medium text-foreground">Interest Form</h2>
-          <p className="mt-2 max-w-sm text-sm text-muted-foreground">
-            We&apos;d love to hear from you. Fill out the form below and we&apos;ll be in touch shortly.
-          </p>
+          {/* Footer - Branded like careers page */}
+          <div
+            className="px-6 py-4 sm:px-8"
+            style={{ backgroundColor: getLighterShade(background_color, 0.05) }}
+          >
+            <div className="flex flex-col items-center gap-3 text-center sm:flex-row sm:justify-between sm:text-left">
+              <div className="flex items-center gap-2">
+                <Avatar className="h-6 w-6 border border-border/60">
+                  {listing.logoUrl ? (
+                    <AvatarImage src={listing.logoUrl} alt={profile.agencyName} />
+                  ) : null}
+                  <AvatarFallback
+                    className="text-[10px] font-semibold"
+                    style={{ backgroundColor: getLighterShade(background_color, 0.15), color: background_color }}
+                  >
+                    {initials}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="text-sm font-medium text-foreground">
+                  {profile.agencyName}
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                &copy; {new Date().getFullYear()} {profile.agencyName}. All rights reserved.
+              </p>
+            </div>
+          </div>
         </div>
 
-        {/* Form */}
-        <ContactFormIntake
-          listingId={listing.id}
-          providerName={profile.agencyName}
-          websiteUrl={profile.website}
-        />
-
-        {/* Back to website link */}
-        {profile.website && (
+        {/* Powered by badge - prominent for show_powered_by, subtle otherwise */}
+        {show_powered_by ? (
           <div className="mt-6 text-center">
-            <a
-              href={profile.website}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors duration-200 hover:text-foreground"
+            <Link
+              href="/"
+              className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-semibold shadow-lg transition-all hover:scale-105 hover:shadow-xl"
+              style={{ color: background_color }}
             >
-              <span className="transition-transform duration-200 group-hover:-translate-x-1">
-                &larr;
-              </span>
-              Back to {profile.agencyName} website
-            </a>
+              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+              </svg>
+              Powered by Find ABA Therapy
+            </Link>
           </div>
-        )}
-
-        {/* Powered by footer */}
-        {show_powered_by && (
-          <>
-            <div className="mx-auto my-6 h-px w-16 bg-border/50" />
-            <p className="text-center text-xs text-muted-foreground">
-              Powered by{" "}
-              <Link
-                href="/"
-                className="underline-offset-2 hover:underline"
-              >
-                FindABATherapy
-              </Link>
-            </p>
-          </>
+        ) : (
+          <div className="mt-6 text-center">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-1.5 rounded-full bg-white/20 px-4 py-2 text-xs font-medium backdrop-blur-sm transition-colors hover:bg-white/30"
+              style={{ color: contrastColor }}
+            >
+              Powered by Find ABA Therapy
+            </Link>
+          </div>
         )}
       </div>
     </div>

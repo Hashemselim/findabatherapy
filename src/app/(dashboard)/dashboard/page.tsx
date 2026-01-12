@@ -1,9 +1,15 @@
 import Link from "next/link";
 import {
   ArrowRight,
+  Briefcase,
   CheckCircle2,
   ClipboardList,
   ExternalLink,
+  Eye,
+  FileText,
+  Inbox,
+  PlusCircle,
+  Users,
 } from "lucide-react";
 
 import { BubbleBackground } from "@/components/ui/bubble-background";
@@ -16,16 +22,16 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
-  QuickStats,
+  BrandSection,
   OnboardingChecklist,
-  AnalyticsPreview,
   UpgradeSection,
-  FeaturedUpsell,
 } from "@/components/dashboard/overview";
 import { DashboardTracker } from "@/components/analytics/dashboard-tracker";
 import { getListing } from "@/lib/actions/listings";
 import { getAnalyticsSummary } from "@/lib/actions/analytics";
 import { getUnreadInquiryCount } from "@/lib/actions/inquiries";
+import { getJobCountAndLimit } from "@/lib/actions/jobs";
+import { getNewApplicationCount } from "@/lib/actions/applications";
 import { getProfile } from "@/lib/supabase/server";
 
 export default async function DashboardOverviewPage() {
@@ -115,14 +121,18 @@ export default async function DashboardOverviewPage() {
     listing.profile.subscriptionStatus === "trialing";
   const isPaidPlan = listing.profile.planTier !== "free" && isActiveSubscription;
 
-  // Fetch additional data in parallel for Pro users
-  const [analyticsResult, inquiryResult] = await Promise.all([
+  // Fetch additional data in parallel
+  const [analyticsResult, inquiryResult, jobCountResult, applicationCountResult] = await Promise.all([
     isPaidPlan ? getAnalyticsSummary() : Promise.resolve(null),
     isPaidPlan ? getUnreadInquiryCount() : Promise.resolve(null),
+    getJobCountAndLimit(),
+    getNewApplicationCount(),
   ]);
 
   const analytics = analyticsResult?.success ? analyticsResult.data : undefined;
-  const inquiryCount = inquiryResult?.success ? inquiryResult.data : undefined;
+  const inquiryCount = inquiryResult?.success ? inquiryResult.data : 0;
+  const jobStats = jobCountResult.success ? jobCountResult.data : { count: 0, limit: 1 };
+  const applicationCount = applicationCountResult.success ? applicationCountResult.data : 0;
 
   return (
     <div className="space-y-6 sm:space-y-8">
@@ -152,12 +162,82 @@ export default async function DashboardOverviewPage() {
         )}
       </div>
 
-      {/* Quick Stats */}
-      <QuickStats
-        listing={listing}
-        isPaidPlan={isPaidPlan}
-        inquiryCount={inquiryCount}
+      {/* Find ABA Jobs Section */}
+      <BrandSection
+        brand="jobs"
+        title="Find ABA Jobs"
+        description="Post job openings and review applications from qualified candidates."
+        stats={[
+          {
+            label: "new applications",
+            value: applicationCount ?? 0,
+            href: "/dashboard/jobs/applications",
+          },
+        ]}
+        links={[
+          {
+            label: "Career Page",
+            href: `/careers/${listing.slug}`,
+            icon: Briefcase,
+            external: true,
+          },
+          {
+            label: "Post a Job",
+            href: "/dashboard/jobs/new",
+            icon: PlusCircle,
+          },
+          {
+            label: "Applications",
+            href: "/dashboard/jobs/applications",
+            icon: Users,
+          },
+        ]}
       />
+
+      {/* Find ABA Therapy Section */}
+      <BrandSection
+        brand="therapy"
+        title="Find ABA Therapy"
+        description="Manage your provider listing and connect with families seeking ABA services."
+        stats={[
+          {
+            label: "new messages",
+            value: inquiryCount ?? 0,
+            href: "/dashboard/inbox",
+          },
+          ...(isPaidPlan && analytics?.views !== undefined
+            ? [
+                {
+                  label: "profile views",
+                  value: analytics.views,
+                  href: "/dashboard/analytics",
+                },
+              ]
+            : []),
+        ]}
+        links={[
+          {
+            label: "View Profile",
+            href: `/provider/${listing.slug}`,
+            icon: Eye,
+            external: true,
+          },
+          {
+            label: "Private Intake Form",
+            href: `/intake/${listing.slug}`,
+            icon: FileText,
+            external: true,
+          },
+          {
+            label: "Inbox",
+            href: "/dashboard/inbox",
+            icon: Inbox,
+          },
+        ]}
+      />
+
+      {/* Upgrade Section (Free users only) */}
+      {!isPaidPlan && <UpgradeSection />}
 
       {/* Published Listing Banner */}
       {isPublished && (
@@ -185,21 +265,6 @@ export default async function DashboardOverviewPage() {
 
       {/* Onboarding Checklist */}
       <OnboardingChecklist listing={listing} isPaidPlan={isPaidPlan} />
-
-      {/* Analytics Preview */}
-      <AnalyticsPreview isPaidPlan={isPaidPlan} analytics={analytics} />
-
-      {/* Featured Upsell (Paid users only) */}
-      {isPaidPlan && isPublished && (
-        <FeaturedUpsell
-          hasFeaturedLocations={listing.locations.some((l) => l.isFeatured)}
-          locationCount={listing.locations.length}
-          featuredPrice={99}
-        />
-      )}
-
-      {/* Upgrade Section (Free users only) */}
-      {!isPaidPlan && isPublished && <UpgradeSection />}
     </div>
   );
 }

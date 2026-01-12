@@ -3,7 +3,23 @@
  * These create structured data for rich search results
  */
 
-const BASE_URL = "https://www.findabatherapy.org";
+import { domains, type Brand } from "@/lib/utils/domains";
+
+/**
+ * Get the base URL for schemas based on brand
+ * Uses environment variable in development, production URLs otherwise
+ */
+function getSchemaBaseUrl(brand: Brand = "therapy"): string {
+  if (process.env.NODE_ENV === "development") {
+    return process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+  }
+  return domains[brand].production;
+}
+
+// Default to therapy site for backward compatibility
+const BASE_URL = getSchemaBaseUrl("therapy");
+// Jobs site base URL available for job-specific schemas
+export const JOBS_BASE_URL = getSchemaBaseUrl("jobs");
 
 // Organization schema for the main site
 export function generateOrganizationSchema() {

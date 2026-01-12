@@ -6,46 +6,111 @@ import NextImage from "next/image";
 import { usePathname } from "next/navigation";
 import {
   BarChart3,
+  Briefcase,
+  Building2,
+  ChevronDown,
   ClipboardList,
-  CreditCard,
-  FileEdit,
+  Eye,
   FileText,
   GaugeCircle,
+  Heart,
   HelpCircle,
   Image,
+  Link2,
   LogOut,
   LucideIcon,
   Mail,
   MapPin,
   MessageSquare,
-  Settings,
+  User,
+  UserCircle,
+  UserPlus,
+  Users,
+  FileInput,
 } from "lucide-react";
 
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { SupportContactDialog } from "@/components/support-contact-dialog";
+import { NavSectionComponent, NavSection, NavItem } from "./nav-section";
+import { brandColors } from "@/config/brands";
 import { cn } from "@/lib/utils";
 import { getUnreadInquiryCount } from "@/lib/actions/inquiries";
+import { getNewApplicationCount } from "@/lib/actions/applications";
 import { signOut } from "@/lib/auth/actions";
+import { useNavCollapseState } from "@/hooks/use-nav-collapse-state";
 
-export type NavItem = {
-  href: string;
-  label: string;
-  icon: LucideIcon;
-  showBadge?: boolean;
-  proBadge?: boolean;
-};
+export type { NavItem, NavSection };
 
-// PRD 4.2: Dashboard navigation structure
-const dashboardNav: NavItem[] = [
-  { href: "/dashboard", label: "Overview", icon: GaugeCircle },
-  { href: "/dashboard/company", label: "Company Details", icon: FileText },
-  { href: "/dashboard/locations", label: "Locations", icon: MapPin },
-  { href: "/dashboard/media", label: "Media", icon: Image },
-  { href: "/dashboard/analytics", label: "Analytics", icon: BarChart3 },
-  { href: "/dashboard/inbox", label: "Contact Form Inbox", icon: Mail, showBadge: true },
-  { href: "/dashboard/billing", label: "Plan & Billing", icon: CreditCard },
-  { href: "/dashboard/settings", label: "Account Settings", icon: Settings },
+// Company brand color (neutral slate)
+const companyColor = "#64748B";
+
+// Section-based dashboard navigation structure
+const dashboardNavSections: NavSection[] = [
+  {
+    id: "overview",
+    label: "",
+    isCollapsible: false,
+    items: [{ href: "/dashboard", label: "Dashboard", icon: GaugeCircle }],
+  },
+  {
+    id: "company",
+    label: "Company Details",
+    icon: Building2,
+    brandColor: companyColor,
+    isCollapsible: true,
+    defaultOpen: false,
+    items: [
+      { href: "/dashboard/company", label: "Company Profile", icon: FileText },
+      { href: "/dashboard/locations", label: "Locations", icon: MapPin },
+      { href: "/dashboard/media", label: "Media", icon: Image },
+    ],
+  },
+  {
+    id: "therapy",
+    label: "Find ABA Therapy",
+    icon: Heart,
+    brandColor: brandColors.therapy,
+    isCollapsible: true,
+    defaultOpen: false,
+    items: [
+      { href: "/dashboard/inbox", label: "Inbox", icon: Mail, showBadge: true },
+      { href: "/dashboard/analytics", label: "Analytics", icon: BarChart3 },
+      { href: "/dashboard/intake", label: "Intake Form", icon: FileInput },
+    ],
+  },
+  {
+    id: "jobs",
+    label: "Find ABA Jobs",
+    icon: Briefcase,
+    brandColor: brandColors.jobs,
+    isCollapsible: true,
+    defaultOpen: false,
+    items: [
+      { href: "/dashboard/jobs", label: "Job Postings", icon: Briefcase, exactMatch: true },
+      { href: "/dashboard/jobs/applications", label: "Applications", icon: UserPlus, showBadge: true },
+      { href: "/dashboard/jobs/careers", label: "Careers Page", icon: Link2 },
+    ],
+  },
+  {
+    id: "crm",
+    label: "Team & CRM",
+    icon: Users,
+    brandColor: brandColors.crm,
+    isCollapsible: true,
+    defaultOpen: false,
+    items: [
+      { href: "/dashboard/clients", label: "Clients", icon: UserCircle, isPlaceholder: true },
+      { href: "/dashboard/team", label: "Staff / Team", icon: Users, isPlaceholder: true },
+    ],
+  },
 ];
 
 // Onboarding nav item shown when onboarding is incomplete
@@ -62,41 +127,63 @@ export interface CompanyProfile {
   subscriptionStatus?: string | null;
 }
 
+export interface UserProfile {
+  name: string;
+  email: string;
+  avatarUrl?: string | null;
+}
+
 interface DashboardSidebarProps {
   isOnboardingComplete: boolean;
   isDemo?: boolean;
   companyProfile?: CompanyProfile;
+  /** User profile for the sidebar user dropdown */
+  userProfile?: UserProfile;
   /** For demo mode: pass static unread count instead of fetching */
   staticUnreadCount?: number;
   /** For demo mode: pass custom nav items */
   customNavItems?: NavItem[];
   /** data-tour attribute for guided tour highlighting */
   dataTour?: string;
+  /** Provider's listing slug for "View Profile" links */
+  providerSlug?: string | null;
 }
 
 export function DashboardSidebar({
   isOnboardingComplete,
   isDemo = false,
   companyProfile,
+  userProfile,
   staticUnreadCount,
   customNavItems,
   dataTour,
+  providerSlug,
 }: DashboardSidebarProps) {
   const pathname = usePathname();
   const [unreadCount, setUnreadCount] = useState(staticUnreadCount ?? 0);
+  const [newApplicationCount, setNewApplicationCount] = useState(0);
+
+  // Smart collapse state for all collapsible sections (accordion behavior)
+  const { isSectionOpen, toggleSection } = useNavCollapseState();
 
   useEffect(() => {
     // Skip fetching if static count is provided (demo mode)
     if (staticUnreadCount !== undefined) return;
 
-    async function fetchUnreadCount() {
-      const result = await getUnreadInquiryCount();
-      if (result.success && result.data) {
-        setUnreadCount(result.data);
+    async function fetchCounts() {
+      const [inquiryResult, applicationResult] = await Promise.all([
+        getUnreadInquiryCount(),
+        getNewApplicationCount(),
+      ]);
+      if (inquiryResult.success && inquiryResult.data) {
+        setUnreadCount(inquiryResult.data);
+      }
+      if (applicationResult.success && applicationResult.data) {
+        setNewApplicationCount(applicationResult.data);
       }
     }
-    fetchUnreadCount();
-  }, [pathname, staticUnreadCount]); // Refetch when pathname changes (e.g., after viewing inquiries)
+    fetchCounts();
+  }, [pathname, staticUnreadCount]); // Refetch when pathname changes
 
   const handleLogout = async () => {
     // Clear dev bypass cookie on client side
@@ -105,9 +192,92 @@ export function DashboardSidebar({
     await signOut();
   };
 
-  // Use custom nav items if provided (demo mode), otherwise build based on onboarding status
-  const navItems = customNavItems
-    ?? (isOnboardingComplete ? dashboardNav : [onboardingNavItem, ...dashboardNav]);
+  // Helper function to get badge count for a nav item
+  const getBadgeCount = (href: string): number => {
+    if (href.includes("/applications")) return newApplicationCount;
+    if (href.includes("/inbox")) return unreadCount;
+    return 0;
+  };
+
+  // Helper to get total badge count for a section (for collapsed display)
+  const getSectionBadgeCount = (sectionId: string): number => {
+    const section = dashboardNavSections.find((s) => s.id === sectionId);
+    if (!section) return 0;
+
+    return section.items.reduce((total, item) => {
+      if (item.showBadge) {
+        return total + getBadgeCount(item.href);
+      }
+      return total;
+    }, 0);
+  };
+
+  // Build navigation sections based on mode
+  const getNavSections = (): NavSection[] => {
+    // If custom nav items provided (demo mode), convert to single section
+    if (customNavItems) {
+      return [
+        {
+          id: "custom",
+          label: "",
+          isCollapsible: false,
+          items: customNavItems,
+        },
+      ];
+    }
+
+    // Inject "View Profile" items when providerSlug is available
+    const sectionsWithProfiles = providerSlug
+      ? dashboardNavSections.map((section) => {
+          if (section.id === "jobs") {
+            return {
+              ...section,
+              items: [
+                ...section.items,
+                {
+                  href: `/employers/${providerSlug}`,
+                  label: "View Profile",
+                  icon: Eye,
+                  isExternal: true,
+                },
+              ],
+            };
+          }
+          if (section.id === "therapy") {
+            return {
+              ...section,
+              items: [
+                ...section.items,
+                {
+                  href: `/provider/${providerSlug}`,
+                  label: "View Profile",
+                  icon: Eye,
+                  isExternal: true,
+                },
+              ],
+            };
+          }
+          return section;
+        })
+      : dashboardNavSections;
+
+    // If onboarding incomplete, show onboarding item first
+    if (!isOnboardingComplete) {
+      return [
+        {
+          id: "onboarding",
+          label: "",
+          isCollapsible: false,
+          items: [onboardingNavItem],
+        },
+        ...sectionsWithProfiles,
+      ];
+    }
+
+    return sectionsWithProfiles;
+  };
+
+  const navSections = getNavSections();
 
   return (
     <aside
@@ -151,106 +321,114 @@ export function DashboardSidebar({
           </div>
         )}
 
-        <nav className="space-y-1">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            // Determine base path from the first nav item's href
-            const basePath = navItems[0]?.href.split("/")[1] ?? "dashboard";
-            const itemPath = item.href.replace(`/${basePath}`, "");
-            const baseHref = `/${basePath}`;
-
-            // Exact match for base path (Overview), prefix match for all other routes
-            const isActive = itemPath === "" || itemPath === `/${basePath}`
-              ? pathname === baseHref || pathname === item.href
-              : pathname === item.href || pathname.startsWith(item.href + "/");
-            const showBadge = item.showBadge && unreadCount > 0;
-
-            // Check if this item should be locked (not onboarding tab and onboarding incomplete)
-            // Only applies to real dashboard, not demo
-            const isLocked = !isDemo && !isOnboardingComplete && item.href !== "/dashboard/onboarding";
+        <nav className="space-y-2">
+          {navSections.map((section) => {
+            // Use controlled state for all collapsible sections
+            const isControlled = section.isCollapsible;
 
             return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  buttonVariants({ variant: "ghost" }),
-                  "w-full justify-start gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
-                  isActive
-                    ? "bg-primary text-primary-foreground shadow-sm hover:bg-primary/90"
-                    : "text-muted-foreground hover:bg-accent hover:text-foreground",
-                  isLocked && "opacity-60"
-                )}
-              >
-                <Icon className="h-4 w-4" aria-hidden />
-                <span className="flex-1 flex items-center gap-1.5">
-                  {item.label}
-                  {item.proBadge && (
-                    <span className={cn(
-                      "text-[10px] font-semibold px-1.5 py-0.5 rounded",
-                      isActive
-                        ? "bg-primary-foreground/20 text-primary-foreground"
-                        : "bg-blue-100 text-blue-700"
-                    )}>
-                      Pro
-                    </span>
-                  )}
-                </span>
-                {showBadge && (
-                  <span
-                    className={cn(
-                      "flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-xs font-semibold",
-                      isActive
-                        ? "bg-primary-foreground/20 text-primary-foreground"
-                        : "bg-primary text-primary-foreground"
-                    )}
-                  >
-                    {unreadCount > 99 ? "99+" : unreadCount}
-                  </span>
-                )}
-              </Link>
+              <NavSectionComponent
+                key={section.id}
+                section={section}
+                pathname={pathname}
+                getBadgeCount={getBadgeCount}
+                sectionBadgeCount={getSectionBadgeCount(section.id)}
+                isOnboardingComplete={isOnboardingComplete}
+                isDemo={isDemo}
+                // Controlled props for collapsible sections
+                controlledOpen={isControlled ? isSectionOpen(section.id) : undefined}
+                onToggle={isControlled ? () => toggleSection(section.id) : undefined}
+              />
             );
           })}
         </nav>
       </div>
 
-      <div className="space-y-2 border-t border-border/60 pt-4">
-        <SupportContactDialog>
-          <button
-            type="button"
-            className={cn(
-              buttonVariants({ variant: "ghost" }),
-              "w-full justify-start gap-3 text-sm font-medium text-muted-foreground hover:text-foreground"
+      <div className="border-t border-border/60 pt-4">
+        {/* User Dropdown */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-accent"
+            >
+              <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full border border-border/60 bg-muted">
+                {userProfile?.avatarUrl ? (
+                  <NextImage
+                    src={userProfile.avatarUrl}
+                    alt={userProfile.name}
+                    fill
+                    sizes="36px"
+                    className="object-cover"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center text-sm font-medium text-muted-foreground">
+                    {userProfile?.name
+                      ?.split(" ")
+                      .map((w) => w[0])
+                      .slice(0, 2)
+                      .join("")
+                      .toUpperCase() || <User className="h-4 w-4" />}
+                  </div>
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium text-foreground">
+                  {userProfile?.name || "Account"}
+                </p>
+                {userProfile?.email && (
+                  <p className="truncate text-xs text-muted-foreground">
+                    {userProfile.email}
+                  </p>
+                )}
+              </div>
+              <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuItem asChild>
+              <Link href="/dashboard/account" className="cursor-pointer">
+                <User className="mr-2 h-4 w-4" />
+                Account Settings
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/dashboard/billing" className="cursor-pointer">
+                <FileText className="mr-2 h-4 w-4" />
+                Billing
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <SupportContactDialog>
+              <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                <HelpCircle className="mr-2 h-4 w-4" />
+                Need Help?
+              </DropdownMenuItem>
+            </SupportContactDialog>
+            <DropdownMenuItem asChild>
+              <Link href="/dashboard/feedback" className="cursor-pointer">
+                <MessageSquare className="mr-2 h-4 w-4" />
+                Send Feedback
+              </Link>
+            </DropdownMenuItem>
+            {!isDemo && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={handleLogout}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Logout
+                </DropdownMenuItem>
+              </>
             )}
-          >
-            <HelpCircle className="h-4 w-4" aria-hidden />
-            Need Help?
-          </button>
-        </SupportContactDialog>
-        <Link
-          href="/dashboard/feedback"
-          className={cn(
-            buttonVariants({ variant: "ghost" }),
-            "w-full justify-start gap-3 text-sm font-medium text-muted-foreground hover:text-foreground"
-          )}
-        >
-          <MessageSquare className="h-4 w-4" aria-hidden />
-          Send Feedback
-        </Link>
-        {isDemo ? (
-          <p className="text-center text-xs text-muted-foreground">
+          </DropdownMenuContent>
+        </DropdownMenu>
+        {isDemo && (
+          <p className="mt-2 text-center text-xs text-muted-foreground">
             Demo mode - changes won&apos;t be saved
           </p>
-        ) : (
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={handleLogout}
-            className="w-full justify-start gap-3 text-sm font-medium text-muted-foreground hover:text-foreground"
-          >
-            <LogOut className="h-4 w-4" aria-hidden />
-            Logout
-          </Button>
         )}
       </div>
     </aside>

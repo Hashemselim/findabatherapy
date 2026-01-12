@@ -103,12 +103,12 @@ function SignInForm() {
   return (
     <Card>
       <CardHeader className="space-y-4 text-center">
-        <Badge className="mx-auto rounded-full border border-[#5788FF]/40 bg-gradient-to-r from-[#5788FF]/15 to-[#5788FF]/5 px-4 py-1.5 text-sm font-semibold text-[#5788FF] shadow-sm">
+        <Badge className="mx-auto rounded-full border border-border/60 bg-gradient-to-r from-[#5788FF]/10 via-transparent to-[#10B981]/10 px-4 py-1.5 text-sm font-medium text-muted-foreground shadow-sm">
           For ABA Providers
         </Badge>
-        <CardTitle className="text-3xl">Sign in to your dashboard</CardTitle>
+        <CardTitle className="text-3xl">Sign in to your account</CardTitle>
         <p className="text-sm text-muted-foreground">
-          Access your listing, leads, and billing. Don&apos;t have an account?{" "}
+          Access your dashboard. Don&apos;t have an account?{" "}
           <Link href="/auth/sign-up" className="text-primary hover:underline">
             Sign up
           </Link>
@@ -266,10 +266,10 @@ function SignInSkeleton() {
   return (
     <Card>
       <CardHeader className="space-y-4 text-center">
-        <Badge className="mx-auto rounded-full border border-[#5788FF]/40 bg-gradient-to-r from-[#5788FF]/15 to-[#5788FF]/5 px-4 py-1.5 text-sm font-semibold text-[#5788FF] shadow-sm">
+        <Badge className="mx-auto rounded-full border border-border/60 bg-gradient-to-r from-[#5788FF]/10 via-transparent to-[#10B981]/10 px-4 py-1.5 text-sm font-medium text-muted-foreground shadow-sm">
           For ABA Providers
         </Badge>
-        <CardTitle className="text-3xl">Sign in to your dashboard</CardTitle>
+        <CardTitle className="text-3xl">Sign in to your account</CardTitle>
         <p className="text-sm text-muted-foreground">Loading...</p>
       </CardHeader>
       <CardContent className="flex items-center justify-center py-8">
@@ -281,7 +281,7 @@ function SignInSkeleton() {
 
 export default function SignInPage() {
   return (
-    <div className="mx-auto flex min-h-[70vh] max-w-md flex-col justify-center px-4 py-10">
+    <div className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-4 py-6 sm:py-10">
       <Suspense fallback={<SignInSkeleton />}>
         <SignInForm />
       </Suspense>

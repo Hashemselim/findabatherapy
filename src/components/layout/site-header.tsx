@@ -27,7 +27,7 @@ export async function SiteHeader() {
     <header className="sticky top-0 z-50 border-b border-border/60 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
       <div className="container flex h-16 items-center justify-between px-4 sm:px-6">
         <div className="flex items-center gap-10">
-          <Link href="/" className="flex items-center">
+          <Link href="/" className="flex shrink-0 items-center">
             <Image
               src="/logo-full.png"
               alt={siteConfig.name}
@@ -37,7 +37,7 @@ export async function SiteHeader() {
               priority
             />
           </Link>
-          <nav className="hidden items-center gap-6 text-base font-medium text-muted-foreground md:flex">
+          <nav className="hidden items-center gap-6 text-base font-medium text-muted-foreground lg:flex">
             {primaryNav.map((item) => (
               <Link key={item.href} href={item.href} className="transition hover:text-foreground">
                 {item.label}
@@ -46,7 +46,7 @@ export async function SiteHeader() {
           </nav>
         </div>
 
-        <div className="hidden items-center gap-3 md:flex">
+        <div className="hidden items-center gap-3 lg:flex">
           <div className="h-5 w-px bg-border" />
           <span className="text-sm text-muted-foreground">Providers:</span>
           <Button
@@ -75,7 +75,7 @@ export async function SiteHeader() {
 
         <Sheet>
           <SheetTrigger asChild>
-            <Button variant="outline" className="h-10 w-10 rounded-lg border-border/60 p-0 md:hidden [&_svg]:size-6" aria-label="Toggle navigation">
+            <Button variant="outline" className="h-10 w-10 rounded-lg border-border/60 p-0 lg:hidden [&_svg]:size-6" aria-label="Toggle navigation">
               <Menu aria-hidden />
             </Button>
           </SheetTrigger>

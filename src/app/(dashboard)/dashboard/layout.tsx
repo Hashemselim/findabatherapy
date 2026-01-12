@@ -2,7 +2,7 @@ import { PropsWithChildren } from "react";
 
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { type CompanyProfile } from "@/components/dashboard/dashboard-sidebar";
-import { getListingSlug, getListing } from "@/lib/actions/listings";
+import { getListing } from "@/lib/actions/listings";
 import { getProfile } from "@/lib/supabase/server";
 
 export default async function DashboardLayout({ children }: PropsWithChildren) {
@@ -11,16 +11,15 @@ export default async function DashboardLayout({ children }: PropsWithChildren) {
   let companyProfile: CompanyProfile | undefined;
 
   try {
-    const [profile, slug, listingResult] = await Promise.all([
+    const [profile, listingResult] = await Promise.all([
       getProfile(),
-      getListingSlug(),
       getListing(),
     ]);
     isOnboardingComplete = !!profile?.onboarding_completed_at;
-    providerSlug = slug;
 
-    // Build company profile for sidebar
+    // Build company profile for sidebar and get slug from listing
     if (listingResult.success && listingResult.data) {
+      providerSlug = listingResult.data.slug;
       companyProfile = {
         name: listingResult.data.profile.agencyName,
         logoUrl: listingResult.data.logoUrl,

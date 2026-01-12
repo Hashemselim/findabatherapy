@@ -53,8 +53,8 @@ const PLANS: Record<string, PlanConfig> = {
   pro: {
     name: "Pro",
     description: "Stand out and connect with more families",
-    monthlyPrice: 49,
-    annualPrice: 348, // $29/mo equivalent, 40% off
+    monthlyPrice: 79,
+    annualPrice: 564, // $47/mo equivalent, 40% off
     features: [
       "Up to 5 service locations",
       "Priority search placement",
@@ -63,6 +63,8 @@ const PLANS: Record<string, PlanConfig> = {
       "Video embed",
       "Verified badge",
       "Analytics dashboard",
+      "Up to 5 job postings",
+      "Up to 250 CRM contacts",
     ],
     metadata: {
       plan_tier: "pro",
@@ -71,8 +73,8 @@ const PLANS: Record<string, PlanConfig> = {
   enterprise: {
     name: "Enterprise",
     description: "Maximum visibility for large agencies",
-    monthlyPrice: 149,
-    annualPrice: 1068, // $89/mo equivalent, 40% off
+    monthlyPrice: 199,
+    annualPrice: 1428, // $119/mo equivalent, 40% off
     features: [
       "Unlimited service locations",
       "Top search placement",
@@ -83,6 +85,8 @@ const PLANS: Record<string, PlanConfig> = {
       "Advanced analytics",
       "Homepage placement",
       "Dedicated support",
+      "Unlimited job postings",
+      "Unlimited CRM contacts",
     ],
     metadata: {
       plan_tier: "enterprise",
