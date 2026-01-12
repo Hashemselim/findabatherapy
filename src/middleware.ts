@@ -96,10 +96,11 @@ export async function middleware(request: NextRequest) {
 
   // Jobs site routing: Handle requests to the jobs domain
   if (brand === "jobs") {
-    // Jobs site homepage - serve the jobs homepage
+    // Jobs site homepage - rewrite root to /jobs page
     if (pathname === "/" || pathname === "") {
-      // The (jobs) route group handles this via the layout and page.tsx
-      // No rewrite needed since Next.js route groups handle this
+      const url = request.nextUrl.clone();
+      url.pathname = "/jobs";
+      return NextResponse.rewrite(url);
     }
 
     // For jobs site, allow access to:
