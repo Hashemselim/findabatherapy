@@ -14,7 +14,6 @@ import {
   Zap,
   FileText,
   BarChart3,
-  Clock,
 } from "lucide-react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -53,9 +52,9 @@ export const metadata: Metadata = {
 };
 
 const stats = [
-  { value: "10K+", label: "Monthly job seekers", icon: Users },
-  { value: "500+", label: "Employers hiring", icon: Building2 },
-  { value: "50+", label: "States covered", icon: MapPin },
+  { value: "1,000+", label: "ABA professionals", icon: Users },
+  { value: "100+", label: "Active job listings", icon: Briefcase },
+  { value: "50", label: "States covered", icon: MapPin },
 ];
 
 const features = [
@@ -108,16 +107,13 @@ const plans = [
     subtext: "No credit card required.",
     features: [
       { text: "1 active job posting", highlightWord: "1", highlightType: "emerald" as const },
-      { text: "Basic applicant tracking", highlightWord: "Basic", highlightType: "emerald" as const },
+      "View & manage applications",
       "Email notifications",
-      "Standard job placement",
-      "30-day job listing",
     ],
     notIncluded: [
-      "Multiple active jobs",
-      "Featured job placement",
-      "Applicant management dashboard",
-      "Analytics & insights",
+      "Multiple job postings",
+      "Priority search placement",
+      "Hiring analytics",
       "Company profile page",
     ],
     cta: "Post Free Job",
@@ -140,14 +136,11 @@ const plans = [
     popular: true,
     features: [
       { text: "Up to 5 active jobs", highlightWord: "5", highlightType: "emerald" as const },
-      { text: "Featured job placement", highlightWord: "Featured", highlightType: "emerald" as const },
-      { text: "Applicant dashboard", highlightWord: "Applicant dashboard", highlightType: "emerald" as const },
-      { text: "Resume downloads", highlightWord: "Resume", highlightType: "emerald" as const },
+      { text: "Priority search placement", highlightWord: "Priority", highlightType: "emerald" as const },
       { text: "Hiring analytics", highlightWord: "analytics", highlightType: "emerald" as const },
       { text: "Company profile page", highlightWord: "Company profile", highlightType: "emerald" as const },
+      "View & manage applications",
       "Email notifications",
-      "60-day job listings",
-      "Priority support",
     ],
     notIncluded: [],
     cta: "Start Hiring",
@@ -169,15 +162,12 @@ const plans = [
     subtext: "Cancel anytime. No long-term contract.",
     features: [
       { text: "Unlimited active jobs", highlightWord: "Unlimited", highlightType: "emerald" as const },
-      { text: "Featured job placement", highlightWord: "Featured", highlightType: "emerald" as const },
-      { text: "Applicant dashboard", highlightWord: "Applicant dashboard", highlightType: "emerald" as const },
-      { text: "Resume downloads", highlightWord: "Resume", highlightType: "emerald" as const },
+      { text: "Homepage featured employer", highlightWord: "Homepage featured", highlightType: "emerald" as const },
+      { text: "Priority search placement", highlightWord: "Priority", highlightType: "emerald" as const },
       { text: "Hiring analytics", highlightWord: "analytics", highlightType: "emerald" as const },
       { text: "Company profile page", highlightWord: "Company profile", highlightType: "emerald" as const },
-      { text: "Homepage featured employer", highlightWord: "Homepage featured", highlightType: "emerald" as const },
+      "View & manage applications",
       "Email notifications",
-      "90-day job listings",
-      "Dedicated account manager",
     ],
     notIncluded: [],
     cta: "Start Hiring",
@@ -321,21 +311,21 @@ export default function PostJobPage() {
         <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-center gap-x-8 gap-y-4 px-4 text-sm text-muted-foreground sm:px-6">
           <span className="flex items-center gap-2 transition-all duration-300 hover:text-foreground">
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/10">
-              <Building2 className="h-4 w-4 text-emerald-600" aria-hidden />
+              <Users className="h-4 w-4 text-emerald-600" aria-hidden />
             </div>
-            Trusted by 500+ employers
+            ABA-focused job board
           </span>
           <span className="flex items-center gap-2 transition-all duration-300 hover:text-foreground">
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/10">
-              <Star className="h-4 w-4 fill-emerald-600 text-emerald-600" aria-hidden />
+              <Briefcase className="h-4 w-4 text-emerald-600" aria-hidden />
             </div>
-            4.8/5 employer satisfaction
+            BCBAs, RBTs & Behavior Analysts
           </span>
           <span className="flex items-center gap-2 transition-all duration-300 hover:text-foreground">
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/10">
-              <Clock className="h-4 w-4 text-emerald-600" aria-hidden />
+              <MapPin className="h-4 w-4 text-emerald-600" aria-hidden />
             </div>
-            Average 14-day time to hire
+            Nationwide coverage
           </span>
         </div>
       </section>
@@ -766,7 +756,7 @@ export default function PostJobPage() {
                 Ready to find your next great hire?
               </h2>
               <p className="mx-auto mt-4 max-w-xl text-lg text-muted-foreground">
-                Join hundreds of ABA employers already connecting with qualified candidates.
+                Connect with qualified BCBAs, RBTs, and behavior analysts actively searching for opportunities.
                 Post your first job free and start hiring today.
               </p>
               <div className="mt-8">

@@ -12,6 +12,7 @@ type Props = {
 const brandData = {
   therapy: {
     name: "Find ABA Therapy",
+    tagline: "Get found by families seeking ABA services",
     color: brandColors.therapy,
     icon: Heart,
     href: "/get-listed",
@@ -24,14 +25,15 @@ const brandData = {
   },
   jobs: {
     name: "Find ABA Jobs",
+    tagline: "Recruit BCBAs, RBTs & behavior analysts",
     color: brandColors.jobs,
     icon: Briefcase,
     href: "/employers/post",
     // Normalized to 3 features each for consistent card heights
     featuresByPlan: {
-      free: ["1 active job posting", "Basic applicant tracking", "Email notifications"],
-      pro: ["Up to 5 active jobs", "Applicant dashboard", "Hiring analytics"],
-      enterprise: ["Unlimited job postings", "Featured placement", "All Pro features"],
+      free: ["1 active job posting", "View applications", "Email notifications"],
+      pro: ["Up to 5 active jobs", "Priority placement", "Hiring analytics"],
+      enterprise: ["Unlimited job postings", "Homepage featured", "All Pro features"],
     },
   },
 };
@@ -60,6 +62,7 @@ export function AlsoIncludedBadge({ otherBrand, planTier }: Props) {
           </p>
         </div>
       </div>
+      <p className="mt-1.5 text-xs text-slate-500">{brand.tagline}</p>
 
       {/* Features list */}
       <ul className="mt-3 space-y-1.5">
