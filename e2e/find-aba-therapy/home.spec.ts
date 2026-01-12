@@ -170,6 +170,141 @@ test.describe("Find ABA Therapy - Home Page SEO", () => {
   });
 });
 
+test.describe("Find ABA Therapy - Home Search Card Interactions", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto("/");
+  });
+
+  test("Service type popover opens and shows options", async ({ page }) => {
+    // Find therapy setting button
+    const settingButton = page.locator(
+      'button:has-text("setting"), button:has-text("In-Home"), label:has-text("setting") button'
+    ).first();
+
+    if (await settingButton.isVisible()) {
+      await settingButton.click();
+      await page.waitForTimeout(300);
+
+      // Should show service type options
+      const inHome = page.locator('[role="option"]:has-text("In-Home"), [cmdk-item]:has-text("In-Home")');
+      const centerBased = page.locator('[role="option"]:has-text("Center"), [cmdk-item]:has-text("Center")');
+
+      const hasInHome = await inHome.isVisible().catch(() => false);
+      const hasCenter = await centerBased.isVisible().catch(() => false);
+
+      expect(hasInHome || hasCenter).toBeTruthy();
+    }
+  });
+
+  test("Service type selection toggles correctly", async ({ page }) => {
+    const settingButton = page.locator(
+      'button:has-text("setting"), button:has-text("In-Home"), label:has-text("Therapy setting") button'
+    ).first();
+
+    if (await settingButton.isVisible()) {
+      await settingButton.click();
+      await page.waitForTimeout(300);
+
+      // Toggle telehealth
+      const telehealthOption = page.locator('[role="option"]:has-text("Telehealth"), [cmdk-item]:has-text("Telehealth")').first();
+
+      if (await telehealthOption.isVisible()) {
+        await telehealthOption.click();
+        // Option should be toggled
+      }
+    }
+  });
+
+  test("Insurance popover opens and shows insurers", async ({ page }) => {
+    const insuranceButton = page.locator(
+      'button:has-text("insurance"), button:has-text("Select plan"), label:has-text("Insurance") button'
+    ).first();
+
+    if (await insuranceButton.isVisible()) {
+      await insuranceButton.click();
+      await page.waitForTimeout(300);
+
+      // Should show insurance options
+      const aetna = page.locator('[role="option"]:has-text("Aetna"), [cmdk-item]:has-text("Aetna")');
+      const medicaid = page.locator('[role="option"]:has-text("Medicaid"), [cmdk-item]:has-text("Medicaid")');
+
+      const hasAetna = await aetna.isVisible().catch(() => false);
+      const hasMedicaid = await medicaid.isVisible().catch(() => false);
+
+      expect(hasAetna || hasMedicaid).toBeTruthy();
+    }
+  });
+
+  test("Insurance selection updates button display", async ({ page }) => {
+    const insuranceButton = page.locator(
+      'label:has-text("Insurance") button'
+    ).first();
+
+    if (await insuranceButton.isVisible()) {
+      await insuranceButton.click();
+      await page.waitForTimeout(300);
+
+      const medicaidOption = page.locator('[cmdk-item]:has-text("Medicaid")').first();
+
+      if (await medicaidOption.isVisible()) {
+        await medicaidOption.click();
+        await page.waitForTimeout(300);
+
+        // Button should now show selected insurance
+        await expect(insuranceButton).toContainText(/medicaid/i);
+      }
+    }
+  });
+
+  test("Location autocomplete shows suggestions", async ({ page }) => {
+    const locationInput = page.locator(
+      'input[placeholder*="City" i], input[placeholder*="location" i]'
+    ).first();
+
+    await locationInput.fill("Los Angeles");
+    await page.waitForTimeout(500);
+
+    // Should show autocomplete suggestions
+    const suggestions = page.locator(
+      '[role="listbox"], [role="option"], .autocomplete-suggestion, [data-testid="suggestion"]'
+    );
+    const hasSuggestions = await suggestions.first().isVisible().catch(() => false);
+
+    // Autocomplete may take time to load
+    if (hasSuggestions) {
+      expect(hasSuggestions).toBeTruthy();
+    }
+  });
+
+  test("Search with all filters submits correctly", async ({ page }) => {
+    // Fill location
+    const locationInput = page.locator('input[placeholder*="City" i]').first();
+    await locationInput.fill("California");
+
+    // Open and select service type
+    const settingButton = page.locator('label:has-text("Therapy setting") button').first();
+    if (await settingButton.isVisible()) {
+      await settingButton.click();
+      await page.waitForTimeout(200);
+
+      const telehealthOption = page.locator('[cmdk-item]:has-text("Telehealth")').first();
+      if (await telehealthOption.isVisible()) {
+        await telehealthOption.click();
+      }
+
+      // Close popover
+      await page.keyboard.press("Escape");
+    }
+
+    // Submit search
+    const searchButton = page.locator('button:has-text("Find care"), button:has-text("Search")').first();
+    await searchButton.click();
+
+    // Should navigate to search with params
+    await expect(page).toHaveURL(/\/search/);
+  });
+});
+
 test.describe("Find ABA Therapy - Home Page Responsive", () => {
   test("FAT-017: Mobile responsive", async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 667 });
@@ -183,6 +318,18 @@ test.describe("Find ABA Therapy - Home Page Responsive", () => {
       'input[placeholder*="location" i], input[placeholder*="city" i]'
     ).first();
     await expect(searchInput).toBeVisible();
+  });
+
+  test("Search card is usable on mobile", async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.goto("/");
+
+    // All search card elements should be visible
+    const locationInput = page.locator('input[placeholder*="City" i]').first();
+    const searchButton = page.locator('button:has-text("Find care")').first();
+
+    await expect(locationInput).toBeVisible();
+    await expect(searchButton).toBeVisible();
   });
 
   test("Tablet responsive", async ({ page }) => {

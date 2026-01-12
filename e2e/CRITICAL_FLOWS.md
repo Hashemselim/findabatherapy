@@ -1166,6 +1166,631 @@ Premium Fields (Pro/Enterprise only):
 
 ---
 
+## 6. Additional Find ABA Therapy Pages
+
+### 6.1 States Directory
+
+**URL:** `/states`
+
+**User Goal:** Browse all 50 states to find providers
+
+**Critical Elements:**
+- [ ] Page loads with all 50 state cards
+- [ ] Each state shows state name and icon
+- [ ] Click state → navigates to `/[state]`
+- [ ] Search/filter states functionality
+- [ ] Mobile responsive grid
+
+---
+
+### 6.2 Centers Directory
+
+**URL:** `/centers`
+
+**User Goal:** Find center-based therapy providers
+
+**Critical Elements:**
+- [ ] Page loads with center-based filter applied
+- [ ] Shows providers with center-based service mode
+- [ ] Filter by state/city
+- [ ] SEO meta tags present
+- [ ] Mobile responsive
+
+---
+
+### 6.3 State Guide Pages
+
+**URL:** `/[state]/guide` (e.g., `/california/guide`)
+
+**User Goal:** Learn about ABA therapy in specific state
+
+**Critical Elements:**
+- [ ] Page loads with state-specific content
+- [ ] Breadcrumb navigation (Home → State → Guide)
+- [ ] Table of contents
+- [ ] State-specific regulations/resources
+- [ ] CTA to search providers in state
+- [ ] Related links section
+
+---
+
+### 6.4 Glossary Page
+
+**URL:** `/learn/glossary`
+
+**User Goal:** Look up ABA terminology
+
+**Critical Elements:**
+- [ ] Page loads with glossary terms
+- [ ] Alphabetical navigation (A-Z)
+- [ ] Search/filter terms
+- [ ] Term definitions expand/display
+- [ ] Related terms links
+- [ ] Mobile responsive
+
+---
+
+### 6.5 Provider Shortlink
+
+**URL:** `/provider/p/[slug]`
+
+**User Goal:** Access provider via short URL
+
+**Critical Elements:**
+- [ ] Redirects to full provider profile
+- [ ] Preserves any query parameters
+- [ ] 301 redirect for SEO
+
+---
+
+## 7. Find ABA Jobs - Additional Pages
+
+### 7.1 Employers Directory
+
+**URL:** `/employers`
+
+**User Goal:** Browse companies hiring in ABA
+
+**Critical Elements:**
+- [ ] Page loads with employer cards
+- [ ] Search employers by name
+- [ ] Filter by hiring status (currently hiring)
+- [ ] Employer card shows:
+  - [ ] Company logo
+  - [ ] Company name
+  - [ ] Number of open positions
+  - [ ] Location
+- [ ] Click card → navigates to `/employers/[slug]`
+- [ ] Pagination works
+- [ ] Mobile responsive
+
+---
+
+### 7.2 Employer Profile
+
+**URL:** `/employers/[slug]`
+
+**User Goal:** Learn about company and see all their jobs
+
+**Critical Elements:**
+- [ ] Page loads with employer details
+- [ ] Company logo, name, description
+- [ ] Contact information
+- [ ] All open positions listed
+- [ ] Job cards link to `/job/[slug]`
+- [ ] "View Provider Profile" link (if applicable)
+- [ ] Mobile responsive
+
+---
+
+### 7.3 Post Job Page
+
+**URL:** `/employers/post`
+
+**User Goal:** Employer wants to post a job
+
+**Critical Elements:**
+- [ ] Page loads with CTA
+- [ ] Links to sign up/sign in
+- [ ] Pricing information displayed
+- [ ] Benefits of posting
+- [ ] "Get Started" button → auth flow
+- [ ] Mobile responsive
+
+---
+
+### 7.4 City Jobs Pages
+
+**URL:** `/jobs/[state]/[city]` (e.g., `/jobs/california/los-angeles`)
+
+**User Goal:** Find jobs in specific city
+
+**Critical Elements:**
+- [ ] Page loads with city header
+- [ ] Job count in city
+- [ ] Job cards for city
+- [ ] Nearby cities section
+- [ ] Breadcrumb navigation
+- [ ] Filter options available
+- [ ] Mobile responsive
+
+---
+
+## 8. White-Label Careers Pages
+
+### 8.1 Provider Careers Page
+
+**URL:** `/careers/[slug]`
+
+**User Goal:** View provider's branded careers page
+
+**Critical Elements:**
+- [ ] Page loads with provider branding
+- [ ] Provider logo prominently displayed
+- [ ] Provider description/about section
+- [ ] All published jobs listed
+- [ ] No site header/footer (clean embed)
+- [ ] "Powered by BehaviorWork" footer (Free/Pro)
+- [ ] No branding footer (Enterprise)
+- [ ] Apply button on each job
+- [ ] Mobile responsive
+
+---
+
+### 8.2 Careers Job Detail
+
+**URL:** `/careers/[slug]/[jobSlug]`
+
+**User Goal:** View job details on careers page
+
+**Critical Elements:**
+- [ ] Job details display correctly
+- [ ] Provider branding maintained
+- [ ] Apply button works
+- [ ] Back to careers link
+- [ ] Application form opens correctly
+- [ ] Mobile responsive
+
+---
+
+## 9. Dashboard - Additional Sections
+
+### 9.1 Media Management
+
+**URL:** `/dashboard/media`
+
+**User Goal:** Manage photos and videos
+
+**Critical Elements:**
+- [ ] Page loads for Pro+ users
+- [ ] Photo upload (up to 10 photos)
+- [ ] File type validation (JPG, PNG, WebP)
+- [ ] File size validation (max 5MB per photo)
+- [ ] Drag and drop reorder
+- [ ] Delete photo functionality
+- [ ] Video URL input (YouTube/Vimeo)
+- [ ] Video preview
+- [ ] Save changes button
+- [ ] Free users see upgrade prompt
+
+---
+
+### 9.2 Intake Form Management
+
+**URL:** `/dashboard/intake`
+
+**User Goal:** Manage custom intake forms
+
+**Critical Elements:**
+- [ ] Page loads with intake form settings
+- [ ] Toggle intake form on/off
+- [ ] Customize form fields
+- [ ] View form submissions
+- [ ] Copy intake form URL
+- [ ] Preview intake form
+- [ ] Mobile responsive
+
+---
+
+### 9.3 Clients Management
+
+**URL:** `/dashboard/clients`
+
+**User Goal:** View and manage family clients
+
+**Critical Elements:**
+- [ ] Page loads with client list (Pro+)
+- [ ] Client cards show name, contact
+- [ ] Search/filter clients
+- [ ] View client details
+- [ ] Client notes/history
+- [ ] Free users see upgrade prompt
+
+---
+
+### 9.4 Leads Management
+
+**URL:** `/dashboard/leads`
+
+**User Goal:** Track potential clients
+
+**Critical Elements:**
+- [ ] Page loads with leads list (Pro+)
+- [ ] Lead sources tracked
+- [ ] Lead status (new, contacted, converted)
+- [ ] Lead notes
+- [ ] Convert to client action
+- [ ] Free users see upgrade prompt
+
+---
+
+### 9.5 Feedback Page
+
+**URL:** `/dashboard/feedback`
+
+**User Goal:** View feedback from families
+
+**Critical Elements:**
+- [ ] Page loads with feedback list
+- [ ] Feedback cards show content, date
+- [ ] Filter by date/type
+- [ ] Mark feedback as read
+- [ ] Respond to feedback (if applicable)
+
+---
+
+### 9.6 Account Settings
+
+**URL:** `/dashboard/account`
+
+**User Goal:** Manage account security
+
+**Critical Elements:**
+- [ ] Page loads with account info
+- [ ] Change email functionality
+- [ ] Change password functionality
+- [ ] Connected OAuth providers shown
+- [ ] Disconnect OAuth option
+- [ ] Delete account option
+- [ ] Two-factor authentication (if available)
+
+---
+
+### 9.7 Team Management
+
+**URL:** `/dashboard/team`
+
+**User Goal:** View team members
+
+**Critical Elements:**
+- [ ] Page loads with team list
+- [ ] Team member cards
+- [ ] Role indicators
+- [ ] "Manage Employees" link
+- [ ] Invite team member (Enterprise)
+
+---
+
+### 9.8 Employees Management
+
+**URL:** `/dashboard/team/employees`
+
+**User Goal:** Manage staff members
+
+**Critical Elements:**
+- [ ] Page loads with employee list
+- [ ] Add new employee
+- [ ] Edit employee details
+- [ ] Deactivate employee
+- [ ] Role assignment
+- [ ] Permission management (Enterprise)
+
+---
+
+### 9.9 Application Detail
+
+**URL:** `/dashboard/jobs/applications/[id]`
+
+**User Goal:** Review individual application
+
+**Critical Elements:**
+- [ ] Page loads with application details
+- [ ] Applicant info displayed:
+  - [ ] Name, email, phone
+  - [ ] LinkedIn URL (if provided)
+  - [ ] Cover letter (if provided)
+- [ ] Resume download link works
+- [ ] Status dropdown to change status
+- [ ] Notes field (editable)
+- [ ] Rating (1-5 stars)
+- [ ] Quick actions (Hire, Reject)
+- [ ] Navigation to next/previous application
+- [ ] Back to applications list
+
+---
+
+### 9.10 Careers Page Management
+
+**URL:** `/dashboard/jobs/careers`
+
+**User Goal:** Manage provider careers page
+
+**Critical Elements:**
+- [ ] Page loads with careers page settings
+- [ ] Preview careers page link
+- [ ] Copy careers URL
+- [ ] Customize description
+- [ ] Toggle "Powered by" footer (Enterprise)
+- [ ] View analytics for careers page
+
+---
+
+### 9.11 Upgrade Page
+
+**URL:** `/dashboard/upgrade`
+
+**User Goal:** See upgrade options
+
+**Critical Elements:**
+- [ ] Page loads with plan comparison
+- [ ] Current plan highlighted
+- [ ] Feature comparison table
+- [ ] Annual/monthly toggle
+- [ ] "Upgrade" buttons work
+- [ ] Enterprise contact option
+
+---
+
+## 10. Public Intake Forms
+
+### 10.1 Intake Form Page
+
+**URL:** `/intake/[slug]`
+
+**User Goal:** Family submits intake form
+
+**Critical Elements:**
+- [ ] Page loads with provider branding
+- [ ] Form fields display correctly
+- [ ] Required field validation
+- [ ] File upload (if enabled)
+- [ ] Turnstile CAPTCHA
+- [ ] Success message after submission
+- [ ] Provider contact info displayed
+- [ ] Mobile responsive
+
+---
+
+## 11. Admin Routes
+
+### 11.1 Admin Dashboard
+
+**URL:** `/admin`
+
+**User Goal:** Site administrators manage platform
+
+**Critical Elements:**
+- [ ] Page loads for admin users only
+- [ ] Non-admin users redirected
+- [ ] Overview stats displayed
+- [ ] Quick links to admin sections
+- [ ] Recent activity feed
+
+---
+
+### 11.2 Admin Analytics
+
+**URL:** `/admin/analytics`
+
+**User Goal:** View platform-wide analytics
+
+**Critical Elements:**
+- [ ] Page loads with site-wide metrics
+- [ ] Total providers, jobs, applications
+- [ ] Growth charts
+- [ ] Top performing providers
+- [ ] Search trends
+- [ ] Date range filter
+
+---
+
+### 11.3 Admin Feedback
+
+**URL:** `/admin/feedback`
+
+**User Goal:** Review all user feedback
+
+**Critical Elements:**
+- [ ] Page loads with all feedback
+- [ ] Filter by type, date, status
+- [ ] Mark as reviewed
+- [ ] Assign to team member
+- [ ] Respond to feedback
+
+---
+
+### 11.4 Removal Requests
+
+**URL:** `/admin/removal-requests`
+
+**User Goal:** Handle listing removal requests
+
+**Critical Elements:**
+- [ ] Page loads with removal requests
+- [ ] Request details displayed
+- [ ] Approve/Deny actions
+- [ ] Notification to provider
+- [ ] Audit trail
+
+---
+
+## 12. Demo Pages
+
+### 12.1 Demo Dashboard
+
+**URL:** `/demo`
+
+**User Goal:** Preview dashboard without account
+
+**Critical Elements:**
+- [ ] Page loads with demo data
+- [ ] All dashboard sections accessible
+- [ ] Demo badge/indicator visible
+- [ ] CTA to create real account
+- [ ] No actual data modifications allowed
+
+---
+
+### 12.2 Demo Sections
+
+**URLs:**
+- `/demo/company`
+- `/demo/locations`
+- `/demo/media`
+- `/demo/analytics`
+- `/demo/inbox`
+
+**Critical Elements:**
+- [ ] Each section loads with sample data
+- [ ] Interactive elements work
+- [ ] Cannot save changes (read-only)
+- [ ] Upgrade prompts displayed
+
+---
+
+## 13. Updated Test Case Matrix
+
+### 13.1 Additional Find ABA Therapy Tests
+
+| Test ID | Flow | Description | Priority |
+|---------|------|-------------|----------|
+| FAT-018 | States | States directory page loads | P1 |
+| FAT-019 | States | Click state navigates correctly | P1 |
+| FAT-020 | Centers | Centers page loads with filter | P2 |
+| FAT-021 | Guide | State guide page loads | P2 |
+| FAT-022 | Glossary | Glossary page loads | P2 |
+| FAT-023 | Glossary | Term search works | P2 |
+| FAT-024 | Shortlink | Provider shortlink redirects | P1 |
+
+### 13.2 Additional Find ABA Jobs Tests
+
+| Test ID | Flow | Description | Priority |
+|---------|------|-------------|----------|
+| FAJ-013 | Employers | Employers directory loads | P1 |
+| FAJ-014 | Employers | Search employers works | P1 |
+| FAJ-015 | Employers | Employer profile loads | P1 |
+| FAJ-016 | Employers | Post job page loads | P1 |
+| FAJ-017 | City | City jobs page loads | P1 |
+| FAJ-018 | City | City jobs filter works | P2 |
+
+### 13.3 White-Label Careers Tests
+
+| Test ID | Flow | Description | Priority |
+|---------|------|-------------|----------|
+| CAR-001 | Careers | Careers page loads with branding | P0 |
+| CAR-002 | Careers | No site header/footer displayed | P0 |
+| CAR-003 | Careers | Jobs list displays correctly | P0 |
+| CAR-004 | Careers | Apply button opens form | P0 |
+| CAR-005 | Careers | Job detail page works | P1 |
+| CAR-006 | Careers | "Powered by" footer shows (Free/Pro) | P1 |
+| CAR-007 | Careers | No footer for Enterprise | P1 |
+
+### 13.4 Additional Dashboard Tests
+
+| Test ID | Flow | Description | Priority |
+|---------|------|-------------|----------|
+| DASH-022 | Media | Photo upload works (Pro+) | P1 |
+| DASH-023 | Media | Photo delete works | P1 |
+| DASH-024 | Media | Video URL saves | P1 |
+| DASH-025 | Media | Free users see upgrade | P1 |
+| DASH-026 | Intake | Intake settings load | P2 |
+| DASH-027 | Intake | Toggle intake form | P2 |
+| DASH-028 | Clients | Clients list loads (Pro+) | P2 |
+| DASH-029 | Leads | Leads list loads (Pro+) | P2 |
+| DASH-030 | Feedback | Feedback list loads | P2 |
+| DASH-031 | Account | Account settings load | P1 |
+| DASH-032 | Account | Change password works | P1 |
+| DASH-033 | Team | Team list loads | P2 |
+| DASH-034 | Team | Add employee works | P2 |
+| DASH-035 | Apps | Application detail loads | P0 |
+| DASH-036 | Apps | Change application status | P0 |
+| DASH-037 | Apps | Add notes to application | P1 |
+| DASH-038 | Apps | Download resume works | P0 |
+| DASH-039 | Apps | Rate application | P1 |
+| DASH-040 | Careers | Careers management loads | P1 |
+| DASH-041 | Upgrade | Upgrade page loads | P1 |
+
+### 13.5 Intake Form Tests
+
+| Test ID | Flow | Description | Priority |
+|---------|------|-------------|----------|
+| INT-009 | Intake | Public intake form loads | P1 |
+| INT-010 | Intake | Form validation works | P1 |
+| INT-011 | Intake | Form submission succeeds | P0 |
+| INT-012 | Intake | Success message displays | P1 |
+| INT-013 | Intake | Provider notified | P1 |
+
+### 13.6 Admin Tests
+
+| Test ID | Flow | Description | Priority |
+|---------|------|-------------|----------|
+| ADM-001 | Admin | Admin dashboard loads (admin only) | P0 |
+| ADM-002 | Admin | Non-admin redirected | P0 |
+| ADM-003 | Admin | Admin analytics loads | P1 |
+| ADM-004 | Admin | Admin feedback loads | P2 |
+| ADM-005 | Admin | Removal requests loads | P1 |
+| ADM-006 | Admin | Approve removal works | P1 |
+
+### 13.7 Demo Tests
+
+| Test ID | Flow | Description | Priority |
+|---------|------|-------------|----------|
+| DEMO-001 | Demo | Demo dashboard loads | P2 |
+| DEMO-002 | Demo | Demo company loads | P2 |
+| DEMO-003 | Demo | Demo is read-only | P2 |
+| DEMO-004 | Demo | CTA to sign up visible | P2 |
+
+---
+
+## Appendix A: Test User Personas
+
+### Family/Visitor
+- Looking for ABA therapy provider
+- May have specific insurance requirements
+- May need specific service types
+- May be in specific location
+
+### Job Seeker
+- Looking for ABA career opportunity
+- May have specific position preference
+- May need specific employment type
+- May prefer remote work
+
+### Provider (Free)
+- New to platform
+- Limited budget
+- Basic listing needs
+- 1 location, 1 job
+
+### Provider (Pro)
+- Established practice
+- Multiple locations (up to 5)
+- Wants direct inquiries
+- Hiring multiple positions
+
+### Provider (Enterprise)
+- Large organization
+- Many locations
+- Homepage visibility
+- Unlimited hiring
+
+### Admin
+- Platform administrator
+- Access to all admin routes
+- Can manage providers, feedback, removal requests
+
+---
+
 ## Appendix B: Environment Configuration
 
 ### Test Environment Variables
@@ -1182,6 +1807,10 @@ TEST_PRO_USER_PASSWORD=TestPassword123!
 TEST_ENTERPRISE_USER_EMAIL=enterprise@example.com
 TEST_ENTERPRISE_USER_PASSWORD=TestPassword123!
 
+# Admin User (for admin tests)
+TEST_ADMIN_EMAIL=admin@example.com
+TEST_ADMIN_PASSWORD=TestPassword123!
+
 # Base URLs
 PLAYWRIGHT_BASE_URL=http://localhost:3000
 PLAYWRIGHT_JOBS_URL=http://localhost:3000/jobs
@@ -1190,6 +1819,58 @@ PLAYWRIGHT_JOBS_URL=http://localhost:3000/jobs
 ### Test Data Requirements
 - At least one published Free provider listing
 - At least one published Pro provider listing
+- At least one published Enterprise provider listing
 - At least one published job posting
+- At least one job application
 - At least one state with providers
 - At least one insurance with providers
+- At least one intake form configured
+- Admin user account for admin tests
+
+---
+
+## Appendix C: Test File Structure
+
+```
+e2e/
+├── auth.setup.ts                      # Authentication setup
+├── auth.spec.ts                       # Auth flow tests
+├── CRITICAL_FLOWS.md                  # This documentation
+├── .auth/                             # Auth state storage
+├── dashboard/
+│   ├── applications.spec.ts           # Application tracking tests (NEW)
+│   ├── billing.spec.ts                # Billing tests
+│   ├── company.spec.ts                # Company management tests
+│   ├── jobs.spec.ts                   # Job posting tests
+│   ├── locations.spec.ts              # Location management tests
+│   ├── media.spec.ts                  # Media management tests (NEW)
+│   ├── onboarding.spec.ts             # Onboarding tests
+│   ├── overview.spec.ts               # Dashboard overview tests
+│   └── additional.spec.ts             # Team, clients, leads, etc. (NEW)
+├── find-aba-jobs/
+│   ├── application.spec.ts            # Job application tests
+│   ├── careers.spec.ts                # White-label careers tests (NEW)
+│   ├── employers.spec.ts              # Employers directory tests (NEW)
+│   ├── home.spec.ts                   # Jobs home page tests
+│   ├── job-detail.spec.ts             # Job detail tests
+│   ├── search.spec.ts                 # Job search tests
+│   └── state-position.spec.ts         # State/position pages tests
+├── find-aba-therapy/
+│   ├── additional-pages.spec.ts       # States, centers, guide, glossary (NEW)
+│   ├── home.spec.ts                   # Home page tests
+│   ├── insurance.spec.ts              # Insurance pages tests
+│   ├── provider-profile.spec.ts       # Provider profile tests
+│   ├── search.spec.ts                 # Search tests
+│   ├── state-city.spec.ts             # State/city pages tests
+│   └── static-pages.spec.ts           # FAQ, legal, get-listed tests
+├── intake/
+│   └── intake.spec.ts                 # Public intake form tests (NEW)
+├── admin/
+│   └── admin.spec.ts                  # Admin route tests (NEW)
+├── demo/
+│   └── demo.spec.ts                   # Demo page tests (NEW)
+└── integration/
+    ├── jobs-visibility.spec.ts        # Job visibility integration tests
+    ├── listing-visibility.spec.ts     # Listing visibility tests
+    └── plan-limits.spec.ts            # Plan limits tests
+```

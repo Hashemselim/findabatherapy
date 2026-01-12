@@ -12,6 +12,7 @@
     "test": "vitest",
     "test:run": "vitest run",
     "test:e2e": "playwright test",
+    "test:e2e:all": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:debug": "playwright test --debug",
@@ -26,7 +27,16 @@
     "test:e2e:therapy:provider": "playwright test find-aba-therapy/provider-profile.spec.ts",
     "test:e2e:jobs:home": "playwright test find-aba-jobs/home.spec.ts",
     "test:e2e:jobs:search": "playwright test find-aba-jobs/search.spec.ts",
-    "test:e2e:jobs:apply": "playwright test find-aba-jobs/application.spec.ts"
+    "test:e2e:jobs:apply": "playwright test find-aba-jobs/application.spec.ts",
+    "test:e2e:jobs:employers": "playwright test find-aba-jobs/employers.spec.ts",
+    "test:e2e:jobs:careers": "playwright test find-aba-jobs/careers.spec.ts",
+    "test:e2e:therapy:additional": "playwright test find-aba-therapy/additional-pages.spec.ts",
+    "test:e2e:dashboard:applications": "playwright test dashboard/applications.spec.ts",
+    "test:e2e:dashboard:media": "playwright test dashboard/media.spec.ts",
+    "test:e2e:dashboard:additional": "playwright test dashboard/additional.spec.ts",
+    "test:e2e:intake": "playwright test intake/",
+    "test:e2e:admin": "playwright test admin/",
+    "test:e2e:demo": "playwright test demo/"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

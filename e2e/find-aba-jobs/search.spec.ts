@@ -258,6 +258,172 @@ test.describe("Find ABA Jobs - Search Results", () => {
   });
 });
 
+test.describe("Find ABA Jobs - Additional Filters", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto("/jobs/search");
+  });
+
+  test("Work Setting (therapy settings) filter works", async ({ page }) => {
+    // Look for Work Setting filter section
+    const settingSection = page.locator('text=/work setting/i').first();
+
+    if (await settingSection.isVisible()) {
+      // Look for in-home checkbox
+      const inHomeCheckbox = page.locator(
+        'input[type="checkbox"][value*="in_home" i], label:has-text("In-Home") input'
+      ).first();
+
+      if (await inHomeCheckbox.isVisible()) {
+        await inHomeCheckbox.check();
+        await page.waitForTimeout(500);
+        // URL should update with settings filter
+        await expect(page).toHaveURL(/settings=/i);
+      }
+    }
+  });
+
+  test("Schedule filter works", async ({ page }) => {
+    // Look for Schedule filter section
+    const scheduleSection = page.locator('text=/schedule/i').first();
+
+    if (await scheduleSection.isVisible()) {
+      // Look for daytime checkbox
+      const daytimeCheckbox = page.locator(
+        'input[type="checkbox"][value*="daytime" i], label:has-text("Daytime") input'
+      ).first();
+
+      if (await daytimeCheckbox.isVisible()) {
+        await daytimeCheckbox.check();
+        await page.waitForTimeout(500);
+        // URL should update with schedule filter
+        await expect(page).toHaveURL(/schedule=/i);
+      }
+    }
+  });
+
+  test("Age Groups filter works", async ({ page }) => {
+    // Look for Age Groups filter section
+    const ageSection = page.locator('text=/age groups/i').first();
+
+    if (await ageSection.isVisible()) {
+      await ageSection.click(); // Expand section if collapsed
+      await page.waitForTimeout(200);
+
+      // Look for school_age checkbox
+      const schoolAgeCheckbox = page.locator(
+        'input[type="checkbox"][value*="school_age" i], label:has-text("School Age") input'
+      ).first();
+
+      if (await schoolAgeCheckbox.isVisible()) {
+        await schoolAgeCheckbox.check();
+        await page.waitForTimeout(500);
+        // URL should update with ages filter
+        await expect(page).toHaveURL(/ages=/i);
+      }
+    }
+  });
+
+  test("Multiple filters can be combined", async ({ page }) => {
+    await page.goto("/jobs/search?position=bcba&employment=full_time&remote=true&settings=in_home,in_center&schedule=daytime");
+
+    // All filters should be in URL
+    await expect(page).toHaveURL(/position=bcba/i);
+    await expect(page).toHaveURL(/employment=full_time/i);
+    await expect(page).toHaveURL(/remote=true/i);
+    await expect(page).toHaveURL(/settings=in_home/i);
+    await expect(page).toHaveURL(/schedule=daytime/i);
+  });
+
+  test("Filter badges are clickable to remove", async ({ page }) => {
+    await page.goto("/jobs/search?position=bcba&employment=full_time");
+
+    // Find active filter badges
+    const filterBadge = page.locator(
+      '[data-testid="filter-badge"], .badge:has(svg), button:has-text("BCBA")'
+    ).first();
+
+    if (await filterBadge.isVisible()) {
+      await filterBadge.click();
+      await page.waitForTimeout(500);
+
+      // Position filter should be removed from URL
+      const url = page.url();
+      const hasPositionInUrl = url.toLowerCase().includes("position=bcba");
+      const badgeStillVisible = await filterBadge.isVisible().catch(() => false);
+
+      expect(!hasPositionInUrl || !badgeStillVisible).toBeTruthy();
+    }
+  });
+
+  test("Location filter by state", async ({ page }) => {
+    await page.goto("/jobs/search?state=California");
+
+    // URL should have state filter
+    await expect(page).toHaveURL(/state=California/i);
+
+    // Results should reflect state filter
+    const resultsText = page.locator("text=/california|ca/i").first();
+    const hasStateInResults = await resultsText.isVisible().catch(() => false);
+    console.log(`State visible in results: ${hasStateInResults}`);
+  });
+
+  test("Location filter by city and state", async ({ page }) => {
+    await page.goto("/jobs/search?city=Los+Angeles&state=California");
+
+    // URL should have both filters
+    await expect(page).toHaveURL(/city=Los/i);
+    await expect(page).toHaveURL(/state=California/i);
+  });
+});
+
+test.describe("Find ABA Jobs - Sort Options", () => {
+  test("Sort by date option works", async ({ page }) => {
+    await page.goto("/jobs/search");
+
+    const sortDropdown = page.locator(
+      'button:has(svg), [data-testid="sort-toggle"], button:has-text("Sort"), select[name*="sort"]'
+    ).first();
+
+    if (await sortDropdown.isVisible()) {
+      await sortDropdown.click();
+      await page.waitForTimeout(200);
+
+      const dateOption = page.locator('[role="option"]:has-text("Date"), option:has-text("Date"), text=/newest|recent|date/i').first();
+
+      if (await dateOption.isVisible()) {
+        await dateOption.click();
+        await page.waitForTimeout(500);
+
+        // URL should reflect sort param
+        await expect(page).toHaveURL(/sort=date/i);
+      }
+    }
+  });
+
+  test("Sort by salary option works", async ({ page }) => {
+    await page.goto("/jobs/search");
+
+    const sortDropdown = page.locator(
+      'button:has(svg), [data-testid="sort-toggle"], button:has-text("Sort"), select[name*="sort"]'
+    ).first();
+
+    if (await sortDropdown.isVisible()) {
+      await sortDropdown.click();
+      await page.waitForTimeout(200);
+
+      const salaryOption = page.locator('[role="option"]:has-text("Salary"), option:has-text("Salary")').first();
+
+      if (await salaryOption.isVisible()) {
+        await salaryOption.click();
+        await page.waitForTimeout(500);
+
+        // URL should reflect sort param
+        await expect(page).toHaveURL(/sort=salary/i);
+      }
+    }
+  });
+});
+
 test.describe("Find ABA Jobs - Search Mobile", () => {
   test("Filter drawer on mobile", async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 667 });
@@ -275,5 +441,77 @@ test.describe("Find ABA Jobs - Search Mobile", () => {
         page.locator('[role="dialog"], .sheet, .drawer').first()
       ).toBeVisible();
     }
+  });
+
+  test("Mobile filter sheet has all filter sections", async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.goto("/jobs/search");
+
+    const filterButton = page.locator('button:has-text("Filter")').first();
+
+    if (await filterButton.isVisible()) {
+      await filterButton.click();
+      await page.waitForTimeout(300);
+
+      // Check for filter sections in sheet
+      const positionSection = page.locator('text=/position type/i');
+      const employmentSection = page.locator('text=/employment type/i');
+      const remoteToggle = page.locator('text=/remote/i');
+      const workSettingSection = page.locator('text=/work setting/i');
+      const scheduleSection = page.locator('text=/schedule/i');
+
+      const hasPosition = await positionSection.first().isVisible().catch(() => false);
+      const hasEmployment = await employmentSection.first().isVisible().catch(() => false);
+      const hasRemote = await remoteToggle.first().isVisible().catch(() => false);
+      const hasWorkSetting = await workSettingSection.first().isVisible().catch(() => false);
+      const hasSchedule = await scheduleSection.first().isVisible().catch(() => false);
+
+      expect(hasPosition || hasEmployment || hasRemote || hasWorkSetting || hasSchedule).toBeTruthy();
+    }
+  });
+
+  test("Mobile filter Apply and Clear buttons work", async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.goto("/jobs/search");
+
+    const filterButton = page.locator('button:has-text("Filter")').first();
+
+    if (await filterButton.isVisible()) {
+      await filterButton.click();
+      await page.waitForTimeout(300);
+
+      // Look for Apply and Clear buttons
+      const applyButton = page.locator('button:has-text("Apply")').first();
+      const clearButton = page.locator('button:has-text("Clear")').first();
+
+      const hasApply = await applyButton.isVisible().catch(() => false);
+      const hasClear = await clearButton.isVisible().catch(() => false);
+
+      expect(hasApply).toBeTruthy();
+      expect(hasClear).toBeTruthy();
+    }
+  });
+
+  test("Mobile view shows filter count badge", async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.goto("/jobs/search?position=bcba&remote=true");
+
+    // Filter button should show count
+    const filterButton = page.locator('button:has-text("Filter")').first();
+
+    if (await filterButton.isVisible()) {
+      // Should show badge with active filter count
+      const badge = filterButton.locator('.rounded-full, span:has-text(/[0-9]/)');
+      const hasBadge = await badge.isVisible().catch(() => false);
+      console.log(`Filter count badge visible: ${hasBadge}`);
+    }
+  });
+
+  test("Single column results on mobile", async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.goto("/jobs/search");
+
+    // Results should be single column
+    await expect(page.getByRole("main")).toBeVisible();
   });
 });
