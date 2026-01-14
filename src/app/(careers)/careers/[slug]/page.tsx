@@ -126,18 +126,40 @@ export async function generateMetadata({ params }: CareersPageProps): Promise<Me
     ? `Explore career opportunities at ${provider.agencyName}. ${provider.careersHeadline || provider.headline}`
     : `Browse open BCBA, RBT, and behavior analyst positions at ${provider.agencyName}. Apply today!`;
 
+  // Build OG image URL with company details
+  const ogParams = new URLSearchParams({
+    brand: "jobs",
+    type: "careers",
+    title,
+    subtitle: provider.primaryLocation
+      ? `${provider.primaryLocation.city}, ${provider.primaryLocation.state}`
+      : "View open positions",
+  });
+  if (provider.logoUrl) {
+    ogParams.set("logo", provider.logoUrl);
+  }
+  const ogImageUrl = `https://www.findabajobs.org/api/og?${ogParams.toString()}`;
+
   return {
     title,
     description,
     openGraph: {
       title,
       description,
-      images: provider.logoUrl ? [provider.logoUrl] : undefined,
+      images: [
+        {
+          url: ogImageUrl,
+          width: 1200,
+          height: 630,
+          alt: title,
+        },
+      ],
     },
     twitter: {
-      card: "summary",
+      card: "summary_large_image",
       title,
       description,
+      images: [ogImageUrl],
     },
     // No canonical to main site - this is a standalone branded page
     robots: {

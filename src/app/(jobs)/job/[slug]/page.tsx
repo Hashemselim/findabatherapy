@@ -51,18 +51,41 @@ export async function generateMetadata({ params }: JobPageProps): Promise<Metada
   const description = job.description?.slice(0, 160) ||
     `${positionLabel} position at ${job.provider.agencyName}. Apply now on Find ABA Jobs.`;
 
+  // Build OG image URL with job details
+  const ogTitle = `${job.title} at ${job.provider.agencyName}`;
+  const ogSubtitle = location ? `${positionLabel} • ${location}` : positionLabel;
+  const ogParams = new URLSearchParams({
+    brand: "jobs",
+    type: "job",
+    title: ogTitle,
+    subtitle: ogSubtitle,
+  });
+  if (job.provider.logoUrl) {
+    ogParams.set("logo", job.provider.logoUrl);
+  }
+  const ogImageUrl = `https://www.findabajobs.org/api/og?${ogParams.toString()}`;
+
   return {
     title,
     description,
     openGraph: {
-      title: job.title,
+      title: ogTitle,
       description,
       type: "website",
+      images: [
+        {
+          url: ogImageUrl,
+          width: 1200,
+          height: 630,
+          alt: ogTitle,
+        },
+      ],
     },
     twitter: {
-      card: "summary",
-      title: job.title,
+      card: "summary_large_image",
+      title: ogTitle,
       description,
+      images: [ogImageUrl],
     },
   };
 }

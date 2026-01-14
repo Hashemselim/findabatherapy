@@ -91,6 +91,19 @@ export async function generateMetadata({ params }: ProviderPageProps): Promise<M
     ? listing.headline
     : `${listing.profile.agencyName} offers ${serviceStr}ABA therapy${locationStr ? ` in ${locationStr}` : ""}.${acceptingStr}${insuranceStr}${verifiedStr}`;
 
+  // Build OG image URL with provider details
+  const ogTitle = listing.profile.agencyName;
+  const ogParams = new URLSearchParams({
+    brand: "therapy",
+    type: "provider",
+    title: ogTitle,
+    subtitle: locationStr || "ABA Therapy Provider",
+  });
+  if (listing.logoUrl) {
+    ogParams.set("logo", listing.logoUrl);
+  }
+  const ogImageUrl = `https://www.findabatherapy.org/api/og?${ogParams.toString()}`;
+
   return {
     title,
     description,
@@ -98,9 +111,22 @@ export async function generateMetadata({ params }: ProviderPageProps): Promise<M
       canonical: `/provider/${listing.slug}`,
     },
     openGraph: {
-      title: listing.profile.agencyName,
+      title: ogTitle,
       description: listing.description || description,
-      images: listing.logoUrl ? [listing.logoUrl] : undefined,
+      images: [
+        {
+          url: ogImageUrl,
+          width: 1200,
+          height: 630,
+          alt: ogTitle,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: ogTitle,
+      description: listing.description || description,
+      images: [ogImageUrl],
     },
   };
 }

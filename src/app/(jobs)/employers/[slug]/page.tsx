@@ -223,13 +223,39 @@ export async function generateMetadata({ params }: EmployerPageProps): Promise<M
     ? `Explore career opportunities at ${employer.agencyName}. ${employer.headline}`
     : `Browse BCBA, RBT, and behavior analyst positions at ${employer.agencyName}${locationStr ? ` in ${locationStr}` : ""}. View locations, learn about the company, and apply today.`;
 
+  // Build OG image URL with employer details
+  const ogTitle = `${employer.agencyName} - Careers`;
+  const ogParams = new URLSearchParams({
+    brand: "jobs",
+    type: "employer",
+    title: ogTitle,
+    subtitle: locationStr || "View open positions and company info",
+  });
+  if (employer.logoUrl) {
+    ogParams.set("logo", employer.logoUrl);
+  }
+  const ogImageUrl = `https://www.findabajobs.org/api/og?${ogParams.toString()}`;
+
   return {
     title,
     description,
     openGraph: {
-      title: `${employer.agencyName} - Careers`,
+      title: ogTitle,
       description,
-      images: employer.logoUrl ? [employer.logoUrl] : undefined,
+      images: [
+        {
+          url: ogImageUrl,
+          width: 1200,
+          height: 630,
+          alt: ogTitle,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: ogTitle,
+      description,
+      images: [ogImageUrl],
     },
     alternates: {
       canonical: `/employers/${slug}`,
