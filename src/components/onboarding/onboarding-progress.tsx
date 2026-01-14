@@ -11,12 +11,14 @@ export type OnboardingStep = {
 };
 
 // Onboarding flow:
-// Step 1: Practice Details (agency info, headline, description, logo)
+// Step 0: Welcome (intro to both brands/tools)
+// Step 1: Company Details (agency info, headline, description, logo)
 // Step 2: Location (location, service mode, insurances, accepting clients)
 // Step 3: Premium Features (ages, languages, diagnoses, specialties, video, contact form - all gated for Pro+)
 // Step 4: Go Live (preview and publish)
 export const ONBOARDING_STEPS: OnboardingStep[] = [
-  { id: "details", label: "Practice Details", path: "/dashboard/onboarding/details" },
+  { id: "welcome", label: "Welcome", path: "/dashboard/onboarding" },
+  { id: "details", label: "Company Details", path: "/dashboard/onboarding/details" },
   { id: "location", label: "Location", path: "/dashboard/onboarding/location" },
   { id: "enhanced", label: "Premium Features", path: "/dashboard/onboarding/enhanced" },
   { id: "review", label: "Go Live", path: "/dashboard/onboarding/review" },

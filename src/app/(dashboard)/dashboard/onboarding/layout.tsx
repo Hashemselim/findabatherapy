@@ -14,12 +14,6 @@ export default function OnboardingLayout({
 }) {
   const pathname = usePathname();
 
-  // Handle base /dashboard/onboarding path (redirects to /details)
-  // Don't render progress bar during redirect to avoid flash
-  if (pathname === "/dashboard/onboarding") {
-    return <>{children}</>;
-  }
-
   // Determine current step from pathname
   const currentStepIndex = ONBOARDING_STEPS.findIndex(
     (step) => step.path === pathname

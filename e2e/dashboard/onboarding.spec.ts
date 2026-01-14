@@ -34,7 +34,46 @@ test.describe("Dashboard - Onboarding Flow", () => {
     },
   });
 
-  test("DASH-002: Onboarding details page loads", async ({ page }) => {
+  test("DASH-002: Onboarding welcome page loads", async ({ page }) => {
+    await page.goto("/dashboard/onboarding");
+
+    const url = page.url();
+    if (url.includes("/auth/")) {
+      test.skip(true, "Authentication required - set TEST_USER_EMAIL and TEST_USER_PASSWORD");
+      return;
+    }
+
+    await expect(page.getByRole("main")).toBeVisible();
+  });
+
+  test("Onboarding welcome has both brand cards", async ({ page }) => {
+    await page.goto("/dashboard/onboarding");
+
+    const url = page.url();
+    if (url.includes("/auth/")) {
+      test.skip(true, "Authentication required");
+      return;
+    }
+
+    // Check for Find Clients and Find Staff sections
+    await expect(page.locator("text=/find clients/i").first()).toBeVisible();
+    await expect(page.locator("text=/find staff/i").first()).toBeVisible();
+  });
+
+  test("Onboarding welcome has Get Started button", async ({ page }) => {
+    await page.goto("/dashboard/onboarding");
+
+    const url = page.url();
+    if (url.includes("/auth/")) {
+      test.skip(true, "Authentication required");
+      return;
+    }
+
+    // Get Started button
+    await expect(page.getByRole("link", { name: /get started/i })).toBeVisible();
+  });
+
+  test("Onboarding details page loads", async ({ page }) => {
     await page.goto("/dashboard/onboarding/details");
 
     const url = page.url();
@@ -87,9 +126,9 @@ test.describe("Dashboard - Onboarding Flow", () => {
       return;
     }
 
-    // Services checkboxes
+    // Services checkboxes - look within main content area to avoid matching sidebar nav
     await expect(
-      page.locator("text=/aba therapy|occupational|speech|services/i").first()
+      page.getByRole("main").locator("text=/aba therapy|occupational|speech/i").first()
     ).toBeVisible();
   });
 
@@ -213,9 +252,9 @@ test.describe("Dashboard - Onboarding Flow", () => {
       return;
     }
 
-    // Plan cards (Free, Pro, Enterprise)
+    // Plan cards (Free, Pro, Enterprise) - look within main content area
     await expect(
-      page.locator("text=/free|pro|enterprise|plan/i").first()
+      page.getByRole("main").locator("text=/choose your plan/i").first()
     ).toBeVisible();
   });
 });

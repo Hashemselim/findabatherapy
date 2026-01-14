@@ -24,8 +24,8 @@ export default defineConfig({
     trace: "on-first-retry",
     /* Take screenshot on failure */
     screenshot: "only-on-failure",
-    /* Video on failure */
-    video: "on-first-retry",
+    /* Video recording - always record */
+    video: "on",
   },
 
   /* Configure projects for major browsers */
