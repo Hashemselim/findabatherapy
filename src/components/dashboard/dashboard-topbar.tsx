@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import NextImage from "next/image";
 import { usePathname } from "next/navigation";
 import {
   BarChart3,
@@ -139,11 +140,20 @@ function getPageTitle(pathname: string, isDemo: boolean): string {
   return "Dashboard";
 }
 
+export interface CompanyProfile {
+  name: string;
+  logoUrl?: string | null;
+  planTier: "free" | "pro" | "enterprise";
+  subscriptionStatus?: string | null;
+}
+
 interface DashboardTopbarProps {
   isOnboardingComplete: boolean;
   isDemo?: boolean;
   /** Provider's listing slug for "View Listing" link */
   providerSlug?: string | null;
+  /** Company profile to display in mobile header */
+  companyProfile?: CompanyProfile;
   /** Custom quick link sections for the mobile nav */
   customQuickLinkSections?: QuickLinkSection[];
   /** Custom mobile nav component for demo mode */
@@ -160,6 +170,7 @@ export function DashboardTopbar({
   isOnboardingComplete,
   isDemo = false,
   providerSlug,
+  companyProfile,
   customQuickLinkSections,
   mobileNavComponent,
   sheetTitle,
@@ -303,10 +314,37 @@ export function DashboardTopbar({
               </div>
             </SheetContent>
           </Sheet>
-          {/* Mobile page context - show current section */}
-          <span className="text-sm font-medium text-foreground">
-            {getPageTitle(pathname, isDemo)}
-          </span>
+          {/* Mobile header - show company logo or page title */}
+          {companyProfile ? (
+            <div className="flex min-w-0 items-center gap-2">
+              <div className="relative h-7 w-7 shrink-0 overflow-hidden rounded-lg border border-border/60">
+                {companyProfile.logoUrl ? (
+                  <NextImage
+                    src={companyProfile.logoUrl}
+                    alt={companyProfile.name}
+                    fill
+                    sizes="28px"
+                    className="object-cover"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center bg-[#5788FF]/10 text-[10px] font-bold text-[#5788FF]">
+                    {companyProfile.name
+                      .split(" ")
+                      .map((w) => w[0])
+                      .slice(0, 2)
+                      .join("")}
+                  </div>
+                )}
+              </div>
+              <span className="truncate text-sm font-medium text-foreground">
+                {companyProfile.name}
+              </span>
+            </div>
+          ) : (
+            <span className="text-sm font-medium text-foreground">
+              {getPageTitle(pathname, isDemo)}
+            </span>
+          )}
         </div>
         {rightContent ?? defaultRightContent}
       </div>

@@ -176,6 +176,12 @@ export default async function DashboardOverviewPage() {
         ]}
         links={[
           {
+            label: "View Profile",
+            href: `/employers/${listing.slug}`,
+            icon: Eye,
+            external: true,
+          },
+          {
             label: "Career Page",
             href: `/careers/${listing.slug}`,
             icon: Briefcase,

@@ -40,7 +40,12 @@ export function DashboardShell({
       {demoBanner}
       {/* Fixed header - mobile only (hidden on lg+) */}
       <div className="fixed left-0 right-0 top-0 z-40 lg:hidden">
-        <DashboardTopbar isOnboardingComplete={isOnboardingComplete} isDemo={isDemo} providerSlug={providerSlug} />
+        <DashboardTopbar
+          isOnboardingComplete={isOnboardingComplete}
+          isDemo={isDemo}
+          providerSlug={providerSlug}
+          companyProfile={companyProfile}
+        />
       </div>
 
       {/* Main layout with fixed sidebar */}

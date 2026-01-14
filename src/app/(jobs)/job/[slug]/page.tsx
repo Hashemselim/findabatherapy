@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import Image from "next/image";
 import { notFound } from "next/navigation";
 import {
   ArrowLeft,
@@ -187,7 +186,7 @@ export default async function JobPage({ params }: JobPageProps) {
                         </h1>
                         <div className="mt-2 flex flex-wrap items-center gap-2 text-muted-foreground">
                           <Link
-                            href={`/provider/${job.provider.slug}/careers`}
+                            href={`/employers/${job.provider.slug}`}
                             className="flex items-center gap-1 transition hover:text-emerald-600"
                           >
                             <Building2 className="h-4 w-4" />
@@ -253,7 +252,7 @@ export default async function JobPage({ params }: JobPageProps) {
                     />
                     <Button variant="outline" className="!h-14 !text-lg !font-semibold sm:!h-10 sm:!text-sm sm:!font-medium rounded-md" asChild>
                       <Link
-                        href={`/provider/${job.provider.slug}/careers`}
+                        href={`/employers/${job.provider.slug}`}
                         className="gap-2"
                       >
                         View Company
@@ -362,7 +361,7 @@ export default async function JobPage({ params }: JobPageProps) {
                     </div>
                   </div>
                   <Button variant="outline" className="w-full" asChild>
-                    <Link href={`/provider/${job.provider.slug}/careers`}>
+                    <Link href={`/employers/${job.provider.slug}`}>
                       View Company Profile
                     </Link>
                   </Button>
