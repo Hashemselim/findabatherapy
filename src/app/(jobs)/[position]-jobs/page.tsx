@@ -156,12 +156,29 @@ export async function generateMetadata({ params }: PositionJobsPageProps): Promi
 
   const seo = POSITION_SEO[positionValue];
 
+  // Build OG image URL with jobs brand
+  const ogImageUrl = `https://www.findabajobs.org/api/og?brand=jobs&title=${encodeURIComponent(seo.title)}&subtitle=${encodeURIComponent(seo.salaryRange)}`;
+
   return {
     title: `${seo.metaTitle} | Find ABA Jobs`,
     description: seo.description.slice(0, 160),
     openGraph: {
       title: `${seo.metaTitle} | Find ABA Jobs`,
       description: seo.description.slice(0, 160),
+      images: [
+        {
+          url: ogImageUrl,
+          width: 1200,
+          height: 630,
+          alt: seo.title,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${seo.metaTitle} | Find ABA Jobs`,
+      description: seo.description.slice(0, 160),
+      images: [ogImageUrl],
     },
     alternates: {
       canonical: `/${position}-jobs`,

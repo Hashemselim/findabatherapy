@@ -66,6 +66,9 @@ export async function generateMetadata({ params }: StatePageProps): Promise<Meta
   const title = `ABA Jobs in ${stateInfo.name}`;
   const description = `Find ABA therapy jobs in ${stateInfo.name}. Browse BCBA, RBT, and behavior analyst positions from top providers. Filter by city, position type, and employment type.`;
 
+  // Build OG image URL with jobs brand
+  const ogImageUrl = `${BASE_URL}/api/og?brand=jobs&location=${encodeURIComponent(stateInfo.name)}&subtitle=${encodeURIComponent("Find ABA therapy careers")}`;
+
   return {
     title,
     description,
@@ -75,7 +78,7 @@ export async function generateMetadata({ params }: StatePageProps): Promise<Meta
       url: `${BASE_URL}/jobs/${stateSlug}`,
       images: [
         {
-          url: `${BASE_URL}/api/og?location=${encodeURIComponent(stateInfo.name)}&subtitle=${encodeURIComponent("Find ABA therapy careers")}`,
+          url: ogImageUrl,
           width: 1200,
           height: 630,
           alt: `ABA Jobs in ${stateInfo.name}`,
@@ -86,9 +89,7 @@ export async function generateMetadata({ params }: StatePageProps): Promise<Meta
       card: "summary_large_image",
       title: `${title} | Find ABA Jobs`,
       description,
-      images: [
-        `${BASE_URL}/api/og?location=${encodeURIComponent(stateInfo.name)}&subtitle=${encodeURIComponent("Find ABA therapy careers")}`,
-      ],
+      images: [ogImageUrl],
     },
     alternates: {
       canonical: `/jobs/${stateSlug}`,

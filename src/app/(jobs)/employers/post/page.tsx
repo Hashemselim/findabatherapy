@@ -42,12 +42,23 @@ export const metadata: Metadata = {
       "Post job openings and connect with qualified BCBAs, RBTs, and behavior analysts. Start hiring today.",
     url: `${BASE_URL}/employers/post`,
     type: "website",
+    images: [
+      {
+        url: `${BASE_URL}/api/og?brand=jobs&title=${encodeURIComponent("Post ABA Jobs")}&subtitle=${encodeURIComponent("Hire BCBAs, RBTs & Behavior Analysts")}`,
+        width: 1200,
+        height: 630,
+        alt: "Post ABA Jobs",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "Post ABA Jobs - Hire BCBAs, RBTs & Behavior Analysts",
     description:
       "Post job openings and connect with qualified BCBAs, RBTs, and behavior analysts.",
+    images: [
+      `${BASE_URL}/api/og?brand=jobs&title=${encodeURIComponent("Post ABA Jobs")}&subtitle=${encodeURIComponent("Hire BCBAs, RBTs & Behavior Analysts")}`,
+    ],
   },
 };
 

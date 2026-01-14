@@ -30,12 +30,23 @@ export const metadata: Metadata = {
       "Search thousands of ABA therapy jobs from top providers nationwide. Find BCBA, RBT, and behavior technician positions near you.",
     url: BASE_URL,
     type: "website",
+    images: [
+      {
+        url: `${BASE_URL}/api/og?brand=jobs&title=${encodeURIComponent("Find ABA Jobs")}&subtitle=${encodeURIComponent("BCBA, RBT & Behavior Analyst Careers")}`,
+        width: 1200,
+        height: 630,
+        alt: "Find ABA Jobs",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "Find ABA Jobs - BCBA, RBT & Behavior Analyst Careers",
     description:
       "Search thousands of ABA therapy jobs from top providers nationwide. Find your perfect ABA career today.",
+    images: [
+      `${BASE_URL}/api/og?brand=jobs&title=${encodeURIComponent("Find ABA Jobs")}&subtitle=${encodeURIComponent("BCBA, RBT & Behavior Analyst Careers")}`,
+    ],
   },
 };
 

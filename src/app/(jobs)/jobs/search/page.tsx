@@ -77,12 +77,29 @@ export async function generateMetadata({ searchParams }: SearchPageProps): Promi
   // Add site name to title
   title = `${title} | ${jobsConfig.name}`;
 
+  // Build OG image URL for jobs brand
+  const ogImageUrl = `https://www.findabajobs.org/api/og?brand=jobs&title=${encodeURIComponent(title.replace(` | ${jobsConfig.name}`, ''))}&subtitle=${encodeURIComponent(description.slice(0, 80))}`;
+
   return {
     title,
     description,
     openGraph: {
       title,
       description,
+      images: [
+        {
+          url: ogImageUrl,
+          width: 1200,
+          height: 630,
+          alt: title,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [ogImageUrl],
     },
   };
 }

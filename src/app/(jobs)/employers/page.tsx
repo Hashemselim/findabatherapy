@@ -32,12 +32,23 @@ export const metadata: Metadata = {
       "Browse ABA therapy employers and providers hiring BCBA, RBT, and behavior analyst professionals. Find your next employer today.",
     url: `${BASE_URL}/employers`,
     type: "website",
+    images: [
+      {
+        url: `${BASE_URL}/api/og?brand=jobs&title=${encodeURIComponent("ABA Therapy Employers")}&subtitle=${encodeURIComponent("Browse Companies Hiring")}`,
+        width: 1200,
+        height: 630,
+        alt: "ABA Therapy Employers",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "ABA Therapy Employers - Browse Companies Hiring",
     description:
       "Browse ABA therapy employers and providers hiring BCBA, RBT, and behavior analyst professionals.",
+    images: [
+      `${BASE_URL}/api/og?brand=jobs&title=${encodeURIComponent("ABA Therapy Employers")}&subtitle=${encodeURIComponent("Browse Companies Hiring")}`,
+    ],
   },
 };
 
