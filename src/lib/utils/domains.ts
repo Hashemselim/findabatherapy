@@ -98,6 +98,28 @@ export function getBrandFromRequest(headers: {
 // =============================================================================
 
 /**
+ * CRITICAL: Validate that a URL is safe to use in production
+ * Throws an error if localhost is detected in production environment
+ */
+function validateProductionUrl(url: string, context: string): string {
+  const isProduction = process.env.NODE_ENV === "production";
+  const isLocalhost = url.includes("localhost") || url.includes("127.0.0.1");
+
+  if (isProduction && isLocalhost) {
+    console.error(
+      `CRITICAL ERROR: Localhost URL detected in production for ${context}! ` +
+        `URL: ${url}. This is likely a configuration error. ` +
+        `Ensure NEXT_PUBLIC_SITE_URL is set correctly in production environment.`
+    );
+    // In production, fall back to therapy production URL to prevent broken links
+    // This is a safety net - the real fix is setting NEXT_PUBLIC_SITE_URL correctly
+    return domains.therapy.production;
+  }
+
+  return url;
+}
+
+/**
  * Get the base URL for a brand
  */
 export function getBaseUrl(brand: Brand): string {
@@ -111,9 +133,48 @@ export function getBaseUrl(brand: Brand): string {
 /**
  * Get the current site URL based on environment
  * For server-side use when you need the request origin
+ *
+ * IMPORTANT: In production, this will NEVER return localhost.
+ * If NEXT_PUBLIC_SITE_URL is not set or contains localhost in production,
+ * it will fall back to the therapy production URL and log an error.
  */
 export function getSiteUrl(): string {
-  return process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+  const url = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+  return validateProductionUrl(url, "getSiteUrl()");
+}
+
+/**
+ * Get a validated origin URL, ensuring it's safe for production use.
+ * Use this for Stripe redirects and other external service callbacks.
+ *
+ * @param requestOrigin - The origin from the request headers (optional)
+ * @param brand - The brand to use for production fallback (defaults to therapy)
+ * @returns A validated URL that is safe to use in production
+ */
+export function getValidatedOrigin(requestOrigin?: string | null, brand: Brand = "therapy"): string {
+  const isProduction = process.env.NODE_ENV === "production";
+
+  // In production, prefer the brand's production URL
+  if (isProduction) {
+    // If we have a request origin, validate it
+    if (requestOrigin) {
+      const isLocalhost = requestOrigin.includes("localhost") || requestOrigin.includes("127.0.0.1");
+      if (!isLocalhost) {
+        return requestOrigin;
+      }
+      // Log error if request origin is localhost in production
+      console.error(
+        `CRITICAL ERROR: Localhost request origin detected in production! ` +
+          `Origin: ${requestOrigin}. Falling back to ${domains[brand].production}`
+      );
+    }
+
+    // Fall back to production URL for the brand
+    return domains[brand].production;
+  }
+
+  // In development, use request origin or env var or localhost
+  return requestOrigin || process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 }
 
 /**

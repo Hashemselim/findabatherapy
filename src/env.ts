@@ -2,12 +2,31 @@ import "server-only";
 
 import { z } from "zod";
 
+/**
+ * Custom validator that prevents localhost URLs in production
+ */
+const productionSafeUrl = z
+  .string()
+  .url()
+  .refine(
+    (url) => {
+      const isProduction = process.env.NODE_ENV === "production";
+      const isLocalhost = url.includes("localhost") || url.includes("127.0.0.1");
+      // In production, localhost URLs are not allowed
+      return !(isProduction && isLocalhost);
+    },
+    {
+      message:
+        "CRITICAL: NEXT_PUBLIC_SITE_URL cannot be localhost in production! " +
+        "Set it to your production domain (e.g., https://www.findabatherapy.org)",
+    }
+  );
+
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
-  NEXT_PUBLIC_SITE_URL: z
-    .string()
-    .url()
-    .default("http://localhost:3000"),
+  // In development, default to localhost. In production, this MUST be set explicitly
+  // and CANNOT be localhost (enforced by productionSafeUrl validator)
+  NEXT_PUBLIC_SITE_URL: productionSafeUrl.default("http://localhost:3000"),
   NEXT_PUBLIC_SUPABASE_URL: z.string().url(),
   NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1),
   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: z.string().min(1),

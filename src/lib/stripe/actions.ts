@@ -7,6 +7,7 @@ import { headers } from "next/headers";
 import { stripe } from "@/lib/stripe";
 import { createClient, createAdminClient, getUser } from "@/lib/supabase/server";
 import { CHECKOUT_URLS, BILLING_PORTAL_CONFIG, getPriceId, getFeaturedPriceId, type BillingInterval } from "./config";
+import { getValidatedOrigin } from "@/lib/utils/domains";
 
 type ActionResult<T = void> =
   | { success: true; data?: T }
@@ -205,7 +206,7 @@ export async function upgradeSubscription(
     }
 
     const headersList = await headers();
-    const origin = headersList.get("origin") || process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+    const origin = getValidatedOrigin(headersList.get("origin"));
 
     // Determine if this is switching to annual (always treat as upgrade - immediate with proration)
     // Note: treat null/undefined billing_interval as "month" (the default for existing users)
@@ -346,7 +347,7 @@ export async function createBillingPortalSession(): Promise<ActionResult<{ url: 
   }
 
   const headersList = await headers();
-  const origin = headersList.get("origin") || process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+  const origin = getValidatedOrigin(headersList.get("origin"));
   const returnUrl = `${origin}${BILLING_PORTAL_CONFIG.returnUrl}`;
 
   try {
@@ -777,7 +778,7 @@ export async function createFeaturedLocationCheckout(
   const priceId = getFeaturedPriceId(billingInterval);
 
   const headersList = await headers();
-  const origin = headersList.get("origin") || process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+  const origin = getValidatedOrigin(headersList.get("origin"));
 
   try {
     // Create or retrieve Stripe customer
