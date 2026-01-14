@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { ArrowRight, Loader2 } from "lucide-react";
+import Link from "next/link";
+import { ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -153,14 +154,14 @@ export default function OnboardingDetailsPage() {
   return (
     <div className="space-y-4 sm:space-y-6">
       {/* PostHog onboarding tracking */}
-      <OnboardingTracker step="details" stepNumber={1} totalSteps={4} />
+      <OnboardingTracker step="details" stepNumber={2} totalSteps={5} />
 
       <div>
         <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">
-          Tell us about your ABA practice
+          Tell us about your company
         </h1>
         <p className="mt-1 text-muted-foreground sm:mt-2">
-          This information will appear on your public listing. You can update it anytime.
+          This information powers both your provider listing and employer profile.
         </p>
       </div>
 
@@ -171,12 +172,12 @@ export default function OnboardingDetailsPage() {
           </div>
         )}
 
-        {/* Practice Info */}
+        {/* Company Info */}
         <Card className="border-border/60">
           <CardHeader>
-            <CardTitle>Practice Information</CardTitle>
+            <CardTitle>Company Information</CardTitle>
             <CardDescription>
-              Basic details about your ABA therapy practice
+              Basic details about your ABA therapy company
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -324,27 +325,41 @@ export default function OnboardingDetailsPage() {
           </CardContent>
         </Card>
 
-        {/* Submit */}
-        <div className="flex flex-col items-end gap-2">
-          {hasErrors && <FormErrorSummary errorCount={errorCount} />}
+        {/* Navigation */}
+        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
           <Button
-            type="submit"
+            type="button"
+            variant="ghost"
+            asChild
             disabled={isPending}
-            size="lg"
-            className="w-full rounded-full px-8 sm:w-auto"
+            className="w-full rounded-full sm:w-auto"
           >
-            {isPending ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Saving...
-              </>
-            ) : (
-              <>
-                Continue
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </>
-            )}
+            <Link href="/dashboard/onboarding">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back
+            </Link>
           </Button>
+          <div className="flex flex-col items-end gap-2">
+            {hasErrors && <FormErrorSummary errorCount={errorCount} />}
+            <Button
+              type="submit"
+              disabled={isPending}
+              size="lg"
+              className="w-full rounded-full px-8 sm:w-auto"
+            >
+              {isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  Continue
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </>
+              )}
+            </Button>
+          </div>
         </div>
       </form>
     </div>

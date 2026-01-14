@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { CheckCircle2, ArrowRight, ExternalLink, Sparkles } from "lucide-react";
+import { CheckCircle2, ArrowRight, ExternalLink, Sparkles, Briefcase } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -40,11 +40,11 @@ export default async function OnboardingSuccessPage() {
   const getSubtitle = () => {
     switch (planTier) {
       case "pro":
-        return "Your Pro listing is now discoverable by families searching for ABA providers.";
+        return "Families can now find you on Find ABA Therapy. Post jobs on Find ABA Jobs to grow your team.";
       case "enterprise":
-        return "Your Enterprise listing is live across all locations and featured on our homepage.";
+        return "Your Enterprise listing is live. You have unlimited job postings on Find ABA Jobs.";
       default:
-        return "Families can now find you on Find ABA Therapy.";
+        return "Families can now find you on Find ABA Therapy. You can also post jobs on Find ABA Jobs.";
     }
   };
 
@@ -53,7 +53,7 @@ export default async function OnboardingSuccessPage() {
       {/* Refresh profile to update sidebar (hide onboarding tab) */}
       <ProfileRefresher />
       {/* PostHog onboarding completion tracking */}
-      <OnboardingTracker step="success" stepNumber={4} totalSteps={4} isComplete />
+      <OnboardingTracker step="success" stepNumber={5} totalSteps={5} isComplete />
 
       {/* Success Icon */}
       <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-emerald-500/10">
@@ -119,6 +119,15 @@ export default async function OnboardingSuccessPage() {
             <CheckCircle2 className="h-4 w-4 mt-0.5 text-emerald-500 flex-shrink-0" />
             <span className="text-muted-foreground">
               Your listing is now indexed and searchable by families
+            </span>
+          </li>
+          <li className="flex items-start gap-3 text-sm">
+            <Briefcase className="h-4 w-4 mt-0.5 text-emerald-600 flex-shrink-0" />
+            <span className="text-muted-foreground">
+              <Link href="/dashboard/jobs" className="text-emerald-600 hover:underline font-medium">
+                Post your first job
+              </Link>{" "}
+              on Find ABA Jobs to start building your team
             </span>
           </li>
           <li className="flex items-start gap-3 text-sm">
