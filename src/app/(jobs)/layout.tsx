@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   },
   description: jobsConfig.description,
   metadataBase: new URL(BASE_URL),
-  keywords: jobsConfig.seo.keywords,
+  keywords: [...jobsConfig.seo.keywords],
   authors: [{ name: jobsConfig.name, url: BASE_URL }],
   creator: jobsConfig.name,
   publisher: jobsConfig.name,
