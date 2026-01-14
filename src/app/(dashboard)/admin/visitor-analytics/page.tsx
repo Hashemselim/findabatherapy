@@ -121,8 +121,9 @@ export default function VisitorAnalyticsPage() {
 
   // Load data on mount and when date range changes
   useEffect(() => {
-    const currentDateRange: AdminDateRange | undefined = dateRange
-      ? { start: dateRange.start, end: dateRange.end }
+    const currentDateRange = getDateRangeFromPreset(datePreset, customDateRange);
+    const adminRange: AdminDateRange | undefined = currentDateRange
+      ? { start: currentDateRange.start, end: currentDateRange.end }
       : undefined;
 
     startTransition(async () => {
@@ -132,10 +133,10 @@ export default function VisitorAnalyticsPage() {
         conversionResult,
         botAnalyticsResult,
       ] = await Promise.all([
-        getSearchAnalytics(currentDateRange),
-        getAnalyticsTimeSeries(currentDateRange),
-        getConversionMetrics(currentDateRange),
-        getBotAnalytics(currentDateRange),
+        getSearchAnalytics(adminRange),
+        getAnalyticsTimeSeries(adminRange),
+        getConversionMetrics(adminRange),
+        getBotAnalytics(adminRange),
       ]);
 
       if (searchResult.success && searchResult.data) {
@@ -156,7 +157,7 @@ export default function VisitorAnalyticsPage() {
         setIsInitialLoad(false);
       }
     });
-  }, [dateRange, isInitialLoad]);
+  }, [datePreset, customDateRange, isInitialLoad]);
 
   return (
     <div className="space-y-6">
