@@ -51,7 +51,11 @@ Key files:
 - `(jobs)` - Jobs site routes, uses emerald/green theme
 - `(site)` - Therapy site routes, uses purple/blue theme
 - `(dashboard)` - Unified dashboard for both brands
-- `(careers)` - Career pages
+- `(careers)` - Career pages (jobs brand, but separate layout)
+
+**IMPORTANT**: Each route group has its own `layout.tsx`. If a layout doesn't export metadata, it falls back to the ROOT layout (which is therapy-branded). When working on jobs-related features, check ALL relevant route groups:
+- `(jobs)/layout.tsx` - Main jobs pages
+- `(careers)/layout.tsx` - Employer career pages (also jobs brand!)
 
 ### Dynamic Icons
 Next.js supports `icon.tsx` and `apple-icon.tsx` in route groups for dynamic favicon generation per-brand.
