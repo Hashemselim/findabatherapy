@@ -2,13 +2,10 @@ import type { MetadataRoute } from "next";
 
 import { createClient } from "@/lib/supabase/server";
 import { STATE_NAMES } from "@/lib/data/cities";
-import { domains } from "@/lib/utils/domains";
+import { getBaseUrl } from "@/lib/utils/domains";
 
-// Use the jobs domain for sitemap URLs
-const BASE_URL =
-  process.env.NODE_ENV === "development"
-    ? process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
-    : domains.jobs.production;
+// Use the jobs domain for sitemap URLs (safe - never returns localhost in production)
+const BASE_URL = getBaseUrl("jobs");
 
 // Position types for category pages
 const POSITION_TYPES = [

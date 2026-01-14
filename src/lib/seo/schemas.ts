@@ -3,17 +3,14 @@
  * These create structured data for rich search results
  */
 
-import { domains, type Brand } from "@/lib/utils/domains";
+import { type Brand, getBaseUrl } from "@/lib/utils/domains";
 
 /**
  * Get the base URL for schemas based on brand
- * Uses environment variable in development, production URLs otherwise
+ * Uses the centralized getBaseUrl function which handles production safety
  */
 function getSchemaBaseUrl(brand: Brand = "therapy"): string {
-  if (process.env.NODE_ENV === "development") {
-    return process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
-  }
-  return domains[brand].production;
+  return getBaseUrl(brand);
 }
 
 // Default to therapy site for backward compatibility

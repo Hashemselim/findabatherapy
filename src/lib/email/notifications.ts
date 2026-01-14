@@ -12,6 +12,7 @@ import {
   getFormattedFromEmail,
   getSupportEmail,
   domains,
+  getSiteUrl as getSafeUrl,
 } from "@/lib/utils/domains";
 
 // Lazy initialization - only create client when needed
@@ -46,15 +47,24 @@ function getAdminEmail(brand: Brand = "therapy"): string {
   return getSupportEmail(brand);
 }
 
+/**
+ * Get the site URL for therapy-related emails.
+ * SAFE: Uses validated URL that never returns localhost in production.
+ */
 function getSiteUrl(): string {
-  return process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+  return getSafeUrl();
 }
 
+/**
+ * Get the site URL for jobs-related emails.
+ * SAFE: Always returns production jobs URL in production environment.
+ */
 function getJobsSiteUrl(): string {
-  if (process.env.NODE_ENV === "development") {
-    return process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+  if (process.env.NODE_ENV === "production") {
+    return domains.jobs.production;
   }
-  return domains.jobs.production;
+  // In development, use the therapy site URL (jobs routes are served from same app)
+  return getSafeUrl();
 }
 
 // Brand colors

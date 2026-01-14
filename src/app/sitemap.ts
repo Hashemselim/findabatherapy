@@ -4,13 +4,10 @@ import { createClient } from "@/lib/supabase/server";
 import { getAllCities, STATE_NAMES } from "@/lib/data/cities";
 import { INSURANCES } from "@/lib/data/insurances";
 import { ARTICLES } from "@/lib/content/articles";
-import { domains } from "@/lib/utils/domains";
+import { getBaseUrl } from "@/lib/utils/domains";
 
-// Use therapy domain for main sitemap
-const BASE_URL =
-  process.env.NODE_ENV === "development"
-    ? process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
-    : domains.therapy.production;
+// Use therapy domain for main sitemap (safe - never returns localhost in production)
+const BASE_URL = getBaseUrl("therapy");
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const supabase = await createClient();
