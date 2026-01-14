@@ -35,8 +35,12 @@ setup("authenticate", async ({ page }) => {
     await termsCheckbox.check();
   }
 
-  // Submit signup form
-  await page.getByRole("button", { name: /sign up|create account|get started/i }).click();
+  // Submit signup form - wait for Continue button to be enabled (after Turnstile verification)
+  const submitButton = page.getByRole("button", { name: "Continue", exact: true });
+  await submitButton.waitFor({ state: "visible" });
+  // Wait for button to be enabled (Turnstile token received)
+  await expect(submitButton).toBeEnabled({ timeout: 15000 });
+  await submitButton.click();
 
   // Wait for redirect to dashboard or onboarding
   await page.waitForURL(/\/dashboard/, { timeout: 15000 });

@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { LayoutDashboard, FileX, ChevronLeft, BarChart3, MessageSquare } from "lucide-react";
+import { LayoutDashboard, FileX, ChevronLeft, Users, Eye, MessageSquare } from "lucide-react";
 
 import { isCurrentUserAdmin } from "@/lib/actions/admin";
 
@@ -39,11 +39,18 @@ export default async function AdminLayout({
               Overview
             </Link>
             <Link
-              href="/admin/analytics"
+              href="/admin/customer-analytics"
               className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium hover:bg-muted"
             >
-              <BarChart3 className="h-4 w-4" />
-              Analytics
+              <Users className="h-4 w-4" />
+              Customer Analytics
+            </Link>
+            <Link
+              href="/admin/visitor-analytics"
+              className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium hover:bg-muted"
+            >
+              <Eye className="h-4 w-4" />
+              Visitor Analytics
             </Link>
             <Link
               href="/admin/removal-requests"
