@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { format } from "date-fns";
 import { CalendarIcon, Loader2 } from "lucide-react";
 
@@ -84,15 +84,19 @@ export function TaskFormDialog({
     task?.client_id || clientId || ""
   );
 
-  // Reset form when dialog opens with new data
-  const handleOpenChange = (newOpen: boolean) => {
-    if (newOpen) {
+  // Sync form state when task prop changes or dialog opens
+  useEffect(() => {
+    if (open) {
       setTitle(task?.title || "");
       setContent(task?.content || "");
       setStatus(task?.status || "pending");
       setDueDate(task?.due_date ? new Date(task.due_date) : undefined);
       setSelectedClientId(task?.client_id || clientId || "");
     }
+  }, [task, clientId, open]);
+
+  // Reset form when dialog opens with new data
+  const handleOpenChange = (newOpen: boolean) => {
     onOpenChange(newOpen);
   };
 
