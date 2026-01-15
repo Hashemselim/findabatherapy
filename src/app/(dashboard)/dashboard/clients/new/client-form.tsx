@@ -41,9 +41,13 @@ import type { PlaceDetails } from "@/hooks/use-places-autocomplete";
 import { cn } from "@/lib/utils";
 import {
   createClient,
+  updateClient,
   addClientParent,
+  updateClientParent,
   addClientLocation,
+  updateClientLocation,
   addClientInsurance,
+  updateClientInsurance,
 } from "@/lib/actions/clients";
 import {
   CLIENT_STATUS_OPTIONS,
@@ -85,8 +89,9 @@ const clientFormSchema = z.object({
   // Notes
   notes: z.string().optional(),
 
-  // Related entities (will be created separately)
+  // Related entities (will be created/updated separately)
   parents: z.array(z.object({
+    id: z.string().optional(), // For existing records
     first_name: z.string().optional(),
     last_name: z.string().optional(),
     relationship: z.string().optional(),
@@ -97,6 +102,7 @@ const clientFormSchema = z.object({
   })).optional(),
 
   locations: z.array(z.object({
+    id: z.string().optional(), // For existing records
     label: z.string().optional(),
     street_address: z.string().optional(),
     city: z.string().optional(),
@@ -110,6 +116,7 @@ const clientFormSchema = z.object({
   })).optional(),
 
   insurances: z.array(z.object({
+    id: z.string().optional(), // For existing records
     insurance_name: z.string().optional(),
     insurance_type: z.string().optional(),
     member_id: z.string().optional(),
@@ -123,9 +130,11 @@ type ClientFormValues = z.infer<typeof clientFormSchema>;
 interface ClientFormProps {
   defaultValues?: Partial<ClientFormValues>;
   inquiryId?: string;
+  clientId?: string; // For edit mode
+  isEditMode?: boolean;
 }
 
-export function ClientForm({ defaultValues, inquiryId }: ClientFormProps) {
+export function ClientForm({ defaultValues, inquiryId, clientId, isEditMode = false }: ClientFormProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -205,90 +214,205 @@ export function ClientForm({ defaultValues, inquiryId }: ClientFormProps) {
 
     startTransition(async () => {
       try {
-        // 1. Create the client
-        const clientResult = await createClient({
-          status: data.status as ClientStatus,
-          referral_source: data.referral_source,
-          funding_source: data.funding_source as FundingSource | undefined,
-          preferred_language: data.preferred_language,
-          child_first_name: data.child_first_name,
-          child_last_name: data.child_last_name,
-          child_date_of_birth: data.child_date_of_birth,
-          child_diagnosis: data.child_diagnosis,
-          child_primary_concerns: data.child_primary_concerns,
-          child_aba_history: data.child_aba_history,
-          child_school_name: data.child_school_name,
-          child_school_district: data.child_school_district,
-          child_grade_level: data.child_grade_level,
-          child_other_therapies: data.child_other_therapies,
-          child_pediatrician_name: data.child_pediatrician_name,
-          child_pediatrician_phone: data.child_pediatrician_phone,
-          notes: data.notes,
-          inquiry_id: inquiryId,
-        });
+        let targetClientId = clientId;
 
-        if (!clientResult.success) {
-          setError(clientResult.error || "Failed to create client");
-          return;
-        }
+        if (isEditMode && clientId) {
+          // UPDATE MODE: Update existing client
+          const updateResult = await updateClient(clientId, {
+            status: data.status as ClientStatus,
+            referral_source: data.referral_source,
+            funding_source: data.funding_source as FundingSource | undefined,
+            preferred_language: data.preferred_language,
+            child_first_name: data.child_first_name,
+            child_last_name: data.child_last_name,
+            child_date_of_birth: data.child_date_of_birth,
+            child_diagnosis: data.child_diagnosis,
+            child_primary_concerns: data.child_primary_concerns,
+            child_aba_history: data.child_aba_history,
+            child_school_name: data.child_school_name,
+            child_school_district: data.child_school_district,
+            child_grade_level: data.child_grade_level,
+            child_other_therapies: data.child_other_therapies,
+            child_pediatrician_name: data.child_pediatrician_name,
+            child_pediatrician_phone: data.child_pediatrician_phone,
+            notes: data.notes,
+          });
 
-        if (!clientResult.data) {
-          setError("Failed to create client");
-          return;
-        }
-
-        const clientId = clientResult.data.id;
-
-        // 2. Add parents
-        for (const parent of data.parents || []) {
-          if (parent.first_name || parent.last_name || parent.phone || parent.email) {
-            await addClientParent(clientId, {
-              first_name: parent.first_name,
-              last_name: parent.last_name,
-              relationship: parent.relationship as ParentRelationship | undefined,
-              phone: parent.phone,
-              email: parent.email,
-              notes: parent.notes,
-              is_primary: parent.is_primary,
-            });
+          if (!updateResult.success) {
+            setError(updateResult.error || "Failed to update client");
+            return;
           }
-        }
 
-        // 3. Add locations
-        for (const location of data.locations || []) {
-          if (location.street_address || location.city) {
-            await addClientLocation(clientId, {
-              label: location.label,
-              street_address: location.street_address,
-              city: location.city,
-              state: location.state,
-              postal_code: location.postal_code,
-              latitude: location.latitude,
-              longitude: location.longitude,
-              place_id: location.place_id,
-              notes: location.notes,
-              is_primary: location.is_primary,
-            });
+          // Update or add parents
+          for (const parent of data.parents || []) {
+            if (parent.first_name || parent.last_name || parent.phone || parent.email) {
+              if (parent.id) {
+                // Update existing parent
+                await updateClientParent(parent.id, {
+                  first_name: parent.first_name,
+                  last_name: parent.last_name,
+                  relationship: parent.relationship as ParentRelationship | undefined,
+                  phone: parent.phone,
+                  email: parent.email,
+                  notes: parent.notes,
+                  is_primary: parent.is_primary,
+                });
+              } else {
+                // Add new parent
+                await addClientParent(clientId, {
+                  first_name: parent.first_name,
+                  last_name: parent.last_name,
+                  relationship: parent.relationship as ParentRelationship | undefined,
+                  phone: parent.phone,
+                  email: parent.email,
+                  notes: parent.notes,
+                  is_primary: parent.is_primary,
+                });
+              }
+            }
           }
-        }
 
-        // 4. Add insurances
-        for (const insurance of data.insurances || []) {
-          if (insurance.insurance_name || insurance.member_id) {
-            await addClientInsurance(clientId, {
-              insurance_name: insurance.insurance_name,
-              insurance_type: insurance.insurance_type as InsuranceType | undefined,
-              member_id: insurance.member_id,
-              group_number: insurance.group_number,
-              is_primary: insurance.is_primary,
-            });
+          // Update or add locations
+          for (const location of data.locations || []) {
+            if (location.street_address || location.city) {
+              if (location.id) {
+                await updateClientLocation(location.id, {
+                  label: location.label,
+                  street_address: location.street_address,
+                  city: location.city,
+                  state: location.state,
+                  postal_code: location.postal_code,
+                  latitude: location.latitude,
+                  longitude: location.longitude,
+                  place_id: location.place_id,
+                  notes: location.notes,
+                  is_primary: location.is_primary,
+                });
+              } else {
+                await addClientLocation(clientId, {
+                  label: location.label,
+                  street_address: location.street_address,
+                  city: location.city,
+                  state: location.state,
+                  postal_code: location.postal_code,
+                  latitude: location.latitude,
+                  longitude: location.longitude,
+                  place_id: location.place_id,
+                  notes: location.notes,
+                  is_primary: location.is_primary,
+                });
+              }
+            }
+          }
+
+          // Update or add insurances
+          for (const insurance of data.insurances || []) {
+            if (insurance.insurance_name || insurance.member_id) {
+              if (insurance.id) {
+                await updateClientInsurance(insurance.id, {
+                  insurance_name: insurance.insurance_name,
+                  insurance_type: insurance.insurance_type as InsuranceType | undefined,
+                  member_id: insurance.member_id,
+                  group_number: insurance.group_number,
+                  is_primary: insurance.is_primary,
+                });
+              } else {
+                await addClientInsurance(clientId, {
+                  insurance_name: insurance.insurance_name,
+                  insurance_type: insurance.insurance_type as InsuranceType | undefined,
+                  member_id: insurance.member_id,
+                  group_number: insurance.group_number,
+                  is_primary: insurance.is_primary,
+                });
+              }
+            }
+          }
+        } else {
+          // CREATE MODE: Create new client
+          const clientResult = await createClient({
+            status: data.status as ClientStatus,
+            referral_source: data.referral_source,
+            funding_source: data.funding_source as FundingSource | undefined,
+            preferred_language: data.preferred_language,
+            child_first_name: data.child_first_name,
+            child_last_name: data.child_last_name,
+            child_date_of_birth: data.child_date_of_birth,
+            child_diagnosis: data.child_diagnosis,
+            child_primary_concerns: data.child_primary_concerns,
+            child_aba_history: data.child_aba_history,
+            child_school_name: data.child_school_name,
+            child_school_district: data.child_school_district,
+            child_grade_level: data.child_grade_level,
+            child_other_therapies: data.child_other_therapies,
+            child_pediatrician_name: data.child_pediatrician_name,
+            child_pediatrician_phone: data.child_pediatrician_phone,
+            notes: data.notes,
+            inquiry_id: inquiryId,
+          });
+
+          if (!clientResult.success) {
+            setError(clientResult.error || "Failed to create client");
+            return;
+          }
+
+          if (!clientResult.data) {
+            setError("Failed to create client");
+            return;
+          }
+
+          targetClientId = clientResult.data.id;
+
+          // Add parents
+          for (const parent of data.parents || []) {
+            if (parent.first_name || parent.last_name || parent.phone || parent.email) {
+              await addClientParent(targetClientId, {
+                first_name: parent.first_name,
+                last_name: parent.last_name,
+                relationship: parent.relationship as ParentRelationship | undefined,
+                phone: parent.phone,
+                email: parent.email,
+                notes: parent.notes,
+                is_primary: parent.is_primary,
+              });
+            }
+          }
+
+          // Add locations
+          for (const location of data.locations || []) {
+            if (location.street_address || location.city) {
+              await addClientLocation(targetClientId, {
+                label: location.label,
+                street_address: location.street_address,
+                city: location.city,
+                state: location.state,
+                postal_code: location.postal_code,
+                latitude: location.latitude,
+                longitude: location.longitude,
+                place_id: location.place_id,
+                notes: location.notes,
+                is_primary: location.is_primary,
+              });
+            }
+          }
+
+          // Add insurances
+          for (const insurance of data.insurances || []) {
+            if (insurance.insurance_name || insurance.member_id) {
+              await addClientInsurance(targetClientId, {
+                insurance_name: insurance.insurance_name,
+                insurance_type: insurance.insurance_type as InsuranceType | undefined,
+                member_id: insurance.member_id,
+                group_number: insurance.group_number,
+                is_primary: insurance.is_primary,
+              });
+            }
           }
         }
 
         // Redirect to client detail page
-        router.push(`/dashboard/clients/${clientId}`);
+        router.push(`/dashboard/clients/${targetClientId}`);
       } catch (err) {
-        console.error("Failed to create client:", err);
+        console.error("Failed to save client:", err);
         setError("An unexpected error occurred");
       }
     });
