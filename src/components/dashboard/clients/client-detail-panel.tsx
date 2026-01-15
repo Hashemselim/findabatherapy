@@ -11,6 +11,7 @@ import {
   Copy,
   Check,
   Shield,
+  Link2,
   FileText,
   CheckSquare,
   User,
@@ -562,7 +563,7 @@ export function ClientDetailPanel({
           </Collapsible>
         )}
 
-        {/* Documents */}
+        {/* Links */}
         {client.documents.length > 0 && (
           <Collapsible
             open={openSections.documents}
@@ -570,8 +571,8 @@ export function ClientDetailPanel({
           >
             <CollapsibleTrigger className="flex w-full items-center justify-between py-2">
               <div className="flex items-center gap-2 text-sm font-medium">
-                <FileText className="h-4 w-4" />
-                Documents ({client.documents.length})
+                <Link2 className="h-4 w-4" />
+                Links ({client.documents.length})
               </div>
               <span className="text-xs text-muted-foreground">
                 {openSections.documents ? "Hide" : "Show"}
@@ -583,7 +584,7 @@ export function ClientDetailPanel({
                   <div key={doc.id} className="rounded-lg border p-3">
                     <div className="flex items-start justify-between">
                       <div>
-                        <p className="font-medium">{doc.label || "Document"}</p>
+                        <p className="font-medium">{doc.label || "Link"}</p>
                         {doc.notes && (
                           <p className="text-sm text-muted-foreground mt-1">{doc.notes}</p>
                         )}

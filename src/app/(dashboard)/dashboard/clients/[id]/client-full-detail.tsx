@@ -6,6 +6,7 @@ import {
   Users,
   MapPin,
   Shield,
+  Link2,
   FileText,
   CheckSquare,
   ExternalLink,
@@ -22,6 +23,7 @@ import {
   Building2,
   CreditCard,
   Clock,
+  Loader2,
 } from "lucide-react";
 import { useState, useTransition } from "react";
 
@@ -52,6 +54,9 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import {
   calculateAge,
@@ -60,7 +65,6 @@ import {
   PARENT_RELATIONSHIP_OPTIONS,
   AUTH_STATUS_OPTIONS,
   INSURANCE_STATUS_OPTIONS,
-  DOCUMENT_TYPE_OPTIONS,
 } from "@/lib/validations/clients";
 import {
   completeClientTask,
@@ -70,6 +74,8 @@ import {
   deleteClientAuthorization,
   deleteClientLocation,
   deleteClientDocument,
+  addClientDocument,
+  updateClientDocument,
 } from "@/lib/actions/clients";
 import type { ClientDetail } from "@/lib/actions/clients";
 
@@ -159,6 +165,12 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
     label: string;
   } | null>(null);
 
+  // Link management state
+  const [isAddingLink, setIsAddingLink] = useState(false);
+  const [editingLinkId, setEditingLinkId] = useState<string | null>(null);
+  const [linkForm, setLinkForm] = useState({ label: "", url: "", notes: "" });
+  const [linkError, setLinkError] = useState<string | null>(null);
+
   const age = client.child_date_of_birth ? calculateAge(client.child_date_of_birth) : null;
   const childName = [client.child_first_name, client.child_last_name].filter(Boolean).join(" ");
   const pendingTasks = client.tasks?.filter((t) => t.status === "pending") || [];
@@ -206,6 +218,72 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
     startTransition(async () => {
       await completeClientTask(taskId);
     });
+  };
+
+  // Link handlers
+  const resetLinkForm = () => {
+    setLinkForm({ label: "", url: "", notes: "" });
+    setLinkError(null);
+    setIsAddingLink(false);
+    setEditingLinkId(null);
+  };
+
+  const startEditLink = (doc: { id?: string; label?: string | null; url?: string | null; notes?: string | null }) => {
+    setLinkForm({
+      label: doc.label || "",
+      url: doc.url || "",
+      notes: doc.notes || "",
+    });
+    setEditingLinkId(doc.id || null);
+    setIsAddingLink(false);
+    setLinkError(null);
+  };
+
+  const handleSaveLink = async () => {
+    setLinkError(null);
+
+    // Validate
+    if (!linkForm.label.trim()) {
+      setLinkError("Label is required");
+      return;
+    }
+    if (!linkForm.url.trim()) {
+      setLinkError("URL is required");
+      return;
+    }
+
+    // Basic URL validation
+    try {
+      new URL(linkForm.url);
+    } catch {
+      setLinkError("Please enter a valid URL");
+      return;
+    }
+
+    startTransition(async () => {
+      const data = {
+        label: linkForm.label.trim(),
+        url: linkForm.url.trim(),
+        notes: linkForm.notes.trim() || undefined,
+      };
+
+      let result;
+      if (editingLinkId) {
+        result = await updateClientDocument(editingLinkId, data);
+      } else {
+        result = await addClientDocument(client.id, data);
+      }
+
+      if (result.success) {
+        resetLinkForm();
+      } else {
+        setLinkError(result.error || "Failed to save link");
+      }
+    });
+  };
+
+  const handleCopyUrl = async (url: string) => {
+    await navigator.clipboard.writeText(url);
   };
 
   return (
@@ -828,86 +906,245 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
           </CardContent>
         </Card>
 
-        {/* SECTION 8: Documents */}
+        {/* SECTION 8: Links */}
         <Card>
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <FileText className="h-5 w-5 text-primary" />
-                <CardTitle className="text-lg">Documents</CardTitle>
+                <Link2 className="h-5 w-5 text-primary" />
+                <CardTitle className="text-lg">Links</CardTitle>
                 {client.documents && client.documents.length > 0 && (
                   <Badge variant="secondary" className="ml-2">{client.documents.length}</Badge>
                 )}
               </div>
-              <Button variant="ghost" size="sm" asChild>
-                <a href={`/dashboard/clients/${client.id}/edit#documents`}>
+              {!isAddingLink && !editingLinkId && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setIsAddingLink(true);
+                    setLinkForm({ label: "", url: "", notes: "" });
+                    setLinkError(null);
+                  }}
+                >
                   <Plus className="h-4 w-4 mr-1" />
                   Add
-                </a>
-              </Button>
+                </Button>
+              )}
             </div>
           </CardHeader>
           <CardContent>
+            {/* Add Link Form */}
+            {isAddingLink && (
+              <div className="mb-4 p-4 rounded-lg border bg-muted/30 space-y-3">
+                <div className="space-y-2">
+                  <Label htmlFor="link-label">Label *</Label>
+                  <Input
+                    id="link-label"
+                    placeholder="e.g., Assessment Report, Insurance Card"
+                    value={linkForm.label}
+                    onChange={(e) => setLinkForm({ ...linkForm, label: e.target.value })}
+                    disabled={isPending}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="link-url">URL *</Label>
+                  <Input
+                    id="link-url"
+                    placeholder="https://docs.google.com/..."
+                    value={linkForm.url}
+                    onChange={(e) => setLinkForm({ ...linkForm, url: e.target.value })}
+                    disabled={isPending}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="link-notes">Notes</Label>
+                  <Textarea
+                    id="link-notes"
+                    placeholder="Optional notes about this link..."
+                    value={linkForm.notes}
+                    onChange={(e) => setLinkForm({ ...linkForm, notes: e.target.value })}
+                    disabled={isPending}
+                    rows={2}
+                  />
+                </div>
+                {linkError && (
+                  <p className="text-sm text-destructive">{linkError}</p>
+                )}
+                <div className="flex items-center gap-2 pt-2">
+                  <Button
+                    size="sm"
+                    onClick={handleSaveLink}
+                    disabled={isPending}
+                  >
+                    {isPending ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      "Save Link"
+                    )}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={resetLinkForm}
+                    disabled={isPending}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Links List */}
             {client.documents && client.documents.length > 0 ? (
               <div className="space-y-2">
                 {client.documents.map((doc) => (
-                  <div
-                    key={doc.id}
-                    className="flex items-center justify-between p-3 rounded-lg border bg-muted/30 group"
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <FileText className="h-5 w-5 text-muted-foreground shrink-0" />
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="text-sm font-medium truncate">{doc.label || "Document"}</p>
-                          {doc.label && <CopyButton value={doc.label} label="document name" />}
-                        </div>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          {doc.document_type && (
-                            <Badge variant="outline" className="text-xs">
-                              {DOCUMENT_TYPE_OPTIONS.find((t) => t.value === doc.document_type)?.label || doc.document_type}
-                            </Badge>
+                  editingLinkId === doc.id ? (
+                    /* Edit Form */
+                    <div key={doc.id} className="p-4 rounded-lg border bg-muted/30 space-y-3">
+                      <div className="space-y-2">
+                        <Label htmlFor={`edit-label-${doc.id}`}>Label *</Label>
+                        <Input
+                          id={`edit-label-${doc.id}`}
+                          placeholder="e.g., Assessment Report"
+                          value={linkForm.label}
+                          onChange={(e) => setLinkForm({ ...linkForm, label: e.target.value })}
+                          disabled={isPending}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor={`edit-url-${doc.id}`}>URL *</Label>
+                        <Input
+                          id={`edit-url-${doc.id}`}
+                          placeholder="https://..."
+                          value={linkForm.url}
+                          onChange={(e) => setLinkForm({ ...linkForm, url: e.target.value })}
+                          disabled={isPending}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor={`edit-notes-${doc.id}`}>Notes</Label>
+                        <Textarea
+                          id={`edit-notes-${doc.id}`}
+                          placeholder="Optional notes..."
+                          value={linkForm.notes}
+                          onChange={(e) => setLinkForm({ ...linkForm, notes: e.target.value })}
+                          disabled={isPending}
+                          rows={2}
+                        />
+                      </div>
+                      {linkError && (
+                        <p className="text-sm text-destructive">{linkError}</p>
+                      )}
+                      <div className="flex items-center gap-2 pt-2">
+                        <Button
+                          size="sm"
+                          onClick={handleSaveLink}
+                          disabled={isPending}
+                        >
+                          {isPending ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                              Saving...
+                            </>
+                          ) : (
+                            "Save"
                           )}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={resetLinkForm}
+                          disabled={isPending}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    /* Display Mode */
+                    <div
+                      key={doc.id}
+                      className="p-3 rounded-lg border bg-muted/30 group"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-start gap-3 min-w-0 flex-1">
+                          <Link2 className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm font-medium truncate">{doc.label || "Link"}</p>
+                              {doc.label && <CopyButton value={doc.label} label="link name" />}
+                            </div>
+                            {doc.url && (
+                              <div className="flex items-center gap-1 mt-1">
+                                <p className="text-xs text-muted-foreground truncate max-w-[250px]">
+                                  {doc.url}
+                                </p>
+                                <CopyButton value={doc.url} label="URL" />
+                              </div>
+                            )}
+                            {doc.notes && (
+                              <p className="text-xs text-muted-foreground mt-2 whitespace-pre-wrap">
+                                {doc.notes}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          {doc.url && (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
+                                    <a href={doc.url} target="_blank" rel="noopener noreferrer">
+                                      <ExternalLink className="h-4 w-4" />
+                                    </a>
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Open link</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          )}
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => startEditLink(doc)}>
+                                <Pencil className="h-4 w-4 mr-2" />
+                                Edit
+                              </DropdownMenuItem>
+                              {doc.url && (
+                                <DropdownMenuItem onClick={() => handleCopyUrl(doc.url!)}>
+                                  <Copy className="h-4 w-4 mr-2" />
+                                  Copy URL
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                className="text-destructive"
+                                onClick={() => handleDelete("document", doc.id!, doc.label || "Link")}
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-1">
-                      {doc.url && (
-                        <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
-                          <a href={doc.url} target="_blank" rel="noopener noreferrer">
-                            <ExternalLink className="h-4 w-4" />
-                          </a>
-                        </Button>
-                      )}
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem asChild>
-                            <a href={`/dashboard/clients/${client.id}/edit#documents`}>
-                              <Pencil className="h-4 w-4 mr-2" />
-                              Edit
-                            </a>
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            className="text-destructive"
-                            onClick={() => handleDelete("document", doc.id!, doc.label || "Document")}
-                          >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </div>
+                  )
                 ))}
               </div>
             ) : (
-              <EmptyState message="No documents uploaded yet" />
+              !isAddingLink && <EmptyState message="No links added yet" />
             )}
           </CardContent>
         </Card>
