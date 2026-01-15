@@ -15,6 +15,7 @@ import {
   Check,
   ArrowLeft,
   FileEdit,
+  UserPlus,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -49,7 +50,9 @@ interface InboxMessageDetailProps {
   inquiry: Inquiry | null;
   onMarkAsReplied?: (inquiryId: string) => Promise<void>;
   onArchive?: (inquiryId: string) => Promise<void>;
+  onConvertToClient?: (inquiryId: string) => Promise<void>;
   isLoading?: boolean;
+  isConverting?: boolean;
   /** If true, actions show a demo toast instead of performing real actions */
   isDemo?: boolean;
   onDemoAction?: () => void;
@@ -68,7 +71,9 @@ export function InboxMessageDetail({
   inquiry,
   onMarkAsReplied,
   onArchive,
+  onConvertToClient,
   isLoading = false,
+  isConverting = false,
   isDemo = false,
   onDemoAction,
   onBack,
@@ -125,6 +130,16 @@ export function InboxMessageDetail({
     }
   };
 
+  const handleConvertToClient = async () => {
+    if (isDemo && onDemoAction) {
+      onDemoAction();
+      return;
+    }
+    if (inquiry && onConvertToClient) {
+      await onConvertToClient(inquiry.id);
+    }
+  };
+
   if (!inquiry) {
     return (
       <Card className="flex min-h-0 flex-1 items-center justify-center border-border/60">
@@ -173,10 +188,13 @@ export function InboxMessageDetail({
                   ? "default"
                   : inquiry.status === "replied"
                     ? "secondary"
-                    : "outline"
+                    : inquiry.status === "converted"
+                      ? "secondary"
+                      : "outline"
               }
+              className={inquiry.status === "converted" ? "bg-green-500/10 text-green-600 hover:bg-green-500/20" : ""}
             >
-              {inquiry.status}
+              {inquiry.status === "converted" ? "Converted to Client" : inquiry.status}
             </Badge>
           </div>
         </div>
@@ -281,6 +299,22 @@ export function InboxMessageDetail({
                 <Reply className="mr-2 h-4 w-4" />
               )}
               Mark as Replied
+            </Button>
+          )}
+
+          {onConvertToClient && inquiry.status !== "converted" && (
+            <Button
+              variant="outline"
+              onClick={handleConvertToClient}
+              disabled={isConverting}
+              className="text-[#5788FF] hover:bg-[#5788FF]/10 hover:text-[#5788FF]"
+            >
+              {isConverting ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <UserPlus className="mr-2 h-4 w-4" />
+              )}
+              Convert to Client
             </Button>
           )}
 

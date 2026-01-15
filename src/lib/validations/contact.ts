@@ -38,6 +38,7 @@ export const INQUIRY_STATUS = {
   read: "read",
   replied: "replied",
   archived: "archived",
+  converted: "converted",
 } as const;
 
 export type InquiryStatus = (typeof INQUIRY_STATUS)[keyof typeof INQUIRY_STATUS];
