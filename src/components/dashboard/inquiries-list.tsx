@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 import {
   InboxFilters,
@@ -15,7 +16,9 @@ import {
   markInquiryAsReplied,
   archiveInquiry,
 } from "@/lib/actions/inquiries";
+import { convertInquiryToClient } from "@/lib/actions/clients";
 import type { InquiryStatus } from "@/lib/validations/contact";
+import { toast } from "sonner";
 
 interface InquiriesListProps {
   initialInquiries: Inquiry[];
@@ -28,12 +31,14 @@ export function InquiriesList({
   initialUnreadCount,
   locations,
 }: InquiriesListProps) {
+  const router = useRouter();
   const [inquiries, setInquiries] = useState<Inquiry[]>(initialInquiries);
   const [unreadCount, setUnreadCount] = useState(initialUnreadCount);
   const [selectedInquiry, setSelectedInquiry] = useState<Inquiry | null>(
     initialInquiries[0] || null
   );
   const [isLoading, setIsLoading] = useState(false);
+  const [isConverting, setIsConverting] = useState(false);
   const [filter, setFilter] = useState<InboxFilter>("all");
   const [selectedLocationIds, setSelectedLocationIds] = useState<string[]>(
     locations.map((l) => l.id)
@@ -115,6 +120,19 @@ export function InquiriesList({
     setIsLoading(false);
   };
 
+  const handleConvertToClient = async (inquiryId: string) => {
+    setIsConverting(true);
+    const result = await convertInquiryToClient(inquiryId);
+    if (result.success && result.data) {
+      toast.success("Opening client form with inquiry data...");
+      // Navigate to new client form with inquiry ID as query param
+      router.push(`/dashboard/clients/new?inquiry=${inquiryId}`);
+    } else if (!result.success) {
+      toast.error(result.error || "Failed to convert inquiry");
+      setIsConverting(false);
+    }
+  };
+
   const handleBackToList = () => {
     setMobileShowDetail(false);
   };
@@ -150,7 +168,9 @@ export function InquiriesList({
             inquiry={selectedInquiry}
             onMarkAsReplied={handleMarkAsReplied}
             onArchive={handleArchive}
+            onConvertToClient={handleConvertToClient}
             isLoading={isLoading}
+            isConverting={isConverting}
             onBack={handleBackToList}
             showBackButton
           />
@@ -185,7 +205,9 @@ export function InquiriesList({
               inquiry={selectedInquiry}
               onMarkAsReplied={handleMarkAsReplied}
               onArchive={handleArchive}
+              onConvertToClient={handleConvertToClient}
               isLoading={isLoading}
+              isConverting={isConverting}
             />
           </div>
         </div>
