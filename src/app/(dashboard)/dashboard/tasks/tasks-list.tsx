@@ -6,11 +6,14 @@ import { format, formatDistanceToNow, isPast, isToday } from "date-fns";
 import {
   CheckCircle2,
   Circle,
+  CircleDot,
   Calendar,
   User,
   MoreHorizontal,
   Trash2,
   Loader2,
+  Pencil,
+  Plus,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -21,6 +24,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -34,14 +38,18 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
-import { completeClientTask, deleteClientTask } from "@/lib/actions/clients";
+import { TASK_STATUS_OPTIONS } from "@/lib/validations/clients";
+import { updateClientTask, deleteClientTask } from "@/lib/actions/clients";
+import { TaskFormDialog, type TaskFormData } from "@/components/dashboard/tasks";
+
+type TaskStatus = "pending" | "in_progress" | "completed";
 
 interface TaskWithClient {
   id: string;
   client_id: string | null;
   title: string;
   content?: string | null;
-  status: "pending" | "completed";
+  status: TaskStatus;
   due_date?: string | null;
   reminder_at?: string | null;
   created_at: string;
@@ -49,36 +57,47 @@ interface TaskWithClient {
   client_name?: string;
 }
 
-interface TasksListProps {
-  initialTasks: TaskWithClient[];
+interface ClientOption {
+  id: string;
+  name: string;
 }
 
-export function TasksList({ initialTasks }: TasksListProps) {
+interface TasksListProps {
+  initialTasks: TaskWithClient[];
+  clients?: ClientOption[];
+}
+
+export function TasksList({ initialTasks, clients = [] }: TasksListProps) {
   const [tasks, setTasks] = useState(initialTasks);
-  const [filter, setFilter] = useState<"all" | "pending" | "completed">("all");
+  const [filter, setFilter] = useState<"all" | "active" | "completed">("all");
   const [isPending, startTransition] = useTransition();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [taskToDelete, setTaskToDelete] = useState<TaskWithClient | null>(null);
+  const [editingTask, setEditingTask] = useState<TaskWithClient | null>(null);
+  const [formDialogOpen, setFormDialogOpen] = useState(false);
 
   const filteredTasks = tasks.filter((task) => {
-    if (filter === "pending") return task.status === "pending";
+    if (filter === "active") return task.status !== "completed";
     if (filter === "completed") return task.status === "completed";
     return true;
   });
 
-  const pendingCount = tasks.filter((t) => t.status === "pending").length;
+  const activeCount = tasks.filter((t) => t.status !== "completed").length;
   const completedCount = tasks.filter((t) => t.status === "completed").length;
 
-  const handleToggleComplete = (task: TaskWithClient) => {
-    if (task.status === "completed") return;
-
+  const handleStatusChange = (task: TaskWithClient, newStatus: TaskStatus) => {
     startTransition(async () => {
-      const result = await completeClientTask(task.id);
+      const result = await updateClientTask(task.id, { status: newStatus });
       if (result.success) {
         setTasks((prev) =>
           prev.map((t) =>
             t.id === task.id
-              ? { ...t, status: "completed" as const, completed_at: new Date().toISOString() }
+              ? {
+                  ...t,
+                  status: newStatus,
+                  completed_at:
+                    newStatus === "completed" ? new Date().toISOString() : null,
+                }
               : t
           )
         );
@@ -104,8 +123,59 @@ export function TasksList({ initialTasks }: TasksListProps) {
     });
   };
 
-  const getDueDateBadge = (dueDate: string | null | undefined) => {
+  const handleEdit = (task: TaskWithClient) => {
+    setEditingTask(task);
+    setFormDialogOpen(true);
+  };
+
+  const handleAddNew = () => {
+    setEditingTask(null);
+    setFormDialogOpen(true);
+  };
+
+  const handleFormSuccess = (savedTask: TaskFormData) => {
+    if (editingTask) {
+      // Update existing task
+      setTasks((prev) =>
+        prev.map((t) =>
+          t.id === savedTask.id
+            ? {
+                ...t,
+                title: savedTask.title,
+                content: savedTask.content,
+                status: savedTask.status,
+                due_date: savedTask.due_date || null,
+                completed_at:
+                  savedTask.status === "completed" && t.status !== "completed"
+                    ? new Date().toISOString()
+                    : t.completed_at,
+              }
+            : t
+        )
+      );
+    } else {
+      // Add new task
+      setTasks((prev) => [
+        {
+          id: savedTask.id!,
+          client_id: savedTask.client_id || null,
+          title: savedTask.title,
+          content: savedTask.content,
+          status: savedTask.status,
+          due_date: savedTask.due_date || null,
+          reminder_at: null,
+          created_at: new Date().toISOString(),
+          completed_at: null,
+          client_name: savedTask.client_name,
+        },
+        ...prev,
+      ]);
+    }
+  };
+
+  const getDueDateBadge = (dueDate: string | null | undefined, status: TaskStatus) => {
     if (!dueDate) return null;
+    if (status === "completed") return null;
 
     const date = new Date(dueDate);
     const isOverdue = isPast(date) && !isToday(date);
@@ -129,35 +199,70 @@ export function TasksList({ initialTasks }: TasksListProps) {
     );
   };
 
+  const getStatusIcon = (status: TaskStatus) => {
+    switch (status) {
+      case "completed":
+        return <CheckCircle2 className="h-5 w-5 text-green-500" />;
+      case "in_progress":
+        return <CircleDot className="h-5 w-5 text-blue-500" />;
+      default:
+        return <Circle className="h-5 w-5 text-muted-foreground" />;
+    }
+  };
+
+  const getStatusBadge = (status: TaskStatus) => {
+    const option = TASK_STATUS_OPTIONS.find((o) => o.value === status);
+    if (!option) return null;
+
+    return (
+      <Badge
+        variant="secondary"
+        className={cn(
+          "text-xs",
+          status === "pending" && "bg-gray-100 text-gray-700",
+          status === "in_progress" && "bg-blue-100 text-blue-700",
+          status === "completed" && "bg-green-100 text-green-700"
+        )}
+      >
+        {option.label}
+      </Badge>
+    );
+  };
+
   return (
     <div className="flex flex-col gap-4">
-      {/* Filters */}
-      <Tabs value={filter} onValueChange={(v) => setFilter(v as typeof filter)}>
-        <TabsList>
-          <TabsTrigger value="all">
-            All ({tasks.length})
-          </TabsTrigger>
-          <TabsTrigger value="pending">
-            Pending ({pendingCount})
-          </TabsTrigger>
-          <TabsTrigger value="completed">
-            Completed ({completedCount})
-          </TabsTrigger>
-        </TabsList>
-      </Tabs>
+      {/* Header with Add Button and Filters */}
+      <div className="flex items-center justify-between gap-4">
+        <Tabs value={filter} onValueChange={(v) => setFilter(v as typeof filter)}>
+          <TabsList>
+            <TabsTrigger value="all">All ({tasks.length})</TabsTrigger>
+            <TabsTrigger value="active">Active ({activeCount})</TabsTrigger>
+            <TabsTrigger value="completed">Done ({completedCount})</TabsTrigger>
+          </TabsList>
+        </Tabs>
+
+        <Button onClick={handleAddNew} size="sm">
+          <Plus className="h-4 w-4 mr-1" />
+          Add Task
+        </Button>
+      </div>
 
       {/* Task List */}
       {filteredTasks.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
-            <CheckCircle2 className="mx-auto h-12 w-12 text-muted-foreground" />
+            <CheckCircle2 className="mx-auto h-12 w-12 text-muted-foreground/40" />
             <p className="mt-4 text-muted-foreground">
-              {filter === "pending"
-                ? "No pending tasks"
+              {filter === "active"
+                ? "No active tasks"
                 : filter === "completed"
                   ? "No completed tasks"
                   : "No tasks yet"}
             </p>
+            <Button onClick={handleAddNew} variant="outline" className="mt-4">
+              <Plus className="h-4 w-4 mr-1" />
+              Create your first task
+            </Button>
           </CardContent>
         </Card>
       ) : (
@@ -166,24 +271,42 @@ export function TasksList({ initialTasks }: TasksListProps) {
             <Card key={task.id} className="border-border/60">
               <CardContent className="p-4">
                 <div className="flex items-start gap-3">
-                  {/* Checkbox */}
-                  <button
-                    type="button"
-                    onClick={() => handleToggleComplete(task)}
-                    disabled={isPending || task.status === "completed"}
-                    className={cn(
-                      "mt-0.5 shrink-0 transition-colors",
-                      task.status === "completed"
-                        ? "text-green-500"
-                        : "text-muted-foreground hover:text-primary"
-                    )}
-                  >
-                    {task.status === "completed" ? (
-                      <CheckCircle2 className="h-5 w-5" />
-                    ) : (
-                      <Circle className="h-5 w-5" />
-                    )}
-                  </button>
+                  {/* Status Icon - Clickable */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        type="button"
+                        disabled={isPending}
+                        className="mt-0.5 shrink-0 transition-colors hover:opacity-80"
+                      >
+                        {getStatusIcon(task.status)}
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start">
+                      {TASK_STATUS_OPTIONS.map((option) => (
+                        <DropdownMenuItem
+                          key={option.value}
+                          onClick={() =>
+                            handleStatusChange(task, option.value as TaskStatus)
+                          }
+                          className={cn(
+                            task.status === option.value && "bg-muted"
+                          )}
+                        >
+                          {option.value === "pending" && (
+                            <Circle className="mr-2 h-4 w-4 text-muted-foreground" />
+                          )}
+                          {option.value === "in_progress" && (
+                            <CircleDot className="mr-2 h-4 w-4 text-blue-500" />
+                          )}
+                          {option.value === "completed" && (
+                            <CheckCircle2 className="mr-2 h-4 w-4 text-green-500" />
+                          )}
+                          {option.label}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
 
                   {/* Content */}
                   <div className="min-w-0 flex-1">
@@ -192,7 +315,8 @@ export function TasksList({ initialTasks }: TasksListProps) {
                         <p
                           className={cn(
                             "font-medium",
-                            task.status === "completed" && "text-muted-foreground line-through"
+                            task.status === "completed" &&
+                              "text-muted-foreground line-through"
                           )}
                         >
                           {task.title}
@@ -206,11 +330,20 @@ export function TasksList({ initialTasks }: TasksListProps) {
 
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 shrink-0"
+                          >
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleEdit(task)}>
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
                           <DropdownMenuItem
                             onClick={() => handleDelete(task)}
                             className="text-destructive focus:text-destructive"
@@ -224,11 +357,15 @@ export function TasksList({ initialTasks }: TasksListProps) {
 
                     {/* Meta info */}
                     <div className="mt-2 flex flex-wrap items-center gap-2">
-                      {getDueDateBadge(task.due_date)}
+                      {getStatusBadge(task.status)}
+                      {getDueDateBadge(task.due_date, task.status)}
 
                       {task.client_name && task.client_id && (
                         <Link href={`/dashboard/clients/${task.client_id}`}>
-                          <Badge variant="secondary" className="gap-1 hover:bg-secondary/80">
+                          <Badge
+                            variant="secondary"
+                            className="gap-1 hover:bg-secondary/80"
+                          >
                             <User className="h-3 w-3" />
                             {task.client_name}
                           </Badge>
@@ -237,7 +374,10 @@ export function TasksList({ initialTasks }: TasksListProps) {
 
                       {task.status === "completed" && task.completed_at && (
                         <span className="text-xs text-muted-foreground">
-                          Completed {formatDistanceToNow(new Date(task.completed_at), { addSuffix: true })}
+                          Completed{" "}
+                          {formatDistanceToNow(new Date(task.completed_at), {
+                            addSuffix: true,
+                          })}
                         </span>
                       )}
                     </div>
@@ -249,13 +389,36 @@ export function TasksList({ initialTasks }: TasksListProps) {
         </div>
       )}
 
+      {/* Task Form Dialog */}
+      <TaskFormDialog
+        open={formDialogOpen}
+        onOpenChange={setFormDialogOpen}
+        task={
+          editingTask
+            ? {
+                id: editingTask.id,
+                title: editingTask.title,
+                content: editingTask.content || "",
+                status: editingTask.status,
+                due_date: editingTask.due_date || "",
+                client_id: editingTask.client_id,
+                client_name: editingTask.client_name,
+              }
+            : null
+        }
+        clients={clients}
+        showClientSelector={!editingTask}
+        onSuccess={handleFormSuccess}
+      />
+
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Task</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete &ldquo;{taskToDelete?.title}&rdquo;? This action cannot be undone.
+              Are you sure you want to delete &ldquo;{taskToDelete?.title}
+              &rdquo;? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

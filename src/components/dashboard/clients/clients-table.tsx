@@ -1,7 +1,7 @@
 "use client";
 
 import { formatDistanceToNow } from "date-fns";
-import { MoreHorizontal, Eye, Pencil, Trash2 } from "lucide-react";
+import { MoreHorizontal, Eye, Pencil, Trash2, ListTodo } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -25,6 +25,7 @@ interface ClientsTableProps {
   onSelect: (client: ClientListItem) => void;
   onEdit?: (clientId: string) => void;
   onDelete?: (clientId: string) => void;
+  onAddTask?: (clientId: string, clientName: string) => void;
 }
 
 export function ClientsTable({
@@ -33,6 +34,7 @@ export function ClientsTable({
   onSelect,
   onEdit,
   onDelete,
+  onAddTask,
 }: ClientsTableProps) {
   if (clients.length === 0) {
     return (
@@ -173,6 +175,22 @@ export function ClientsTable({
                           <DropdownMenuItem onClick={() => onEdit(client.id)}>
                             <Pencil className="mr-2 h-4 w-4" />
                             Edit
+                          </DropdownMenuItem>
+                        )}
+                        {onAddTask && (
+                          <DropdownMenuItem
+                            onClick={() =>
+                              onAddTask(
+                                client.id,
+                                getClientDisplayName({
+                                  child_first_name: client.child_first_name || undefined,
+                                  child_last_name: client.child_last_name || undefined,
+                                })
+                              )
+                            }
+                          >
+                            <ListTodo className="mr-2 h-4 w-4" />
+                            Add Task
                           </DropdownMenuItem>
                         )}
                         {onDelete && (

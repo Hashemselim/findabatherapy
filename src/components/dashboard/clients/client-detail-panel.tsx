@@ -5,9 +5,6 @@ import {
   ArrowLeft,
   ExternalLink,
   MapPin,
-  Calendar,
-  Phone,
-  Mail,
   Copy,
   Check,
   Shield,
@@ -15,6 +12,7 @@ import {
   FileText,
   CheckSquare,
   User,
+  Plus,
 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
@@ -39,12 +37,12 @@ import {
   getClientDisplayName,
   getDaysUntilAuthExpires,
   getAuthDaysColor,
-  CLIENT_STATUS_OPTIONS,
   PARENT_RELATIONSHIP_OPTIONS,
   AUTH_STATUS_OPTIONS,
   INSURANCE_STATUS_OPTIONS,
 } from "@/lib/validations/clients";
 import type { ClientDetail as ClientDetailType } from "@/lib/actions/clients";
+import { TaskFormDialog } from "@/components/dashboard/tasks";
 
 import { ClientStatusBadge } from "./client-status-badge";
 import { ClientQuickActions } from "./client-quick-actions";
@@ -125,6 +123,7 @@ export function ClientDetailPanel({
     documents: false,
     tasks: false,
   });
+  const [taskDialogOpen, setTaskDialogOpen] = useState(false);
 
   const toggleSection = (section: string) => {
     setOpenSections((prev) => ({ ...prev, [section]: !prev[section] }));
@@ -528,21 +527,29 @@ export function ClientDetailPanel({
         )}
 
         {/* Tasks */}
-        {client.tasks.length > 0 && (
-          <Collapsible open={openSections.tasks} onOpenChange={() => toggleSection("tasks")}>
-            <CollapsibleTrigger className="flex w-full items-center justify-between py-2">
-              <div className="flex items-center gap-2 text-sm font-medium">
-                <CheckSquare className="h-4 w-4" />
-                Tasks ({client.tasks.filter((t) => t.status === "pending").length} pending)
-              </div>
-              <span className="text-xs text-muted-foreground">
+        <Collapsible open={openSections.tasks} onOpenChange={() => toggleSection("tasks")}>
+          <div className="flex items-center justify-between py-2">
+            <CollapsibleTrigger className="flex items-center gap-2 text-sm font-medium flex-1">
+              <CheckSquare className="h-4 w-4" />
+              Tasks ({client.tasks.filter((t) => t.status !== "completed").length} active)
+              <span className="text-xs text-muted-foreground ml-auto mr-2">
                 {openSections.tasks ? "Hide" : "Show"}
               </span>
             </CollapsibleTrigger>
-            <CollapsibleContent>
-              <div className="space-y-2 mt-2">
-                {client.tasks
-                  .filter((t) => t.status === "pending")
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 px-2"
+              onClick={() => setTaskDialogOpen(true)}
+            >
+              <Plus className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+          <CollapsibleContent>
+            <div className="space-y-2 mt-2">
+              {client.tasks.filter((t) => t.status !== "completed").length > 0 ? (
+                client.tasks
+                  .filter((t) => t.status !== "completed")
                   .map((task) => (
                     <div key={task.id} className="rounded-lg border p-3">
                       <div className="flex items-start gap-2">
@@ -557,11 +564,15 @@ export function ClientDetailPanel({
                         </div>
                       </div>
                     </div>
-                  ))}
-              </div>
-            </CollapsibleContent>
-          </Collapsible>
-        )}
+                  ))
+              ) : (
+                <p className="text-sm text-muted-foreground text-center py-2">
+                  No active tasks
+                </p>
+              )}
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
 
         {/* Links */}
         {client.documents.length > 0 && (
@@ -624,6 +635,14 @@ export function ClientDetailPanel({
           </div>
         </div>
       </CardContent>
+
+      {/* Task form dialog */}
+      <TaskFormDialog
+        open={taskDialogOpen}
+        onOpenChange={setTaskDialogOpen}
+        clientId={client.id}
+        clientName={displayName}
+      />
     </Card>
   );
 }

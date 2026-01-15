@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { getUser } from "@/lib/supabase/server";
-import { getTasks } from "@/lib/actions/clients";
+import { getTasks, getClientsList } from "@/lib/actions/clients";
 
 import { TasksList } from "./tasks-list";
 
@@ -16,8 +16,13 @@ export default async function TasksPage() {
     redirect("/auth/sign-in");
   }
 
-  const result = await getTasks();
-  const tasks = result.success ? result.data?.tasks || [] : [];
+  const [tasksResult, clientsResult] = await Promise.all([
+    getTasks(),
+    getClientsList(),
+  ]);
+
+  const tasks = tasksResult.success ? tasksResult.data?.tasks || [] : [];
+  const clients = clientsResult.success ? clientsResult.data || [] : [];
 
   return (
     <div className="flex h-full flex-col p-4 md:p-6">
@@ -28,7 +33,7 @@ export default async function TasksPage() {
         </p>
       </div>
 
-      <TasksList initialTasks={tasks} />
+      <TasksList initialTasks={tasks} clients={clients} />
     </div>
   );
 }

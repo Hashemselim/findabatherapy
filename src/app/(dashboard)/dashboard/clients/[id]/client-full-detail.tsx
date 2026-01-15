@@ -1,6 +1,6 @@
 "use client";
 
-import { formatDistanceToNow, format } from "date-fns";
+import { format } from "date-fns";
 import {
   User,
   Users,
@@ -67,7 +67,7 @@ import {
   INSURANCE_STATUS_OPTIONS,
 } from "@/lib/validations/clients";
 import {
-  completeClientTask,
+  updateClientTask,
   deleteClientTask,
   deleteClientParent,
   deleteClientInsurance,
@@ -78,9 +78,10 @@ import {
   updateClientDocument,
 } from "@/lib/actions/clients";
 import type { ClientDetail } from "@/lib/actions/clients";
+import { TASK_STATUS_OPTIONS, type ClientTask } from "@/lib/validations/clients";
 
 import { ClientStatusBadge } from "@/components/dashboard/clients/client-status-badge";
-import { ClientQuickActions } from "@/components/dashboard/clients/client-quick-actions";
+import { TaskFormDialog } from "@/components/dashboard/tasks";
 
 interface ClientFullDetailProps {
   client: ClientDetail;
@@ -156,6 +157,8 @@ function EmptyState({ message }: { message: string }) {
   );
 }
 
+type TaskStatus = "pending" | "in_progress" | "completed";
+
 export function ClientFullDetail({ client }: ClientFullDetailProps) {
   const [isPending, startTransition] = useTransition();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -164,6 +167,8 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
     id: string;
     label: string;
   } | null>(null);
+  const [taskDialogOpen, setTaskDialogOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState<(ClientTask & { id: string }) | null>(null);
 
   // Link management state
   const [isAddingLink, setIsAddingLink] = useState(false);
@@ -172,8 +177,8 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
   const [linkError, setLinkError] = useState<string | null>(null);
 
   const age = client.child_date_of_birth ? calculateAge(client.child_date_of_birth) : null;
-  const childName = [client.child_first_name, client.child_last_name].filter(Boolean).join(" ");
-  const pendingTasks = client.tasks?.filter((t) => t.status === "pending") || [];
+  const childName = [client.child_first_name, client.child_last_name].filter(Boolean).join(" ") || "Client";
+  const activeTasks = client.tasks?.filter((t) => t.status !== "completed") || [];
   const completedTasks = client.tasks?.filter((t) => t.status === "completed") || [];
 
   const handleDelete = (
@@ -214,10 +219,20 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
     });
   };
 
-  const handleCompleteTask = async (taskId: string) => {
+  const handleTaskStatusChange = async (taskId: string, newStatus: TaskStatus) => {
     startTransition(async () => {
-      await completeClientTask(taskId);
+      await updateClientTask(taskId, { status: newStatus });
     });
+  };
+
+  const handleEditTask = (task: ClientTask & { id: string }) => {
+    setEditingTask(task);
+    setTaskDialogOpen(true);
+  };
+
+  const handleAddTask = () => {
+    setEditingTask(null);
+    setTaskDialogOpen(true);
   };
 
   // Link handlers
@@ -803,79 +818,133 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
               <div className="flex items-center gap-2">
                 <CheckSquare className="h-5 w-5 text-primary" />
                 <CardTitle className="text-lg">Tasks</CardTitle>
-                {pendingTasks.length > 0 && (
-                  <Badge variant="secondary" className="ml-2">{pendingTasks.length} pending</Badge>
+                {activeTasks.length > 0 && (
+                  <Badge variant="secondary" className="ml-2">{activeTasks.length} active</Badge>
                 )}
               </div>
-              <Button variant="ghost" size="sm" asChild>
-                <a href={`/dashboard/clients/${client.id}/edit#tasks`}>
-                  <Plus className="h-4 w-4 mr-1" />
-                  Add
-                </a>
+              <Button variant="ghost" size="sm" onClick={handleAddTask}>
+                <Plus className="h-4 w-4 mr-1" />
+                Add
               </Button>
             </div>
           </CardHeader>
           <CardContent>
             {client.tasks && client.tasks.length > 0 ? (
               <div className="space-y-2">
-                {/* Pending Tasks */}
-                {pendingTasks.map((task) => (
-                  <div
-                    key={task.id}
-                    className="flex items-start gap-3 p-3 rounded-lg border bg-muted/30 group"
-                  >
-                    <Checkbox
-                      checked={task.status === "completed"}
-                      onCheckedChange={() => handleCompleteTask(task.id)}
-                      disabled={isPending}
-                      className="mt-0.5"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-medium">{task.title}</p>
-                        <CopyButton value={task.title} label="task" />
-                      </div>
-                      {task.content && (
-                        <p className="text-xs text-muted-foreground mt-0.5">{task.content}</p>
-                      )}
-                      {task.due_date && (
-                        <div className="flex items-center gap-1 mt-1">
-                          <Clock className="h-3 w-3 text-muted-foreground" />
-                          <span className="text-xs text-muted-foreground">
-                            Due {format(new Date(task.due_date), "MMM d, yyyy")}
-                          </span>
+                {/* Active Tasks (To Do + In Progress) */}
+                {activeTasks.map((task) => {
+                  const statusOption = TASK_STATUS_OPTIONS.find((o) => o.value === task.status);
+                  return (
+                    <div
+                      key={task.id}
+                      className="flex items-start gap-3 p-3 rounded-lg border bg-muted/30 group"
+                    >
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button
+                            type="button"
+                            disabled={isPending}
+                            className="mt-0.5 shrink-0 transition-colors hover:opacity-80"
+                          >
+                            <Checkbox
+                              checked={task.status === "completed"}
+                              className={cn(
+                                task.status === "in_progress" && "border-blue-500 data-[state=checked]:bg-blue-500"
+                              )}
+                            />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start">
+                          {TASK_STATUS_OPTIONS.map((option) => (
+                            <DropdownMenuItem
+                              key={option.value}
+                              onClick={() => handleTaskStatusChange(task.id, option.value as TaskStatus)}
+                              className={cn(task.status === option.value && "bg-muted")}
+                            >
+                              {option.label}
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-medium">{task.title}</p>
+                          <Badge
+                            variant="secondary"
+                            className={cn(
+                              "text-xs",
+                              task.status === "pending" && "bg-gray-100 text-gray-700",
+                              task.status === "in_progress" && "bg-blue-100 text-blue-700"
+                            )}
+                          >
+                            {statusOption?.label}
+                          </Badge>
+                          <CopyButton value={task.title} label="task" />
                         </div>
-                      )}
+                        {task.content && (
+                          <p className="text-xs text-muted-foreground mt-0.5">{task.content}</p>
+                        )}
+                        {task.due_date && (
+                          <div className="flex items-center gap-1 mt-1">
+                            <Clock className="h-3 w-3 text-muted-foreground" />
+                            <span className="text-xs text-muted-foreground">
+                              Due {format(new Date(task.due_date), "MMM d, yyyy")}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleEditTask(task)}>
+                            <Pencil className="h-4 w-4 mr-2" />
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            className="text-destructive"
+                            onClick={() => handleDelete("task", task.id, task.title)}
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          className="text-destructive"
-                          onClick={() => handleDelete("task", task.id, task.title)}
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                ))}
+                  );
+                })}
 
                 {/* Completed Tasks */}
                 {completedTasks.length > 0 && (
                   <div className="mt-4 pt-4 border-t">
-                    <p className="text-xs text-muted-foreground mb-2">Completed ({completedTasks.length})</p>
+                    <p className="text-xs text-muted-foreground mb-2">Done ({completedTasks.length})</p>
                     {completedTasks.map((task) => (
                       <div
                         key={task.id}
                         className="flex items-start gap-3 p-3 rounded-lg border bg-muted/20 opacity-60 group"
                       >
-                        <Checkbox checked disabled className="mt-0.5" />
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button type="button" disabled={isPending} className="mt-0.5 shrink-0">
+                              <Checkbox checked className="data-[state=checked]:bg-green-500 border-green-500" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="start">
+                            {TASK_STATUS_OPTIONS.map((option) => (
+                              <DropdownMenuItem
+                                key={option.value}
+                                onClick={() => handleTaskStatusChange(task.id, option.value as TaskStatus)}
+                                className={cn(task.status === option.value && "bg-muted")}
+                              >
+                                {option.label}
+                              </DropdownMenuItem>
+                            ))}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm line-through">{task.title}</p>
                         </div>
@@ -886,6 +955,11 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleEditTask(task)}>
+                              <Pencil className="h-4 w-4 mr-2" />
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
                             <DropdownMenuItem
                               className="text-destructive"
                               onClick={() => handleDelete("task", task.id, task.title)}
@@ -1171,6 +1245,27 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Task Form Dialog */}
+      <TaskFormDialog
+        open={taskDialogOpen}
+        onOpenChange={setTaskDialogOpen}
+        task={
+          editingTask
+            ? {
+                id: editingTask.id,
+                title: editingTask.title,
+                content: editingTask.content || "",
+                status: editingTask.status as "pending" | "in_progress" | "completed",
+                due_date: editingTask.due_date || "",
+                client_id: client.id,
+                client_name: childName,
+              }
+            : null
+        }
+        clientId={client.id}
+        clientName={childName}
+      />
     </>
   );
 }

@@ -21,6 +21,7 @@ import {
   getClientById,
   deleteClient as deleteClientAction,
 } from "@/lib/actions/clients";
+import { TaskFormDialog } from "@/components/dashboard/tasks";
 
 import { ClientsFilters, type ClientFilterValue } from "./clients-filters";
 import { ClientsTable } from "./clients-table";
@@ -45,7 +46,9 @@ export function ClientsList({ initialClients, initialCounts }: ClientsListProps)
   const [mobileShowDetail, setMobileShowDetail] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [clientToDelete, setClientToDelete] = useState<string | null>(null);
-  const [isLoadingDetail, setIsLoadingDetail] = useState(false);
+  const [taskDialogOpen, setTaskDialogOpen] = useState(false);
+  const [taskClientId, setTaskClientId] = useState<string | null>(null);
+  const [taskClientName, setTaskClientName] = useState<string>("");
 
   // Filter clients
   let filteredClients = clients;
@@ -78,13 +81,11 @@ export function ClientsList({ initialClients, initialCounts }: ClientsListProps)
   const handleSelectClient = async (client: ClientListItem) => {
     setSelectedClientId(client.id);
     setMobileShowDetail(true);
-    setIsLoadingDetail(true);
 
     const result = await getClientById(client.id);
     if (result.success && result.data) {
       setSelectedClient(result.data);
     }
-    setIsLoadingDetail(false);
   };
 
   // Handle edit
@@ -132,6 +133,13 @@ export function ClientsList({ initialClients, initialCounts }: ClientsListProps)
     setMobileShowDetail(false);
   };
 
+  // Handle add task
+  const handleAddTask = (clientId: string, clientName: string) => {
+    setTaskClientId(clientId);
+    setTaskClientName(clientName);
+    setTaskDialogOpen(true);
+  };
+
   return (
     <>
       {/* Mobile layout */}
@@ -166,6 +174,7 @@ export function ClientsList({ initialClients, initialCounts }: ClientsListProps)
             onSelect={handleSelectClient}
             onEdit={handleEdit}
             onDelete={handleDelete}
+            onAddTask={handleAddTask}
           />
         ) : (
           <ClientDetailPanel
@@ -208,6 +217,7 @@ export function ClientsList({ initialClients, initialCounts }: ClientsListProps)
               onSelect={handleSelectClient}
               onEdit={handleEdit}
               onDelete={handleDelete}
+              onAddTask={handleAddTask}
             />
           </div>
 
@@ -239,6 +249,14 @@ export function ClientsList({ initialClients, initialCounts }: ClientsListProps)
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Task form dialog */}
+      <TaskFormDialog
+        open={taskDialogOpen}
+        onOpenChange={setTaskDialogOpen}
+        clientId={taskClientId}
+        clientName={taskClientName}
+      />
     </>
   );
 }

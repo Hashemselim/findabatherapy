@@ -207,6 +207,38 @@ export async function getClients(
 }
 
 /**
+ * Get a simple list of client names for dropdowns/selectors
+ */
+export async function getClientsList(): Promise<ActionResult<{ id: string; name: string }[]>> {
+  const user = await getUser();
+  if (!user) {
+    return { success: false, error: "Not authenticated" };
+  }
+
+  const supabase = await createSupabaseClient();
+
+  const { data: clients, error } = await supabase
+    .from("clients")
+    .select("id, child_first_name, child_last_name")
+    .eq("profile_id", user.id)
+    .is("deleted_at", null)
+    .order("child_first_name", { ascending: true });
+
+  if (error) {
+    console.error("[CLIENTS] Failed to fetch clients list:", error);
+    return { success: false, error: "Failed to fetch clients" };
+  }
+
+  return {
+    success: true,
+    data: (clients || []).map((c) => ({
+      id: c.id,
+      name: [c.child_first_name, c.child_last_name].filter(Boolean).join(" ") || "Unnamed Client",
+    })),
+  };
+}
+
+/**
  * Get a single client with all related data
  */
 export async function getClientById(

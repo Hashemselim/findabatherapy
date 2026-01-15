@@ -78,8 +78,9 @@ export const DOCUMENT_TYPE_OPTIONS = [
 ] as const;
 
 export const TASK_STATUS_OPTIONS = [
-  { value: "pending", label: "Pending" },
-  { value: "completed", label: "Completed" },
+  { value: "pending", label: "To Do", color: "gray" },
+  { value: "in_progress", label: "In Progress", color: "blue" },
+  { value: "completed", label: "Done", color: "green" },
 ] as const;
 
 export const CONTACT_TYPE_OPTIONS = [
@@ -236,7 +237,7 @@ export const documentTypeSchema = z.enum([
   "other",
 ]);
 
-export const taskStatusSchema = z.enum(["pending", "completed"]);
+export const taskStatusSchema = z.enum(["pending", "in_progress", "completed"]);
 
 export const contactTypeSchema = z.enum(["phone", "email", "fax", "address"]);
 
