@@ -321,9 +321,76 @@ export const createJobPostingSchema = z.object({
 );
 
 /**
- * Schema for updating a job posting
+ * Base job posting schema without refinements (for .partial() compatibility)
  */
-export const updateJobPostingSchema = createJobPostingSchema.partial();
+const baseJobPostingSchema = z.object({
+  title: z
+    .string()
+    .min(5, "Job title must be at least 5 characters")
+    .max(100, "Job title must be less than 100 characters"),
+
+  positionType: z.enum(
+    POSITION_TYPES.map((p) => p.value) as [string, ...string[]],
+    { message: "Please select a position type" }
+  ),
+
+  employmentTypes: z
+    .array(z.enum(EMPLOYMENT_TYPES.map((e) => e.value) as [string, ...string[]]))
+    .min(1, "Please select at least one employment type"),
+
+  locationId: z.string().uuid().optional().nullable(),
+
+  customCity: z.string().max(100, "City must be less than 100 characters").optional().nullable(),
+  customState: z.string().length(2, "State must be a 2-letter code").optional().nullable(),
+
+  serviceStates: z.array(z.string()).optional().nullable(),
+
+  remoteOption: z.boolean().default(false),
+
+  showSalary: z.boolean().default(false),
+
+  salaryType: z.enum(SALARY_TYPES.map((s) => s.value) as [string, ...string[]]).optional().nullable(),
+
+  salaryMin: z.number().int().min(0).optional().nullable(),
+
+  salaryMax: z.number().int().min(0).optional().nullable(),
+
+  description: z
+    .string()
+    .min(50, "Description must be at least 50 characters")
+    .max(10000, "Description must be less than 10,000 characters"),
+
+  requirements: z.string().max(5000, "Requirements must be less than 5,000 characters").optional().nullable(),
+
+  benefits: z
+    .array(z.enum(BENEFITS_OPTIONS.map((b) => b.value) as [string, ...string[]]))
+    .optional()
+    .default([]),
+
+  therapySettings: z
+    .array(z.enum(JOB_THERAPY_SETTINGS.map((s) => s.value) as [string, ...string[]]))
+    .optional()
+    .default([]),
+
+  scheduleTypes: z
+    .array(z.enum(JOB_SCHEDULE_TYPES.map((s) => s.value) as [string, ...string[]]))
+    .optional()
+    .default([]),
+
+  ageGroups: z
+    .array(z.enum(JOB_AGE_GROUPS.map((a) => a.value) as [string, ...string[]]))
+    .optional()
+    .default([]),
+
+  status: z.enum(["draft", "published"]).default("draft"),
+
+  expiresAt: z.string().datetime().optional().nullable(),
+});
+
+/**
+ * Schema for updating a job posting (partial, no refinements)
+ */
+export const updateJobPostingSchema = baseJobPostingSchema.partial();
 
 /**
  * Schema for updating job status
