@@ -15,6 +15,13 @@ import {
   MoreHorizontal,
   Pencil,
   Trash2,
+  Phone,
+  Mail,
+  Calendar,
+  ClipboardList,
+  Building2,
+  CreditCard,
+  Clock,
 } from "lucide-react";
 import { useState, useTransition } from "react";
 
@@ -44,12 +51,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import {
   calculateAge,
   getDaysUntilAuthExpires,
   getAuthDaysColor,
-  CLIENT_STATUS_OPTIONS,
   PARENT_RELATIONSHIP_OPTIONS,
   AUTH_STATUS_OPTIONS,
   INSURANCE_STATUS_OPTIONS,
@@ -73,6 +80,7 @@ interface ClientFullDetailProps {
   client: ClientDetail;
 }
 
+// Copy button component
 function CopyButton({ value, label }: { value: string; label: string }) {
   const [copied, setCopied] = useState(false);
 
@@ -89,13 +97,13 @@ function CopyButton({ value, label }: { value: string; label: string }) {
           <Button
             variant="ghost"
             size="icon"
-            className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+            className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
             onClick={handleCopy}
           >
             {copied ? (
-              <Check className="h-3.5 w-3.5 text-green-500" />
+              <Check className="h-3 w-3 text-green-500" />
             ) : (
-              <Copy className="h-3.5 w-3.5" />
+              <Copy className="h-3 w-3 text-muted-foreground" />
             )}
           </Button>
         </TooltipTrigger>
@@ -107,25 +115,38 @@ function CopyButton({ value, label }: { value: string; label: string }) {
   );
 }
 
-function DetailRow({
+// Field component - always copyable
+function Field({
   label,
   value,
-  copyable = false,
+  icon: Icon,
+  className,
 }: {
   label: string;
   value: string | null | undefined;
-  copyable?: boolean;
+  icon?: React.ComponentType<{ className?: string }>;
+  className?: string;
 }) {
   if (!value) return null;
 
   return (
-    <div className="group flex items-start justify-between gap-4 py-2 border-b last:border-b-0">
-      <span className="text-sm text-muted-foreground shrink-0">{label}</span>
-      <div className="flex items-center gap-1">
-        <span className="text-sm text-right font-medium">{value}</span>
-        {copyable && <CopyButton value={value} label={label.toLowerCase()} />}
+    <div className={cn("group flex items-start gap-3 py-2", className)}>
+      {Icon && <Icon className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />}
+      <div className="flex-1 min-w-0">
+        <p className="text-xs text-muted-foreground mb-0.5">{label}</p>
+        <div className="flex items-center gap-1">
+          <p className="text-sm font-medium truncate">{value}</p>
+          <CopyButton value={value} label={label.toLowerCase()} />
+        </div>
       </div>
     </div>
+  );
+}
+
+// Empty state placeholder
+function EmptyState({ message }: { message: string }) {
+  return (
+    <p className="text-sm text-muted-foreground py-4 text-center">{message}</p>
   );
 }
 
@@ -139,6 +160,9 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
   } | null>(null);
 
   const age = client.child_date_of_birth ? calculateAge(client.child_date_of_birth) : null;
+  const childName = [client.child_first_name, client.child_last_name].filter(Boolean).join(" ");
+  const pendingTasks = client.tasks?.filter((t) => t.status === "pending") || [];
+  const completedTasks = client.tasks?.filter((t) => t.status === "completed") || [];
 
   const handleDelete = (
     type: "parent" | "insurance" | "authorization" | "location" | "document" | "task",
@@ -173,7 +197,6 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
           await deleteClientTask(deleteTarget.id);
           break;
       }
-      // Page will revalidate automatically
       setDeleteDialogOpen(false);
       setDeleteTarget(null);
     });
@@ -187,731 +210,723 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
 
   return (
     <>
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Left Column */}
-        <div className="space-y-6">
-          {/* Status Card */}
-          <Card>
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-lg">Status & Overview</CardTitle>
-                <ClientStatusBadge status={client.status} />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-0">
-                <DetailRow label="Referral Source" value={client.referral_source} />
-                <DetailRow
-                  label="Referral Date"
-                  value={client.referral_date ? format(new Date(client.referral_date), "MMMM d, yyyy") : null}
-                />
-                <DetailRow
-                  label="Service Start"
-                  value={client.service_start_date ? format(new Date(client.service_start_date), "MMMM d, yyyy") : null}
-                />
-                <DetailRow label="Funding Source" value={client.funding_source} />
-                <DetailRow label="Preferred Language" value={client.preferred_language} />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Child Information */}
-          <Card>
-            <CardHeader className="pb-3">
+      <div className="space-y-6">
+        {/* SECTION 1: Child Information - Most Important */}
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <User className="h-5 w-5" />
+                <User className="h-5 w-5 text-primary" />
                 <CardTitle className="text-lg">Child Information</CardTitle>
               </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-0">
-                <DetailRow
-                  label="Name"
-                  value={[client.child_first_name, client.child_last_name].filter(Boolean).join(" ") || null}
-                  copyable
-                />
-                <DetailRow
-                  label="Date of Birth"
-                  value={client.child_date_of_birth ? format(new Date(client.child_date_of_birth), "MMMM d, yyyy") : null}
-                />
-                <DetailRow label="Age" value={age !== null ? `${age} years` : null} />
-                {client.child_diagnosis && client.child_diagnosis.length > 0 && (
-                  <div className="py-2 border-b">
-                    <p className="text-sm text-muted-foreground mb-2">Diagnosis</p>
-                    <div className="flex flex-wrap gap-1">
-                      {client.child_diagnosis.map((d, i) => (
-                        <Badge key={i} variant="secondary" className="text-xs">
-                          {d}
-                        </Badge>
-                      ))}
+              <Button variant="ghost" size="sm" asChild>
+                <a href={`/dashboard/clients/${client.id}/edit#child`}>
+                  <Pencil className="h-4 w-4 mr-1" />
+                  Edit
+                </a>
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <Field label="First Name" value={client.child_first_name} />
+              <Field label="Last Name" value={client.child_last_name} />
+              <Field
+                label="Date of Birth"
+                value={client.child_date_of_birth ? format(new Date(client.child_date_of_birth), "MMM d, yyyy") : null}
+                icon={Calendar}
+              />
+              <Field label="Age" value={age !== null ? `${age} years old` : null} />
+              <Field label="School Name" value={client.child_school_name} icon={Building2} />
+              <Field label="School District" value={client.child_school_district} />
+              <Field label="Grade Level" value={client.child_grade_level} />
+              <Field label="Preferred Language" value={client.preferred_language} />
+              <Field label="Pediatrician" value={client.child_pediatrician_name} />
+              <Field label="Pediatrician Phone" value={client.child_pediatrician_phone} icon={Phone} />
+            </div>
+
+            {/* Diagnosis - Full Width */}
+            {client.child_diagnosis && client.child_diagnosis.length > 0 && (
+              <div className="mt-4 pt-4 border-t">
+                <p className="text-xs text-muted-foreground mb-2">Diagnosis</p>
+                <div className="flex flex-wrap gap-2">
+                  {client.child_diagnosis.map((d, i) => (
+                    <div key={i} className="group flex items-center gap-1">
+                      <Badge variant="secondary">{d}</Badge>
+                      <CopyButton value={d} label="diagnosis" />
                     </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Primary Concerns - Full Width */}
+            {client.child_primary_concerns && (
+              <div className="mt-4 pt-4 border-t group">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <p className="text-xs text-muted-foreground mb-1">Primary Concerns</p>
+                    <p className="text-sm">{client.child_primary_concerns}</p>
                   </div>
+                  <CopyButton value={client.child_primary_concerns} label="primary concerns" />
+                </div>
+              </div>
+            )}
+
+            {/* ABA History - Full Width */}
+            {client.child_aba_history && (
+              <div className="mt-4 pt-4 border-t group">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <p className="text-xs text-muted-foreground mb-1">ABA History</p>
+                    <p className="text-sm">{client.child_aba_history}</p>
+                  </div>
+                  <CopyButton value={client.child_aba_history} label="ABA history" />
+                </div>
+              </div>
+            )}
+
+            {/* Other Therapies - Full Width */}
+            {client.child_other_therapies && (
+              <div className="mt-4 pt-4 border-t group">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <p className="text-xs text-muted-foreground mb-1">Other Therapies</p>
+                    <p className="text-sm">{client.child_other_therapies}</p>
+                  </div>
+                  <CopyButton value={client.child_other_therapies} label="other therapies" />
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* SECTION 2: Parents/Guardians - Second Most Important */}
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Users className="h-5 w-5 text-primary" />
+                <CardTitle className="text-lg">Parents / Guardians</CardTitle>
+                {client.parents && client.parents.length > 0 && (
+                  <Badge variant="secondary" className="ml-2">{client.parents.length}</Badge>
                 )}
-                <DetailRow label="School" value={client.child_school_name} />
-                <DetailRow label="Grade" value={client.child_grade_level} />
-                <DetailRow label="District" value={client.child_school_district} />
-                <DetailRow label="Pediatrician" value={client.child_pediatrician_name} />
-                <DetailRow label="Pediatrician Phone" value={client.child_pediatrician_phone} copyable />
               </div>
-
-              {client.child_primary_concerns && (
-                <div className="mt-4 pt-4 border-t">
-                  <p className="text-sm font-medium mb-2">Primary Concerns</p>
-                  <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                    {client.child_primary_concerns}
-                  </p>
-                </div>
-              )}
-
-              {client.child_aba_history && (
-                <div className="mt-4 pt-4 border-t">
-                  <p className="text-sm font-medium mb-2">ABA History</p>
-                  <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                    {client.child_aba_history}
-                  </p>
-                </div>
-              )}
-
-              {client.child_other_therapies && (
-                <div className="mt-4 pt-4 border-t">
-                  <p className="text-sm font-medium mb-2">Other Therapies</p>
-                  <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                    {client.child_other_therapies}
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Parents */}
-          <Card>
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Users className="h-5 w-5" />
-                  <CardTitle className="text-lg">Parents/Guardians</CardTitle>
-                </div>
-                <Button variant="outline" size="sm" asChild>
-                  <a href={`/dashboard/clients/${client.id}/edit#parents`}>
-                    <Plus className="h-3.5 w-3.5 mr-1" />
-                    Add
-                  </a>
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {client.parents.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">
-                  No parents/guardians added
-                </p>
-              ) : (
-                <div className="space-y-4">
-                  {client.parents.map((parent) => {
-                    const relationshipLabel = PARENT_RELATIONSHIP_OPTIONS.find(
-                      (opt) => opt.value === parent.relationship
-                    )?.label;
-
-                    return (
-                      <div key={parent.id} className="rounded-lg border p-4">
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <p className="font-medium">
-                                {[parent.first_name, parent.last_name].filter(Boolean).join(" ") || "Unnamed"}
-                              </p>
-                              {parent.is_primary && (
-                                <Badge variant="secondary" className="text-xs">Primary</Badge>
-                              )}
-                            </div>
-                            {relationshipLabel && (
-                              <p className="text-sm text-muted-foreground">{relationshipLabel}</p>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <ClientQuickActions phone={parent.phone} email={parent.email} />
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8">
-                                  <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem asChild>
-                                  <a href={`/dashboard/clients/${client.id}/edit#parents`}>
-                                    <Pencil className="mr-2 h-4 w-4" />
-                                    Edit
-                                  </a>
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem
-                                  onClick={() =>
-                                    handleDelete(
-                                      "parent",
-                                      parent.id,
-                                      [parent.first_name, parent.last_name].filter(Boolean).join(" ") || "this parent"
-                                    )
-                                  }
-                                  className="text-destructive focus:text-destructive"
-                                >
-                                  <Trash2 className="mr-2 h-4 w-4" />
-                                  Delete
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
-                        </div>
-                        <div className="mt-3 space-y-0">
-                          <DetailRow label="Phone" value={parent.phone} copyable />
-                          <DetailRow label="Email" value={parent.email} copyable />
-                        </div>
-                        {parent.notes && (
-                          <p className="text-sm text-muted-foreground mt-3 pt-3 border-t">
-                            {parent.notes}
-                          </p>
+              <Button variant="ghost" size="sm" asChild>
+                <a href={`/dashboard/clients/${client.id}/edit#parents`}>
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add
+                </a>
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {client.parents && client.parents.length > 0 ? (
+              <div className="space-y-4">
+                {client.parents.map((parent, index) => (
+                  <div
+                    key={parent.id}
+                    className={cn(
+                      "p-4 rounded-lg border bg-muted/30",
+                      parent.is_primary && "border-primary/30 bg-primary/5"
+                    )}
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">
+                          {[parent.first_name, parent.last_name].filter(Boolean).join(" ") || "Unnamed"}
+                        </span>
+                        {parent.is_primary && (
+                          <Badge variant="default" className="text-xs">Primary</Badge>
                         )}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Locations */}
-          <Card>
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <MapPin className="h-5 w-5" />
-                  <CardTitle className="text-lg">Therapy Locations</CardTitle>
-                </div>
-                <Button variant="outline" size="sm" asChild>
-                  <a href={`/dashboard/clients/${client.id}/edit#locations`}>
-                    <Plus className="h-3.5 w-3.5 mr-1" />
-                    Add
-                  </a>
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {client.locations.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">
-                  No locations added
-                </p>
-              ) : (
-                <div className="space-y-4">
-                  {client.locations.map((location) => {
-                    const address = [
-                      location.street_address,
-                      location.city,
-                      location.state,
-                      location.postal_code,
-                    ]
-                      .filter(Boolean)
-                      .join(", ");
-
-                    return (
-                      <div key={location.id} className="rounded-lg border p-4">
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <p className="font-medium">{location.label || "Location"}</p>
-                              {location.is_primary && (
-                                <Badge variant="secondary" className="text-xs">Primary</Badge>
-                              )}
-                            </div>
-                            {address && (
-                              <p className="text-sm text-muted-foreground mt-1">{address}</p>
-                            )}
-                          </div>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem asChild>
-                                <a href={`/dashboard/clients/${client.id}/edit#locations`}>
-                                  <Pencil className="mr-2 h-4 w-4" />
-                                  Edit
-                                </a>
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                onClick={() => handleDelete("location", location.id, location.label || "this location")}
-                                className="text-destructive focus:text-destructive"
-                              >
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                        {location.notes && (
-                          <p className="text-sm text-muted-foreground mt-3 pt-3 border-t">
-                            {location.notes}
-                          </p>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Right Column */}
-        <div className="space-y-6">
-          {/* Insurance */}
-          <Card>
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Shield className="h-5 w-5" />
-                  <CardTitle className="text-lg">Insurance</CardTitle>
-                </div>
-                <Button variant="outline" size="sm" asChild>
-                  <a href={`/dashboard/clients/${client.id}/edit#insurance`}>
-                    <Plus className="h-3.5 w-3.5 mr-1" />
-                    Add
-                  </a>
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {client.insurances.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">
-                  No insurance added
-                </p>
-              ) : (
-                <div className="space-y-4">
-                  {client.insurances.map((insurance) => {
-                    const statusOption = INSURANCE_STATUS_OPTIONS.find(
-                      (opt) => opt.value === insurance.status
-                    );
-
-                    return (
-                      <div key={insurance.id} className="rounded-lg border p-4">
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <p className="font-medium">
-                                {insurance.insurance_name || "Unnamed Insurance"}
-                              </p>
-                              {insurance.is_primary && (
-                                <Badge variant="secondary" className="text-xs">Primary</Badge>
-                              )}
-                            </div>
-                            {statusOption && (
-                              <Badge
-                                variant="outline"
-                                className={cn(
-                                  "mt-1 text-xs",
-                                  statusOption.color === "green" && "border-green-500 text-green-600",
-                                  statusOption.color === "gray" && "border-gray-500 text-gray-600",
-                                  statusOption.color === "yellow" && "border-yellow-500 text-yellow-600"
-                                )}
-                              >
-                                {statusOption.label}
-                              </Badge>
-                            )}
-                          </div>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem asChild>
-                                <a href={`/dashboard/clients/${client.id}/edit#insurance`}>
-                                  <Pencil className="mr-2 h-4 w-4" />
-                                  Edit
-                                </a>
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                onClick={() =>
-                                  handleDelete("insurance", insurance.id, insurance.insurance_name || "this insurance")
-                                }
-                                className="text-destructive focus:text-destructive"
-                              >
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                        <div className="mt-3 space-y-0">
-                          <DetailRow label="Member ID" value={insurance.member_id} copyable />
-                          <DetailRow label="Group #" value={insurance.group_number} copyable />
-                          <DetailRow label="Plan" value={insurance.plan_name} />
-                          <DetailRow
-                            label="Effective"
-                            value={insurance.effective_date ? format(new Date(insurance.effective_date), "MM/dd/yyyy") : null}
-                          />
-                          <DetailRow
-                            label="Expires"
-                            value={insurance.expiration_date ? format(new Date(insurance.expiration_date), "MM/dd/yyyy") : null}
-                          />
-                          <DetailRow
-                            label="Copay"
-                            value={insurance.copay_amount ? `$${insurance.copay_amount}` : null}
-                          />
-                          <DetailRow
-                            label="Coinsurance"
-                            value={insurance.coinsurance_percentage ? `${insurance.coinsurance_percentage}%` : null}
-                          />
-                          <DetailRow
-                            label="Deductible"
-                            value={
-                              insurance.deductible_total
-                                ? `$${insurance.deductible_remaining || 0} remaining of $${insurance.deductible_total}`
-                                : null
-                            }
-                          />
-                          <DetailRow
-                            label="OOP Max"
-                            value={
-                              insurance.oop_max_total
-                                ? `$${insurance.oop_max_remaining || 0} remaining of $${insurance.oop_max_total}`
-                                : null
-                            }
-                          />
-                        </div>
-                        {insurance.notes && (
-                          <p className="text-sm text-muted-foreground mt-3 pt-3 border-t">
-                            {insurance.notes}
-                          </p>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Authorizations */}
-          <Card>
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <FileText className="h-5 w-5" />
-                  <CardTitle className="text-lg">Authorizations</CardTitle>
-                </div>
-                <Button variant="outline" size="sm" asChild>
-                  <a href={`/dashboard/clients/${client.id}/edit#authorizations`}>
-                    <Plus className="h-3.5 w-3.5 mr-1" />
-                    Add
-                  </a>
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {client.authorizations.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">
-                  No authorizations added
-                </p>
-              ) : (
-                <div className="space-y-4">
-                  {client.authorizations.map((auth) => {
-                    const statusOption = AUTH_STATUS_OPTIONS.find((opt) => opt.value === auth.status);
-                    const daysRemaining = auth.end_date ? getDaysUntilAuthExpires(auth.end_date) : null;
-                    const daysColor = getAuthDaysColor(daysRemaining);
-
-                    return (
-                      <div key={auth.id} className="rounded-lg border p-4">
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <p className="font-medium">
-                              {auth.treatment_requested || auth.service_type || "Authorization"}
-                            </p>
-                            <div className="flex items-center gap-2 mt-1">
-                              {statusOption && (
-                                <Badge
-                                  variant="outline"
-                                  className={cn(
-                                    "text-xs",
-                                    statusOption.color === "green" && "border-green-500 text-green-600",
-                                    statusOption.color === "red" && "border-red-500 text-red-600",
-                                    statusOption.color === "blue" && "border-blue-500 text-blue-600",
-                                    statusOption.color === "orange" && "border-orange-500 text-orange-600",
-                                    statusOption.color === "amber" && "border-amber-500 text-amber-600",
-                                    statusOption.color === "gray" && "border-gray-500 text-gray-600"
-                                  )}
-                                >
-                                  {statusOption.label}
-                                </Badge>
-                              )}
-                              {daysRemaining !== null && (
-                                <Badge
-                                  variant="secondary"
-                                  className={cn(
-                                    "text-xs",
-                                    daysColor === "red" && "bg-red-100 text-red-700",
-                                    daysColor === "orange" && "bg-orange-100 text-orange-700",
-                                    daysColor === "amber" && "bg-amber-100 text-amber-700",
-                                    daysColor === "green" && "bg-green-100 text-green-700",
-                                    daysColor === "gray" && "bg-gray-100 text-gray-700"
-                                  )}
-                                >
-                                  {daysRemaining <= 0 ? "Expired" : `${daysRemaining} days left`}
-                                </Badge>
-                              )}
-                            </div>
-                          </div>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem asChild>
-                                <a href={`/dashboard/clients/${client.id}/edit#authorizations`}>
-                                  <Pencil className="mr-2 h-4 w-4" />
-                                  Edit
-                                </a>
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                onClick={() =>
-                                  handleDelete("authorization", auth.id, auth.auth_reference_number || "this authorization")
-                                }
-                                className="text-destructive focus:text-destructive"
-                              >
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                        <div className="mt-3 space-y-0">
-                          <DetailRow label="Auth #" value={auth.auth_reference_number} copyable />
-                          <DetailRow label="Billing Code" value={auth.billing_code} />
-                          <DetailRow
-                            label="Units"
-                            value={auth.units_requested ? `${auth.units_used || 0} / ${auth.units_requested}` : null}
-                          />
-                          <DetailRow
-                            label="Rate"
-                            value={auth.rate_per_unit ? `$${auth.rate_per_unit}/unit` : null}
-                          />
-                          <DetailRow
-                            label="Period"
-                            value={
-                              auth.start_date && auth.end_date
-                                ? `${format(new Date(auth.start_date), "MM/dd/yy")} - ${format(new Date(auth.end_date), "MM/dd/yy")}`
-                                : null
-                            }
-                          />
-                        </div>
-                        {auth.notes && (
-                          <p className="text-sm text-muted-foreground mt-3 pt-3 border-t">
-                            {auth.notes}
-                          </p>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Tasks */}
-          <Card>
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <CheckSquare className="h-5 w-5" />
-                  <CardTitle className="text-lg">Tasks</CardTitle>
-                </div>
-                <Button variant="outline" size="sm" asChild>
-                  <a href={`/dashboard/clients/${client.id}/edit#tasks`}>
-                    <Plus className="h-3.5 w-3.5 mr-1" />
-                    Add
-                  </a>
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {client.tasks.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">
-                  No tasks
-                </p>
-              ) : (
-                <div className="space-y-2">
-                  {client.tasks.map((task) => (
-                    <div
-                      key={task.id}
-                      className={cn(
-                        "flex items-start gap-3 rounded-lg border p-3",
-                        task.status === "completed" && "opacity-60"
-                      )}
-                    >
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-5 w-5 shrink-0 mt-0.5"
-                        onClick={() => task.status === "pending" && handleCompleteTask(task.id)}
-                        disabled={isPending || task.status === "completed"}
-                      >
-                        <CheckSquare
-                          className={cn(
-                            "h-4 w-4",
-                            task.status === "completed" ? "text-green-500" : "text-muted-foreground"
-                          )}
-                        />
-                      </Button>
-                      <div className="flex-1 min-w-0">
-                        <p className={cn("font-medium", task.status === "completed" && "line-through")}>
-                          {task.title}
-                        </p>
-                        {task.due_date && (
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Due {format(new Date(task.due_date), "MMM d, yyyy")}
-                          </p>
+                        {parent.relationship && (
+                          <Badge variant="outline" className="text-xs">
+                            {PARENT_RELATIONSHIP_OPTIONS.find((r) => r.value === parent.relationship)?.label || parent.relationship}
+                          </Badge>
                         )}
                       </div>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-6 w-6">
-                            <MoreHorizontal className="h-3.5 w-3.5" />
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
+                          <DropdownMenuItem asChild>
+                            <a href={`/dashboard/clients/${client.id}/edit#parents`}>
+                              <Pencil className="h-4 w-4 mr-2" />
+                              Edit
+                            </a>
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
                           <DropdownMenuItem
-                            onClick={() => handleDelete("task", task.id, task.title)}
-                            className="text-destructive focus:text-destructive"
+                            className="text-destructive"
+                            onClick={() => handleDelete("parent", parent.id, `${parent.first_name} ${parent.last_name}`)}
                           >
-                            <Trash2 className="mr-2 h-4 w-4" />
+                            <Trash2 className="h-4 w-4 mr-2" />
                             Delete
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Documents */}
-          <Card>
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <FileText className="h-5 w-5" />
-                  <CardTitle className="text-lg">Documents</CardTitle>
-                </div>
-                <Button variant="outline" size="sm" asChild>
-                  <a href={`/dashboard/clients/${client.id}/edit#documents`}>
-                    <Plus className="h-3.5 w-3.5 mr-1" />
-                    Add
-                  </a>
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {client.documents.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">
-                  No documents
-                </p>
-              ) : (
-                <div className="space-y-2">
-                  {client.documents.map((doc) => {
-                    const typeLabel = DOCUMENT_TYPE_OPTIONS.find(
-                      (opt) => opt.value === doc.document_type
-                    )?.label;
-
-                    return (
-                      <div key={doc.id} className="flex items-start justify-between rounded-lg border p-3">
-                        <div>
-                          <p className="font-medium">{doc.label || "Document"}</p>
-                          {typeLabel && (
-                            <p className="text-xs text-muted-foreground">{typeLabel}</p>
-                          )}
-                          {doc.notes && (
-                            <p className="text-sm text-muted-foreground mt-1">{doc.notes}</p>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-1">
-                          {doc.url && (
-                            <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
-                              <a href={doc.url} target="_blank" rel="noopener noreferrer">
-                                <ExternalLink className="h-4 w-4" />
-                              </a>
-                            </Button>
-                          )}
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem asChild>
-                                <a href={`/dashboard/clients/${client.id}/edit#documents`}>
-                                  <Pencil className="mr-2 h-4 w-4" />
-                                  Edit
-                                </a>
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                onClick={() => handleDelete("document", doc.id, doc.label || "this document")}
-                                className="text-destructive focus:text-destructive"
-                              >
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                      <Field label="First Name" value={parent.first_name} />
+                      <Field label="Last Name" value={parent.last_name} />
+                      <Field label="Phone" value={parent.phone} icon={Phone} />
+                      <Field label="Email" value={parent.email} icon={Mail} />
+                    </div>
+                    {parent.notes && (
+                      <div className="mt-3 pt-3 border-t group">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <p className="text-xs text-muted-foreground mb-1">Notes</p>
+                            <p className="text-sm">{parent.notes}</p>
+                          </div>
+                          <CopyButton value={parent.notes} label="notes" />
                         </div>
                       </div>
-                    );
-                  })}
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <EmptyState message="No parents or guardians added yet" />
+            )}
+          </CardContent>
+        </Card>
+
+        {/* SECTION 3: Status & Service Info */}
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <ClipboardList className="h-5 w-5 text-primary" />
+                <CardTitle className="text-lg">Status & Service Information</CardTitle>
+              </div>
+              <ClientStatusBadge status={client.status} />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <Field label="Referral Source" value={client.referral_source} />
+              <Field
+                label="Referral Date"
+                value={client.referral_date ? format(new Date(client.referral_date), "MMM d, yyyy") : null}
+                icon={Calendar}
+              />
+              <Field
+                label="Service Start Date"
+                value={client.service_start_date ? format(new Date(client.service_start_date), "MMM d, yyyy") : null}
+                icon={Calendar}
+              />
+              <Field label="Funding Source" value={client.funding_source} />
+            </div>
+
+            {/* Notes - Full Width */}
+            {client.notes && (
+              <div className="mt-4 pt-4 border-t group">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <p className="text-xs text-muted-foreground mb-1">General Notes</p>
+                    <p className="text-sm whitespace-pre-wrap">{client.notes}</p>
+                  </div>
+                  <CopyButton value={client.notes} label="notes" />
                 </div>
-              )}
-            </CardContent>
-          </Card>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
-          {/* Notes */}
-          {client.notes && (
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg">Notes</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm whitespace-pre-wrap">{client.notes}</p>
-              </CardContent>
-            </Card>
-          )}
+        {/* SECTION 4: Insurance */}
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Shield className="h-5 w-5 text-primary" />
+                <CardTitle className="text-lg">Insurance</CardTitle>
+                {client.insurances && client.insurances.length > 0 && (
+                  <Badge variant="secondary" className="ml-2">{client.insurances.length}</Badge>
+                )}
+              </div>
+              <Button variant="ghost" size="sm" asChild>
+                <a href={`/dashboard/clients/${client.id}/edit#insurance`}>
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add
+                </a>
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {client.insurances && client.insurances.length > 0 ? (
+              <div className="space-y-4">
+                {client.insurances.map((insurance) => (
+                  <div
+                    key={insurance.id}
+                    className={cn(
+                      "p-4 rounded-lg border bg-muted/30",
+                      insurance.is_primary && "border-primary/30 bg-primary/5"
+                    )}
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{insurance.insurance_name || "Unnamed Insurance"}</span>
+                        {insurance.is_primary && (
+                          <Badge variant="default" className="text-xs">Primary</Badge>
+                        )}
+                        {insurance.insurance_type && (
+                          <Badge variant="outline" className="text-xs">{insurance.insurance_type}</Badge>
+                        )}
+                        {insurance.status && (
+                          <Badge
+                            variant={insurance.status === "active" ? "default" : "secondary"}
+                            className="text-xs"
+                          >
+                            {INSURANCE_STATUS_OPTIONS.find((s) => s.value === insurance.status)?.label || insurance.status}
+                          </Badge>
+                        )}
+                      </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem asChild>
+                            <a href={`/dashboard/clients/${client.id}/edit#insurance`}>
+                              <Pencil className="h-4 w-4 mr-2" />
+                              Edit
+                            </a>
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            className="text-destructive"
+                            onClick={() => handleDelete("insurance", insurance.id, insurance.insurance_name || "Insurance")}
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                      <Field label="Insurance Name" value={insurance.insurance_name} />
+                      <Field label="Member ID" value={insurance.member_id} icon={CreditCard} />
+                      <Field label="Group Number" value={insurance.group_number} />
+                      <Field label="Plan Name" value={insurance.plan_name} />
+                      <Field label="Subscriber Relationship" value={insurance.subscriber_relationship} />
+                      <Field label="Effective Date" value={insurance.effective_date ? format(new Date(insurance.effective_date), "MMM d, yyyy") : null} icon={Calendar} />
+                      <Field label="Expiration Date" value={insurance.expiration_date ? format(new Date(insurance.expiration_date), "MMM d, yyyy") : null} icon={Calendar} />
+                      <Field label="Copay" value={insurance.copay_amount ? `$${insurance.copay_amount}` : null} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <EmptyState message="No insurance information added yet" />
+            )}
+          </CardContent>
+        </Card>
 
-          {/* Timestamps */}
-          <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
-            <span>Added {formatDistanceToNow(new Date(client.created_at), { addSuffix: true })}</span>
-            <span>Updated {formatDistanceToNow(new Date(client.updated_at), { addSuffix: true })}</span>
-          </div>
-        </div>
+        {/* SECTION 5: Authorizations */}
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <FileText className="h-5 w-5 text-primary" />
+                <CardTitle className="text-lg">Authorizations</CardTitle>
+                {client.authorizations && client.authorizations.length > 0 && (
+                  <Badge variant="secondary" className="ml-2">{client.authorizations.length}</Badge>
+                )}
+              </div>
+              <Button variant="ghost" size="sm" asChild>
+                <a href={`/dashboard/clients/${client.id}/edit#authorizations`}>
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add
+                </a>
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {client.authorizations && client.authorizations.length > 0 ? (
+              <div className="space-y-4">
+                {client.authorizations.map((auth) => {
+                  const daysLeft = auth.end_date ? getDaysUntilAuthExpires(auth.end_date) : null;
+                  const daysColor = getAuthDaysColor(daysLeft);
+                  const remainingUnits = auth.units_requested && auth.units_used !== undefined
+                    ? auth.units_requested - auth.units_used
+                    : null;
+
+                  return (
+                    <div key={auth.id} className="p-4 rounded-lg border bg-muted/30">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-medium">{auth.service_type || auth.payor_type || "Authorization"}</span>
+                          {auth.status && (
+                            <Badge
+                              variant={auth.status === "approved" ? "default" : "secondary"}
+                              className="text-xs"
+                            >
+                              {AUTH_STATUS_OPTIONS.find((s) => s.value === auth.status)?.label || auth.status}
+                            </Badge>
+                          )}
+                          {daysLeft !== null && auth.status === "approved" && (
+                            <Badge variant="outline" className={cn("text-xs", daysColor)}>
+                              {daysLeft > 0 ? `${daysLeft} days left` : daysLeft === 0 ? "Expires today" : "Expired"}
+                            </Badge>
+                          )}
+                        </div>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem asChild>
+                              <a href={`/dashboard/clients/${client.id}/edit#authorizations`}>
+                                <Pencil className="h-4 w-4 mr-2" />
+                                Edit
+                              </a>
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              className="text-destructive"
+                              onClick={() => handleDelete("authorization", auth.id!, auth.auth_reference_number || "Authorization")}
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                        <Field label="Auth Reference #" value={auth.auth_reference_number} />
+                        <Field label="Service Type" value={auth.service_type} />
+                        <Field label="Start Date" value={auth.start_date ? format(new Date(auth.start_date), "MMM d, yyyy") : null} icon={Calendar} />
+                        <Field label="End Date" value={auth.end_date ? format(new Date(auth.end_date), "MMM d, yyyy") : null} icon={Calendar} />
+                        <Field label="Units Requested" value={auth.units_requested?.toString()} />
+                        <Field label="Units Used" value={auth.units_used?.toString()} />
+                        <Field label="Remaining Units" value={remainingUnits?.toString()} />
+                        <Field label="Billing Code" value={auth.billing_code} />
+                      </div>
+                      {auth.notes && (
+                        <div className="mt-3 pt-3 border-t group">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <p className="text-xs text-muted-foreground mb-1">Notes</p>
+                              <p className="text-sm">{auth.notes}</p>
+                            </div>
+                            <CopyButton value={auth.notes} label="notes" />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <EmptyState message="No authorizations added yet" />
+            )}
+          </CardContent>
+        </Card>
+
+        {/* SECTION 6: Locations */}
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <MapPin className="h-5 w-5 text-primary" />
+                <CardTitle className="text-lg">Service Locations</CardTitle>
+                {client.locations && client.locations.length > 0 && (
+                  <Badge variant="secondary" className="ml-2">{client.locations.length}</Badge>
+                )}
+              </div>
+              <Button variant="ghost" size="sm" asChild>
+                <a href={`/dashboard/clients/${client.id}/edit#locations`}>
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add
+                </a>
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {client.locations && client.locations.length > 0 ? (
+              <div className="space-y-4">
+                {client.locations.map((location) => (
+                  <div
+                    key={location.id}
+                    className={cn(
+                      "p-4 rounded-lg border bg-muted/30",
+                      location.is_primary && "border-primary/30 bg-primary/5"
+                    )}
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{location.label || "Location"}</span>
+                        {location.is_primary && (
+                          <Badge variant="default" className="text-xs">Primary</Badge>
+                        )}
+                      </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem asChild>
+                            <a href={`/dashboard/clients/${client.id}/edit#locations`}>
+                              <Pencil className="h-4 w-4 mr-2" />
+                              Edit
+                            </a>
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            className="text-destructive"
+                            onClick={() => handleDelete("location", location.id, location.label || "Location")}
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                      <Field label="Street Address" value={location.street_address} />
+                      <Field label="City" value={location.city} />
+                      <Field label="State" value={location.state} />
+                      <Field label="Postal Code" value={location.postal_code} />
+                    </div>
+                    {location.notes && (
+                      <div className="mt-3 pt-3 border-t group">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <p className="text-xs text-muted-foreground mb-1">Notes</p>
+                            <p className="text-sm">{location.notes}</p>
+                          </div>
+                          <CopyButton value={location.notes} label="notes" />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <EmptyState message="No service locations added yet" />
+            )}
+          </CardContent>
+        </Card>
+
+        {/* SECTION 7: Tasks */}
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <CheckSquare className="h-5 w-5 text-primary" />
+                <CardTitle className="text-lg">Tasks</CardTitle>
+                {pendingTasks.length > 0 && (
+                  <Badge variant="secondary" className="ml-2">{pendingTasks.length} pending</Badge>
+                )}
+              </div>
+              <Button variant="ghost" size="sm" asChild>
+                <a href={`/dashboard/clients/${client.id}/edit#tasks`}>
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add
+                </a>
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {client.tasks && client.tasks.length > 0 ? (
+              <div className="space-y-2">
+                {/* Pending Tasks */}
+                {pendingTasks.map((task) => (
+                  <div
+                    key={task.id}
+                    className="flex items-start gap-3 p-3 rounded-lg border bg-muted/30 group"
+                  >
+                    <Checkbox
+                      checked={task.status === "completed"}
+                      onCheckedChange={() => handleCompleteTask(task.id)}
+                      disabled={isPending}
+                      className="mt-0.5"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium">{task.title}</p>
+                        <CopyButton value={task.title} label="task" />
+                      </div>
+                      {task.content && (
+                        <p className="text-xs text-muted-foreground mt-0.5">{task.content}</p>
+                      )}
+                      {task.due_date && (
+                        <div className="flex items-center gap-1 mt-1">
+                          <Clock className="h-3 w-3 text-muted-foreground" />
+                          <span className="text-xs text-muted-foreground">
+                            Due {format(new Date(task.due_date), "MMM d, yyyy")}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          className="text-destructive"
+                          onClick={() => handleDelete("task", task.id, task.title)}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                ))}
+
+                {/* Completed Tasks */}
+                {completedTasks.length > 0 && (
+                  <div className="mt-4 pt-4 border-t">
+                    <p className="text-xs text-muted-foreground mb-2">Completed ({completedTasks.length})</p>
+                    {completedTasks.map((task) => (
+                      <div
+                        key={task.id}
+                        className="flex items-start gap-3 p-3 rounded-lg border bg-muted/20 opacity-60 group"
+                      >
+                        <Checkbox checked disabled className="mt-0.5" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm line-through">{task.title}</p>
+                        </div>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              className="text-destructive"
+                              onClick={() => handleDelete("task", task.id, task.title)}
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <EmptyState message="No tasks added yet" />
+            )}
+          </CardContent>
+        </Card>
+
+        {/* SECTION 8: Documents */}
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <FileText className="h-5 w-5 text-primary" />
+                <CardTitle className="text-lg">Documents</CardTitle>
+                {client.documents && client.documents.length > 0 && (
+                  <Badge variant="secondary" className="ml-2">{client.documents.length}</Badge>
+                )}
+              </div>
+              <Button variant="ghost" size="sm" asChild>
+                <a href={`/dashboard/clients/${client.id}/edit#documents`}>
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add
+                </a>
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {client.documents && client.documents.length > 0 ? (
+              <div className="space-y-2">
+                {client.documents.map((doc) => (
+                  <div
+                    key={doc.id}
+                    className="flex items-center justify-between p-3 rounded-lg border bg-muted/30 group"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <FileText className="h-5 w-5 text-muted-foreground shrink-0" />
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-medium truncate">{doc.label || "Document"}</p>
+                          {doc.label && <CopyButton value={doc.label} label="document name" />}
+                        </div>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          {doc.document_type && (
+                            <Badge variant="outline" className="text-xs">
+                              {DOCUMENT_TYPE_OPTIONS.find((t) => t.value === doc.document_type)?.label || doc.document_type}
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      {doc.url && (
+                        <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
+                          <a href={doc.url} target="_blank" rel="noopener noreferrer">
+                            <ExternalLink className="h-4 w-4" />
+                          </a>
+                        </Button>
+                      )}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem asChild>
+                            <a href={`/dashboard/clients/${client.id}/edit#documents`}>
+                              <Pencil className="h-4 w-4 mr-2" />
+                              Edit
+                            </a>
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            className="text-destructive"
+                            onClick={() => handleDelete("document", doc.id!, doc.label || "Document")}
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <EmptyState message="No documents uploaded yet" />
+            )}
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Delete confirmation dialog */}
+      {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete {deleteTarget?.type}</AlertDialogTitle>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete {deleteTarget?.label}? This action cannot be undone.
+              This will permanently delete {deleteTarget?.label}. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={isPending}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDelete}
+              disabled={isPending}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {isPending ? "Deleting..." : "Delete"}
