@@ -24,6 +24,10 @@ const envSchema = z.object({
   EMAIL_FROM: z.string().min(1).optional().default("onboarding@resend.dev"),
 });
 
+// Skip validation during build time (when collecting page data)
+// Environment variables will be validated at runtime when actually used
+const isBuildTime = process.env.NEXT_PHASE === "phase-production-build";
+
 const parsed = envSchema.safeParse({
   NODE_ENV: process.env.NODE_ENV,
   NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
@@ -39,9 +43,26 @@ const parsed = envSchema.safeParse({
   EMAIL_FROM: process.env.EMAIL_FROM,
 });
 
-if (!parsed.success) {
+if (!parsed.success && !isBuildTime) {
   console.error("❌ Invalid environment variables:", parsed.error.flatten().fieldErrors);
   throw new Error("Invalid environment variables");
 }
 
-export const env = parsed.data;
+// During build time, provide placeholder values to allow static analysis
+// These will never be used at runtime - actual env vars are validated when accessed
+export const env = parsed.success
+  ? parsed.data
+  : {
+      NODE_ENV: "production" as const,
+      NEXT_PUBLIC_SITE_URL: "https://placeholder.com",
+      NEXT_PUBLIC_SUPABASE_URL: "https://placeholder.supabase.co",
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: "placeholder",
+      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: "placeholder",
+      STRIPE_SECRET_KEY: "placeholder",
+      STRIPE_WEBHOOK_SECRET: "placeholder",
+      SUPABASE_SERVICE_ROLE_KEY: undefined,
+      TURNSTILE_SECRET_KEY: "placeholder",
+      GOOGLE_MAPS_API_KEY: "placeholder",
+      RESEND_API_KEY: undefined,
+      EMAIL_FROM: "onboarding@resend.dev",
+    };
