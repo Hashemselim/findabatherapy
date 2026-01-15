@@ -6,6 +6,7 @@ import {
   BarChart3,
   Briefcase,
   Building2,
+  CheckSquare,
   ClipboardList,
   ExternalLink,
   Eye,
@@ -101,7 +102,8 @@ const dashboardNavSections: MobileNavSection[] = [
     icon: Users,
     brandColor: brandColors.crm,
     items: [
-      { href: "/dashboard/clients", label: "Clients", icon: UserCircle, isPlaceholder: true },
+      { href: "/dashboard/clients", label: "Clients", icon: UserCircle },
+      { href: "/dashboard/tasks", label: "Tasks", icon: CheckSquare },
       { href: "/dashboard/team", label: "Staff / Team", icon: Users, isPlaceholder: true },
     ],
   },
