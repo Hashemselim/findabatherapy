@@ -54,8 +54,8 @@ export function DashboardShell({
       {/* Desktop lg: no header, just spacing (2rem) */}
       <div className="container flex gap-6 px-4 pt-[calc(3.5rem+1px+2.5rem+1rem)] sm:px-6 sm:pt-[calc(4rem+1px+2.5rem+1.5rem)] lg:pt-8">
         {/* Fixed sidebar - positioned relative to container */}
-        <div className="hidden w-64 flex-none lg:block">
-          <div className="fixed w-64 top-8" style={{ height: 'calc(100vh - 4rem)' }}>
+        <div className="hidden w-72 flex-none lg:block">
+          <div className="fixed w-72 top-8" style={{ height: 'calc(100vh - 4rem)' }}>
             <DashboardSidebar
               isOnboardingComplete={isOnboardingComplete}
               isDemo={isDemo}
