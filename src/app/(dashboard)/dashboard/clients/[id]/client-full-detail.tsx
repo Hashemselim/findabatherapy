@@ -674,13 +674,21 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
                       {/* Auth Header */}
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-medium">
-                            {auth.payor_type
-                              ? AUTH_PAYOR_TYPE_OPTIONS.find(o => o.value === auth.payor_type)?.label || auth.payor_type
-                              : "Authorization"}
-                          </span>
+                          <div className="group flex items-center gap-1">
+                            <span className="font-medium">
+                              {auth.payor_type
+                                ? AUTH_PAYOR_TYPE_OPTIONS.find(o => o.value === auth.payor_type)?.label || auth.payor_type
+                                : "Authorization"}
+                            </span>
+                            {auth.payor_type && (
+                              <CopyButton value={AUTH_PAYOR_TYPE_OPTIONS.find(o => o.value === auth.payor_type)?.label || auth.payor_type} label="payor type" />
+                            )}
+                          </div>
                           {auth.auth_reference_number && (
-                            <span className="text-muted-foreground text-sm">#{auth.auth_reference_number}</span>
+                            <div className="group flex items-center gap-1">
+                              <span className="text-muted-foreground text-sm">#{auth.auth_reference_number}</span>
+                              <CopyButton value={auth.auth_reference_number} label="auth reference" />
+                            </div>
                           )}
                           {auth.status && (
                             <Badge
@@ -755,27 +763,36 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
                             return (
                               <div key={service.id || svcIndex} className="pl-3 border-l-2 border-primary/20 bg-background/50 rounded-r-lg p-3">
                                 <div className="flex items-center gap-2 mb-2 flex-wrap">
-                                  <span className="font-medium text-sm">
-                                    {SERVICE_BILLING_MAP.find(m => m.code === service.billing_code)?.label || service.service_type}
-                                  </span>
-                                  <Badge variant="outline" className="text-xs">
-                                    {service.billing_code}
-                                  </Badge>
+                                  <div className="group flex items-center gap-1">
+                                    <span className="font-medium text-sm">
+                                      {SERVICE_BILLING_MAP.find(m => m.code === service.billing_code)?.label || service.service_type}
+                                    </span>
+                                    <CopyButton value={SERVICE_BILLING_MAP.find(m => m.code === service.billing_code)?.label || service.service_type || ""} label="service type" />
+                                  </div>
+                                  <div className="group flex items-center gap-1">
+                                    <Badge variant="outline" className="text-xs">
+                                      {service.billing_code}
+                                    </Badge>
+                                    <CopyButton value={service.billing_code || ""} label="billing code" />
+                                  </div>
                                 </div>
                                 <div className="grid gap-2 grid-cols-2 sm:grid-cols-4 text-sm">
-                                  <div>
+                                  <div className="group flex items-center gap-1">
                                     <span className="text-muted-foreground">Hours/Week:</span>{" "}
                                     <span className="font-medium">{service.hours_per_week ?? "—"}</span>
+                                    {service.hours_per_week && <CopyButton value={service.hours_per_week.toString()} label="hours/week" />}
                                   </div>
-                                  <div>
+                                  <div className="group flex items-center gap-1">
                                     <span className="text-muted-foreground">Units/Auth:</span>{" "}
                                     <span className="font-medium">{service.units_per_auth ?? "—"}</span>
+                                    {service.units_per_auth && <CopyButton value={service.units_per_auth.toString()} label="units/auth" />}
                                   </div>
-                                  <div>
+                                  <div className="group flex items-center gap-1">
                                     <span className="text-muted-foreground">Used:</span>{" "}
                                     <span className="font-medium">{service.units_used ?? 0}</span>
+                                    <CopyButton value={(service.units_used ?? 0).toString()} label="units used" />
                                   </div>
-                                  <div>
+                                  <div className="group flex items-center gap-1">
                                     <span className="text-muted-foreground">Remaining:</span>{" "}
                                     <span className={cn(
                                       "font-medium",
@@ -783,6 +800,7 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
                                     )}>
                                       {remaining ?? "—"}
                                     </span>
+                                    {remaining !== null && <CopyButton value={remaining.toString()} label="remaining units" />}
                                   </div>
                                 </div>
                                 {/* Usage bar */}
@@ -801,7 +819,10 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
                                   </div>
                                 )}
                                 {service.notes && (
-                                  <p className="text-xs text-muted-foreground mt-2">{service.notes}</p>
+                                  <div className="group mt-2">
+                                    <p className="text-xs text-muted-foreground inline">{service.notes}</p>
+                                    <CopyButton value={service.notes} label="notes" />
+                                  </div>
                                 )}
                               </div>
                             );

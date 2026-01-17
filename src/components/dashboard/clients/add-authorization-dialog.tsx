@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useTransition, useMemo } from "react";
+import { useState, useTransition, useMemo, useEffect } from "react";
 import { Loader2, Plus, Trash2, Info, Calculator } from "lucide-react";
+import { parseISO } from "date-fns";
 import { format } from "date-fns";
 
 import { Button } from "@/components/ui/button";
@@ -111,6 +112,32 @@ export function AddAuthorizationDialog({
   const authPeriod = useMemo(() => {
     if (!startDate || !endDate) return null;
     return calculateAuthPeriod(startDate, endDate);
+  }, [startDate, endDate]);
+
+  // Recalculate all services when auth-level dates change
+  useEffect(() => {
+    if (!startDate || !endDate) return;
+
+    setServices(prev => prev.map(svc => {
+      // Only recalculate services that use auth dates and have auto-calc enabled
+      if (!svc.useAuthDates || !svc.useCalculatedValues || !svc.hoursPerWeek) {
+        return svc;
+      }
+
+      const period = calculateAuthPeriod(startDate, endDate);
+      if (!period) return svc;
+
+      const hpw = parseFloat(svc.hoursPerWeek);
+      if (isNaN(hpw)) return svc;
+
+      const calc = calculateServiceUnits(hpw, period.totalWeeks);
+      return {
+        ...svc,
+        hoursPerAuth: calc.hoursPerAuth.toString(),
+        unitsPerWeek: calc.unitsPerWeek.toString(),
+        unitsPerAuth: calc.unitsPerAuth.toString(),
+      };
+    }));
   }, [startDate, endDate]);
 
   // Update service field
@@ -452,7 +479,7 @@ export function AddAuthorizationDialog({
                         Use auth dates
                         {startDate && endDate && (
                           <span className="text-muted-foreground ml-1">
-                            ({format(new Date(startDate), "MM/dd/yy")} - {format(new Date(endDate), "MM/dd/yy")})
+                            ({format(parseISO(startDate), "MM/dd/yy")} - {format(parseISO(endDate), "MM/dd/yy")})
                           </span>
                         )}
                       </label>
