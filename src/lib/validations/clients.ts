@@ -60,7 +60,7 @@ export const AUTH_PAYOR_TYPE_OPTIONS = [
 ] as const;
 
 export const AUTH_STATUS_OPTIONS = [
-  { value: "pending", label: "Pending", color: "gray" },
+  { value: "draft", label: "Draft", color: "gray" },
   { value: "submitted", label: "Submitted", color: "blue" },
   { value: "approved", label: "Approved", color: "green" },
   { value: "denied", label: "Denied", color: "red" },
@@ -100,19 +100,42 @@ export const CONTACT_RELATIONSHIP_TYPE_OPTIONS = [
   { value: "other", label: "Other" },
 ] as const;
 
-// Common ABA billing codes
-export const BILLING_CODE_OPTIONS = [
-  { value: "97151", label: "97151 - Assessment" },
-  { value: "97152", label: "97152 - Assessment (Supporting)" },
-  { value: "97153", label: "97153 - Adaptive Behavior Treatment" },
-  { value: "97154", label: "97154 - Group Adaptive Behavior Treatment" },
-  { value: "97155", label: "97155 - Adaptive Behavior Treatment w/ Modification" },
-  { value: "97156", label: "97156 - Family Adaptive Behavior Guidance" },
-  { value: "97157", label: "97157 - Multiple-Family Group Guidance" },
-  { value: "97158", label: "97158 - Group Adaptive Behavior Treatment (Supervision)" },
-  { value: "0362T", label: "0362T - Behavior ID Assessment" },
-  { value: "0373T", label: "0373T - Adaptive Behavior Treatment w/ Protocol Modification" },
+// Service type to billing code mapping for ABA services
+// Each service type maps to a billing code; selecting a service auto-fills the code
+export const SERVICE_BILLING_MAP = [
+  // Assessment codes
+  { code: "97151", label: "Behavior ID Assessment", fullLabel: "Behavior ID Assessment (97151)" },
+  { code: "97152", label: "Behavior ID Supporting Assessment", fullLabel: "Behavior ID Supporting Assessment (97152)" },
+
+  // Treatment codes
+  { code: "97153", label: "Adaptive Behavior Treatment by Technician", fullLabel: "Adaptive Behavior Treatment (97153)" },
+  { code: "97154", label: "Group Adaptive Behavior Treatment", fullLabel: "Group Adaptive Behavior Treatment (97154)" },
+  { code: "97155", label: "Adaptive Behavior Treatment w/ Protocol Modification (BCBA)", fullLabel: "BCBA Protocol Modification (97155)" },
+  { code: "97156", label: "Family Adaptive Behavior Guidance", fullLabel: "Family Guidance (97156)" },
+  { code: "97157", label: "Multiple-Family Group Guidance", fullLabel: "Multi-Family Group Guidance (97157)" },
+  { code: "97158", label: "Group Adaptive Behavior Treatment by BCBA", fullLabel: "Group Treatment by BCBA (97158)" },
+
+  // Category III codes
+  { code: "0362T", label: "Behavior ID Assessment (Exposure)", fullLabel: "Behavior ID Assessment Exposure (0362T)" },
+  { code: "0373T", label: "Exposure Adaptive Behavior Treatment w/ Protocol Modification", fullLabel: "Exposure Protocol Modification (0373T)" },
+
+  // Telehealth modifiers (common add-ons)
+  { code: "97153-95", label: "Adaptive Behavior Treatment (Telehealth)", fullLabel: "Adaptive Behavior Treatment Telehealth (97153-95)" },
+  { code: "97155-95", label: "Protocol Modification (Telehealth)", fullLabel: "Protocol Modification Telehealth (97155-95)" },
+  { code: "97156-95", label: "Family Guidance (Telehealth)", fullLabel: "Family Guidance Telehealth (97156-95)" },
+
+  // Other option for custom billing codes
+  { code: "other", label: "Other (custom code)", fullLabel: "Other (enter custom billing code)" },
 ] as const;
+
+// Legacy billing code options (for backward compatibility)
+export const BILLING_CODE_OPTIONS = SERVICE_BILLING_MAP.filter(s => s.code !== "other").map(s => ({
+  value: s.code,
+  label: `${s.code} - ${s.label}`,
+}));
+
+// Units per hour constant (4 units = 1 hour in ABA billing)
+export const UNITS_PER_HOUR = 4;
 
 // Referral source options
 export const REFERRAL_SOURCE_OPTIONS = [
@@ -220,6 +243,7 @@ export const authPayorTypeSchema = z.enum([
 ]);
 
 export const authStatusSchema = z.enum([
+  "draft",
   "pending",
   "submitted",
   "approved",
@@ -317,11 +341,31 @@ export const clientInsuranceSchema = z.object({
   sort_order: z.number().int().default(0),
 });
 
+// Authorization service schema (child of authorization)
+export const clientAuthorizationServiceSchema = z.object({
+  id: z.string().uuid().optional(),
+  authorization_id: z.string().uuid().optional(),
+  service_type: z.string().max(100),                              // e.g., "Adaptive Behavior Treatment (97153)"
+  billing_code: z.string().max(20),                               // e.g., "97153"
+  custom_billing_code: z.string().max(20).optional().or(z.literal("")),  // For "other" type
+  use_auth_dates: z.boolean().default(true),
+  start_date: z.string().optional().or(z.literal("")),            // Custom start if use_auth_dates is false
+  end_date: z.string().optional().or(z.literal("")),              // Custom end if use_auth_dates is false
+  hours_per_week: z.number().min(0).optional(),
+  hours_per_auth: z.number().min(0).optional(),                   // Calculated or manual
+  units_per_week: z.number().int().min(0).optional(),             // Calculated or manual
+  units_per_auth: z.number().int().min(0).optional(),             // Calculated or manual
+  units_used: z.number().int().min(0).default(0),
+  use_calculated_values: z.boolean().default(true),
+  notes: z.string().max(2000).optional().or(z.literal("")),
+});
+
 // Authorization schema
 export const clientAuthorizationSchema = z.object({
   id: z.string().uuid().optional(),
   insurance_id: z.string().uuid().optional().or(z.literal("")),
   payor_type: authPayorTypeSchema.optional(),
+  // Legacy fields (kept for backward compatibility, now managed at service level)
   service_type: z.string().max(100).optional().or(z.literal("")),
   billing_code: z.string().max(20).optional().or(z.literal("")),
   treatment_requested: z.string().max(500).optional().or(z.literal("")),
@@ -329,12 +373,15 @@ export const clientAuthorizationSchema = z.object({
   units_used: z.number().int().min(0).default(0),
   units_per_week_authorized: z.number().int().min(0).optional(),
   rate_per_unit: z.number().min(0).optional(),
+  // Active fields
   start_date: z.string().optional().or(z.literal("")),
   end_date: z.string().optional().or(z.literal("")),
-  status: authStatusSchema.default("pending"),
+  status: authStatusSchema.default("draft"),
   auth_reference_number: z.string().max(100).optional().or(z.literal("")),
   requires_prior_auth: z.boolean().default(false),
   notes: z.string().max(2000).optional().or(z.literal("")),
+  // Services array
+  services: z.array(clientAuthorizationServiceSchema).default([]),
 });
 
 // Document schema
@@ -517,6 +564,7 @@ export type ContactRelationshipType = z.infer<typeof contactRelationshipTypeSche
 export type ClientParent = z.infer<typeof clientParentSchema>;
 export type ClientLocation = z.infer<typeof clientLocationSchema>;
 export type ClientInsurance = z.infer<typeof clientInsuranceSchema>;
+export type ClientAuthorizationService = z.infer<typeof clientAuthorizationServiceSchema>;
 export type ClientAuthorization = z.infer<typeof clientAuthorizationSchema>;
 export type ClientDocument = z.infer<typeof clientDocumentSchema>;
 export type ClientTask = z.infer<typeof clientTaskSchema>;
@@ -619,4 +667,85 @@ export function getAuthDaysColor(daysRemaining: number | null): string {
   if (daysRemaining <= 7) return "orange";
   if (daysRemaining <= 30) return "amber";
   return "green";
+}
+
+// =============================================================================
+// AUTHORIZATION PERIOD CALCULATIONS
+// =============================================================================
+
+export interface AuthPeriodCalculations {
+  totalCalendarDays: number;
+  totalWeeks: number;
+  totalMonths: number;
+}
+
+/**
+ * Calculate authorization period metrics from start and end dates
+ */
+export function calculateAuthPeriod(startDate: string, endDate: string): AuthPeriodCalculations | null {
+  if (!startDate || !endDate) return null;
+
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+
+  if (isNaN(start.getTime()) || isNaN(end.getTime())) return null;
+
+  // Include both start and end dates in the count
+  const diffTime = end.getTime() - start.getTime();
+  const totalCalendarDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
+
+  if (totalCalendarDays < 0) return null;
+
+  return {
+    totalCalendarDays,
+    totalWeeks: Math.round((totalCalendarDays / 7) * 100) / 100,  // Round to 2 decimals
+    totalMonths: Math.round((totalCalendarDays / 30.44) * 100) / 100,  // Average days per month
+  };
+}
+
+export interface ServiceUnitsCalculations {
+  hoursPerAuth: number;
+  unitsPerWeek: number;
+  unitsPerAuth: number;
+  calculationBreakdown: string;  // Human-readable calculation
+}
+
+/**
+ * Calculate service units from hours per week and period duration
+ * Units per hour = 4 (constant in ABA billing)
+ */
+export function calculateServiceUnits(
+  hoursPerWeek: number,
+  totalWeeks: number
+): ServiceUnitsCalculations {
+  const hoursPerAuth = Math.round(hoursPerWeek * totalWeeks * 100) / 100;
+  const unitsPerWeek = Math.round(hoursPerWeek * UNITS_PER_HOUR);
+  const unitsPerAuth = Math.round(hoursPerWeek * UNITS_PER_HOUR * totalWeeks);
+
+  // Create human-readable breakdown
+  const calculationBreakdown = `${hoursPerWeek} hr/wk × ${UNITS_PER_HOUR} units/hr × ${totalWeeks} wks = ${unitsPerAuth} units`;
+
+  return {
+    hoursPerAuth,
+    unitsPerWeek,
+    unitsPerAuth,
+    calculationBreakdown,
+  };
+}
+
+/**
+ * Get the effective dates for a service (either its own or from parent auth)
+ */
+export function getServiceEffectiveDates(
+  service: Partial<ClientAuthorizationService>,
+  authStartDate?: string,
+  authEndDate?: string
+): { startDate: string | undefined; endDate: string | undefined } {
+  if (service.use_auth_dates) {
+    return { startDate: authStartDate, endDate: authEndDate };
+  }
+  return {
+    startDate: service.start_date || undefined,
+    endDate: service.end_date || undefined,
+  };
 }

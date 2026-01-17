@@ -9,6 +9,7 @@ import {
   clientLocationSchema,
   clientInsuranceSchema,
   clientAuthorizationSchema,
+  clientAuthorizationServiceSchema,
   clientDocumentSchema,
   clientTaskSchema,
   clientContactSchema,
@@ -18,6 +19,7 @@ import {
   type ClientLocation,
   type ClientInsurance,
   type ClientAuthorization,
+  type ClientAuthorizationService,
   type ClientDocument,
   type ClientTask,
   type ClientContact,
@@ -57,7 +59,11 @@ export interface ClientDetail extends Client {
   parents: (ClientParent & { id: string; created_at: string })[];
   locations: (ClientLocation & { id: string; created_at: string })[];
   insurances: (ClientInsurance & { id: string; created_at: string })[];
-  authorizations: (ClientAuthorization & { id: string; created_at: string })[];
+  authorizations: (ClientAuthorization & {
+    id: string;
+    created_at: string;
+    services?: (ClientAuthorizationService & { id: string })[];
+  })[];
   documents: (ClientDocument & { id: string; created_at: string })[];
   tasks: (ClientTask & { id: string; created_at: string; completed_at: string | null })[];
   contacts: (ClientContact & { id: string; created_at: string })[];
@@ -287,6 +293,42 @@ export async function getClientById(
   const documents = filterDeleted(client.client_documents) as Array<{ deleted_at?: string | null; sort_order: number }>;
   const contacts = filterDeleted(client.client_contacts) as Array<{ deleted_at?: string | null; sort_order: number }>;
 
+  // Get authorizations and filter deleted ones
+  const authorizations = filterDeleted(client.client_authorizations) as Array<{
+    id: string;
+    deleted_at?: string | null;
+    [key: string]: unknown;
+  }>;
+
+  // Fetch services for all authorizations
+  const authIds = authorizations.map((auth) => auth.id);
+  let servicesMap: Record<string, (ClientAuthorizationService & { id: string })[]> = {};
+
+  if (authIds.length > 0) {
+    const { data: services } = await supabase
+      .from("client_authorization_services")
+      .select("*")
+      .in("authorization_id", authIds)
+      .is("deleted_at", null);
+
+    if (services) {
+      // Group services by authorization_id
+      servicesMap = services.reduce((acc, svc) => {
+        if (!acc[svc.authorization_id]) {
+          acc[svc.authorization_id] = [];
+        }
+        acc[svc.authorization_id].push(svc as ClientAuthorizationService & { id: string });
+        return acc;
+      }, {} as Record<string, (ClientAuthorizationService & { id: string })[]>);
+    }
+  }
+
+  // Attach services to authorizations
+  const authorizationsWithServices = authorizations.map((auth) => ({
+    ...auth,
+    services: servicesMap[auth.id] || [],
+  }));
+
   return {
     success: true,
     data: {
@@ -294,7 +336,7 @@ export async function getClientById(
       parents: sortByOrder(parents),
       locations: sortByOrder(locations),
       insurances: sortByOrder(insurances),
-      authorizations: filterDeleted(client.client_authorizations),
+      authorizations: authorizationsWithServices,
       documents: sortByOrder(documents),
       tasks: filterDeleted(client.client_tasks),
       contacts: sortByOrder(contacts),
@@ -1007,12 +1049,14 @@ export async function addClientAuthorization(
     return { success: false, error: "Client not found" };
   }
 
+  // Create the authorization
   const { data: auth, error } = await supabase
     .from("client_authorizations")
     .insert({
       client_id: clientId,
       insurance_id: parsed.data.insurance_id || null,
       payor_type: parsed.data.payor_type || null,
+      // Legacy fields (for backward compatibility)
       service_type: parsed.data.service_type || null,
       billing_code: parsed.data.billing_code || null,
       treatment_requested: parsed.data.treatment_requested || null,
@@ -1020,9 +1064,10 @@ export async function addClientAuthorization(
       units_used: parsed.data.units_used || 0,
       units_per_week_authorized: parsed.data.units_per_week_authorized || null,
       rate_per_unit: parsed.data.rate_per_unit || null,
+      // Active fields
       start_date: parsed.data.start_date || null,
       end_date: parsed.data.end_date || null,
-      status: parsed.data.status || "pending",
+      status: parsed.data.status || "draft",
       auth_reference_number: parsed.data.auth_reference_number || null,
       requires_prior_auth: parsed.data.requires_prior_auth || false,
       notes: parsed.data.notes || null,
@@ -1033,6 +1078,35 @@ export async function addClientAuthorization(
   if (error || !auth) {
     console.error("[CLIENTS] Failed to add authorization:", error);
     return { success: false, error: "Failed to add authorization" };
+  }
+
+  // If services were provided, create them
+  if (parsed.data.services && parsed.data.services.length > 0) {
+    const servicesToInsert = parsed.data.services.map((svc) => ({
+      authorization_id: auth.id,
+      service_type: svc.service_type,
+      billing_code: svc.billing_code,
+      custom_billing_code: svc.custom_billing_code || null,
+      use_auth_dates: svc.use_auth_dates ?? true,
+      start_date: svc.start_date || null,
+      end_date: svc.end_date || null,
+      hours_per_week: svc.hours_per_week || null,
+      hours_per_auth: svc.hours_per_auth || null,
+      units_per_week: svc.units_per_week || null,
+      units_per_auth: svc.units_per_auth || null,
+      units_used: svc.units_used || 0,
+      use_calculated_values: svc.use_calculated_values ?? true,
+      notes: svc.notes || null,
+    }));
+
+    const { error: svcError } = await supabase
+      .from("client_authorization_services")
+      .insert(servicesToInsert);
+
+    if (svcError) {
+      console.error("[CLIENTS] Failed to add authorization services:", svcError);
+      // Don't fail the whole operation, just log it
+    }
   }
 
   revalidatePath(`/dashboard/clients/${clientId}`);
@@ -1071,6 +1145,7 @@ export async function updateClientAuthorization(
     .update({
       insurance_id: parsed.data.insurance_id || null,
       payor_type: parsed.data.payor_type,
+      // Legacy fields
       service_type: parsed.data.service_type || null,
       billing_code: parsed.data.billing_code || null,
       treatment_requested: parsed.data.treatment_requested || null,
@@ -1078,6 +1153,7 @@ export async function updateClientAuthorization(
       units_used: parsed.data.units_used,
       units_per_week_authorized: parsed.data.units_per_week_authorized,
       rate_per_unit: parsed.data.rate_per_unit,
+      // Active fields
       start_date: parsed.data.start_date || null,
       end_date: parsed.data.end_date || null,
       status: parsed.data.status,
@@ -1115,6 +1191,7 @@ export async function deleteClientAuthorization(authId: string): Promise<ActionR
     return { success: false, error: "Authorization not found" };
   }
 
+  // Soft delete the authorization (cascade will handle services via FK)
   const { error } = await supabase
     .from("client_authorizations")
     .update({ deleted_at: new Date().toISOString() })
@@ -1126,6 +1203,189 @@ export async function deleteClientAuthorization(authId: string): Promise<ActionR
   }
 
   revalidatePath(`/dashboard/clients/${auth.client_id}`);
+  return { success: true };
+}
+
+// =============================================================================
+// CLIENT AUTHORIZATION SERVICES
+// =============================================================================
+
+export async function addAuthorizationService(
+  authId: string,
+  data: Partial<ClientAuthorizationService>
+): Promise<ActionResult<{ id: string }>> {
+  const user = await getUser();
+  if (!user) {
+    return { success: false, error: "Not authenticated" };
+  }
+
+  const parsed = clientAuthorizationServiceSchema.partial().safeParse(data);
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0]?.message || "Invalid input" };
+  }
+
+  const supabase = await createSupabaseClient();
+
+  // Verify ownership through authorization -> client
+  const { data: auth } = await supabase
+    .from("client_authorizations")
+    .select("client_id, clients!inner(profile_id)")
+    .eq("id", authId)
+    .is("deleted_at", null)
+    .single();
+
+  if (!auth || (auth.clients as unknown as { profile_id: string }).profile_id !== user.id) {
+    return { success: false, error: "Authorization not found" };
+  }
+
+  const { data: service, error } = await supabase
+    .from("client_authorization_services")
+    .insert({
+      authorization_id: authId,
+      service_type: parsed.data.service_type || "",
+      billing_code: parsed.data.billing_code || "",
+      custom_billing_code: parsed.data.custom_billing_code || null,
+      use_auth_dates: parsed.data.use_auth_dates ?? true,
+      start_date: parsed.data.start_date || null,
+      end_date: parsed.data.end_date || null,
+      hours_per_week: parsed.data.hours_per_week || null,
+      hours_per_auth: parsed.data.hours_per_auth || null,
+      units_per_week: parsed.data.units_per_week || null,
+      units_per_auth: parsed.data.units_per_auth || null,
+      units_used: parsed.data.units_used || 0,
+      use_calculated_values: parsed.data.use_calculated_values ?? true,
+      notes: parsed.data.notes || null,
+    })
+    .select("id")
+    .single();
+
+  if (error || !service) {
+    console.error("[CLIENTS] Failed to add authorization service:", error);
+    return { success: false, error: "Failed to add service" };
+  }
+
+  revalidatePath(`/dashboard/clients/${auth.client_id}`);
+  return { success: true, data: { id: service.id } };
+}
+
+export async function updateAuthorizationService(
+  serviceId: string,
+  data: Partial<ClientAuthorizationService>
+): Promise<ActionResult> {
+  const user = await getUser();
+  if (!user) {
+    return { success: false, error: "Not authenticated" };
+  }
+
+  const parsed = clientAuthorizationServiceSchema.partial().safeParse(data);
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0]?.message || "Invalid input" };
+  }
+
+  const supabase = await createSupabaseClient();
+
+  // Verify ownership through authorization -> client
+  const { data: service } = await supabase
+    .from("client_authorization_services")
+    .select(`
+      authorization_id,
+      client_authorizations!inner(
+        client_id,
+        clients!inner(profile_id)
+      )
+    `)
+    .eq("id", serviceId)
+    .is("deleted_at", null)
+    .single();
+
+  if (!service) {
+    return { success: false, error: "Service not found" };
+  }
+
+  const clientAuth = service.client_authorizations as unknown as {
+    client_id: string;
+    clients: { profile_id: string };
+  };
+
+  if (clientAuth.clients.profile_id !== user.id) {
+    return { success: false, error: "Service not found" };
+  }
+
+  const { error } = await supabase
+    .from("client_authorization_services")
+    .update({
+      service_type: parsed.data.service_type,
+      billing_code: parsed.data.billing_code,
+      custom_billing_code: parsed.data.custom_billing_code || null,
+      use_auth_dates: parsed.data.use_auth_dates,
+      start_date: parsed.data.start_date || null,
+      end_date: parsed.data.end_date || null,
+      hours_per_week: parsed.data.hours_per_week,
+      hours_per_auth: parsed.data.hours_per_auth,
+      units_per_week: parsed.data.units_per_week,
+      units_per_auth: parsed.data.units_per_auth,
+      units_used: parsed.data.units_used,
+      use_calculated_values: parsed.data.use_calculated_values,
+      notes: parsed.data.notes || null,
+    })
+    .eq("id", serviceId);
+
+  if (error) {
+    console.error("[CLIENTS] Failed to update authorization service:", error);
+    return { success: false, error: "Failed to update service" };
+  }
+
+  revalidatePath(`/dashboard/clients/${clientAuth.client_id}`);
+  return { success: true };
+}
+
+export async function deleteAuthorizationService(serviceId: string): Promise<ActionResult> {
+  const user = await getUser();
+  if (!user) {
+    return { success: false, error: "Not authenticated" };
+  }
+
+  const supabase = await createSupabaseClient();
+
+  // Verify ownership through authorization -> client
+  const { data: service } = await supabase
+    .from("client_authorization_services")
+    .select(`
+      authorization_id,
+      client_authorizations!inner(
+        client_id,
+        clients!inner(profile_id)
+      )
+    `)
+    .eq("id", serviceId)
+    .is("deleted_at", null)
+    .single();
+
+  if (!service) {
+    return { success: false, error: "Service not found" };
+  }
+
+  const clientAuth = service.client_authorizations as unknown as {
+    client_id: string;
+    clients: { profile_id: string };
+  };
+
+  if (clientAuth.clients.profile_id !== user.id) {
+    return { success: false, error: "Service not found" };
+  }
+
+  // Soft delete
+  const { error } = await supabase
+    .from("client_authorization_services")
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("id", serviceId);
+
+  if (error) {
+    console.error("[CLIENTS] Failed to delete authorization service:", error);
+    return { success: false, error: "Failed to delete service" };
+  }
+
+  revalidatePath(`/dashboard/clients/${clientAuth.client_id}`);
   return { success: true };
 }
 

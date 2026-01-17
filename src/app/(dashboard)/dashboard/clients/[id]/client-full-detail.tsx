@@ -62,9 +62,12 @@ import {
   calculateAge,
   getDaysUntilAuthExpires,
   getAuthDaysColor,
+  calculateAuthPeriod,
   PARENT_RELATIONSHIP_OPTIONS,
   AUTH_STATUS_OPTIONS,
+  AUTH_PAYOR_TYPE_OPTIONS,
   INSURANCE_STATUS_OPTIONS,
+  SERVICE_BILLING_MAP,
 } from "@/lib/validations/clients";
 import {
   updateClientTask,
@@ -643,15 +646,23 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
                 {client.authorizations.map((auth) => {
                   const daysLeft = auth.end_date ? getDaysUntilAuthExpires(auth.end_date) : null;
                   const daysColor = getAuthDaysColor(daysLeft);
-                  const remainingUnits = auth.units_requested && auth.units_used !== undefined
-                    ? auth.units_requested - auth.units_used
+                  const authPeriod = auth.start_date && auth.end_date
+                    ? calculateAuthPeriod(auth.start_date, auth.end_date)
                     : null;
 
                   return (
                     <div key={auth.id} className="p-4 rounded-lg border bg-muted/30">
+                      {/* Auth Header */}
                       <div className="flex flex-col gap-2 mb-3 sm:flex-row sm:items-start sm:justify-between">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-medium">{auth.service_type || auth.payor_type || "Authorization"}</span>
+                          <span className="font-medium">
+                            {auth.payor_type
+                              ? AUTH_PAYOR_TYPE_OPTIONS.find(o => o.value === auth.payor_type)?.label || auth.payor_type
+                              : "Authorization"}
+                          </span>
+                          {auth.auth_reference_number && (
+                            <span className="text-muted-foreground text-sm">#{auth.auth_reference_number}</span>
+                          )}
                           {auth.status && (
                             <Badge
                               variant={auth.status === "approved" ? "default" : "secondary"}
@@ -693,16 +704,102 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
                           </DropdownMenu>
                         </div>
                       </div>
-                      <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-                        <Field label="Auth Reference #" value={auth.auth_reference_number} />
-                        <Field label="Service Type" value={auth.service_type} />
+
+                      {/* Auth Period Info */}
+                      <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 mb-3">
                         <Field label="Start Date" value={auth.start_date ? format(new Date(auth.start_date), "MMM d, yyyy") : null} icon={Calendar} />
                         <Field label="End Date" value={auth.end_date ? format(new Date(auth.end_date), "MMM d, yyyy") : null} icon={Calendar} />
-                        <Field label="Units Requested" value={auth.units_requested?.toString()} />
-                        <Field label="Units Used" value={auth.units_used?.toString()} />
-                        <Field label="Remaining Units" value={remainingUnits?.toString()} />
-                        <Field label="Billing Code" value={auth.billing_code} />
+                        {authPeriod && (
+                          <>
+                            <Field label="Duration" value={`${authPeriod.totalWeeks} weeks`} />
+                            <Field label="Payor Type" value={
+                              auth.payor_type
+                                ? (AUTH_PAYOR_TYPE_OPTIONS.find(o => o.value === auth.payor_type)?.label || auth.payor_type)
+                                : null
+                            } />
+                          </>
+                        )}
                       </div>
+
+                      {/* Services */}
+                      {auth.services && auth.services.length > 0 && (
+                        <div className="mt-3 pt-3 border-t space-y-3">
+                          <p className="text-sm font-medium text-muted-foreground">Services ({auth.services.length})</p>
+                          {auth.services.map((service, svcIndex) => {
+                            const remaining = service.units_per_auth && service.units_used !== undefined
+                              ? service.units_per_auth - service.units_used
+                              : null;
+                            const usagePercent = service.units_per_auth && service.units_used !== undefined
+                              ? Math.min(100, Math.round((service.units_used / service.units_per_auth) * 100))
+                              : null;
+
+                            return (
+                              <div key={service.id || svcIndex} className="pl-3 border-l-2 border-primary/20 bg-background/50 rounded-r-lg p-3">
+                                <div className="flex items-center gap-2 mb-2 flex-wrap">
+                                  <span className="font-medium text-sm">
+                                    {SERVICE_BILLING_MAP.find(m => m.code === service.billing_code)?.label || service.service_type}
+                                  </span>
+                                  <Badge variant="outline" className="text-xs">
+                                    {service.billing_code}
+                                  </Badge>
+                                </div>
+                                <div className="grid gap-2 grid-cols-2 sm:grid-cols-4 text-sm">
+                                  <div>
+                                    <span className="text-muted-foreground">Hours/Week:</span>{" "}
+                                    <span className="font-medium">{service.hours_per_week ?? "—"}</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-muted-foreground">Units/Auth:</span>{" "}
+                                    <span className="font-medium">{service.units_per_auth ?? "—"}</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-muted-foreground">Used:</span>{" "}
+                                    <span className="font-medium">{service.units_used ?? 0}</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-muted-foreground">Remaining:</span>{" "}
+                                    <span className={cn(
+                                      "font-medium",
+                                      remaining !== null && remaining <= 0 ? "text-destructive" : ""
+                                    )}>
+                                      {remaining ?? "—"}
+                                    </span>
+                                  </div>
+                                </div>
+                                {/* Usage bar */}
+                                {usagePercent !== null && (
+                                  <div className="mt-2">
+                                    <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                                      <div
+                                        className={cn(
+                                          "h-full rounded-full transition-all",
+                                          usagePercent >= 90 ? "bg-destructive" : usagePercent >= 75 ? "bg-amber-500" : "bg-primary"
+                                        )}
+                                        style={{ width: `${usagePercent}%` }}
+                                      />
+                                    </div>
+                                    <p className="text-xs text-muted-foreground mt-1">{usagePercent}% utilized</p>
+                                  </div>
+                                )}
+                                {service.notes && (
+                                  <p className="text-xs text-muted-foreground mt-2">{service.notes}</p>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {/* Legacy display for auths without services */}
+                      {(!auth.services || auth.services.length === 0) && (auth.service_type || auth.billing_code) && (
+                        <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+                          <Field label="Service Type" value={auth.service_type} />
+                          <Field label="Billing Code" value={auth.billing_code} />
+                          <Field label="Units Requested" value={auth.units_requested?.toString()} />
+                          <Field label="Units Used" value={auth.units_used?.toString()} />
+                        </div>
+                      )}
+
                       {auth.notes && (
                         <div className="mt-3 pt-3 border-t group">
                           <div className="flex items-start justify-between">
