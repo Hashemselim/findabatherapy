@@ -16,19 +16,16 @@ import {
   MoreHorizontal,
   Pencil,
   Trash2,
-  Phone,
-  Mail,
-  Calendar,
-  ClipboardList,
-  Building2,
-  CreditCard,
   Clock,
   Loader2,
+  Stethoscope,
+  ClipboardList,
+  type LucideIcon,
 } from "lucide-react";
 import { useState, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
@@ -92,6 +89,9 @@ interface ClientFullDetailProps {
   client: ClientDetail;
 }
 
+// Brand color for section headers
+const SECTION_COLOR = "#8B5CF6"; // CRM purple
+
 // Copy button component
 function CopyButton({ value, label }: { value: string; label: string }) {
   const [copied, setCopied] = useState(false);
@@ -127,29 +127,104 @@ function CopyButton({ value, label }: { value: string; label: string }) {
   );
 }
 
-// Field component - always copyable
+// Section header component - styled like sidebar nav sections
+interface SectionHeaderProps {
+  icon: LucideIcon;
+  title: string;
+  badgeCount?: number;
+  badgeLabel?: string;
+  editHref?: string;
+  addHref?: string;
+  rightContent?: React.ReactNode;
+}
+
+function SectionHeader({
+  icon: Icon,
+  title,
+  badgeCount,
+  badgeLabel,
+  editHref,
+  addHref,
+  rightContent,
+}: SectionHeaderProps) {
+  return (
+    <div
+      className="flex items-center justify-between px-4 py-3 -mx-6 -mt-6 mb-4 rounded-t-lg"
+      style={{ backgroundColor: `${SECTION_COLOR}15` }}
+    >
+      <div className="flex items-center gap-2.5">
+        <div
+          className="flex h-7 w-7 items-center justify-center rounded-lg"
+          style={{ backgroundColor: SECTION_COLOR }}
+        >
+          <Icon className="h-4 w-4 text-white" />
+        </div>
+        <span
+          className="text-base font-semibold"
+          style={{ color: SECTION_COLOR }}
+        >
+          {title}
+        </span>
+        {badgeCount !== undefined && badgeCount > 0 && (
+          <Badge variant="secondary" className="ml-1">
+            {badgeLabel ? `${badgeCount} ${badgeLabel}` : badgeCount}
+          </Badge>
+        )}
+      </div>
+      <div className="flex items-center gap-2">
+        {rightContent}
+        {editHref && (
+          <Button variant="ghost" size="sm" asChild>
+            <a href={editHref}>
+              <Pencil className="h-4 w-4 mr-1" />
+              Edit
+            </a>
+          </Button>
+        )}
+        {addHref && (
+          <Button variant="ghost" size="sm" asChild>
+            <a href={addHref}>
+              <Plus className="h-4 w-4 mr-1" />
+              Add
+            </a>
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Field component - simple label/value display (no icons)
 function Field({
   label,
   value,
-  icon: Icon,
   className,
 }: {
   label: string;
   value: string | null | undefined;
-  icon?: React.ComponentType<{ className?: string }>;
   className?: string;
 }) {
   if (!value) return null;
 
   return (
-    <div className={cn("group flex items-start gap-2 sm:gap-3 py-2", className)}>
-      {Icon && <Icon className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />}
-      <div className="flex-1 min-w-0">
-        <p className="text-xs text-muted-foreground mb-0.5">{label}</p>
-        <div className="flex items-center gap-1">
-          <p className="text-sm font-medium break-words">{value}</p>
-          <CopyButton value={value} label={label.toLowerCase()} />
-        </div>
+    <div className={cn("group py-2", className)}>
+      <p className="text-xs text-muted-foreground mb-0.5">{label}</p>
+      <div className="flex items-center gap-1">
+        <p className="text-sm font-medium break-words">{value}</p>
+        <CopyButton value={value} label={label.toLowerCase()} />
+      </div>
+    </div>
+  );
+}
+
+// Full-width field for longer text content
+function FullWidthField({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="group">
+      <p className="text-xs text-muted-foreground mb-1">{label}</p>
+      <div className="flex items-start justify-between gap-2">
+        <p className="text-sm whitespace-pre-wrap flex-1">{value}</p>
+        <CopyButton value={value} label={label.toLowerCase()} />
       </div>
     </div>
   );
@@ -309,43 +384,44 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
   return (
     <>
       <div className="space-y-6">
-        {/* SECTION 1: Child Information - Most Important */}
+        {/* SECTION 1: Child Information */}
         <Card>
-          <CardHeader className="pb-3 px-4 sm:px-6">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-2">
-                <User className="h-5 w-5 text-primary shrink-0" />
-                <CardTitle className="text-base sm:text-lg">Child Information</CardTitle>
-              </div>
-              <Button variant="ghost" size="sm" className="w-full sm:w-auto justify-center" asChild>
-                <a href={`/dashboard/clients/${client.id}/edit#child`}>
-                  <Pencil className="h-4 w-4 mr-1" />
-                  Edit
-                </a>
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="px-4 sm:px-6">
-            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+          <CardContent className="pt-6">
+            <SectionHeader
+              icon={User}
+              title="Child Information"
+              editHref={`/dashboard/clients/${client.id}/edit#child`}
+            />
+            <div className="grid gap-x-6 gap-y-1 sm:grid-cols-2 lg:grid-cols-4">
               <Field label="First Name" value={client.child_first_name} />
               <Field label="Last Name" value={client.child_last_name} />
               <Field
                 label="Date of Birth"
                 value={client.child_date_of_birth ? format(new Date(client.child_date_of_birth), "MMM d, yyyy") : null}
-                icon={Calendar}
               />
               <Field label="Age" value={age !== null ? `${age} years old` : null} />
-              <Field label="School Name" value={client.child_school_name} icon={Building2} />
+              <Field label="School Name" value={client.child_school_name} />
               <Field label="School District" value={client.child_school_district} />
               <Field label="Grade Level" value={client.child_grade_level} />
               <Field label="Preferred Language" value={client.preferred_language} />
               <Field label="Pediatrician" value={client.child_pediatrician_name} />
-              <Field label="Pediatrician Phone" value={client.child_pediatrician_phone} icon={Phone} />
+              <Field label="Pediatrician Phone" value={client.child_pediatrician_phone} />
             </div>
+          </CardContent>
+        </Card>
 
-            {/* Diagnosis - Full Width */}
+        {/* SECTION 2: Clinical Information */}
+        <Card>
+          <CardContent className="pt-6">
+            <SectionHeader
+              icon={Stethoscope}
+              title="Clinical Information"
+              editHref={`/dashboard/clients/${client.id}/edit#child`}
+            />
+
+            {/* Diagnosis */}
             {client.child_diagnosis && client.child_diagnosis.length > 0 && (
-              <div className="mt-4 pt-4 border-t">
+              <div className="mb-4">
                 <p className="text-xs text-muted-foreground mb-2">Diagnosis</p>
                 <div className="flex flex-wrap gap-2">
                   {client.child_diagnosis.map((d, i) => (
@@ -358,70 +434,41 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
               </div>
             )}
 
-            {/* Primary Concerns - Full Width */}
-            {client.child_primary_concerns && (
-              <div className="mt-4 pt-4 border-t group">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <p className="text-xs text-muted-foreground mb-1">Primary Concerns</p>
-                    <p className="text-sm">{client.child_primary_concerns}</p>
-                  </div>
-                  <CopyButton value={client.child_primary_concerns} label="primary concerns" />
-                </div>
-              </div>
-            )}
+            {/* Clinical text fields */}
+            <div className="space-y-4">
+              {client.child_primary_concerns && (
+                <FullWidthField label="Primary Concerns" value={client.child_primary_concerns} />
+              )}
+              {client.child_aba_history && (
+                <FullWidthField label="ABA History" value={client.child_aba_history} />
+              )}
+              {client.child_other_therapies && (
+                <FullWidthField label="Other Therapies" value={client.child_other_therapies} />
+              )}
+            </div>
 
-            {/* ABA History - Full Width */}
-            {client.child_aba_history && (
-              <div className="mt-4 pt-4 border-t group">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <p className="text-xs text-muted-foreground mb-1">ABA History</p>
-                    <p className="text-sm">{client.child_aba_history}</p>
-                  </div>
-                  <CopyButton value={client.child_aba_history} label="ABA history" />
-                </div>
-              </div>
-            )}
-
-            {/* Other Therapies - Full Width */}
-            {client.child_other_therapies && (
-              <div className="mt-4 pt-4 border-t group">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <p className="text-xs text-muted-foreground mb-1">Other Therapies</p>
-                    <p className="text-sm">{client.child_other_therapies}</p>
-                  </div>
-                  <CopyButton value={client.child_other_therapies} label="other therapies" />
-                </div>
-              </div>
+            {/* Empty state if no clinical info */}
+            {!client.child_diagnosis?.length &&
+             !client.child_primary_concerns &&
+             !client.child_aba_history &&
+             !client.child_other_therapies && (
+              <EmptyState message="No clinical information added yet" />
             )}
           </CardContent>
         </Card>
 
-        {/* SECTION 2: Parents/Guardians - Second Most Important */}
+        {/* SECTION 3: Parents/Guardians */}
         <Card>
-          <CardHeader className="pb-3 px-4 sm:px-6">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-2 flex-wrap">
-                <Users className="h-5 w-5 text-primary shrink-0" />
-                <CardTitle className="text-base sm:text-lg">Parents / Guardians</CardTitle>
-                {client.parents && client.parents.length > 0 && (
-                  <Badge variant="secondary" className="shrink-0">{client.parents.length}</Badge>
-                )}
-              </div>
-              <Button variant="ghost" size="sm" className="w-full sm:w-auto justify-center" asChild>
-                <a href={`/dashboard/clients/${client.id}/edit#parents`}>
-                  <Plus className="h-4 w-4 mr-1" />
-                  Add
-                </a>
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="px-4 sm:px-6">
+          <CardContent className="pt-6">
+            <SectionHeader
+              icon={Users}
+              title="Parents / Guardians"
+              badgeCount={client.parents?.length}
+              addHref={`/dashboard/clients/${client.id}/edit#parents`}
+            />
             {client.parents && client.parents.length > 0 ? (
               <div className="space-y-4">
-                {client.parents.map((parent, index) => (
+                {client.parents.map((parent) => (
                   <div
                     key={parent.id}
                     className={cn(
@@ -429,7 +476,7 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
                       parent.is_primary && "border-primary/30 bg-primary/5"
                     )}
                   >
-                    <div className="flex flex-col gap-2 mb-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="flex items-start justify-between mb-3">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-medium">
                           {[parent.first_name, parent.last_name].filter(Boolean).join(" ") || "Unnamed"}
@@ -467,21 +514,15 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
-                    <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+                    <div className="grid gap-x-6 gap-y-1 sm:grid-cols-2 lg:grid-cols-4">
                       <Field label="First Name" value={parent.first_name} />
                       <Field label="Last Name" value={parent.last_name} />
-                      <Field label="Phone" value={parent.phone} icon={Phone} />
-                      <Field label="Email" value={parent.email} icon={Mail} />
+                      <Field label="Phone" value={parent.phone} />
+                      <Field label="Email" value={parent.email} />
                     </div>
                     {parent.notes && (
-                      <div className="mt-3 pt-3 border-t group">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <p className="text-xs text-muted-foreground mb-1">Notes</p>
-                            <p className="text-sm">{parent.notes}</p>
-                          </div>
-                          <CopyButton value={parent.notes} label="notes" />
-                        </div>
+                      <div className="mt-3 pt-3 border-t">
+                        <FullWidthField label="Notes" value={parent.notes} />
                       </div>
                     )}
                   </div>
@@ -493,68 +534,46 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
           </CardContent>
         </Card>
 
-        {/* SECTION 3: Status & Service Info */}
+        {/* SECTION 4: Status & Service Info */}
         <Card>
-          <CardHeader className="pb-3 px-4 sm:px-6">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-2">
-                <ClipboardList className="h-5 w-5 text-primary shrink-0" />
-                <CardTitle className="text-base sm:text-lg">Status & Service Information</CardTitle>
-              </div>
-              <ClientStatusBadge status={client.status} />
-            </div>
-          </CardHeader>
-          <CardContent className="px-4 sm:px-6">
-            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+          <CardContent className="pt-6">
+            <SectionHeader
+              icon={ClipboardList}
+              title="Status & Service Information"
+              rightContent={<ClientStatusBadge status={client.status} />}
+              editHref={`/dashboard/clients/${client.id}/edit#status`}
+            />
+            <div className="grid gap-x-6 gap-y-1 sm:grid-cols-2 lg:grid-cols-4">
               <Field label="Referral Source" value={client.referral_source} />
               <Field
                 label="Referral Date"
                 value={client.referral_date ? format(new Date(client.referral_date), "MMM d, yyyy") : null}
-                icon={Calendar}
               />
               <Field
                 label="Service Start Date"
                 value={client.service_start_date ? format(new Date(client.service_start_date), "MMM d, yyyy") : null}
-                icon={Calendar}
               />
               <Field label="Funding Source" value={client.funding_source} />
             </div>
 
             {/* Notes - Full Width */}
             {client.notes && (
-              <div className="mt-4 pt-4 border-t group">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <p className="text-xs text-muted-foreground mb-1">General Notes</p>
-                    <p className="text-sm whitespace-pre-wrap">{client.notes}</p>
-                  </div>
-                  <CopyButton value={client.notes} label="notes" />
-                </div>
+              <div className="mt-4 pt-4 border-t">
+                <FullWidthField label="General Notes" value={client.notes} />
               </div>
             )}
           </CardContent>
         </Card>
 
-        {/* SECTION 4: Insurance */}
+        {/* SECTION 5: Insurance */}
         <Card>
-          <CardHeader className="pb-3 px-4 sm:px-6">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-2 flex-wrap">
-                <Shield className="h-5 w-5 text-primary shrink-0" />
-                <CardTitle className="text-base sm:text-lg">Insurance</CardTitle>
-                {client.insurances && client.insurances.length > 0 && (
-                  <Badge variant="secondary" className="shrink-0">{client.insurances.length}</Badge>
-                )}
-              </div>
-              <Button variant="ghost" size="sm" className="w-full sm:w-auto justify-center" asChild>
-                <a href={`/dashboard/clients/${client.id}/edit#insurance`}>
-                  <Plus className="h-4 w-4 mr-1" />
-                  Add
-                </a>
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="px-4 sm:px-6">
+          <CardContent className="pt-6">
+            <SectionHeader
+              icon={Shield}
+              title="Insurance"
+              badgeCount={client.insurances?.length}
+              addHref={`/dashboard/clients/${client.id}/edit#insurance`}
+            />
             {client.insurances && client.insurances.length > 0 ? (
               <div className="space-y-4">
                 {client.insurances.map((insurance) => (
@@ -565,7 +584,7 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
                       insurance.is_primary && "border-primary/30 bg-primary/5"
                     )}
                   >
-                    <div className="flex flex-col gap-2 mb-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="flex items-start justify-between mb-3">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-medium">{insurance.insurance_name || "Unnamed Insurance"}</span>
                         {insurance.is_primary && (
@@ -607,14 +626,14 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
-                    <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+                    <div className="grid gap-x-6 gap-y-1 sm:grid-cols-2 lg:grid-cols-4">
                       <Field label="Insurance Name" value={insurance.insurance_name} />
-                      <Field label="Member ID" value={insurance.member_id} icon={CreditCard} />
+                      <Field label="Member ID" value={insurance.member_id} />
                       <Field label="Group Number" value={insurance.group_number} />
                       <Field label="Plan Name" value={insurance.plan_name} />
                       <Field label="Subscriber Relationship" value={insurance.subscriber_relationship} />
-                      <Field label="Effective Date" value={insurance.effective_date ? format(new Date(insurance.effective_date), "MMM d, yyyy") : null} icon={Calendar} />
-                      <Field label="Expiration Date" value={insurance.expiration_date ? format(new Date(insurance.expiration_date), "MMM d, yyyy") : null} icon={Calendar} />
+                      <Field label="Effective Date" value={insurance.effective_date ? format(new Date(insurance.effective_date), "MMM d, yyyy") : null} />
+                      <Field label="Expiration Date" value={insurance.expiration_date ? format(new Date(insurance.expiration_date), "MMM d, yyyy") : null} />
                       <Field label="Copay" value={insurance.copay_amount ? `$${insurance.copay_amount}` : null} />
                     </div>
                   </div>
@@ -626,21 +645,15 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
           </CardContent>
         </Card>
 
-        {/* SECTION 5: Authorizations */}
+        {/* SECTION 6: Authorizations */}
         <Card>
-          <CardHeader className="pb-3 px-4 sm:px-6">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-2 flex-wrap">
-                <FileText className="h-5 w-5 text-primary shrink-0" />
-                <CardTitle className="text-base sm:text-lg">Authorizations</CardTitle>
-                {client.authorizations && client.authorizations.length > 0 && (
-                  <Badge variant="secondary" className="shrink-0">{client.authorizations.length}</Badge>
-                )}
-              </div>
-              <AddAuthorizationDialog clientId={client.id} />
-            </div>
-          </CardHeader>
-          <CardContent className="px-4 sm:px-6">
+          <CardContent className="pt-6">
+            <SectionHeader
+              icon={FileText}
+              title="Authorizations"
+              badgeCount={client.authorizations?.length}
+              rightContent={<AddAuthorizationDialog clientId={client.id} />}
+            />
             {client.authorizations && client.authorizations.length > 0 ? (
               <div className="space-y-4">
                 {client.authorizations.map((auth) => {
@@ -653,7 +666,7 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
                   return (
                     <div key={auth.id} className="p-4 rounded-lg border bg-muted/30">
                       {/* Auth Header */}
-                      <div className="flex flex-col gap-2 mb-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="flex items-start justify-between mb-3">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-medium">
                             {auth.payor_type
@@ -706,9 +719,9 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
                       </div>
 
                       {/* Auth Period Info */}
-                      <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 mb-3">
-                        <Field label="Start Date" value={auth.start_date ? format(new Date(auth.start_date), "MMM d, yyyy") : null} icon={Calendar} />
-                        <Field label="End Date" value={auth.end_date ? format(new Date(auth.end_date), "MMM d, yyyy") : null} icon={Calendar} />
+                      <div className="grid gap-x-6 gap-y-1 sm:grid-cols-2 lg:grid-cols-4 mb-3">
+                        <Field label="Start Date" value={auth.start_date ? format(new Date(auth.start_date), "MMM d, yyyy") : null} />
+                        <Field label="End Date" value={auth.end_date ? format(new Date(auth.end_date), "MMM d, yyyy") : null} />
                         {authPeriod && (
                           <>
                             <Field label="Duration" value={`${authPeriod.totalWeeks} weeks`} />
@@ -792,7 +805,7 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
 
                       {/* Legacy display for auths without services */}
                       {(!auth.services || auth.services.length === 0) && (auth.service_type || auth.billing_code) && (
-                        <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+                        <div className="grid gap-x-6 gap-y-1 sm:grid-cols-2 lg:grid-cols-4">
                           <Field label="Service Type" value={auth.service_type} />
                           <Field label="Billing Code" value={auth.billing_code} />
                           <Field label="Units Requested" value={auth.units_requested?.toString()} />
@@ -801,14 +814,8 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
                       )}
 
                       {auth.notes && (
-                        <div className="mt-3 pt-3 border-t group">
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <p className="text-xs text-muted-foreground mb-1">Notes</p>
-                              <p className="text-sm">{auth.notes}</p>
-                            </div>
-                            <CopyButton value={auth.notes} label="notes" />
-                          </div>
+                        <div className="mt-3 pt-3 border-t">
+                          <FullWidthField label="Notes" value={auth.notes} />
                         </div>
                       )}
                     </div>
@@ -821,26 +828,15 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
           </CardContent>
         </Card>
 
-        {/* SECTION 6: Locations */}
+        {/* SECTION 7: Locations */}
         <Card>
-          <CardHeader className="pb-3 px-4 sm:px-6">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-2 flex-wrap">
-                <MapPin className="h-5 w-5 text-primary shrink-0" />
-                <CardTitle className="text-base sm:text-lg">Service Locations</CardTitle>
-                {client.locations && client.locations.length > 0 && (
-                  <Badge variant="secondary" className="shrink-0">{client.locations.length}</Badge>
-                )}
-              </div>
-              <Button variant="ghost" size="sm" className="w-full sm:w-auto justify-center" asChild>
-                <a href={`/dashboard/clients/${client.id}/edit#locations`}>
-                  <Plus className="h-4 w-4 mr-1" />
-                  Add
-                </a>
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="px-4 sm:px-6">
+          <CardContent className="pt-6">
+            <SectionHeader
+              icon={MapPin}
+              title="Service Locations"
+              badgeCount={client.locations?.length}
+              addHref={`/dashboard/clients/${client.id}/edit#locations`}
+            />
             {client.locations && client.locations.length > 0 ? (
               <div className="space-y-4">
                 {client.locations.map((location) => (
@@ -851,7 +847,7 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
                       location.is_primary && "border-primary/30 bg-primary/5"
                     )}
                   >
-                    <div className="flex flex-col gap-2 mb-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="flex items-start justify-between mb-3">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-medium">{location.label || "Location"}</span>
                         {location.is_primary && (
@@ -882,21 +878,15 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
-                    <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+                    <div className="grid gap-x-6 gap-y-1 sm:grid-cols-2 lg:grid-cols-4">
                       <Field label="Street Address" value={location.street_address} />
                       <Field label="City" value={location.city} />
                       <Field label="State" value={location.state} />
                       <Field label="Postal Code" value={location.postal_code} />
                     </div>
                     {location.notes && (
-                      <div className="mt-3 pt-3 border-t group">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <p className="text-xs text-muted-foreground mb-1">Notes</p>
-                            <p className="text-sm">{location.notes}</p>
-                          </div>
-                          <CopyButton value={location.notes} label="notes" />
-                        </div>
+                      <div className="mt-3 pt-3 border-t">
+                        <FullWidthField label="Notes" value={location.notes} />
                       </div>
                     )}
                   </div>
@@ -908,24 +898,21 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
           </CardContent>
         </Card>
 
-        {/* SECTION 7: Tasks */}
+        {/* SECTION 8: Tasks */}
         <Card>
-          <CardHeader className="pb-3 px-4 sm:px-6">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-2 flex-wrap">
-                <CheckSquare className="h-5 w-5 text-primary shrink-0" />
-                <CardTitle className="text-base sm:text-lg">Tasks</CardTitle>
-                {activeTasks.length > 0 && (
-                  <Badge variant="secondary" className="shrink-0">{activeTasks.length} active</Badge>
-                )}
-              </div>
-              <Button variant="ghost" size="sm" className="w-full sm:w-auto justify-center" onClick={handleAddTask}>
-                <Plus className="h-4 w-4 mr-1" />
-                Add
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="px-4 sm:px-6">
+          <CardContent className="pt-6">
+            <SectionHeader
+              icon={CheckSquare}
+              title="Tasks"
+              badgeCount={activeTasks.length}
+              badgeLabel="active"
+              rightContent={
+                <Button variant="ghost" size="sm" onClick={handleAddTask}>
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add
+                </Button>
+              }
+            />
             {client.tasks && client.tasks.length > 0 ? (
               <div className="space-y-2">
                 {/* Active Tasks (To Do + In Progress) */}
@@ -1079,35 +1066,30 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
           </CardContent>
         </Card>
 
-        {/* SECTION 8: Links */}
+        {/* SECTION 9: Links */}
         <Card>
-          <CardHeader className="pb-3 px-4 sm:px-6">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-2 flex-wrap">
-                <Link2 className="h-5 w-5 text-primary shrink-0" />
-                <CardTitle className="text-base sm:text-lg">Links</CardTitle>
-                {client.documents && client.documents.length > 0 && (
-                  <Badge variant="secondary" className="shrink-0">{client.documents.length}</Badge>
-                )}
-              </div>
-              {!isAddingLink && !editingLinkId && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="w-full sm:w-auto justify-center"
-                  onClick={() => {
-                    setIsAddingLink(true);
-                    setLinkForm({ label: "", url: "", notes: "" });
-                    setLinkError(null);
-                  }}
-                >
-                  <Plus className="h-4 w-4 mr-1" />
-                  Add
-                </Button>
-              )}
-            </div>
-          </CardHeader>
-          <CardContent className="px-4 sm:px-6">
+          <CardContent className="pt-6">
+            <SectionHeader
+              icon={Link2}
+              title="Links"
+              badgeCount={client.documents?.length}
+              rightContent={
+                !isAddingLink && !editingLinkId && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setIsAddingLink(true);
+                      setLinkForm({ label: "", url: "", notes: "" });
+                      setLinkError(null);
+                    }}
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    Add
+                  </Button>
+                )
+              }
+            />
             {/* Add Link Form */}
             {isAddingLink && (
               <div className="mb-4 p-4 rounded-lg border bg-muted/30 space-y-3">
