@@ -1077,7 +1077,7 @@ export async function addClientAuthorization(
 
   if (error || !auth) {
     console.error("[CLIENTS] Failed to add authorization:", error);
-    return { success: false, error: "Failed to add authorization" };
+    return { success: false, error: error?.message || "Failed to add authorization" };
   }
 
   // If services were provided, create them
