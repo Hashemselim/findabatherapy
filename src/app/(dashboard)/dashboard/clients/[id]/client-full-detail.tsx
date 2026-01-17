@@ -137,12 +137,12 @@ function Field({
   if (!value) return null;
 
   return (
-    <div className={cn("group flex items-start gap-3 py-2", className)}>
+    <div className={cn("group flex items-start gap-2 sm:gap-3 py-2", className)}>
       {Icon && <Icon className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />}
       <div className="flex-1 min-w-0">
         <p className="text-xs text-muted-foreground mb-0.5">{label}</p>
         <div className="flex items-center gap-1">
-          <p className="text-sm font-medium truncate">{value}</p>
+          <p className="text-sm font-medium break-words">{value}</p>
           <CopyButton value={value} label={label.toLowerCase()} />
         </div>
       </div>
@@ -306,13 +306,13 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
       <div className="space-y-6">
         {/* SECTION 1: Child Information - Most Important */}
         <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
+          <CardHeader className="pb-3 px-4 sm:px-6">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-2">
-                <User className="h-5 w-5 text-primary" />
-                <CardTitle className="text-lg">Child Information</CardTitle>
+                <User className="h-5 w-5 text-primary shrink-0" />
+                <CardTitle className="text-base sm:text-lg">Child Information</CardTitle>
               </div>
-              <Button variant="ghost" size="sm" asChild>
+              <Button variant="ghost" size="sm" className="w-full sm:w-auto justify-center" asChild>
                 <a href={`/dashboard/clients/${client.id}/edit#child`}>
                   <Pencil className="h-4 w-4 mr-1" />
                   Edit
@@ -320,8 +320,8 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
               </Button>
             </div>
           </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <CardContent className="px-4 sm:px-6">
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
               <Field label="First Name" value={client.child_first_name} />
               <Field label="Last Name" value={client.child_last_name} />
               <Field
@@ -396,16 +396,16 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
 
         {/* SECTION 2: Parents/Guardians - Second Most Important */}
         <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Users className="h-5 w-5 text-primary" />
-                <CardTitle className="text-lg">Parents / Guardians</CardTitle>
+          <CardHeader className="pb-3 px-4 sm:px-6">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-2 flex-wrap">
+                <Users className="h-5 w-5 text-primary shrink-0" />
+                <CardTitle className="text-base sm:text-lg">Parents / Guardians</CardTitle>
                 {client.parents && client.parents.length > 0 && (
-                  <Badge variant="secondary" className="ml-2">{client.parents.length}</Badge>
+                  <Badge variant="secondary" className="shrink-0">{client.parents.length}</Badge>
                 )}
               </div>
-              <Button variant="ghost" size="sm" asChild>
+              <Button variant="ghost" size="sm" className="w-full sm:w-auto justify-center" asChild>
                 <a href={`/dashboard/clients/${client.id}/edit#parents`}>
                   <Plus className="h-4 w-4 mr-1" />
                   Add
@@ -413,7 +413,7 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
               </Button>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-4 sm:px-6">
             {client.parents && client.parents.length > 0 ? (
               <div className="space-y-4">
                 {client.parents.map((parent, index) => (
@@ -424,16 +424,16 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
                       parent.is_primary && "border-primary/30 bg-primary/5"
                     )}
                   >
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex items-center gap-2">
+                    <div className="flex flex-col gap-2 mb-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-medium">
                           {[parent.first_name, parent.last_name].filter(Boolean).join(" ") || "Unnamed"}
                         </span>
                         {parent.is_primary && (
-                          <Badge variant="default" className="text-xs">Primary</Badge>
+                          <Badge variant="default" className="text-xs shrink-0">Primary</Badge>
                         )}
                         {parent.relationship && (
-                          <Badge variant="outline" className="text-xs">
+                          <Badge variant="outline" className="text-xs shrink-0">
                             {PARENT_RELATIONSHIP_OPTIONS.find((r) => r.value === parent.relationship)?.label || parent.relationship}
                           </Badge>
                         )}
@@ -462,7 +462,7 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
-                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                    <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
                       <Field label="First Name" value={parent.first_name} />
                       <Field label="Last Name" value={parent.last_name} />
                       <Field label="Phone" value={parent.phone} icon={Phone} />
@@ -490,17 +490,17 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
 
         {/* SECTION 3: Status & Service Info */}
         <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
+          <CardHeader className="pb-3 px-4 sm:px-6">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-2">
-                <ClipboardList className="h-5 w-5 text-primary" />
-                <CardTitle className="text-lg">Status & Service Information</CardTitle>
+                <ClipboardList className="h-5 w-5 text-primary shrink-0" />
+                <CardTitle className="text-base sm:text-lg">Status & Service Information</CardTitle>
               </div>
               <ClientStatusBadge status={client.status} />
             </div>
           </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <CardContent className="px-4 sm:px-6">
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
               <Field label="Referral Source" value={client.referral_source} />
               <Field
                 label="Referral Date"
@@ -532,16 +532,16 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
 
         {/* SECTION 4: Insurance */}
         <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Shield className="h-5 w-5 text-primary" />
-                <CardTitle className="text-lg">Insurance</CardTitle>
+          <CardHeader className="pb-3 px-4 sm:px-6">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-2 flex-wrap">
+                <Shield className="h-5 w-5 text-primary shrink-0" />
+                <CardTitle className="text-base sm:text-lg">Insurance</CardTitle>
                 {client.insurances && client.insurances.length > 0 && (
-                  <Badge variant="secondary" className="ml-2">{client.insurances.length}</Badge>
+                  <Badge variant="secondary" className="shrink-0">{client.insurances.length}</Badge>
                 )}
               </div>
-              <Button variant="ghost" size="sm" asChild>
+              <Button variant="ghost" size="sm" className="w-full sm:w-auto justify-center" asChild>
                 <a href={`/dashboard/clients/${client.id}/edit#insurance`}>
                   <Plus className="h-4 w-4 mr-1" />
                   Add
@@ -549,7 +549,7 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
               </Button>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-4 sm:px-6">
             {client.insurances && client.insurances.length > 0 ? (
               <div className="space-y-4">
                 {client.insurances.map((insurance) => (
@@ -560,19 +560,19 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
                       insurance.is_primary && "border-primary/30 bg-primary/5"
                     )}
                   >
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex items-center gap-2">
+                    <div className="flex flex-col gap-2 mb-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-medium">{insurance.insurance_name || "Unnamed Insurance"}</span>
                         {insurance.is_primary && (
-                          <Badge variant="default" className="text-xs">Primary</Badge>
+                          <Badge variant="default" className="text-xs shrink-0">Primary</Badge>
                         )}
                         {insurance.insurance_type && (
-                          <Badge variant="outline" className="text-xs">{insurance.insurance_type}</Badge>
+                          <Badge variant="outline" className="text-xs shrink-0">{insurance.insurance_type}</Badge>
                         )}
                         {insurance.status && (
                           <Badge
                             variant={insurance.status === "active" ? "default" : "secondary"}
-                            className="text-xs"
+                            className="text-xs shrink-0"
                           >
                             {INSURANCE_STATUS_OPTIONS.find((s) => s.value === insurance.status)?.label || insurance.status}
                           </Badge>
@@ -580,7 +580,7 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
                       </div>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
@@ -602,7 +602,7 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
-                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                    <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
                       <Field label="Insurance Name" value={insurance.insurance_name} />
                       <Field label="Member ID" value={insurance.member_id} icon={CreditCard} />
                       <Field label="Group Number" value={insurance.group_number} />
@@ -623,16 +623,16 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
 
         {/* SECTION 5: Authorizations */}
         <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <FileText className="h-5 w-5 text-primary" />
-                <CardTitle className="text-lg">Authorizations</CardTitle>
+          <CardHeader className="pb-3 px-4 sm:px-6">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-2 flex-wrap">
+                <FileText className="h-5 w-5 text-primary shrink-0" />
+                <CardTitle className="text-base sm:text-lg">Authorizations</CardTitle>
                 {client.authorizations && client.authorizations.length > 0 && (
-                  <Badge variant="secondary" className="ml-2">{client.authorizations.length}</Badge>
+                  <Badge variant="secondary" className="shrink-0">{client.authorizations.length}</Badge>
                 )}
               </div>
-              <Button variant="ghost" size="sm" asChild>
+              <Button variant="ghost" size="sm" className="w-full sm:w-auto justify-center" asChild>
                 <a href={`/dashboard/clients/${client.id}/edit#authorizations`}>
                   <Plus className="h-4 w-4 mr-1" />
                   Add
@@ -640,7 +640,7 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
               </Button>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-4 sm:px-6">
             {client.authorizations && client.authorizations.length > 0 ? (
               <div className="space-y-4">
                 {client.authorizations.map((auth) => {
@@ -652,26 +652,26 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
 
                   return (
                     <div key={auth.id} className="p-4 rounded-lg border bg-muted/30">
-                      <div className="flex items-start justify-between mb-3">
+                      <div className="flex flex-col gap-2 mb-3 sm:flex-row sm:items-start sm:justify-between">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-medium">{auth.service_type || auth.payor_type || "Authorization"}</span>
                           {auth.status && (
                             <Badge
                               variant={auth.status === "approved" ? "default" : "secondary"}
-                              className="text-xs"
+                              className="text-xs shrink-0"
                             >
                               {AUTH_STATUS_OPTIONS.find((s) => s.value === auth.status)?.label || auth.status}
                             </Badge>
                           )}
                           {daysLeft !== null && auth.status === "approved" && (
-                            <Badge variant="outline" className={cn("text-xs", daysColor)}>
+                            <Badge variant="outline" className={cn("text-xs shrink-0", daysColor)}>
                               {daysLeft > 0 ? `${daysLeft} days left` : daysLeft === 0 ? "Expires today" : "Expired"}
                             </Badge>
                           )}
                         </div>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
                               <MoreHorizontal className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
@@ -693,7 +693,7 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </div>
-                      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                      <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
                         <Field label="Auth Reference #" value={auth.auth_reference_number} />
                         <Field label="Service Type" value={auth.service_type} />
                         <Field label="Start Date" value={auth.start_date ? format(new Date(auth.start_date), "MMM d, yyyy") : null} icon={Calendar} />
@@ -726,16 +726,16 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
 
         {/* SECTION 6: Locations */}
         <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <MapPin className="h-5 w-5 text-primary" />
-                <CardTitle className="text-lg">Service Locations</CardTitle>
+          <CardHeader className="pb-3 px-4 sm:px-6">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-2 flex-wrap">
+                <MapPin className="h-5 w-5 text-primary shrink-0" />
+                <CardTitle className="text-base sm:text-lg">Service Locations</CardTitle>
                 {client.locations && client.locations.length > 0 && (
-                  <Badge variant="secondary" className="ml-2">{client.locations.length}</Badge>
+                  <Badge variant="secondary" className="shrink-0">{client.locations.length}</Badge>
                 )}
               </div>
-              <Button variant="ghost" size="sm" asChild>
+              <Button variant="ghost" size="sm" className="w-full sm:w-auto justify-center" asChild>
                 <a href={`/dashboard/clients/${client.id}/edit#locations`}>
                   <Plus className="h-4 w-4 mr-1" />
                   Add
@@ -743,7 +743,7 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
               </Button>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-4 sm:px-6">
             {client.locations && client.locations.length > 0 ? (
               <div className="space-y-4">
                 {client.locations.map((location) => (
@@ -754,16 +754,16 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
                       location.is_primary && "border-primary/30 bg-primary/5"
                     )}
                   >
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex items-center gap-2">
+                    <div className="flex flex-col gap-2 mb-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-medium">{location.label || "Location"}</span>
                         {location.is_primary && (
-                          <Badge variant="default" className="text-xs">Primary</Badge>
+                          <Badge variant="default" className="text-xs shrink-0">Primary</Badge>
                         )}
                       </div>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
@@ -785,7 +785,7 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
-                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                    <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
                       <Field label="Street Address" value={location.street_address} />
                       <Field label="City" value={location.city} />
                       <Field label="State" value={location.state} />
@@ -813,22 +813,22 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
 
         {/* SECTION 7: Tasks */}
         <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <CheckSquare className="h-5 w-5 text-primary" />
-                <CardTitle className="text-lg">Tasks</CardTitle>
+          <CardHeader className="pb-3 px-4 sm:px-6">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-2 flex-wrap">
+                <CheckSquare className="h-5 w-5 text-primary shrink-0" />
+                <CardTitle className="text-base sm:text-lg">Tasks</CardTitle>
                 {activeTasks.length > 0 && (
-                  <Badge variant="secondary" className="ml-2">{activeTasks.length} active</Badge>
+                  <Badge variant="secondary" className="shrink-0">{activeTasks.length} active</Badge>
                 )}
               </div>
-              <Button variant="ghost" size="sm" onClick={handleAddTask}>
+              <Button variant="ghost" size="sm" className="w-full sm:w-auto justify-center" onClick={handleAddTask}>
                 <Plus className="h-4 w-4 mr-1" />
                 Add
               </Button>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-4 sm:px-6">
             {client.tasks && client.tasks.length > 0 ? (
               <div className="space-y-2">
                 {/* Active Tasks (To Do + In Progress) */}
@@ -867,19 +867,21 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
                         </DropdownMenuContent>
                       </DropdownMenu>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="text-sm font-medium">{task.title}</p>
-                          <Badge
-                            variant="secondary"
-                            className={cn(
-                              "text-xs",
-                              task.status === "pending" && "bg-gray-100 text-gray-700",
-                              task.status === "in_progress" && "bg-blue-100 text-blue-700"
-                            )}
-                          >
-                            {statusOption?.label}
-                          </Badge>
-                          <CopyButton value={task.title} label="task" />
+                        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
+                          <p className="text-sm font-medium break-words">{task.title}</p>
+                          <div className="flex items-center gap-1">
+                            <Badge
+                              variant="secondary"
+                              className={cn(
+                                "text-xs shrink-0",
+                                task.status === "pending" && "bg-gray-100 text-gray-700",
+                                task.status === "in_progress" && "bg-blue-100 text-blue-700"
+                              )}
+                            >
+                              {statusOption?.label}
+                            </Badge>
+                            <CopyButton value={task.title} label="task" />
+                          </div>
                         </div>
                         {task.content && (
                           <p className="text-xs text-muted-foreground mt-0.5">{task.content}</p>
@@ -982,19 +984,20 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
 
         {/* SECTION 8: Links */}
         <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Link2 className="h-5 w-5 text-primary" />
-                <CardTitle className="text-lg">Links</CardTitle>
+          <CardHeader className="pb-3 px-4 sm:px-6">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-2 flex-wrap">
+                <Link2 className="h-5 w-5 text-primary shrink-0" />
+                <CardTitle className="text-base sm:text-lg">Links</CardTitle>
                 {client.documents && client.documents.length > 0 && (
-                  <Badge variant="secondary" className="ml-2">{client.documents.length}</Badge>
+                  <Badge variant="secondary" className="shrink-0">{client.documents.length}</Badge>
                 )}
               </div>
               {!isAddingLink && !editingLinkId && (
                 <Button
                   variant="ghost"
                   size="sm"
+                  className="w-full sm:w-auto justify-center"
                   onClick={() => {
                     setIsAddingLink(true);
                     setLinkForm({ label: "", url: "", notes: "" });
@@ -1007,7 +1010,7 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
               )}
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-4 sm:px-6">
             {/* Add Link Form */}
             {isAddingLink && (
               <div className="mb-4 p-4 rounded-lg border bg-muted/30 space-y-3">

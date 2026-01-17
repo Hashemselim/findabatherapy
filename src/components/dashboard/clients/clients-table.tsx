@@ -58,162 +58,290 @@ export function ClientsTable({
   }
 
   return (
-    <Card className="overflow-hidden">
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b bg-muted/50">
-              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Client
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Status
-              </th>
-              <th className="hidden px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider md:table-cell">
-                Parent
-              </th>
-              <th className="hidden px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider lg:table-cell">
-                Insurance
-              </th>
-              <th className="hidden px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider sm:table-cell">
-                Added
-              </th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y">
-            {clients.map((client) => {
-              const isSelected = client.id === selectedId;
-              const age = client.child_date_of_birth
-                ? calculateAge(client.child_date_of_birth)
-                : null;
+    <>
+      {/* Mobile Card Layout */}
+      <div className="space-y-3 sm:hidden">
+        {clients.map((client) => {
+          const isSelected = client.id === selectedId;
+          const age = client.child_date_of_birth
+            ? calculateAge(client.child_date_of_birth)
+            : null;
 
-              return (
-                <tr
-                  key={client.id}
-                  onClick={() => onSelect(client)}
-                  className={cn(
-                    "cursor-pointer transition-colors hover:bg-muted/50",
-                    isSelected && "bg-muted"
-                  )}
-                >
-                  <td className="px-4 py-3">
-                    <div className="flex flex-col">
-                      <span className="font-medium">
+          return (
+            <Card
+              key={client.id}
+              onClick={() => onSelect(client)}
+              className={cn(
+                "cursor-pointer transition-colors hover:bg-muted/50 active:bg-muted/70",
+                isSelected && "ring-2 ring-primary bg-muted/30"
+              )}
+            >
+              <div className="p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                      <span className="font-semibold text-base">
                         {getClientDisplayName({
                           child_first_name: client.child_first_name || undefined,
                           child_last_name: client.child_last_name || undefined,
                         })}
                       </span>
-                      {age !== null && (
-                        <span className="text-xs text-muted-foreground">
-                          {age} years old
-                        </span>
-                      )}
+                      <ClientStatusBadge status={client.status} />
                     </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <ClientStatusBadge status={client.status} />
-                  </td>
-                  <td className="hidden px-4 py-3 md:table-cell">
-                    <div className="flex flex-col">
-                      {client.primary_parent_name ? (
-                        <>
-                          <span className="text-sm">{client.primary_parent_name}</span>
-                          <ClientQuickActions
-                            phone={client.primary_parent_phone}
-                            email={client.primary_parent_email}
-                            className="mt-1"
-                          />
-                        </>
-                      ) : (
-                        <span className="text-sm text-muted-foreground">-</span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="hidden px-4 py-3 lg:table-cell">
-                    <div className="flex flex-col">
-                      {client.primary_insurance_name ? (
-                        <>
-                          <span className="text-sm">{client.primary_insurance_name}</span>
-                          {client.primary_insurance_member_id && (
-                            <span className="text-xs text-muted-foreground">
-                              ID: {client.primary_insurance_member_id}
-                            </span>
-                          )}
-                        </>
-                      ) : (
-                        <span className="text-sm text-muted-foreground">-</span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="hidden px-4 py-3 sm:table-cell">
-                    <span className="text-sm text-muted-foreground">
-                      {formatDistanceToNow(new Date(client.created_at), { addSuffix: true })}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => onSelect(client)}>
-                          <Eye className="mr-2 h-4 w-4" />
-                          View Details
+                    {age !== null && (
+                      <p className="text-sm text-muted-foreground mb-2">
+                        {age} years old
+                      </p>
+                    )}
+
+                    {/* Parent info */}
+                    {client.primary_parent_name && (
+                      <div className="mt-3 pt-3 border-t">
+                        <p className="text-xs text-muted-foreground mb-1">Parent/Guardian</p>
+                        <p className="text-sm font-medium">{client.primary_parent_name}</p>
+                        <ClientQuickActions
+                          phone={client.primary_parent_phone}
+                          email={client.primary_parent_email}
+                          className="mt-2"
+                        />
+                      </div>
+                    )}
+
+                    {/* Insurance info */}
+                    {client.primary_insurance_name && (
+                      <div className="mt-3 pt-3 border-t">
+                        <p className="text-xs text-muted-foreground mb-1">Insurance</p>
+                        <p className="text-sm">{client.primary_insurance_name}</p>
+                        {client.primary_insurance_member_id && (
+                          <p className="text-xs text-muted-foreground">
+                            ID: {client.primary_insurance_member_id}
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    <p className="text-xs text-muted-foreground mt-3">
+                      Added {formatDistanceToNow(new Date(client.created_at), { addSuffix: true })}
+                    </p>
+                  </div>
+
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-9 w-9 shrink-0"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <MoreHorizontal className="h-5 w-5" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => onSelect(client)}>
+                        <Eye className="mr-2 h-4 w-4" />
+                        View Details
+                      </DropdownMenuItem>
+                      {onEdit && (
+                        <DropdownMenuItem onClick={() => onEdit(client.id)}>
+                          <Pencil className="mr-2 h-4 w-4" />
+                          Edit
                         </DropdownMenuItem>
-                        {onEdit && (
-                          <DropdownMenuItem onClick={() => onEdit(client.id)}>
-                            <Pencil className="mr-2 h-4 w-4" />
-                            Edit
-                          </DropdownMenuItem>
-                        )}
-                        {onAddTask && (
+                      )}
+                      {onAddTask && (
+                        <DropdownMenuItem
+                          onClick={() =>
+                            onAddTask(
+                              client.id,
+                              getClientDisplayName({
+                                child_first_name: client.child_first_name || undefined,
+                                child_last_name: client.child_last_name || undefined,
+                              })
+                            )
+                          }
+                        >
+                          <ListTodo className="mr-2 h-4 w-4" />
+                          Add Task
+                        </DropdownMenuItem>
+                      )}
+                      {onDelete && (
+                        <>
+                          <DropdownMenuSeparator />
                           <DropdownMenuItem
-                            onClick={() =>
-                              onAddTask(
-                                client.id,
-                                getClientDisplayName({
-                                  child_first_name: client.child_first_name || undefined,
-                                  child_last_name: client.child_last_name || undefined,
-                                })
-                              )
-                            }
+                            onClick={() => onDelete(client.id)}
+                            className="text-destructive focus:text-destructive"
                           >
-                            <ListTodo className="mr-2 h-4 w-4" />
-                            Add Task
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
                           </DropdownMenuItem>
-                        )}
-                        {onDelete && (
-                          <>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              onClick={() => onDelete(client.id)}
-                              className="text-destructive focus:text-destructive"
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Delete
-                            </DropdownMenuItem>
-                          </>
-                        )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+                        </>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </div>
+            </Card>
+          );
+        })}
       </div>
-    </Card>
+
+      {/* Desktop Table Layout */}
+      <Card className="overflow-hidden hidden sm:block">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b bg-muted/50">
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Client
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Status
+                </th>
+                <th className="hidden px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider md:table-cell">
+                  Parent
+                </th>
+                <th className="hidden px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider lg:table-cell">
+                  Insurance
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Added
+                </th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {clients.map((client) => {
+                const isSelected = client.id === selectedId;
+                const age = client.child_date_of_birth
+                  ? calculateAge(client.child_date_of_birth)
+                  : null;
+
+                return (
+                  <tr
+                    key={client.id}
+                    onClick={() => onSelect(client)}
+                    className={cn(
+                      "cursor-pointer transition-colors hover:bg-muted/50",
+                      isSelected && "bg-muted"
+                    )}
+                  >
+                    <td className="px-4 py-3">
+                      <div className="flex flex-col">
+                        <span className="font-medium">
+                          {getClientDisplayName({
+                            child_first_name: client.child_first_name || undefined,
+                            child_last_name: client.child_last_name || undefined,
+                          })}
+                        </span>
+                        {age !== null && (
+                          <span className="text-xs text-muted-foreground">
+                            {age} years old
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <ClientStatusBadge status={client.status} />
+                    </td>
+                    <td className="hidden px-4 py-3 md:table-cell">
+                      <div className="flex flex-col">
+                        {client.primary_parent_name ? (
+                          <>
+                            <span className="text-sm">{client.primary_parent_name}</span>
+                            <ClientQuickActions
+                              phone={client.primary_parent_phone}
+                              email={client.primary_parent_email}
+                              className="mt-1"
+                            />
+                          </>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">-</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="hidden px-4 py-3 lg:table-cell">
+                      <div className="flex flex-col">
+                        {client.primary_insurance_name ? (
+                          <>
+                            <span className="text-sm">{client.primary_insurance_name}</span>
+                            {client.primary_insurance_member_id && (
+                              <span className="text-xs text-muted-foreground">
+                                ID: {client.primary_insurance_member_id}
+                              </span>
+                            )}
+                          </>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">-</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="text-sm text-muted-foreground">
+                        {formatDistanceToNow(new Date(client.created_at), { addSuffix: true })}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => onSelect(client)}>
+                            <Eye className="mr-2 h-4 w-4" />
+                            View Details
+                          </DropdownMenuItem>
+                          {onEdit && (
+                            <DropdownMenuItem onClick={() => onEdit(client.id)}>
+                              <Pencil className="mr-2 h-4 w-4" />
+                              Edit
+                            </DropdownMenuItem>
+                          )}
+                          {onAddTask && (
+                            <DropdownMenuItem
+                              onClick={() =>
+                                onAddTask(
+                                  client.id,
+                                  getClientDisplayName({
+                                    child_first_name: client.child_first_name || undefined,
+                                    child_last_name: client.child_last_name || undefined,
+                                  })
+                                )
+                              }
+                            >
+                              <ListTodo className="mr-2 h-4 w-4" />
+                              Add Task
+                            </DropdownMenuItem>
+                          )}
+                          {onDelete && (
+                            <>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={() => onDelete(client.id)}
+                                className="text-destructive focus:text-destructive"
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete
+                              </DropdownMenuItem>
+                            </>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+    </>
   );
 }

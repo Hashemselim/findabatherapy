@@ -48,15 +48,15 @@ export default async function ClientDetailPage({ params }: ClientDetailPageProps
   return (
     <div className="flex flex-col h-full p-4 md:p-6">
       {/* Header */}
-      <div className="flex items-center justify-between gap-4 mb-6">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" asChild>
+      <div className="flex flex-col gap-3 mb-6 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3 min-w-0">
+          <Button variant="ghost" size="icon" className="shrink-0" asChild>
             <Link href="/dashboard/clients">
               <ArrowLeft className="h-4 w-4" />
             </Link>
           </Button>
-          <div>
-            <h1 className="text-2xl font-bold">
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold truncate">
               {[result.data.child_first_name, result.data.child_last_name]
                 .filter(Boolean)
                 .join(" ") || "Unnamed Client"}
@@ -66,10 +66,10 @@ export default async function ClientDetailPage({ params }: ClientDetailPageProps
             </p>
           </div>
         </div>
-        <Button asChild>
+        <Button asChild className="w-full sm:w-auto">
           <Link href={`/dashboard/clients/${resolvedParams.id}/edit`}>
             <Pencil className="h-4 w-4 mr-2" />
-            Edit
+            Edit Client
           </Link>
         </Button>
       </div>

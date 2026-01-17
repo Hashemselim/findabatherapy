@@ -232,16 +232,19 @@ export function TasksList({ initialTasks, clients = [] }: TasksListProps) {
   return (
     <div className="flex flex-col gap-4">
       {/* Header with Add Button and Filters */}
-      <div className="flex items-center justify-between gap-4">
-        <Tabs value={filter} onValueChange={(v) => setFilter(v as typeof filter)}>
-          <TabsList>
-            <TabsTrigger value="all">All ({tasks.length})</TabsTrigger>
-            <TabsTrigger value="active">Active ({activeCount})</TabsTrigger>
-            <TabsTrigger value="completed">Done ({completedCount})</TabsTrigger>
-          </TabsList>
-        </Tabs>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        {/* Filters - horizontally scrollable on mobile */}
+        <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 sm:overflow-visible">
+          <Tabs value={filter} onValueChange={(v) => setFilter(v as typeof filter)}>
+            <TabsList className="inline-flex w-auto min-w-full sm:min-w-0">
+              <TabsTrigger value="all" className="flex-1 sm:flex-none px-4">All ({tasks.length})</TabsTrigger>
+              <TabsTrigger value="active" className="flex-1 sm:flex-none px-4">Active ({activeCount})</TabsTrigger>
+              <TabsTrigger value="completed" className="flex-1 sm:flex-none px-4">Done ({completedCount})</TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
 
-        <Button onClick={handleAddNew} size="sm">
+        <Button onClick={handleAddNew} size="sm" className="w-full sm:w-auto shrink-0">
           <Plus className="h-4 w-4 mr-1" />
           Add Task
         </Button>
@@ -269,15 +272,15 @@ export function TasksList({ initialTasks, clients = [] }: TasksListProps) {
         <div className="space-y-2">
           {filteredTasks.map((task) => (
             <Card key={task.id} className="border-border/60">
-              <CardContent className="p-4">
-                <div className="flex items-start gap-3">
+              <CardContent className="p-3 sm:p-4">
+                <div className="flex items-start gap-2 sm:gap-3">
                   {/* Status Icon - Clickable */}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <button
                         type="button"
                         disabled={isPending}
-                        className="mt-0.5 shrink-0 transition-colors hover:opacity-80"
+                        className="mt-0.5 shrink-0 transition-colors hover:opacity-80 touch-manipulation"
                       >
                         {getStatusIcon(task.status)}
                       </button>
@@ -314,7 +317,7 @@ export function TasksList({ initialTasks, clients = [] }: TasksListProps) {
                       <div className="min-w-0 flex-1">
                         <p
                           className={cn(
-                            "font-medium",
+                            "font-medium break-words",
                             task.status === "completed" &&
                               "text-muted-foreground line-through"
                           )}
@@ -322,7 +325,7 @@ export function TasksList({ initialTasks, clients = [] }: TasksListProps) {
                           {task.title}
                         </p>
                         {task.content && (
-                          <p className="mt-1 text-sm text-muted-foreground line-clamp-2">
+                          <p className="mt-1 text-sm text-muted-foreground line-clamp-2 break-words">
                             {task.content}
                           </p>
                         )}
@@ -333,9 +336,9 @@ export function TasksList({ initialTasks, clients = [] }: TasksListProps) {
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8 shrink-0"
+                            className="h-9 w-9 sm:h-8 sm:w-8 shrink-0"
                           >
-                            <MoreHorizontal className="h-4 w-4" />
+                            <MoreHorizontal className="h-5 w-5 sm:h-4 sm:w-4" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
@@ -355,8 +358,8 @@ export function TasksList({ initialTasks, clients = [] }: TasksListProps) {
                       </DropdownMenu>
                     </div>
 
-                    {/* Meta info */}
-                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                    {/* Meta info - stack on mobile, inline on desktop */}
+                    <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
                       {getStatusBadge(task.status)}
                       {getDueDateBadge(task.due_date, task.status)}
 
@@ -364,10 +367,10 @@ export function TasksList({ initialTasks, clients = [] }: TasksListProps) {
                         <Link href={`/dashboard/clients/${task.client_id}`}>
                           <Badge
                             variant="secondary"
-                            className="gap-1 hover:bg-secondary/80"
+                            className="gap-1 hover:bg-secondary/80 w-fit"
                           >
                             <User className="h-3 w-3" />
-                            {task.client_name}
+                            <span className="truncate max-w-[150px]">{task.client_name}</span>
                           </Badge>
                         </Link>
                       )}

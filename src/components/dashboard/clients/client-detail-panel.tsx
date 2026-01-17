@@ -99,10 +99,10 @@ function FieldRow({
   if (!value) return null;
 
   return (
-    <div className="group flex items-start justify-between gap-2 py-1.5">
-      <span className="text-sm text-muted-foreground shrink-0">{label}</span>
+    <div className="group flex flex-col gap-0.5 py-1.5 sm:flex-row sm:items-start sm:justify-between sm:gap-2">
+      <span className="text-xs sm:text-sm text-muted-foreground shrink-0">{label}</span>
       <div className="flex items-center gap-1">
-        <span className="text-sm text-right">{value}</span>
+        <span className="text-sm break-words sm:text-right">{value}</span>
         {copyable && <CopyButton value={value} label={label.toLowerCase()} />}
       </div>
     </div>
@@ -151,16 +151,16 @@ export function ClientDetailPanel({
   return (
     <Card className="flex h-full flex-col overflow-hidden">
       {/* Header */}
-      <CardHeader className="shrink-0 space-y-3 pb-3">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-start gap-3">
+      <CardHeader className="shrink-0 space-y-3 pb-3 px-3 sm:px-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex items-start gap-3 min-w-0">
             {showBackButton && onBack && (
               <Button variant="ghost" size="icon" className="shrink-0" onClick={onBack}>
                 <ArrowLeft className="h-4 w-4" />
               </Button>
             )}
-            <div>
-              <CardTitle className="text-xl">{displayName}</CardTitle>
+            <div className="min-w-0">
+              <CardTitle className="text-lg sm:text-xl truncate">{displayName}</CardTitle>
               {age !== null && (
                 <p className="text-sm text-muted-foreground mt-0.5">
                   {age} years old
@@ -168,9 +168,9 @@ export function ClientDetailPanel({
               )}
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <ClientStatusBadge status={client.status} />
-            <Button variant="outline" size="sm" asChild>
+            <Button variant="outline" size="sm" className="shrink-0" asChild>
               <Link href={`/dashboard/clients/${client.id}`}>
                 <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
                 Full View
@@ -199,20 +199,20 @@ export function ClientDetailPanel({
       <Separator />
 
       {/* Content - scrollable */}
-      <CardContent className="flex-1 overflow-y-auto p-4 space-y-4">
+      <CardContent className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-4">
         {/* Child Information */}
         <Collapsible open={openSections.child} onOpenChange={() => toggleSection("child")}>
-          <CollapsibleTrigger className="flex w-full items-center justify-between py-2">
+          <CollapsibleTrigger className="flex w-full items-center justify-between py-2 touch-manipulation">
             <div className="flex items-center gap-2 text-sm font-medium">
-              <User className="h-4 w-4" />
+              <User className="h-4 w-4 shrink-0" />
               Child Information
             </div>
-            <span className="text-xs text-muted-foreground">
+            <span className="text-xs text-muted-foreground shrink-0">
               {openSections.child ? "Hide" : "Show"}
             </span>
           </CollapsibleTrigger>
           <CollapsibleContent>
-            <div className="rounded-lg border p-3 mt-2 space-y-1">
+            <div className="rounded-lg border p-2 sm:p-3 mt-2 space-y-1">
               <FieldRow label="Name" value={displayName} copyable />
               <FieldRow
                 label="Date of Birth"
@@ -250,12 +250,12 @@ export function ClientDetailPanel({
         {/* Parents */}
         {client.parents.length > 0 && (
           <Collapsible open={openSections.parents} onOpenChange={() => toggleSection("parents")}>
-            <CollapsibleTrigger className="flex w-full items-center justify-between py-2">
+            <CollapsibleTrigger className="flex w-full items-center justify-between py-2 touch-manipulation">
               <div className="flex items-center gap-2 text-sm font-medium">
-                <User className="h-4 w-4" />
+                <User className="h-4 w-4 shrink-0" />
                 Parents/Guardians ({client.parents.length})
               </div>
-              <span className="text-xs text-muted-foreground">
+              <span className="text-xs text-muted-foreground shrink-0">
                 {openSections.parents ? "Hide" : "Show"}
               </span>
             </CollapsibleTrigger>
@@ -267,7 +267,7 @@ export function ClientDetailPanel({
                   )?.label;
 
                   return (
-                    <div key={parent.id} className="rounded-lg border p-3">
+                    <div key={parent.id} className="rounded-lg border p-2 sm:p-3">
                       <div className="flex items-start justify-between">
                         <div>
                           <p className="font-medium">
@@ -301,12 +301,12 @@ export function ClientDetailPanel({
             open={openSections.insurance}
             onOpenChange={() => toggleSection("insurance")}
           >
-            <CollapsibleTrigger className="flex w-full items-center justify-between py-2">
+            <CollapsibleTrigger className="flex w-full items-center justify-between py-2 touch-manipulation">
               <div className="flex items-center gap-2 text-sm font-medium">
-                <Shield className="h-4 w-4" />
+                <Shield className="h-4 w-4 shrink-0" />
                 Insurance ({client.insurances.length})
               </div>
-              <span className="text-xs text-muted-foreground">
+              <span className="text-xs text-muted-foreground shrink-0">
                 {openSections.insurance ? "Hide" : "Show"}
               </span>
             </CollapsibleTrigger>
@@ -318,7 +318,7 @@ export function ClientDetailPanel({
                   );
 
                   return (
-                    <div key={insurance.id} className="rounded-lg border p-3">
+                    <div key={insurance.id} className="rounded-lg border p-2 sm:p-3">
                       <div className="flex items-start justify-between">
                         <div>
                           <p className="font-medium">
@@ -392,12 +392,12 @@ export function ClientDetailPanel({
             open={openSections.authorizations}
             onOpenChange={() => toggleSection("authorizations")}
           >
-            <CollapsibleTrigger className="flex w-full items-center justify-between py-2">
+            <CollapsibleTrigger className="flex w-full items-center justify-between py-2 touch-manipulation">
               <div className="flex items-center gap-2 text-sm font-medium">
-                <FileText className="h-4 w-4" />
+                <FileText className="h-4 w-4 shrink-0" />
                 Authorizations ({client.authorizations.length})
               </div>
-              <span className="text-xs text-muted-foreground">
+              <span className="text-xs text-muted-foreground shrink-0">
                 {openSections.authorizations ? "Hide" : "Show"}
               </span>
             </CollapsibleTrigger>
@@ -409,7 +409,7 @@ export function ClientDetailPanel({
                   const daysColor = getAuthDaysColor(daysRemaining);
 
                   return (
-                    <div key={auth.id} className="rounded-lg border p-3">
+                    <div key={auth.id} className="rounded-lg border p-2 sm:p-3">
                       <div className="flex items-start justify-between">
                         <div>
                           <p className="font-medium">
@@ -483,12 +483,12 @@ export function ClientDetailPanel({
             open={openSections.locations}
             onOpenChange={() => toggleSection("locations")}
           >
-            <CollapsibleTrigger className="flex w-full items-center justify-between py-2">
+            <CollapsibleTrigger className="flex w-full items-center justify-between py-2 touch-manipulation">
               <div className="flex items-center gap-2 text-sm font-medium">
-                <MapPin className="h-4 w-4" />
+                <MapPin className="h-4 w-4 shrink-0" />
                 Locations ({client.locations.length})
               </div>
-              <span className="text-xs text-muted-foreground">
+              <span className="text-xs text-muted-foreground shrink-0">
                 {openSections.locations ? "Hide" : "Show"}
               </span>
             </CollapsibleTrigger>
@@ -505,7 +505,7 @@ export function ClientDetailPanel({
                     .join(", ");
 
                   return (
-                    <div key={location.id} className="rounded-lg border p-3">
+                    <div key={location.id} className="rounded-lg border p-2 sm:p-3">
                       <p className="font-medium">
                         {location.label || "Location"}
                         {location.is_primary && (
@@ -529,20 +529,20 @@ export function ClientDetailPanel({
         {/* Tasks */}
         <Collapsible open={openSections.tasks} onOpenChange={() => toggleSection("tasks")}>
           <div className="flex items-center justify-between py-2">
-            <CollapsibleTrigger className="flex items-center gap-2 text-sm font-medium flex-1">
-              <CheckSquare className="h-4 w-4" />
+            <CollapsibleTrigger className="flex items-center gap-2 text-sm font-medium flex-1 touch-manipulation">
+              <CheckSquare className="h-4 w-4 shrink-0" />
               Tasks ({client.tasks.filter((t) => t.status !== "completed").length} active)
-              <span className="text-xs text-muted-foreground ml-auto mr-2">
+              <span className="text-xs text-muted-foreground ml-auto mr-2 shrink-0">
                 {openSections.tasks ? "Hide" : "Show"}
               </span>
             </CollapsibleTrigger>
             <Button
               variant="ghost"
               size="sm"
-              className="h-7 px-2"
+              className="h-8 w-8 sm:h-7 sm:w-auto sm:px-2 shrink-0"
               onClick={() => setTaskDialogOpen(true)}
             >
-              <Plus className="h-3.5 w-3.5" />
+              <Plus className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
             </Button>
           </div>
           <CollapsibleContent>
@@ -551,7 +551,7 @@ export function ClientDetailPanel({
                 client.tasks
                   .filter((t) => t.status !== "completed")
                   .map((task) => (
-                    <div key={task.id} className="rounded-lg border p-3">
+                    <div key={task.id} className="rounded-lg border p-2 sm:p-3">
                       <div className="flex items-start gap-2">
                         <CheckSquare className="h-4 w-4 mt-0.5 text-muted-foreground" />
                         <div className="flex-1">
@@ -580,19 +580,19 @@ export function ClientDetailPanel({
             open={openSections.documents}
             onOpenChange={() => toggleSection("documents")}
           >
-            <CollapsibleTrigger className="flex w-full items-center justify-between py-2">
+            <CollapsibleTrigger className="flex w-full items-center justify-between py-2 touch-manipulation">
               <div className="flex items-center gap-2 text-sm font-medium">
-                <Link2 className="h-4 w-4" />
+                <Link2 className="h-4 w-4 shrink-0" />
                 Links ({client.documents.length})
               </div>
-              <span className="text-xs text-muted-foreground">
+              <span className="text-xs text-muted-foreground shrink-0">
                 {openSections.documents ? "Hide" : "Show"}
               </span>
             </CollapsibleTrigger>
             <CollapsibleContent>
               <div className="space-y-2 mt-2">
                 {client.documents.map((doc) => (
-                  <div key={doc.id} className="rounded-lg border p-3">
+                  <div key={doc.id} className="rounded-lg border p-2 sm:p-3">
                     <div className="flex items-start justify-between">
                       <div>
                         <p className="font-medium">{doc.label || "Link"}</p>
@@ -617,15 +617,15 @@ export function ClientDetailPanel({
 
         {/* Notes */}
         {client.notes && (
-          <div className="rounded-lg border p-3">
+          <div className="rounded-lg border p-2 sm:p-3">
             <p className="text-sm font-medium mb-2">Notes</p>
-            <p className="text-sm whitespace-pre-wrap text-muted-foreground">{client.notes}</p>
+            <p className="text-sm whitespace-pre-wrap text-muted-foreground break-words">{client.notes}</p>
           </div>
         )}
 
         {/* Timestamps */}
         <div className="pt-4 border-t">
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
+          <div className="flex flex-col gap-1 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
             <span>
               Added {formatDistanceToNow(new Date(client.created_at), { addSuffix: true })}
             </span>
