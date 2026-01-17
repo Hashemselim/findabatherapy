@@ -65,6 +65,10 @@ import {
   AUTH_PAYOR_TYPE_OPTIONS,
   INSURANCE_STATUS_OPTIONS,
   SERVICE_BILLING_MAP,
+  CLIENT_FUNDING_SOURCE_OPTIONS,
+  REFERRAL_SOURCE_OPTIONS,
+  LOCATION_LABEL_OPTIONS,
+  GRADE_LEVEL_OPTIONS,
 } from "@/lib/validations/clients";
 import {
   updateClientTask,
@@ -91,6 +95,16 @@ interface ClientFullDetailProps {
 
 // Brand color for section headers
 const SECTION_COLOR = "#8B5CF6"; // CRM purple
+
+// Helper to get display label from option arrays
+function getOptionLabel<T extends readonly { value: string; label: string }[]>(
+  options: T,
+  value: string | null | undefined
+): string | null {
+  if (!value) return null;
+  const option = options.find((o) => o.value === value);
+  return option?.label || value;
+}
 
 // Copy button component
 function CopyButton({ value, label }: { value: string; label: string }) {
@@ -384,12 +398,12 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
   return (
     <>
       <div className="space-y-6">
-        {/* SECTION 1: Child Information */}
+        {/* SECTION 1: Client Information */}
         <Card>
           <CardContent className="pt-6">
             <SectionHeader
               icon={User}
-              title="Child Information"
+              title="Client Information"
               editHref={`/dashboard/clients/${client.id}/edit#child`}
             />
             <div className="grid gap-x-6 gap-y-1 sm:grid-cols-2 lg:grid-cols-4">
@@ -402,7 +416,7 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
               <Field label="Age" value={age !== null ? `${age} years old` : null} />
               <Field label="School Name" value={client.child_school_name} />
               <Field label="School District" value={client.child_school_district} />
-              <Field label="Grade Level" value={client.child_grade_level} />
+              <Field label="Grade Level" value={getOptionLabel(GRADE_LEVEL_OPTIONS, client.child_grade_level)} />
               <Field label="Preferred Language" value={client.preferred_language} />
               <Field label="Pediatrician" value={client.child_pediatrician_name} />
               <Field label="Pediatrician Phone" value={client.child_pediatrician_phone} />
@@ -410,54 +424,7 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
           </CardContent>
         </Card>
 
-        {/* SECTION 2: Clinical Information */}
-        <Card>
-          <CardContent className="pt-6">
-            <SectionHeader
-              icon={Stethoscope}
-              title="Clinical Information"
-              editHref={`/dashboard/clients/${client.id}/edit#child`}
-            />
-
-            {/* Diagnosis */}
-            {client.child_diagnosis && client.child_diagnosis.length > 0 && (
-              <div className="mb-4">
-                <p className="text-xs text-muted-foreground mb-2">Diagnosis</p>
-                <div className="flex flex-wrap gap-2">
-                  {client.child_diagnosis.map((d, i) => (
-                    <div key={i} className="group flex items-center gap-1">
-                      <Badge variant="secondary">{d}</Badge>
-                      <CopyButton value={d} label="diagnosis" />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Clinical text fields */}
-            <div className="space-y-4">
-              {client.child_primary_concerns && (
-                <FullWidthField label="Primary Concerns" value={client.child_primary_concerns} />
-              )}
-              {client.child_aba_history && (
-                <FullWidthField label="ABA History" value={client.child_aba_history} />
-              )}
-              {client.child_other_therapies && (
-                <FullWidthField label="Other Therapies" value={client.child_other_therapies} />
-              )}
-            </div>
-
-            {/* Empty state if no clinical info */}
-            {!client.child_diagnosis?.length &&
-             !client.child_primary_concerns &&
-             !client.child_aba_history &&
-             !client.child_other_therapies && (
-              <EmptyState message="No clinical information added yet" />
-            )}
-          </CardContent>
-        </Card>
-
-        {/* SECTION 3: Parents/Guardians */}
+        {/* SECTION 2: Parents/Guardians */}
         <Card>
           <CardContent className="pt-6">
             <SectionHeader
@@ -534,38 +501,77 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
           </CardContent>
         </Card>
 
-        {/* SECTION 4: Status & Service Info */}
+        {/* SECTION 3: Service Locations */}
         <Card>
           <CardContent className="pt-6">
             <SectionHeader
-              icon={ClipboardList}
-              title="Status & Service Information"
-              rightContent={<ClientStatusBadge status={client.status} />}
-              editHref={`/dashboard/clients/${client.id}/edit#status`}
+              icon={MapPin}
+              title="Service Locations"
+              badgeCount={client.locations?.length}
+              addHref={`/dashboard/clients/${client.id}/edit#locations`}
             />
-            <div className="grid gap-x-6 gap-y-1 sm:grid-cols-2 lg:grid-cols-4">
-              <Field label="Referral Source" value={client.referral_source} />
-              <Field
-                label="Referral Date"
-                value={client.referral_date ? format(new Date(client.referral_date), "MMM d, yyyy") : null}
-              />
-              <Field
-                label="Service Start Date"
-                value={client.service_start_date ? format(new Date(client.service_start_date), "MMM d, yyyy") : null}
-              />
-              <Field label="Funding Source" value={client.funding_source} />
-            </div>
-
-            {/* Notes - Full Width */}
-            {client.notes && (
-              <div className="mt-4 pt-4 border-t">
-                <FullWidthField label="General Notes" value={client.notes} />
+            {client.locations && client.locations.length > 0 ? (
+              <div className="space-y-4">
+                {client.locations.map((location) => (
+                  <div
+                    key={location.id}
+                    className={cn(
+                      "p-4 rounded-lg border bg-muted/30",
+                      location.is_primary && "border-primary/30 bg-primary/5"
+                    )}
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-medium">{getOptionLabel(LOCATION_LABEL_OPTIONS, location.label) || "Location"}</span>
+                        {location.is_primary && (
+                          <Badge variant="default" className="text-xs shrink-0">Primary</Badge>
+                        )}
+                      </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem asChild>
+                            <a href={`/dashboard/clients/${client.id}/edit#locations`}>
+                              <Pencil className="h-4 w-4 mr-2" />
+                              Edit
+                            </a>
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            className="text-destructive"
+                            onClick={() => handleDelete("location", location.id, location.label || "Location")}
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                    <div className="grid gap-x-6 gap-y-1 sm:grid-cols-2 lg:grid-cols-4">
+                      <Field label="Street Address" value={location.street_address} />
+                      <Field label="City" value={location.city} />
+                      <Field label="State" value={location.state} />
+                      <Field label="Postal Code" value={location.postal_code} />
+                    </div>
+                    {location.notes && (
+                      <div className="mt-3 pt-3 border-t">
+                        <FullWidthField label="Notes" value={location.notes} />
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
+            ) : (
+              <EmptyState message="No service locations added yet" />
             )}
           </CardContent>
         </Card>
 
-        {/* SECTION 5: Insurance */}
+        {/* SECTION 4: Insurance */}
         <Card>
           <CardContent className="pt-6">
             <SectionHeader
@@ -645,7 +651,7 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
           </CardContent>
         </Card>
 
-        {/* SECTION 6: Authorizations */}
+        {/* SECTION 5: Authorizations */}
         <Card>
           <CardContent className="pt-6">
             <SectionHeader
@@ -828,77 +834,7 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
           </CardContent>
         </Card>
 
-        {/* SECTION 7: Locations */}
-        <Card>
-          <CardContent className="pt-6">
-            <SectionHeader
-              icon={MapPin}
-              title="Service Locations"
-              badgeCount={client.locations?.length}
-              addHref={`/dashboard/clients/${client.id}/edit#locations`}
-            />
-            {client.locations && client.locations.length > 0 ? (
-              <div className="space-y-4">
-                {client.locations.map((location) => (
-                  <div
-                    key={location.id}
-                    className={cn(
-                      "p-4 rounded-lg border bg-muted/30",
-                      location.is_primary && "border-primary/30 bg-primary/5"
-                    )}
-                  >
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-medium">{location.label || "Location"}</span>
-                        {location.is_primary && (
-                          <Badge variant="default" className="text-xs shrink-0">Primary</Badge>
-                        )}
-                      </div>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem asChild>
-                            <a href={`/dashboard/clients/${client.id}/edit#locations`}>
-                              <Pencil className="h-4 w-4 mr-2" />
-                              Edit
-                            </a>
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            className="text-destructive"
-                            onClick={() => handleDelete("location", location.id, location.label || "Location")}
-                          >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                    <div className="grid gap-x-6 gap-y-1 sm:grid-cols-2 lg:grid-cols-4">
-                      <Field label="Street Address" value={location.street_address} />
-                      <Field label="City" value={location.city} />
-                      <Field label="State" value={location.state} />
-                      <Field label="Postal Code" value={location.postal_code} />
-                    </div>
-                    {location.notes && (
-                      <div className="mt-3 pt-3 border-t">
-                        <FullWidthField label="Notes" value={location.notes} />
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <EmptyState message="No service locations added yet" />
-            )}
-          </CardContent>
-        </Card>
-
-        {/* SECTION 8: Tasks */}
+        {/* SECTION 6: Tasks */}
         <Card>
           <CardContent className="pt-6">
             <SectionHeader
@@ -1066,6 +1002,78 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
           </CardContent>
         </Card>
 
+        {/* SECTION 7: Clinical Information */}
+        <Card>
+          <CardContent className="pt-6">
+            <SectionHeader
+              icon={Stethoscope}
+              title="Clinical Information"
+              editHref={`/dashboard/clients/${client.id}/edit#child`}
+            />
+
+            {/* Diagnosis */}
+            {client.child_diagnosis && client.child_diagnosis.length > 0 && (
+              <div className="mb-4">
+                <p className="text-xs text-muted-foreground mb-2">Diagnosis</p>
+                <div className="flex flex-wrap gap-2">
+                  {client.child_diagnosis.map((d, i) => (
+                    <div key={i} className="group flex items-center gap-1">
+                      <Badge variant="secondary">{d}</Badge>
+                      <CopyButton value={d} label="diagnosis" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Clinical text fields in grid */}
+            <div className="grid gap-x-6 gap-y-1 sm:grid-cols-2 lg:grid-cols-4">
+              <Field label="Primary Concerns" value={client.child_primary_concerns} />
+              <Field label="ABA History" value={client.child_aba_history} />
+              <Field label="Other Therapies" value={client.child_other_therapies} />
+            </div>
+
+            {/* Empty state if no clinical info */}
+            {!client.child_diagnosis?.length &&
+             !client.child_primary_concerns &&
+             !client.child_aba_history &&
+             !client.child_other_therapies && (
+              <EmptyState message="No clinical information added yet" />
+            )}
+          </CardContent>
+        </Card>
+
+        {/* SECTION 8: Status & Service Info */}
+        <Card>
+          <CardContent className="pt-6">
+            <SectionHeader
+              icon={ClipboardList}
+              title="Status & Service Information"
+              rightContent={<ClientStatusBadge status={client.status} />}
+              editHref={`/dashboard/clients/${client.id}/edit#status`}
+            />
+            <div className="grid gap-x-6 gap-y-1 sm:grid-cols-2 lg:grid-cols-4">
+              <Field label="Referral Source" value={getOptionLabel(REFERRAL_SOURCE_OPTIONS, client.referral_source)} />
+              <Field
+                label="Referral Date"
+                value={client.referral_date ? format(new Date(client.referral_date), "MMM d, yyyy") : null}
+              />
+              <Field
+                label="Service Start Date"
+                value={client.service_start_date ? format(new Date(client.service_start_date), "MMM d, yyyy") : null}
+              />
+              <Field label="Funding Source" value={getOptionLabel(CLIENT_FUNDING_SOURCE_OPTIONS, client.funding_source)} />
+            </div>
+
+            {/* Notes - Full Width */}
+            {client.notes && (
+              <div className="mt-4 pt-4 border-t">
+                <FullWidthField label="General Notes" value={client.notes} />
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* SECTION 9: Links */}
         <Card>
           <CardContent className="pt-6">
@@ -1101,8 +1109,7 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
                     value={linkForm.label}
                     onChange={(e) => setLinkForm({ ...linkForm, label: e.target.value })}
                     disabled={isPending}
-                  />
-                </div>
+                  />                </div>
                 <div className="space-y-2">
                   <Label htmlFor="link-url">URL *</Label>
                   <Input
