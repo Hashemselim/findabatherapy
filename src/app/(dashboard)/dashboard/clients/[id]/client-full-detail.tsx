@@ -82,6 +82,8 @@ import { TASK_STATUS_OPTIONS, type ClientTask } from "@/lib/validations/clients"
 
 import { ClientStatusBadge } from "@/components/dashboard/clients/client-status-badge";
 import { TaskFormDialog } from "@/components/dashboard/tasks";
+import { AddAuthorizationDialog } from "@/components/dashboard/clients/add-authorization-dialog";
+import { EditAuthorizationDialog } from "@/components/dashboard/clients/edit-authorization-dialog";
 
 interface ClientFullDetailProps {
   client: ClientDetail;
@@ -632,12 +634,7 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
                   <Badge variant="secondary" className="shrink-0">{client.authorizations.length}</Badge>
                 )}
               </div>
-              <Button variant="ghost" size="sm" className="w-full sm:w-auto justify-center" asChild>
-                <a href={`/dashboard/clients/${client.id}/edit#authorizations`}>
-                  <Plus className="h-4 w-4 mr-1" />
-                  Add
-                </a>
-              </Button>
+              <AddAuthorizationDialog clientId={client.id} />
             </div>
           </CardHeader>
           <CardContent className="px-4 sm:px-6">
@@ -669,29 +666,32 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
                             </Badge>
                           )}
                         </div>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem asChild>
-                              <a href={`/dashboard/clients/${client.id}/edit#authorizations`}>
-                                <Pencil className="h-4 w-4 mr-2" />
-                                Edit
-                              </a>
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              className="text-destructive"
-                              onClick={() => handleDelete("authorization", auth.id!, auth.auth_reference_number || "Authorization")}
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <EditAuthorizationDialog
+                            authorization={auth}
+                            trigger={
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                            }
+                          />
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                className="text-destructive"
+                                onClick={() => handleDelete("authorization", auth.id!, auth.auth_reference_number || "Authorization")}
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
                       </div>
                       <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
                         <Field label="Auth Reference #" value={auth.auth_reference_number} />
