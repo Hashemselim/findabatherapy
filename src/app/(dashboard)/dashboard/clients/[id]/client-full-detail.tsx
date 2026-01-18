@@ -1114,8 +1114,12 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
                 value={client.referral_date ? format(new Date(client.referral_date), "MMM d, yyyy") : null}
               />
               <Field
-                label="Service Start Date"
+                label="First Day of Services"
                 value={client.service_start_date ? format(new Date(client.service_start_date), "MMM d, yyyy") : null}
+              />
+              <Field
+                label="Last Day of Services"
+                value={client.service_end_date ? format(new Date(client.service_end_date), "MMM d, yyyy") : null}
               />
               <Field label="Funding Source" value={getOptionLabel(CLIENT_FUNDING_SOURCE_OPTIONS, client.funding_source)} />
             </div>

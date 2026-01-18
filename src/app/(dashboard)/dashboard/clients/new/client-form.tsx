@@ -71,6 +71,8 @@ const clientFormSchema = z.object({
   referral_source: z.string().optional(),
   funding_source: z.string().optional(),
   preferred_language: z.string().optional(),
+  service_start_date: z.string().optional(),
+  service_end_date: z.string().optional(),
 
   // Child info
   child_first_name: z.string().optional(),
@@ -223,6 +225,8 @@ export function ClientForm({ defaultValues, inquiryId, clientId, isEditMode = fa
             referral_source: data.referral_source,
             funding_source: data.funding_source as FundingSource | undefined,
             preferred_language: data.preferred_language,
+            service_start_date: data.service_start_date,
+            service_end_date: data.service_end_date,
             child_first_name: data.child_first_name,
             child_last_name: data.child_last_name,
             child_date_of_birth: data.child_date_of_birth,
@@ -334,6 +338,8 @@ export function ClientForm({ defaultValues, inquiryId, clientId, isEditMode = fa
             referral_source: data.referral_source,
             funding_source: data.funding_source as FundingSource | undefined,
             preferred_language: data.preferred_language,
+            service_start_date: data.service_start_date,
+            service_end_date: data.service_end_date,
             child_first_name: data.child_first_name,
             child_last_name: data.child_last_name,
             child_date_of_birth: data.child_date_of_birth,
@@ -522,6 +528,16 @@ export function ClientForm({ defaultValues, inquiryId, clientId, isEditMode = fa
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>First Day of Services</Label>
+                <Input type="date" {...form.register("service_start_date")} />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Last Day of Services</Label>
+                <Input type="date" {...form.register("service_end_date")} />
               </div>
             </CardContent>
           </CollapsibleContent>

@@ -38,6 +38,8 @@ export default async function EditClientPage({ params }: EditClientPageProps) {
     referral_source: client.referral_source || undefined,
     funding_source: client.funding_source || undefined,
     preferred_language: client.preferred_language || undefined,
+    service_start_date: client.service_start_date || undefined,
+    service_end_date: client.service_end_date || undefined,
     child_first_name: client.child_first_name || undefined,
     child_last_name: client.child_last_name || undefined,
     child_date_of_birth: client.child_date_of_birth || undefined,
