@@ -93,6 +93,7 @@ import {
   InsuranceEditDialog,
   LocationEditDialog,
   ChildInfoEditDialog,
+  ClinicalInfoEditDialog,
   StatusEditDialog,
 } from "@/components/dashboard/clients/edit";
 
@@ -269,6 +270,7 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
 
   // Edit dialog states
   const [childInfoDialogOpen, setChildInfoDialogOpen] = useState(false);
+  const [clinicalInfoDialogOpen, setClinicalInfoDialogOpen] = useState(false);
   const [statusDialogOpen, setStatusDialogOpen] = useState(false);
   const [parentDialogOpen, setParentDialogOpen] = useState(false);
   const [editingParent, setEditingParent] = useState<(typeof client.parents)[number] | undefined>(undefined);
@@ -1060,7 +1062,7 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
             <SectionHeader
               icon={Stethoscope}
               title="Clinical Information"
-              onEdit={() => setChildInfoDialogOpen(true)}
+              onEdit={() => setClinicalInfoDialogOpen(true)}
             />
 
             {/* Diagnosis */}
@@ -1412,6 +1414,14 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
       <ChildInfoEditDialog
         open={childInfoDialogOpen}
         onOpenChange={setChildInfoDialogOpen}
+        clientId={client.id}
+        client={client}
+      />
+
+      {/* Clinical Info Edit Dialog */}
+      <ClinicalInfoEditDialog
+        open={clinicalInfoDialogOpen}
+        onOpenChange={setClinicalInfoDialogOpen}
         clientId={client.id}
         client={client}
       />
