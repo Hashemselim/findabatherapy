@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { formatDistanceToNow, format } from "date-fns";
+import { format } from "date-fns";
 import {
   Mail,
   Phone,
@@ -50,6 +50,7 @@ import {
   APPLICATION_SOURCES,
   type ApplicationStatus,
 } from "@/lib/validations/jobs";
+import { RelativeTime } from "@/components/ui/relative-time";
 
 interface ApplicationsDetailPanelProps {
   application: ApplicationWithJob | null;
@@ -274,7 +275,7 @@ export function ApplicationsDetailPanel({
             <Clock className="h-4 w-4" />
             {format(new Date(application.createdAt), "MMM d, yyyy")}
             <span className="text-muted-foreground/70">
-              ({formatDistanceToNow(new Date(application.createdAt), { addSuffix: true })})
+              (<RelativeTime date={application.createdAt} />)
             </span>
           </span>
           {sourceInfo && (

@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
-import { format, formatDistanceToNow, isPast, isToday } from "date-fns";
+import { format, isPast, isToday } from "date-fns";
 import {
   CheckCircle2,
   Circle,
@@ -38,6 +38,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
+import { RelativeTime } from "@/components/ui/relative-time";
 import { TASK_STATUS_OPTIONS } from "@/lib/validations/clients";
 import { updateClientTask, deleteClientTask } from "@/lib/actions/clients";
 import { TaskFormDialog, type TaskFormData } from "@/components/dashboard/tasks";
@@ -193,7 +194,7 @@ export function TasksList({ initialTasks, clients = [] }: TasksListProps) {
         {isToday(date)
           ? "Today"
           : isOverdue
-            ? `Overdue (${formatDistanceToNow(date, { addSuffix: true })})`
+            ? <>Overdue (<RelativeTime date={date} />)</>
             : format(date, "MMM d")}
       </Badge>
     );
@@ -377,10 +378,7 @@ export function TasksList({ initialTasks, clients = [] }: TasksListProps) {
 
                       {task.status === "completed" && task.completed_at && (
                         <span className="text-xs text-muted-foreground">
-                          Completed{" "}
-                          {formatDistanceToNow(new Date(task.completed_at), {
-                            addSuffix: true,
-                          })}
+                          Completed <RelativeTime date={task.completed_at} />
                         </span>
                       )}
                     </div>

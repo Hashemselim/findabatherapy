@@ -1,10 +1,11 @@
 "use client";
 
 import { useRef, useState, useEffect, useCallback } from "react";
-import { formatDistanceToNow, format } from "date-fns";
+import { format } from "date-fns";
 import { Briefcase, Star } from "lucide-react";
 
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+import { RelativeTime } from "@/components/ui/relative-time";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import type { ApplicationSummary } from "@/lib/actions/applications";
@@ -210,9 +211,7 @@ export function ApplicationsMessageList({
                                 {application.rating}
                               </span>
                             )}
-                            <span className="text-xs text-muted-foreground/70">
-                              {formatDistanceToNow(new Date(application.createdAt), { addSuffix: true })}
-                            </span>
+                            <RelativeTime date={application.createdAt} className="text-xs text-muted-foreground/70" />
                           </div>
                         </div>
                       </div>

@@ -1,6 +1,5 @@
 "use client";
 
-import { formatDistanceToNow } from "date-fns";
 import { MoreHorizontal, Pencil, Trash2, Phone, Mail, Copy, Check, ChevronRight, Users } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -20,6 +19,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { RelativeTime } from "@/components/ui/relative-time";
 import { cn } from "@/lib/utils";
 import { calculateAge, getClientDisplayName } from "@/lib/validations/clients";
 import type { ClientListItem } from "@/lib/actions/clients";
@@ -238,9 +238,7 @@ export function ClientsTable({
                     )}
                   </td>
                   <td className="hidden sm:table-cell px-5 py-4">
-                    <span className="text-sm text-muted-foreground">
-                      {formatDistanceToNow(new Date(client.created_at), { addSuffix: true })}
-                    </span>
+                    <RelativeTime date={client.created_at} className="text-sm text-muted-foreground" />
                   </td>
                   <td className="px-3 py-4">
                     <div className="flex items-center justify-end gap-1">

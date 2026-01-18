@@ -1,10 +1,11 @@
 "use client";
 
 import { useRef, useState, useEffect, useCallback } from "react";
-import { formatDistanceToNow, format } from "date-fns";
+import { format } from "date-fns";
 import { MapPin, FileEdit } from "lucide-react";
 
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+import { RelativeTime } from "@/components/ui/relative-time";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { Inquiry } from "@/lib/actions/inquiries";
@@ -192,9 +193,7 @@ export function InboxMessageList({
                     </div>
                     <span className="shrink-0 whitespace-nowrap text-right text-xs text-muted-foreground">
                       <span className="block">{format(new Date(inquiry.createdAt), "MMM d, yyyy")}</span>
-                      <span className="block text-muted-foreground/70">
-                        {formatDistanceToNow(new Date(inquiry.createdAt), { addSuffix: true })}
-                      </span>
+                      <RelativeTime date={inquiry.createdAt} className="block text-muted-foreground/70" />
                     </span>
                   </div>
                   <div className="mt-2 flex flex-wrap items-center gap-2">

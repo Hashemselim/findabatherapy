@@ -1,6 +1,6 @@
 "use client";
 
-import { formatDistanceToNow, format } from "date-fns";
+import { format } from "date-fns";
 import {
   ArrowLeft,
   ExternalLink,
@@ -31,6 +31,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { RelativeTime } from "@/components/ui/relative-time";
 import { cn } from "@/lib/utils";
 import {
   calculateAge,
@@ -627,10 +628,10 @@ export function ClientDetailPanel({
         <div className="pt-4 border-t">
           <div className="flex flex-col gap-1 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
             <span>
-              Added {formatDistanceToNow(new Date(client.created_at), { addSuffix: true })}
+              Added <RelativeTime date={client.created_at} />
             </span>
             <span>
-              Updated {formatDistanceToNow(new Date(client.updated_at), { addSuffix: true })}
+              Updated <RelativeTime date={client.updated_at} />
             </span>
           </div>
         </div>

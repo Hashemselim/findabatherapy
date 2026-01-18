@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { formatDistanceToNow, format } from "date-fns";
+import { format } from "date-fns";
 import {
   Mail,
   Phone,
@@ -45,6 +45,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import type { Inquiry } from "@/lib/actions/inquiries";
+import { RelativeTime } from "@/components/ui/relative-time";
 
 interface InboxMessageDetailProps {
   inquiry: Inquiry | null;
@@ -223,7 +224,7 @@ export function InboxMessageDetail({
             <Clock className="h-4 w-4 shrink-0 text-muted-foreground" />
             <span className="text-sm">
               {format(new Date(inquiry.createdAt), "MMM d, yyyy")}
-              <span className="text-muted-foreground/70"> ({formatDistanceToNow(new Date(inquiry.createdAt), { addSuffix: true })})</span>
+              <span className="text-muted-foreground/70"> (<RelativeTime date={inquiry.createdAt} />)</span>
             </span>
           </div>
         </div>
