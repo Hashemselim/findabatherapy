@@ -433,8 +433,6 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
               <Field label="School District" value={client.child_school_district} />
               <Field label="Grade Level" value={getOptionLabel(GRADE_LEVEL_OPTIONS, client.child_grade_level)} />
               <Field label="Preferred Language" value={client.preferred_language} />
-              <Field label="Pediatrician" value={client.child_pediatrician_name} />
-              <Field label="Pediatrician Phone" value={client.child_pediatrician_phone} />
             </div>
           </CardContent>
         </Card>
@@ -1085,13 +1083,16 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
               <Field label="Primary Concerns" value={client.child_primary_concerns} />
               <Field label="ABA History" value={client.child_aba_history} />
               <Field label="Other Therapies" value={client.child_other_therapies} />
+              <Field label="Pediatrician" value={client.child_pediatrician_name} />
+              <Field label="Pediatrician Phone" value={client.child_pediatrician_phone} />
             </div>
 
             {/* Empty state if no clinical info */}
             {!client.child_diagnosis?.length &&
              !client.child_primary_concerns &&
              !client.child_aba_history &&
-             !client.child_other_therapies && (
+             !client.child_other_therapies &&
+             !client.child_pediatrician_name && (
               <EmptyState message="No clinical information added yet" />
             )}
           </CardContent>

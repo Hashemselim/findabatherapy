@@ -7,6 +7,7 @@ import { z } from "zod";
 import { Loader2, AlertCircle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -22,13 +23,19 @@ import { type Client } from "@/lib/validations/clients";
 import { DIAGNOSIS_OPTIONS } from "@/lib/validations/onboarding";
 import { updateClient } from "@/lib/actions/clients";
 
-// Schema for clinical information only
+// Schema for clinical/medical information
 const formSchema = z.object({
   child_diagnosis: z.array(z.string()).optional(),
   child_diagnosis_codes: z.array(z.string()).optional(),
   child_primary_concerns: z.string().max(2000).optional().or(z.literal("")),
   child_aba_history: z.string().max(2000).optional().or(z.literal("")),
   child_other_therapies: z.string().max(500).optional().or(z.literal("")),
+  child_pediatrician_name: z.string().max(200).optional().or(z.literal("")),
+  child_pediatrician_phone: z
+    .string()
+    .regex(/^[\d\s\-\(\)\+]*$/, "Please enter a valid phone number")
+    .optional()
+    .or(z.literal("")),
 });
 type FormValues = z.infer<typeof formSchema>;
 
@@ -57,6 +64,8 @@ export function ClinicalInfoEditDialog({
       child_primary_concerns: "",
       child_aba_history: "",
       child_other_therapies: "",
+      child_pediatrician_name: "",
+      child_pediatrician_phone: "",
     },
   });
 
@@ -69,6 +78,8 @@ export function ClinicalInfoEditDialog({
         child_primary_concerns: client.child_primary_concerns || "",
         child_aba_history: client.child_aba_history || "",
         child_other_therapies: client.child_other_therapies || "",
+        child_pediatrician_name: client.child_pediatrician_name || "",
+        child_pediatrician_phone: client.child_pediatrician_phone || "",
       });
     }
   }, [open, client, form]);
@@ -105,7 +116,7 @@ export function ClinicalInfoEditDialog({
         <DialogHeader>
           <DialogTitle>Edit Clinical Information</DialogTitle>
           <DialogDescription>
-            Update the client&apos;s diagnosis and clinical history.
+            Update the client&apos;s diagnosis, clinical history, and medical contacts.
           </DialogDescription>
         </DialogHeader>
 
@@ -166,6 +177,30 @@ export function ClinicalInfoEditDialog({
               placeholder="Other therapies currently receiving (OT, Speech, etc.)..."
               rows={2}
             />
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="child_pediatrician_name">Pediatrician Name</Label>
+              <Input
+                id="child_pediatrician_name"
+                {...form.register("child_pediatrician_name")}
+                placeholder="Dr. Smith"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="child_pediatrician_phone">Pediatrician Phone</Label>
+              <Input
+                id="child_pediatrician_phone"
+                type="tel"
+                {...form.register("child_pediatrician_phone")}
+                placeholder="(555) 555-5555"
+              />
+              {form.formState.errors.child_pediatrician_phone && (
+                <p className="text-xs text-destructive">{form.formState.errors.child_pediatrician_phone.message}</p>
+              )}
+            </div>
           </div>
 
           <DialogFooter>

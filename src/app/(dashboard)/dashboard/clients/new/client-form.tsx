@@ -564,28 +564,6 @@ export function ClientForm({ defaultValues, inquiryId, clientId, isEditMode = fa
                 </div>
               </div>
 
-              {/* Diagnosis */}
-              <div className="space-y-2">
-                <Label>Diagnosis</Label>
-                <div className="flex flex-wrap gap-2">
-                  {DIAGNOSIS_OPTIONS.map((diagnosis) => (
-                    <button
-                      key={diagnosis}
-                      type="button"
-                      onClick={() => toggleDiagnosis(diagnosis)}
-                      className={cn(
-                        "rounded-full px-3 py-1.5 text-sm border transition-colors",
-                        selectedDiagnoses.includes(diagnosis)
-                          ? "bg-primary text-primary-foreground border-primary"
-                          : "bg-background hover:bg-muted border-border"
-                      )}
-                    >
-                      {diagnosis}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
               {/* School Info */}
               <div className="grid gap-4 sm:grid-cols-3">
                 <div className="space-y-2">
@@ -616,15 +594,30 @@ export function ClientForm({ defaultValues, inquiryId, clientId, isEditMode = fa
                 </div>
               </div>
 
-              {/* Pediatrician */}
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label>Pediatrician Name</Label>
-                  <Input {...form.register("child_pediatrician_name")} placeholder="Dr. Name" />
-                </div>
-                <div className="space-y-2">
-                  <Label>Pediatrician Phone</Label>
-                  <Input {...form.register("child_pediatrician_phone")} placeholder="(555) 555-5555" />
+              {/* Clinical Information Subsection */}
+              <div className="pt-4 border-t">
+                <h4 className="text-sm font-medium text-muted-foreground mb-4">Clinical Information</h4>
+              </div>
+
+              {/* Diagnosis */}
+              <div className="space-y-2">
+                <Label>Diagnosis</Label>
+                <div className="flex flex-wrap gap-2">
+                  {DIAGNOSIS_OPTIONS.map((diagnosis) => (
+                    <button
+                      key={diagnosis}
+                      type="button"
+                      onClick={() => toggleDiagnosis(diagnosis)}
+                      className={cn(
+                        "rounded-full px-3 py-1.5 text-sm border transition-colors",
+                        selectedDiagnoses.includes(diagnosis)
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "bg-background hover:bg-muted border-border"
+                      )}
+                    >
+                      {diagnosis}
+                    </button>
+                  ))}
                 </div>
               </div>
 
@@ -654,6 +647,18 @@ export function ClientForm({ defaultValues, inquiryId, clientId, isEditMode = fa
                   placeholder="Speech therapy, OT, etc..."
                   rows={2}
                 />
+              </div>
+
+              {/* Pediatrician */}
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Pediatrician Name</Label>
+                  <Input {...form.register("child_pediatrician_name")} placeholder="Dr. Name" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Pediatrician Phone</Label>
+                  <Input {...form.register("child_pediatrician_phone")} placeholder="(555) 555-5555" />
+                </div>
               </div>
             </CardContent>
           </CollapsibleContent>

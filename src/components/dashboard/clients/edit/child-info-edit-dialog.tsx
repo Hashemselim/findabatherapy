@@ -30,7 +30,7 @@ import {
 } from "@/lib/validations/clients";
 import { updateClient } from "@/lib/actions/clients";
 
-// Schema for basic child information only
+// Schema for basic child information only (no clinical/medical info)
 const formSchema = z.object({
   child_first_name: z.string().max(100).optional().or(z.literal("")),
   child_last_name: z.string().max(100).optional().or(z.literal("")),
@@ -38,12 +38,6 @@ const formSchema = z.object({
   child_school_name: z.string().max(200).optional().or(z.literal("")),
   child_school_district: z.string().max(200).optional().or(z.literal("")),
   child_grade_level: z.string().max(50).optional().or(z.literal("")),
-  child_pediatrician_name: z.string().max(200).optional().or(z.literal("")),
-  child_pediatrician_phone: z
-    .string()
-    .regex(/^[\d\s\-\(\)\+]*$/, "Please enter a valid phone number")
-    .optional()
-    .or(z.literal("")),
   preferred_language: z.string().max(100).optional().or(z.literal("")),
 });
 type FormValues = z.infer<typeof formSchema>;
@@ -74,8 +68,6 @@ export function ChildInfoEditDialog({
       child_school_name: "",
       child_school_district: "",
       child_grade_level: "",
-      child_pediatrician_name: "",
-      child_pediatrician_phone: "",
       preferred_language: "",
     },
   });
@@ -90,8 +82,6 @@ export function ChildInfoEditDialog({
         child_school_name: client.child_school_name || "",
         child_school_district: client.child_school_district || "",
         child_grade_level: client.child_grade_level || "",
-        child_pediatrician_name: client.child_pediatrician_name || "",
-        child_pediatrician_phone: client.child_pediatrician_phone || "",
         preferred_language: client.preferred_language || "",
       });
     }
@@ -203,30 +193,6 @@ export function ChildInfoEditDialog({
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="child_pediatrician_name">Pediatrician Name</Label>
-              <Input
-                id="child_pediatrician_name"
-                {...form.register("child_pediatrician_name")}
-                placeholder="Dr. Smith"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="child_pediatrician_phone">Pediatrician Phone</Label>
-              <Input
-                id="child_pediatrician_phone"
-                type="tel"
-                {...form.register("child_pediatrician_phone")}
-                placeholder="(555) 555-5555"
-              />
-              {form.formState.errors.child_pediatrician_phone && (
-                <p className="text-xs text-destructive">{form.formState.errors.child_pediatrician_phone.message}</p>
-              )}
             </div>
           </div>
 
