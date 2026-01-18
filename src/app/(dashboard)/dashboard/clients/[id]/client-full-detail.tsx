@@ -88,6 +88,13 @@ import { ClientStatusBadge } from "@/components/dashboard/clients/client-status-
 import { TaskFormDialog } from "@/components/dashboard/tasks";
 import { AddAuthorizationDialog } from "@/components/dashboard/clients/add-authorization-dialog";
 import { EditAuthorizationDialog } from "@/components/dashboard/clients/edit-authorization-dialog";
+import {
+  ParentEditDialog,
+  InsuranceEditDialog,
+  LocationEditDialog,
+  ChildInfoEditDialog,
+  StatusEditDialog,
+} from "@/components/dashboard/clients/edit";
 
 interface ClientFullDetailProps {
   client: ClientDetail;
@@ -147,8 +154,8 @@ interface SectionHeaderProps {
   title: string;
   badgeCount?: number;
   badgeLabel?: string;
-  editHref?: string;
-  addHref?: string;
+  onEdit?: () => void;
+  onAdd?: () => void;
   rightContent?: React.ReactNode;
 }
 
@@ -157,8 +164,8 @@ function SectionHeader({
   title,
   badgeCount,
   badgeLabel,
-  editHref,
-  addHref,
+  onEdit,
+  onAdd,
   rightContent,
 }: SectionHeaderProps) {
   return (
@@ -187,20 +194,16 @@ function SectionHeader({
       </div>
       <div className="flex items-center gap-2">
         {rightContent}
-        {editHref && (
-          <Button variant="ghost" size="sm" asChild>
-            <a href={editHref}>
-              <Pencil className="h-4 w-4 mr-1" />
-              Edit
-            </a>
+        {onEdit && (
+          <Button variant="ghost" size="sm" onClick={onEdit}>
+            <Pencil className="h-4 w-4 mr-1" />
+            Edit
           </Button>
         )}
-        {addHref && (
-          <Button variant="ghost" size="sm" asChild>
-            <a href={addHref}>
-              <Plus className="h-4 w-4 mr-1" />
-              Add
-            </a>
+        {onAdd && (
+          <Button variant="ghost" size="sm" onClick={onAdd}>
+            <Plus className="h-4 w-4 mr-1" />
+            Add
           </Button>
         )}
       </div>
@@ -263,6 +266,16 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
   } | null>(null);
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<(ClientTask & { id: string }) | null>(null);
+
+  // Edit dialog states
+  const [childInfoDialogOpen, setChildInfoDialogOpen] = useState(false);
+  const [statusDialogOpen, setStatusDialogOpen] = useState(false);
+  const [parentDialogOpen, setParentDialogOpen] = useState(false);
+  const [editingParent, setEditingParent] = useState<(typeof client.parents)[number] | undefined>(undefined);
+  const [insuranceDialogOpen, setInsuranceDialogOpen] = useState(false);
+  const [editingInsurance, setEditingInsurance] = useState<(typeof client.insurances)[number] | undefined>(undefined);
+  const [locationDialogOpen, setLocationDialogOpen] = useState(false);
+  const [editingLocation, setEditingLocation] = useState<(typeof client.locations)[number] | undefined>(undefined);
 
   // Link management state
   const [isAddingLink, setIsAddingLink] = useState(false);
@@ -404,7 +417,7 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
             <SectionHeader
               icon={User}
               title="Client Information"
-              editHref={`/dashboard/clients/${client.id}/edit#child`}
+              onEdit={() => setChildInfoDialogOpen(true)}
             />
             <div className="grid gap-x-6 gap-y-1 sm:grid-cols-2 lg:grid-cols-4">
               <Field label="First Name" value={client.child_first_name} />
@@ -431,7 +444,10 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
               icon={Users}
               title="Parents / Guardians"
               badgeCount={client.parents?.length}
-              addHref={`/dashboard/clients/${client.id}/edit#parents`}
+              onAdd={() => {
+                setEditingParent(undefined);
+                setParentDialogOpen(true);
+              }}
             />
             {client.parents && client.parents.length > 0 ? (
               <div className="space-y-4">
@@ -464,11 +480,14 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem asChild>
-                            <a href={`/dashboard/clients/${client.id}/edit#parents`}>
-                              <Pencil className="h-4 w-4 mr-2" />
-                              Edit
-                            </a>
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setEditingParent(parent);
+                              setParentDialogOpen(true);
+                            }}
+                          >
+                            <Pencil className="h-4 w-4 mr-2" />
+                            Edit
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
@@ -508,7 +527,10 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
               icon={MapPin}
               title="Service Locations"
               badgeCount={client.locations?.length}
-              addHref={`/dashboard/clients/${client.id}/edit#locations`}
+              onAdd={() => {
+                setEditingLocation(undefined);
+                setLocationDialogOpen(true);
+              }}
             />
             {client.locations && client.locations.length > 0 ? (
               <div className="space-y-4">
@@ -534,11 +556,14 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem asChild>
-                            <a href={`/dashboard/clients/${client.id}/edit#locations`}>
-                              <Pencil className="h-4 w-4 mr-2" />
-                              Edit
-                            </a>
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setEditingLocation(location);
+                              setLocationDialogOpen(true);
+                            }}
+                          >
+                            <Pencil className="h-4 w-4 mr-2" />
+                            Edit
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
@@ -578,7 +603,10 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
               icon={Shield}
               title="Insurance"
               badgeCount={client.insurances?.length}
-              addHref={`/dashboard/clients/${client.id}/edit#insurance`}
+              onAdd={() => {
+                setEditingInsurance(undefined);
+                setInsuranceDialogOpen(true);
+              }}
             />
             {client.insurances && client.insurances.length > 0 ? (
               <div className="space-y-4">
@@ -615,11 +643,14 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem asChild>
-                            <a href={`/dashboard/clients/${client.id}/edit#insurance`}>
-                              <Pencil className="h-4 w-4 mr-2" />
-                              Edit
-                            </a>
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setEditingInsurance(insurance);
+                              setInsuranceDialogOpen(true);
+                            }}
+                          >
+                            <Pencil className="h-4 w-4 mr-2" />
+                            Edit
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
@@ -1029,7 +1060,7 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
             <SectionHeader
               icon={Stethoscope}
               title="Clinical Information"
-              editHref={`/dashboard/clients/${client.id}/edit#child`}
+              onEdit={() => setChildInfoDialogOpen(true)}
             />
 
             {/* Diagnosis */}
@@ -1071,7 +1102,7 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
               icon={ClipboardList}
               title="Status & Service Information"
               rightContent={<ClientStatusBadge status={client.status} />}
-              editHref={`/dashboard/clients/${client.id}/edit#status`}
+              onEdit={() => setStatusDialogOpen(true)}
             />
             <div className="grid gap-x-6 gap-y-1 sm:grid-cols-2 lg:grid-cols-4">
               <Field label="Referral Source" value={getOptionLabel(REFERRAL_SOURCE_OPTIONS, client.referral_source)} />
@@ -1375,6 +1406,55 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
         }
         clientId={client.id}
         clientName={childName}
+      />
+
+      {/* Child Info Edit Dialog */}
+      <ChildInfoEditDialog
+        open={childInfoDialogOpen}
+        onOpenChange={setChildInfoDialogOpen}
+        clientId={client.id}
+        client={client}
+      />
+
+      {/* Status Edit Dialog */}
+      <StatusEditDialog
+        open={statusDialogOpen}
+        onOpenChange={setStatusDialogOpen}
+        clientId={client.id}
+        client={client}
+      />
+
+      {/* Parent Edit Dialog */}
+      <ParentEditDialog
+        open={parentDialogOpen}
+        onOpenChange={(open) => {
+          setParentDialogOpen(open);
+          if (!open) setEditingParent(undefined);
+        }}
+        clientId={client.id}
+        parent={editingParent}
+      />
+
+      {/* Insurance Edit Dialog */}
+      <InsuranceEditDialog
+        open={insuranceDialogOpen}
+        onOpenChange={(open) => {
+          setInsuranceDialogOpen(open);
+          if (!open) setEditingInsurance(undefined);
+        }}
+        clientId={client.id}
+        insurance={editingInsurance}
+      />
+
+      {/* Location Edit Dialog */}
+      <LocationEditDialog
+        open={locationDialogOpen}
+        onOpenChange={(open) => {
+          setLocationDialogOpen(open);
+          if (!open) setEditingLocation(undefined);
+        }}
+        clientId={client.id}
+        location={editingLocation}
       />
     </>
   );
