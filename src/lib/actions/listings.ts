@@ -682,6 +682,79 @@ export async function updateContactFormEnabled(enabled: boolean): Promise<Action
 }
 
 /**
+ * Update client intake form enabled setting
+ * This controls whether the full client intake form at /intake/[slug]/client is accessible
+ */
+export async function updateClientIntakeEnabled(enabled: boolean): Promise<ActionResult> {
+  const user = await getUser();
+  if (!user) {
+    return { success: false, error: "Not authenticated" };
+  }
+
+  const supabase = await createClient();
+
+  // Get listing ID and profile
+  const { data: listing, error: listingError } = await supabase
+    .from("listings")
+    .select("id, profiles!inner(plan_tier, subscription_status)")
+    .eq("profile_id", user.id)
+    .single();
+
+  if (listingError || !listing) {
+    return { success: false, error: "Listing not found" };
+  }
+
+  const profile = listing.profiles as unknown as { plan_tier: string; subscription_status: string | null };
+
+  // Only allow for paid plans with active subscription
+  const isActiveSubscription = profile.subscription_status === "active" || profile.subscription_status === "trialing";
+  if (profile.plan_tier === "free" || !isActiveSubscription) {
+    return { success: false, error: "Client intake form is only available for paid plans" };
+  }
+
+  // Update the client_intake_enabled column on listings table
+  const { error } = await supabase
+    .from("listings")
+    .update({
+      client_intake_enabled: enabled,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("profile_id", user.id);
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/forms");
+  return { success: true };
+}
+
+/**
+ * Get client intake enabled status for the current user
+ */
+export async function getClientIntakeEnabled(): Promise<ActionResult<boolean>> {
+  const user = await getUser();
+  if (!user) {
+    return { success: false, error: "Not authenticated" };
+  }
+
+  const supabase = await createClient();
+
+  const { data: listing, error } = await supabase
+    .from("listings")
+    .select("client_intake_enabled")
+    .eq("profile_id", user.id)
+    .single();
+
+  if (error || !listing) {
+    return { success: false, error: "Listing not found" };
+  }
+
+  return { success: true, data: listing.client_intake_enabled ?? false };
+}
+
+/**
  * Get careers page settings for the current user
  */
 export async function getCareersPageSettings(): Promise<ActionResult<{

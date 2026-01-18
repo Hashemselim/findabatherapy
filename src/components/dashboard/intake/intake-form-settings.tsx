@@ -36,11 +36,11 @@ export function IntakeFormSettings({
       ? ""
       : settings.background_color
   );
-  const [intakeUrl, setIntakeUrl] = useState(`/intake/${listingSlug}`);
+  const [contactUrl, setIntakeUrl] = useState(`/contact/${listingSlug}`);
 
   // Set full URL after hydration to avoid hydration mismatch
   useEffect(() => {
-    setIntakeUrl(`${window.location.origin}/intake/${listingSlug}`);
+    setIntakeUrl(`${window.location.origin}/contact/${listingSlug}`);
   }, [listingSlug]);
 
   const handleColorChange = (color: string) => {
@@ -201,7 +201,7 @@ export function IntakeFormSettings({
           </div>
           <div className="mt-4 flex justify-center">
             <Button asChild variant="outline" size="sm">
-              <a href={intakeUrl} target="_blank" rel="noopener noreferrer" className="gap-2">
+              <a href={contactUrl} target="_blank" rel="noopener noreferrer" className="gap-2">
                 <ExternalLink className="h-4 w-4" />
                 View Full Page
               </a>

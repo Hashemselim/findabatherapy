@@ -1,23 +1,23 @@
 import { test, expect } from "@playwright/test";
 
 /**
- * Public Intake Form Tests
- * Tests for: /intake/[slug]
+ * Public Contact Form Tests
+ * Tests for: /contact/[slug]
  */
 
-test.describe("INT-009, INT-010, INT-011, INT-012, INT-013: Public Intake Form", () => {
-  // Note: This test requires knowing a valid provider slug with intake enabled
+test.describe("INT-009, INT-010, INT-011, INT-012, INT-013: Public Contact Form", () => {
+  // Note: This test requires knowing a valid provider slug with contact form enabled
   // For now, we'll try to find one dynamically or skip
 
-  test("should load intake form page", async ({ page }) => {
-    // Try to find a provider with intake from search
+  test("should load contact form page", async ({ page }) => {
+    // Try to find a provider with contact form from search
     await page.goto("/search");
 
     const providerLink = page.locator('a[href*="/provider/"]').first();
     const hasProvider = await providerLink.isVisible().catch(() => false);
 
     if (!hasProvider) {
-      test.skip(true, "No providers available to test intake");
+      test.skip(true, "No providers available to test contact form");
       return;
     }
 
@@ -35,11 +35,11 @@ test.describe("INT-009, INT-010, INT-011, INT-012, INT-013: Public Intake Form",
     }
 
     // Try to load intake form
-    await page.goto(`/intake/${slug}`);
+    await page.goto(`/contact/${slug}`);
 
-    const is404 = await page.locator('text=/not found|404|intake.*not available/i').isVisible().catch(() => false);
+    const is404 = await page.locator('text=/not found|404|contact.*not available|form.*not available/i').isVisible().catch(() => false);
     if (is404) {
-      test.skip(true, "Intake form not available for this provider");
+      test.skip(true, "Contact form not available for this provider");
       return;
     }
 
@@ -69,11 +69,11 @@ test.describe("INT-009, INT-010, INT-011, INT-012, INT-013: Public Intake Form",
       return;
     }
 
-    await page.goto(`/intake/${slug}`);
+    await page.goto(`/contact/${slug}`);
 
     const is404 = await page.locator('text=/not found|404/i').isVisible().catch(() => false);
     if (is404) {
-      test.skip(true, "Intake not available");
+      test.skip(true, "Contact form not available");
       return;
     }
 
@@ -106,11 +106,11 @@ test.describe("INT-009, INT-010, INT-011, INT-012, INT-013: Public Intake Form",
       return;
     }
 
-    await page.goto(`/intake/${slug}`);
+    await page.goto(`/contact/${slug}`);
 
     const is404 = await page.locator('text=/not found|404/i').isVisible().catch(() => false);
     if (is404) {
-      test.skip(true, "Intake not available");
+      test.skip(true, "Contact form not available");
       return;
     }
 
@@ -145,11 +145,11 @@ test.describe("INT-009, INT-010, INT-011, INT-012, INT-013: Public Intake Form",
       return;
     }
 
-    await page.goto(`/intake/${slug}`);
+    await page.goto(`/contact/${slug}`);
 
     const is404 = await page.locator('text=/not found|404/i').isVisible().catch(() => false);
     if (is404) {
-      test.skip(true, "Intake not available");
+      test.skip(true, "Contact form not available");
       return;
     }
 
@@ -195,11 +195,11 @@ test.describe("INT-009, INT-010, INT-011, INT-012, INT-013: Public Intake Form",
       return;
     }
 
-    await page.goto(`/intake/${slug}`);
+    await page.goto(`/contact/${slug}`);
 
     const is404 = await page.locator('text=/not found|404/i').isVisible().catch(() => false);
     if (is404) {
-      test.skip(true, "Intake not available");
+      test.skip(true, "Contact form not available");
       return;
     }
 
@@ -232,11 +232,11 @@ test.describe("INT-009, INT-010, INT-011, INT-012, INT-013: Public Intake Form",
       return;
     }
 
-    await page.goto(`/intake/${slug}`);
+    await page.goto(`/contact/${slug}`);
 
     const is404 = await page.locator('text=/not found|404/i').isVisible().catch(() => false);
     if (is404) {
-      test.skip(true, "Intake not available");
+      test.skip(true, "Contact form not available");
       return;
     }
 
@@ -273,11 +273,11 @@ test.describe("INT-009, INT-010, INT-011, INT-012, INT-013: Public Intake Form",
       return;
     }
 
-    await page.goto(`/intake/${slug}`);
+    await page.goto(`/contact/${slug}`);
 
     const is404 = await page.locator('text=/not found|404/i').isVisible().catch(() => false);
     if (is404) {
-      test.skip(true, "Intake not available");
+      test.skip(true, "Contact form not available");
       return;
     }
 
@@ -293,7 +293,7 @@ test.describe("INT-009, INT-010, INT-011, INT-012, INT-013: Public Intake Form",
   });
 });
 
-test.describe("Intake Form Submission", () => {
+test.describe("Contact Form Submission", () => {
   // Note: Actually submitting would create real data
   // These tests verify the form structure without submitting
 
@@ -316,11 +316,11 @@ test.describe("Intake Form Submission", () => {
       return;
     }
 
-    await page.goto(`/intake/${slug}`);
+    await page.goto(`/contact/${slug}`);
 
     const is404 = await page.locator('text=/not found|404/i').isVisible().catch(() => false);
     if (is404) {
-      test.skip(true, "Intake not available");
+      test.skip(true, "Contact form not available");
       return;
     }
 
@@ -347,11 +347,11 @@ test.describe("Intake Form Submission", () => {
       return;
     }
 
-    await page.goto(`/intake/${slug}`);
+    await page.goto(`/contact/${slug}`);
 
     const is404 = await page.locator('text=/not found|404/i').isVisible().catch(() => false);
     if (is404) {
-      test.skip(true, "Intake not available");
+      test.skip(true, "Contact form not available");
       return;
     }
 

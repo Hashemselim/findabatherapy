@@ -6,7 +6,7 @@ import path from "path";
  * Dashboard - Additional Sections Tests
  * Tests for: /dashboard/account, /dashboard/team, /dashboard/team/employees,
  *            /dashboard/clients, /dashboard/leads, /dashboard/feedback,
- *            /dashboard/intake, /dashboard/jobs/careers, /dashboard/upgrade
+ *            /dashboard/forms, /dashboard/jobs/careers, /dashboard/upgrade
  */
 
 // Check if auth state exists
@@ -306,14 +306,14 @@ test.describe("DASH-030: Feedback Page", () => {
   });
 });
 
-test.describe("DASH-026, DASH-027: Intake Form Management", () => {
+test.describe("DASH-026, DASH-027: Forms Management", () => {
   test.beforeEach(async ({ page }) => {
     if (!checkAuthAvailable()) {
       test.skip(true, "Authentication not set up");
       return;
     }
 
-    await page.goto("/dashboard/intake");
+    await page.goto("/dashboard/forms");
 
     const url = page.url();
     if (url.includes("/auth/")) {
@@ -322,47 +322,47 @@ test.describe("DASH-026, DASH-027: Intake Form Management", () => {
     }
   });
 
-  test("should load intake settings page", async ({ page }) => {
+  test("should load forms settings page", async ({ page }) => {
     const url = page.url();
 
-    if (url.includes("/intake")) {
-      await expect(page).toHaveURL(/dashboard\/intake/);
+    if (url.includes("/forms")) {
+      await expect(page).toHaveURL(/dashboard\/forms/);
 
       const heading = page.locator("h1, h2");
       await expect(heading.first()).toBeVisible();
     } else {
-      test.skip(true, "Intake feature not available");
+      test.skip(true, "Forms feature not available");
     }
   });
 
-  test("should have intake form toggle", async ({ page }) => {
+  test("should have form toggle", async ({ page }) => {
     const url = page.url();
-    if (!url.includes("/intake")) {
-      test.skip(true, "Intake feature not available");
+    if (!url.includes("/forms")) {
+      test.skip(true, "Forms feature not available");
       return;
     }
 
     const toggle = page.locator(
-      'input[type="checkbox"], button[role="switch"], [data-testid="intake-toggle"]'
+      'input[type="checkbox"], button[role="switch"], [data-testid="form-toggle"]'
     );
     const hasToggle = await toggle.first().isVisible().catch(() => false);
 
     expect(hasToggle).toBeTruthy();
   });
 
-  test("should show intake form URL", async ({ page }) => {
+  test("should show contact form URL", async ({ page }) => {
     const url = page.url();
-    if (!url.includes("/intake")) {
-      test.skip(true, "Intake feature not available");
+    if (!url.includes("/forms")) {
+      test.skip(true, "Forms feature not available");
       return;
     }
 
-    const intakeUrl = page.locator(
-      'input[value*="intake"], text=/intake\/[a-z0-9-]+/i, code, .url'
+    const formUrl = page.locator(
+      'input[value*="contact"], text=/contact\/[a-z0-9-]+/i, code, .url'
     );
     const copyButton = page.locator('button:has-text(/copy/i)');
 
-    const hasUrl = await intakeUrl.first().isVisible().catch(() => false);
+    const hasUrl = await formUrl.first().isVisible().catch(() => false);
     const hasCopy = await copyButton.first().isVisible().catch(() => false);
 
     expect(hasUrl || hasCopy).toBeTruthy();

@@ -87,7 +87,7 @@ const dashboardQuickLinkSections: QuickLinkSection[] = [
     links: [
       { href: "/dashboard/inbox", label: "Inbox", icon: Mail },
       { href: "/dashboard/analytics", label: "Analytics", icon: BarChart3 },
-      { href: "/dashboard/intake", label: "Intake", icon: FileInput },
+      { href: "/dashboard/forms", label: "Forms", icon: FileInput },
     ],
   },
   {
@@ -128,7 +128,7 @@ function getPageTitle(pathname: string, isDemo: boolean): string {
   if (pathname.includes("/media")) return "Media";
   if (pathname.includes("/inbox")) return "Inbox";
   if (pathname.includes("/analytics")) return "Analytics";
-  if (pathname.includes("/intake")) return "Intake Form";
+  if (pathname.includes("/forms")) return "Forms";
   if (pathname.includes("/jobs/applications")) return "Applications";
   if (pathname.includes("/jobs/careers")) return "Careers Page";
   if (pathname.includes("/jobs")) return "Job Postings";

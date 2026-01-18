@@ -6,22 +6,22 @@ import { Globe } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { ContactFormIntake } from "@/components/contact/contact-form-intake";
-import { getIntakePageData } from "@/lib/actions/intake";
+import { getContactPageData } from "@/lib/actions/intake";
 
-type IntakePageParams = {
+type ContactPageParams = {
   slug: string;
 };
 
-type IntakePageProps = {
-  params: Promise<IntakePageParams>;
+type ContactPageProps = {
+  params: Promise<ContactPageParams>;
 };
 
 // Revalidate every 5 minutes (ISR)
 export const revalidate = 300;
 
-export async function generateMetadata({ params }: IntakePageProps): Promise<Metadata> {
+export async function generateMetadata({ params }: ContactPageProps): Promise<Metadata> {
   const { slug } = await params;
-  const result = await getIntakePageData(slug);
+  const result = await getContactPageData(slug);
 
   if (!result.success || !result.data) {
     return {
@@ -53,9 +53,9 @@ function getContrastColor(hexColor: string) {
   return luminance > 0.5 ? "#000000" : "#FFFFFF";
 }
 
-export default async function IntakePage({ params }: IntakePageProps) {
+export default async function ContactPage({ params }: ContactPageProps) {
   const { slug } = await params;
-  const result = await getIntakePageData(slug);
+  const result = await getContactPageData(slug);
 
   if (!result.success || !result.data) {
     notFound();
@@ -119,7 +119,7 @@ export default async function IntakePage({ params }: IntakePageProps) {
                 style={{ backgroundColor: getLighterShade(background_color, 0.3) }}
               />
 
-              <h2 className="text-lg font-medium text-foreground">Interest Form</h2>
+              <h2 className="text-lg font-medium text-foreground">Contact Form</h2>
               <p className="mx-auto max-w-lg text-base text-muted-foreground sm:text-lg">
                 We&apos;d love to hear from you. Fill out the form below and we&apos;ll be in touch shortly.
               </p>

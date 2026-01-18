@@ -23,22 +23,22 @@ export function IntakeFormShareCard({
   listingSlug,
 }: IntakeFormShareCardProps) {
   const [copied, setCopied] = useState(false);
-  const [intakeUrl, setIntakeUrl] = useState(`/intake/${listingSlug}`);
+  const [contactUrl, setContactUrl] = useState(`/contact/${listingSlug}`);
 
   // Set full URL after hydration to avoid hydration mismatch
   useEffect(() => {
-    setIntakeUrl(`${window.location.origin}/intake/${listingSlug}`);
+    setContactUrl(`${window.location.origin}/contact/${listingSlug}`);
   }, [listingSlug]);
 
   const handleCopyLink = async () => {
     try {
-      await navigator.clipboard.writeText(intakeUrl);
+      await navigator.clipboard.writeText(contactUrl);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
       // Fallback for older browsers
       const textarea = document.createElement("textarea");
-      textarea.value = intakeUrl;
+      textarea.value = contactUrl;
       document.body.appendChild(textarea);
       textarea.select();
       document.execCommand("copy");
@@ -71,7 +71,7 @@ export function IntakeFormShareCard({
           {/* URL Display and Copy */}
           <div className="flex flex-col gap-3 sm:flex-row">
             <div className="flex-1 rounded-lg border border-blue-200 bg-white px-4 py-3">
-              <p className="truncate font-mono text-sm text-muted-foreground">{intakeUrl}</p>
+              <p className="truncate font-mono text-sm text-muted-foreground">{contactUrl}</p>
             </div>
             <div className="flex gap-2">
               <Button
@@ -92,7 +92,7 @@ export function IntakeFormShareCard({
                 )}
               </Button>
               <Button asChild variant="outline" className="shrink-0 gap-2">
-                <a href={intakeUrl} target="_blank" rel="noopener noreferrer">
+                <a href={contactUrl} target="_blank" rel="noopener noreferrer">
                   <ExternalLink className="h-4 w-4" />
                   <span className="hidden sm:inline">Preview</span>
                 </a>

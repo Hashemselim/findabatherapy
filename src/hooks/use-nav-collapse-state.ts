@@ -34,7 +34,7 @@ function getSectionFromPath(pathname: string): SectionId | null {
   if (
     pathname.startsWith("/dashboard/analytics") ||
     pathname.startsWith("/dashboard/inbox") ||
-    pathname.startsWith("/dashboard/intake")
+    pathname.startsWith("/dashboard/forms")
   ) {
     return "therapy";
   }

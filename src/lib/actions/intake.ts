@@ -7,7 +7,7 @@ export interface IntakeFormSettings {
   show_powered_by: boolean;
 }
 
-export interface IntakePageData {
+export interface ContactPageData {
   listing: {
     id: string;
     slug: string;
@@ -23,17 +23,20 @@ export interface IntakePageData {
   };
 }
 
+// Backward compatibility alias
+export type IntakePageData = ContactPageData;
+
 type ActionResult<T = void> =
   | { success: true; data?: T }
   | { success: false; error: string };
 
 /**
- * Get data for the standalone intake form page
- * Returns listing and profile info needed to render the intake page
+ * Get data for the standalone contact form page
+ * Returns listing and profile info needed to render the contact page
  */
-export async function getIntakePageData(
+export async function getContactPageData(
   slug: string
-): Promise<ActionResult<IntakePageData>> {
+): Promise<ActionResult<ContactPageData>> {
   const supabase = await createAdminClient();
 
   // Fetch listing with profile data
@@ -127,6 +130,9 @@ export async function getIntakePageData(
     },
   };
 }
+
+// Backward compatibility alias for old function name
+export const getIntakePageData = getContactPageData;
 
 export interface ClientIntakePageData {
   listing: {

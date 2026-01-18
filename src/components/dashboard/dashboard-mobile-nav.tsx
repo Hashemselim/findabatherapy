@@ -82,7 +82,7 @@ const dashboardNavSections: MobileNavSection[] = [
     items: [
       { href: "/dashboard/inbox", label: "Inbox", icon: Mail, showBadge: true },
       { href: "/dashboard/analytics", label: "Analytics", icon: BarChart3 },
-      { href: "/dashboard/intake", label: "Intake Form", icon: FileInput },
+      { href: "/dashboard/forms", label: "Forms", icon: FileInput },
     ],
   },
   {

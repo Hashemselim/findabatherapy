@@ -38,9 +38,9 @@ export function IntakeSettingsCard({
       : settings.background_color
   );
 
-  const intakeUrl = typeof window !== "undefined"
-    ? `${window.location.origin}/intake/${listingSlug}`
-    : `/intake/${listingSlug}`;
+  const contactUrl = typeof window !== "undefined"
+    ? `${window.location.origin}/contact/${listingSlug}`
+    : `/contact/${listingSlug}`;
 
   const handleColorChange = (color: string) => {
     setSettings((prev) => ({ ...prev, background_color: color }));
@@ -70,13 +70,13 @@ export function IntakeSettingsCard({
 
   const handleCopyLink = async () => {
     try {
-      await navigator.clipboard.writeText(intakeUrl);
+      await navigator.clipboard.writeText(contactUrl);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
       // Fallback for older browsers
       const textarea = document.createElement("textarea");
-      textarea.value = intakeUrl;
+      textarea.value = contactUrl;
       document.body.appendChild(textarea);
       textarea.select();
       document.execCommand("copy");
@@ -102,7 +102,7 @@ export function IntakeSettingsCard({
         <CardContent className="space-y-4">
           <div className="flex flex-col gap-3 sm:flex-row">
             <div className="flex-1 rounded-lg border border-border/60 bg-muted/30 px-4 py-3">
-              <p className="truncate text-sm text-muted-foreground">{intakeUrl}</p>
+              <p className="truncate text-sm text-muted-foreground">{contactUrl}</p>
             </div>
             <Button
               onClick={handleCopyLink}
@@ -275,7 +275,7 @@ export function IntakeSettingsCard({
           </div>
           <div className="mt-4 flex justify-center">
             <Button asChild variant="outline" size="sm">
-              <a href={intakeUrl} target="_blank" rel="noopener noreferrer">
+              <a href={contactUrl} target="_blank" rel="noopener noreferrer">
                 View Full Page
               </a>
             </Button>

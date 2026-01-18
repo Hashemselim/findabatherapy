@@ -112,6 +112,7 @@ export async function middleware(request: NextRequest) {
 
     // Block access to main site routes from jobs domain
     const mainSiteOnlyRoutes = [
+      "/contact",
       "/intake",
       "/removal-request",
       "/demo",
@@ -135,6 +136,7 @@ export async function middleware(request: NextRequest) {
       "/faq",
       "/insurance",
       "/centers",
+      "/contact",
       "/intake",
     ];
 
@@ -143,6 +145,17 @@ export async function middleware(request: NextRequest) {
       const therapySiteUrl = new URL(pathname, domains.therapy.production);
       return NextResponse.redirect(therapySiteUrl);
     }
+  }
+
+  // =============================================================================
+  // REDIRECT OLD /intake/[slug] URLs to /contact/[slug]
+  // (but keep /intake/[slug]/client for the full client intake form)
+  // =============================================================================
+  const intakeRedirectMatch = pathname.match(/^\/intake\/([^/]+)$/);
+  if (intakeRedirectMatch) {
+    const slug = intakeRedirectMatch[1];
+    const redirectUrl = new URL(`/contact/${slug}`, request.url);
+    return NextResponse.redirect(redirectUrl, 301);
   }
 
   // Therapy site routing: Redirect jobs routes to jobs site

@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { BubbleBackground } from "@/components/ui/bubble-background";
 import { IntakeFormShareCard } from "@/components/dashboard/intake/intake-form-share-card";
 import { IntakeFormSettings } from "@/components/dashboard/intake/intake-form-settings";
+import { ClientIntakeShareCard } from "@/components/dashboard/intake/client-intake-share-card";
 import { getProfile, createClient } from "@/lib/supabase/server";
 import type { IntakeFormSettings as IntakeFormSettingsType } from "@/lib/actions/intake";
 
@@ -17,9 +18,9 @@ export default async function IntakeFormPage() {
     return (
       <div className="space-y-4 sm:space-y-6">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">Intake Form</h1>
+          <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">Forms</h1>
           <p className="mt-1 text-sm text-muted-foreground sm:mt-2">
-            Share a branded intake form for families to contact you.
+            Share branded forms for families to contact you or submit intake information.
           </p>
         </div>
 
@@ -47,7 +48,7 @@ export default async function IntakeFormPage() {
               </h3>
 
               <p className="mt-3 max-w-md text-sm text-slate-600">
-                Finish setting up your practice profile to access your branded intake form.
+                Finish setting up your practice profile to access your branded forms.
               </p>
 
               <div className="mt-6 flex flex-wrap justify-center gap-3">
@@ -75,24 +76,25 @@ export default async function IntakeFormPage() {
     );
   }
 
-  // Get listing slug
+  // Get listing slug and client intake enabled status
   const supabase = await createClient();
   const listingResult = await supabase
     .from("listings")
-    .select("slug")
+    .select("slug, client_intake_enabled")
     .eq("profile_id", profile.id)
     .single();
 
   const listingSlug = listingResult.data?.slug ?? null;
+  const clientIntakeEnabled = listingResult.data?.client_intake_enabled ?? false;
 
   // If no listing slug, something went wrong
   if (!listingSlug) {
     return (
       <div className="space-y-4 sm:space-y-6">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">Intake Form</h1>
+          <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">Forms</h1>
           <p className="mt-1 text-sm text-muted-foreground sm:mt-2">
-            Share a branded intake form for families to contact you.
+            Share branded forms for families to contact you or submit intake information.
           </p>
         </div>
 
@@ -101,9 +103,9 @@ export default async function IntakeFormPage() {
             <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
               <FileText className="h-6 w-6 text-muted-foreground" />
             </div>
-            <h3 className="text-lg font-semibold">Unable to load intake form</h3>
+            <h3 className="text-lg font-semibold">Unable to load forms</h3>
             <p className="mt-2 max-w-sm text-sm text-muted-foreground">
-              Please complete your company profile setup to access your branded intake form.
+              Please complete your company profile setup to access your branded forms.
             </p>
             <Button asChild className="mt-6">
               <Link href="/dashboard/company">
@@ -131,18 +133,35 @@ export default async function IntakeFormPage() {
   return (
     <div className="space-y-4 sm:space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">Intake Form</h1>
+        <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">Forms</h1>
         <p className="mt-1 text-sm text-muted-foreground sm:mt-2">
-          Share a branded intake form that lets families contact you directly.
+          Share branded forms for families to contact you or submit intake information.
         </p>
       </div>
 
-      <IntakeFormShareCard listingSlug={listingSlug} />
+      {/* Contact Form Section */}
+      <div className="space-y-4">
+        <h2 className="text-lg font-medium text-foreground">Contact Form</h2>
+        <IntakeFormShareCard listingSlug={listingSlug} />
+      </div>
 
-      <IntakeFormSettings
-        listingSlug={listingSlug}
-        settings={intakeFormSettings}
-      />
+      {/* Client Intake Form Section */}
+      <div className="space-y-4">
+        <h2 className="text-lg font-medium text-foreground">Client Intake Form</h2>
+        <ClientIntakeShareCard
+          listingSlug={listingSlug}
+          isEnabled={clientIntakeEnabled}
+        />
+      </div>
+
+      {/* Shared Settings */}
+      <div className="space-y-4">
+        <h2 className="text-lg font-medium text-foreground">Form Appearance</h2>
+        <IntakeFormSettings
+          listingSlug={listingSlug}
+          settings={intakeFormSettings}
+        />
+      </div>
     </div>
   );
 }
