@@ -16,16 +16,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import type { ClientListItem, ClientDetail, ClientCounts } from "@/lib/actions/clients";
-import {
-  getClientById,
-  deleteClient as deleteClientAction,
-} from "@/lib/actions/clients";
-import { TaskFormDialog } from "@/components/dashboard/tasks";
+import type { ClientListItem, ClientCounts } from "@/lib/actions/clients";
+import { deleteClient as deleteClientAction } from "@/lib/actions/clients";
 
 import { ClientsFilters, type ClientFilterValue } from "./clients-filters";
 import { ClientsTable } from "./clients-table";
-import { ClientDetailPanel } from "./client-detail-panel";
 
 interface ClientsListProps {
   initialClients: ClientListItem[];
@@ -41,14 +36,8 @@ export function ClientsList({ initialClients, initialCounts }: ClientsListProps)
   const [counts, setCounts] = useState<ClientCounts>(initialCounts);
   const [filter, setFilter] = useState<ClientFilterValue>("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedClient, setSelectedClient] = useState<ClientDetail | null>(null);
-  const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
-  const [mobileShowDetail, setMobileShowDetail] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [clientToDelete, setClientToDelete] = useState<string | null>(null);
-  const [taskDialogOpen, setTaskDialogOpen] = useState(false);
-  const [taskClientId, setTaskClientId] = useState<string | null>(null);
-  const [taskClientName, setTaskClientName] = useState<string>("");
 
   // Filter clients
   let filteredClients = clients;
@@ -76,17 +65,6 @@ export function ClientsList({ initialClients, initialCounts }: ClientsListProps)
       );
     });
   }
-
-  // Handle client selection
-  const handleSelectClient = async (client: ClientListItem) => {
-    setSelectedClientId(client.id);
-    setMobileShowDetail(true);
-
-    const result = await getClientById(client.id);
-    if (result.success && result.data) {
-      setSelectedClient(result.data);
-    }
-  };
 
   // Handle edit
   const handleEdit = (clientId: string) => {
@@ -116,116 +94,46 @@ export function ClientsList({ initialClients, initialCounts }: ClientsListProps)
             [deletedClient.status]: prev[deletedClient.status as keyof Omit<ClientCounts, "total">] - 1,
           }));
         }
-        // Clear selection if deleted client was selected
-        if (selectedClientId === clientToDelete) {
-          setSelectedClient(null);
-          setSelectedClientId(null);
-          setMobileShowDetail(false);
-        }
       }
       setDeleteDialogOpen(false);
       setClientToDelete(null);
     });
   };
 
-  // Handle back (mobile)
-  const handleBackToList = () => {
-    setMobileShowDetail(false);
-  };
-
-  // Handle add task
-  const handleAddTask = (clientId: string, clientName: string) => {
-    setTaskClientId(clientId);
-    setTaskClientName(clientName);
-    setTaskDialogOpen(true);
-  };
-
   return (
-    <>
-      {/* Mobile layout */}
-      <div className="flex flex-col gap-4 lg:hidden">
-        {/* Header with filters - hide when viewing detail */}
-        {!mobileShowDetail && (
-          <>
-            <div className="flex items-center justify-between gap-4">
-              <h1 className="text-2xl font-bold">Clients</h1>
-              <Button asChild>
-                <Link href="/dashboard/clients/new">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Client
-                </Link>
-              </Button>
-            </div>
-            <ClientsFilters
-              filter={filter}
-              onFilterChange={setFilter}
-              counts={counts}
-              searchQuery={searchQuery}
-              onSearchChange={setSearchQuery}
-            />
-          </>
-        )}
-
-        {/* Show either list or detail */}
-        {!mobileShowDetail ? (
-          <ClientsTable
-            clients={filteredClients}
-            selectedId={selectedClientId}
-            onSelect={handleSelectClient}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-            onAddTask={handleAddTask}
-          />
-        ) : (
-          <ClientDetailPanel
-            client={selectedClient}
-            onBack={handleBackToList}
-            showBackButton
-          />
-        )}
+    <div className="flex flex-col gap-5 h-full">
+      {/* Header */}
+      <div className="flex items-center justify-between gap-4 shrink-0">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Clients</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            {counts.total} {counts.total === 1 ? "client" : "clients"} total
+          </p>
+        </div>
+        <Button asChild size="sm" className="gap-1.5">
+          <Link href="/dashboard/clients/new">
+            <Plus className="h-4 w-4" />
+            Add Client
+          </Link>
+        </Button>
       </div>
 
-      {/* Desktop layout */}
-      <div className="hidden lg:flex lg:flex-col lg:gap-4 lg:h-full">
-        {/* Header */}
-        <div className="flex items-center justify-between gap-4 shrink-0">
-          <h1 className="text-2xl font-bold">Clients</h1>
-          <Button asChild>
-            <Link href="/dashboard/clients/new">
-              <Plus className="h-4 w-4 mr-2" />
-              Add Client
-            </Link>
-          </Button>
-        </div>
+      {/* Filters */}
+      <ClientsFilters
+        filter={filter}
+        onFilterChange={setFilter}
+        counts={counts}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+      />
 
-        {/* Filters */}
-        <ClientsFilters
-          filter={filter}
-          onFilterChange={setFilter}
-          counts={counts}
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
+      {/* Table - full width */}
+      <div className="flex-1 min-h-0 overflow-auto">
+        <ClientsTable
+          clients={filteredClients}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
         />
-
-        {/* Two-panel layout */}
-        <div className="flex min-h-0 flex-1 gap-4">
-          {/* Left: Table */}
-          <div className="w-2/3 overflow-auto">
-            <ClientsTable
-              clients={filteredClients}
-              selectedId={selectedClientId}
-              onSelect={handleSelectClient}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-              onAddTask={handleAddTask}
-            />
-          </div>
-
-          {/* Right: Detail panel */}
-          <div className="w-1/3 min-w-[350px]">
-            <ClientDetailPanel client={selectedClient} />
-          </div>
-        </div>
       </div>
 
       {/* Delete confirmation dialog */}
@@ -249,14 +157,6 @@ export function ClientsList({ initialClients, initialCounts }: ClientsListProps)
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      {/* Task form dialog */}
-      <TaskFormDialog
-        open={taskDialogOpen}
-        onOpenChange={setTaskDialogOpen}
-        clientId={taskClientId}
-        clientName={taskClientName}
-      />
-    </>
+    </div>
   );
 }
