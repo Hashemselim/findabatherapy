@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useTransition, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -81,25 +81,50 @@ export function InsuranceEditDialog({
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      insurance_name: insurance?.insurance_name || "",
-      insurance_type: insurance?.insurance_type,
-      is_primary: insurance?.is_primary || false,
-      effective_date: insurance?.effective_date || "",
-      expiration_date: insurance?.expiration_date || "",
-      member_id: insurance?.member_id || "",
-      group_number: insurance?.group_number || "",
-      plan_name: insurance?.plan_name || "",
-      subscriber_relationship: insurance?.subscriber_relationship,
-      status: insurance?.status || "pending_verification",
-      copay_amount: insurance?.copay_amount,
-      coinsurance_percentage: insurance?.coinsurance_percentage,
-      deductible_total: insurance?.deductible_total,
-      deductible_remaining: insurance?.deductible_remaining,
-      oop_max_total: insurance?.oop_max_total,
-      oop_max_remaining: insurance?.oop_max_remaining,
-      notes: insurance?.notes || "",
+      insurance_name: "",
+      insurance_type: undefined,
+      is_primary: false,
+      effective_date: "",
+      expiration_date: "",
+      member_id: "",
+      group_number: "",
+      plan_name: "",
+      subscriber_relationship: undefined,
+      status: "pending_verification",
+      copay_amount: undefined,
+      coinsurance_percentage: undefined,
+      deductible_total: undefined,
+      deductible_remaining: undefined,
+      oop_max_total: undefined,
+      oop_max_remaining: undefined,
+      notes: "",
     },
   });
+
+  // Reset form when dialog opens or insurance changes
+  useEffect(() => {
+    if (open) {
+      form.reset({
+        insurance_name: insurance?.insurance_name || "",
+        insurance_type: insurance?.insurance_type,
+        is_primary: insurance?.is_primary || false,
+        effective_date: insurance?.effective_date || "",
+        expiration_date: insurance?.expiration_date || "",
+        member_id: insurance?.member_id || "",
+        group_number: insurance?.group_number || "",
+        plan_name: insurance?.plan_name || "",
+        subscriber_relationship: insurance?.subscriber_relationship,
+        status: insurance?.status || "pending_verification",
+        copay_amount: insurance?.copay_amount,
+        coinsurance_percentage: insurance?.coinsurance_percentage,
+        deductible_total: insurance?.deductible_total,
+        deductible_remaining: insurance?.deductible_remaining,
+        oop_max_total: insurance?.oop_max_total,
+        oop_max_remaining: insurance?.oop_max_remaining,
+        notes: insurance?.notes || "",
+      });
+    }
+  }, [open, insurance, form]);
 
   const onSubmit = (data: FormValues) => {
     startTransition(async () => {

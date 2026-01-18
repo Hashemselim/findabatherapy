@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useTransition, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -68,16 +68,32 @@ export function StatusEditDialog({
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      status: client.status || "inquiry",
-      referral_source: client.referral_source || "",
-      referral_date: client.referral_date || "",
-      service_start_date: client.service_start_date || "",
-      service_end_date: client.service_end_date || "",
-      discharge_reason: client.discharge_reason || "",
-      funding_source: client.funding_source,
-      notes: client.notes || "",
+      status: "inquiry",
+      referral_source: "",
+      referral_date: "",
+      service_start_date: "",
+      service_end_date: "",
+      discharge_reason: "",
+      funding_source: undefined,
+      notes: "",
     },
   });
+
+  // Reset form when dialog opens or client changes
+  useEffect(() => {
+    if (open) {
+      form.reset({
+        status: client.status || "inquiry",
+        referral_source: client.referral_source || "",
+        referral_date: client.referral_date || "",
+        service_start_date: client.service_start_date || "",
+        service_end_date: client.service_end_date || "",
+        discharge_reason: client.discharge_reason || "",
+        funding_source: client.funding_source,
+        notes: client.notes || "",
+      });
+    }
+  }, [open, client, form]);
 
   const status = form.watch("status");
 

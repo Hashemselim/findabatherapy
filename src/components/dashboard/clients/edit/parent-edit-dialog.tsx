@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useTransition, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -71,16 +71,32 @@ export function ParentEditDialog({
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      first_name: parent?.first_name || "",
-      last_name: parent?.last_name || "",
-      date_of_birth: parent?.date_of_birth || "",
-      relationship: parent?.relationship,
-      phone: parent?.phone || "",
-      email: parent?.email || "",
-      notes: parent?.notes || "",
-      is_primary: parent?.is_primary || false,
+      first_name: "",
+      last_name: "",
+      date_of_birth: "",
+      relationship: undefined,
+      phone: "",
+      email: "",
+      notes: "",
+      is_primary: false,
     },
   });
+
+  // Reset form when dialog opens or parent changes
+  useEffect(() => {
+    if (open) {
+      form.reset({
+        first_name: parent?.first_name || "",
+        last_name: parent?.last_name || "",
+        date_of_birth: parent?.date_of_birth || "",
+        relationship: parent?.relationship,
+        phone: parent?.phone || "",
+        email: parent?.email || "",
+        notes: parent?.notes || "",
+        is_primary: parent?.is_primary || false,
+      });
+    }
+  }, [open, parent, form]);
 
   const onSubmit = (data: FormValues) => {
     startTransition(async () => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useTransition, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -76,22 +76,44 @@ export function ChildInfoEditDialog({
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      child_first_name: client.child_first_name || "",
-      child_last_name: client.child_last_name || "",
-      child_date_of_birth: client.child_date_of_birth || "",
-      child_diagnosis: client.child_diagnosis || [],
-      child_diagnosis_codes: client.child_diagnosis_codes || [],
-      child_primary_concerns: client.child_primary_concerns || "",
-      child_aba_history: client.child_aba_history || "",
-      child_school_name: client.child_school_name || "",
-      child_school_district: client.child_school_district || "",
-      child_grade_level: client.child_grade_level || "",
-      child_other_therapies: client.child_other_therapies || "",
-      child_pediatrician_name: client.child_pediatrician_name || "",
-      child_pediatrician_phone: client.child_pediatrician_phone || "",
-      preferred_language: client.preferred_language || "",
+      child_first_name: "",
+      child_last_name: "",
+      child_date_of_birth: "",
+      child_diagnosis: [],
+      child_diagnosis_codes: [],
+      child_primary_concerns: "",
+      child_aba_history: "",
+      child_school_name: "",
+      child_school_district: "",
+      child_grade_level: "",
+      child_other_therapies: "",
+      child_pediatrician_name: "",
+      child_pediatrician_phone: "",
+      preferred_language: "",
     },
   });
+
+  // Reset form when dialog opens or client changes
+  useEffect(() => {
+    if (open) {
+      form.reset({
+        child_first_name: client.child_first_name || "",
+        child_last_name: client.child_last_name || "",
+        child_date_of_birth: client.child_date_of_birth || "",
+        child_diagnosis: client.child_diagnosis || [],
+        child_diagnosis_codes: client.child_diagnosis_codes || [],
+        child_primary_concerns: client.child_primary_concerns || "",
+        child_aba_history: client.child_aba_history || "",
+        child_school_name: client.child_school_name || "",
+        child_school_district: client.child_school_district || "",
+        child_grade_level: client.child_grade_level || "",
+        child_other_therapies: client.child_other_therapies || "",
+        child_pediatrician_name: client.child_pediatrician_name || "",
+        child_pediatrician_phone: client.child_pediatrician_phone || "",
+        preferred_language: client.preferred_language || "",
+      });
+    }
+  }, [open, client, form]);
 
   const selectedDiagnoses = form.watch("child_diagnosis") || [];
 

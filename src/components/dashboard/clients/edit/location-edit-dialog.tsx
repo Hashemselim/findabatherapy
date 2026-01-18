@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition, useState } from "react";
+import { useTransition, useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -123,27 +123,47 @@ export function LocationEditDialog({
   onSuccess,
 }: LocationEditDialogProps) {
   const [isPending, startTransition] = useTransition();
-  const [addressInput, setAddressInput] = useState(
-    location ? [location.street_address, location.city, location.state].filter(Boolean).join(", ") : ""
-  );
+  const [addressInput, setAddressInput] = useState("");
   const isEditing = !!location?.id;
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      label: location?.label || "",
-      street_address: location?.street_address || "",
-      city: location?.city || "",
-      state: location?.state || "",
-      postal_code: location?.postal_code || "",
-      country: location?.country || "US",
-      latitude: location?.latitude,
-      longitude: location?.longitude,
-      place_id: location?.place_id || "",
-      notes: location?.notes || "",
-      is_primary: location?.is_primary || false,
+      label: "",
+      street_address: "",
+      city: "",
+      state: "",
+      postal_code: "",
+      country: "US",
+      latitude: undefined,
+      longitude: undefined,
+      place_id: "",
+      notes: "",
+      is_primary: false,
     },
   });
+
+  // Reset form when dialog opens or location changes
+  useEffect(() => {
+    if (open) {
+      form.reset({
+        label: location?.label || "",
+        street_address: location?.street_address || "",
+        city: location?.city || "",
+        state: location?.state || "",
+        postal_code: location?.postal_code || "",
+        country: location?.country || "US",
+        latitude: location?.latitude,
+        longitude: location?.longitude,
+        place_id: location?.place_id || "",
+        notes: location?.notes || "",
+        is_primary: location?.is_primary || false,
+      });
+      setAddressInput(
+        location ? [location.street_address, location.city, location.state].filter(Boolean).join(", ") : ""
+      );
+    }
+  }, [open, location, form]);
 
   const handlePlaceSelect = (place: PlaceDetails) => {
     // PlaceDetails provides formattedAddress, not streetAddress - use the formatted address
