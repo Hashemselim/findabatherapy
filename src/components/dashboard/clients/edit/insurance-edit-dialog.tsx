@@ -50,12 +50,12 @@ const formSchema = z.object({
   plan_name: z.string().max(200).optional().or(z.literal("")),
   subscriber_relationship: subscriberRelationshipSchema.optional(),
   status: insuranceStatusSchema.optional(),
-  copay_amount: z.number().min(0).optional(),
-  coinsurance_percentage: z.number().min(0).max(100).optional(),
-  deductible_total: z.number().min(0).optional(),
-  deductible_remaining: z.number().min(0).optional(),
-  oop_max_total: z.number().min(0).optional(),
-  oop_max_remaining: z.number().min(0).optional(),
+  copay_amount: z.number().min(0).optional().or(z.nan().transform(() => undefined)),
+  coinsurance_percentage: z.number().min(0).max(100).optional().or(z.nan().transform(() => undefined)),
+  deductible_total: z.number().min(0).optional().or(z.nan().transform(() => undefined)),
+  deductible_remaining: z.number().min(0).optional().or(z.nan().transform(() => undefined)),
+  oop_max_total: z.number().min(0).optional().or(z.nan().transform(() => undefined)),
+  oop_max_remaining: z.number().min(0).optional().or(z.nan().transform(() => undefined)),
   notes: z.string().max(2000).optional().or(z.literal("")),
 });
 type FormValues = z.infer<typeof formSchema>;

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { formatDistanceToNow } from "date-fns";
+import { RelativeTime } from "@/components/ui/relative-time";
 import {
   Calendar,
   ExternalLink,
@@ -145,8 +145,8 @@ export function JobList({ jobs: initialJobs }: JobListProps) {
                     <span className="flex items-center gap-1">
                       <Calendar className="h-3.5 w-3.5" />
                       {job.publishedAt
-                        ? `Published ${formatDistanceToNow(new Date(job.publishedAt), { addSuffix: true })}`
-                        : `Created ${formatDistanceToNow(new Date(job.createdAt), { addSuffix: true })}`}
+                        ? <>Published <RelativeTime date={job.publishedAt} /></>
+                        : <>Created <RelativeTime date={job.createdAt} /></>}
                     </span>
                   </div>
                 </div>

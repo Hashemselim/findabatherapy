@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { formatDistanceToNow, format } from "date-fns";
+import { format } from "date-fns";
+import { RelativeTime } from "@/components/ui/relative-time";
 import {
   Mail,
   MailOpen,
@@ -304,7 +305,7 @@ export function FeedbackList({ initialFeedback, initialUnreadCount }: FeedbackLi
                       {feedback.message}
                     </p>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      {formatDistanceToNow(new Date(feedback.createdAt), { addSuffix: true })}
+                      <RelativeTime date={feedback.createdAt} />
                     </p>
                   </div>
 

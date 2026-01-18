@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
-import { formatDistanceToNow } from "date-fns";
+import { RelativeTime } from "@/components/ui/relative-time";
 import {
   ArrowLeft,
   Pencil,
@@ -163,8 +163,8 @@ export default async function JobViewPage({ params }: JobViewPageProps) {
                 <span className="flex items-center gap-1 text-muted-foreground">
                   <Clock className="h-4 w-4" />
                   {job.publishedAt
-                    ? `Published ${formatDistanceToNow(new Date(job.publishedAt), { addSuffix: true })}`
-                    : `Created ${formatDistanceToNow(new Date(job.createdAt), { addSuffix: true })}`}
+                    ? <>Published <RelativeTime date={job.publishedAt} /></>
+                    : <>Created <RelativeTime date={job.createdAt} /></>}
                 </span>
                 <span className="flex items-center gap-1 text-muted-foreground">
                   <Users className="h-4 w-4" />
@@ -323,14 +323,14 @@ export default async function JobViewPage({ params }: JobViewPageProps) {
                 <div className="flex justify-between">
                   <dt className="text-muted-foreground">Created</dt>
                   <dd className="font-medium">
-                    {formatDistanceToNow(new Date(job.createdAt), { addSuffix: true })}
+                    <RelativeTime date={job.createdAt} />
                   </dd>
                 </div>
                 {job.publishedAt && (
                   <div className="flex justify-between">
                     <dt className="text-muted-foreground">Published</dt>
                     <dd className="font-medium">
-                      {formatDistanceToNow(new Date(job.publishedAt), { addSuffix: true })}
+                      <RelativeTime date={job.publishedAt} />
                     </dd>
                   </div>
                 )}
