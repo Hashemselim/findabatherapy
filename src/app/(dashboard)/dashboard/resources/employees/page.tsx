@@ -1,12 +1,11 @@
 import Link from "next/link";
 import {
   ArrowRight,
-  Award,
-  Calendar,
-  Clock,
+  BookOpen,
+  ClipboardCheck,
+  FileText,
+  FolderOpen,
   Sparkles,
-  UserCircle,
-  Users,
 } from "lucide-react";
 
 import { BubbleBackground } from "@/components/ui/bubble-background";
@@ -14,27 +13,27 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { brandColors } from "@/config/brands";
 
-export default function TeamPage() {
+export default function EmployeeResourcesPage() {
   const features = [
     {
-      icon: UserCircle,
-      title: "Employee Profiles",
-      description: "Store contact info, certifications, and employment history",
+      icon: BookOpen,
+      title: "Training Materials",
+      description: "Upload training documents and certification guides",
     },
     {
-      icon: Award,
-      title: "Certification Tracking",
-      description: "Track BCBA, RBT certifications and renewal dates",
+      icon: FileText,
+      title: "Policy Documents",
+      description: "Store and share company policies and procedures",
     },
     {
-      icon: Calendar,
-      title: "Scheduling",
-      description: "Manage employee schedules and availability",
+      icon: ClipboardCheck,
+      title: "Onboarding Checklists",
+      description: "Create checklists for new hire onboarding",
     },
     {
-      icon: Clock,
-      title: "Time Tracking",
-      description: "Track hours worked and billable time",
+      icon: FolderOpen,
+      title: "Document Library",
+      description: "Organize all employee resources in one place",
     },
   ];
 
@@ -42,46 +41,46 @@ export default function TeamPage() {
     <div className="space-y-6 sm:space-y-8">
       <div>
         <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">
-          Team Overview
+          Employee Resources
         </h1>
         <p className="mt-1 max-w-2xl text-sm text-muted-foreground sm:mt-2">
-          Manage your team members and organizational structure.
+          Documents and materials for staff.
         </p>
       </div>
 
-      <Card className="overflow-hidden border-purple-200/60">
+      <Card className="overflow-hidden border-emerald-200/60">
         <BubbleBackground
           interactive={false}
           size="default"
-          className="bg-gradient-to-br from-white via-purple-50/50 to-slate-50"
+          className="bg-gradient-to-br from-white via-emerald-50/50 to-slate-50"
           colors={{
             first: "255,255,255",
-            second: "233,213,255",
-            third: "139,92,246",
-            fourth: "245,238,255",
-            fifth: "196,181,253",
-            sixth: "250,245,255",
+            second: "213,255,233",
+            third: "16,185,129",
+            fourth: "238,255,245",
+            fifth: "181,253,196",
+            sixth: "245,255,250",
           }}
         >
           <CardContent className="flex flex-col items-center px-6 py-12 text-center">
             <div
               className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl shadow-lg"
               style={{
-                backgroundColor: brandColors.crm,
-                boxShadow: `0 10px 25px -5px ${brandColors.crm}40`,
+                backgroundColor: brandColors.jobs,
+                boxShadow: `0 10px 25px -5px ${brandColors.jobs}40`,
               }}
             >
-              <Users className="h-8 w-8 text-white" />
+              <FolderOpen className="h-8 w-8 text-white" />
             </div>
 
             <h3 className="text-xl font-semibold text-slate-900">
-              Team Management Coming Soon
+              Employee Resources Coming Soon
             </h3>
 
             <p className="mt-3 max-w-md text-sm text-slate-600">
-              Behavior Work CRM will help you manage your team, track employee
-              certifications, and streamline HR processes. Convert job
-              applicants hired through Find ABA Jobs directly into team members.
+              Share training materials, company policies, and onboarding
+              documents with your team. Keep all employee resources organized
+              and easily accessible.
             </p>
 
             <div className="mt-6 flex flex-wrap justify-center gap-3">
@@ -92,7 +91,7 @@ export default function TeamPage() {
                 >
                   <Sparkles
                     className="h-3.5 w-3.5"
-                    style={{ color: brandColors.crm }}
+                    style={{ color: brandColors.jobs }}
                   />
                   {feature.title}
                 </span>
@@ -103,7 +102,7 @@ export default function TeamPage() {
               asChild
               size="lg"
               className="mt-8"
-              style={{ backgroundColor: brandColors.crm }}
+              style={{ backgroundColor: brandColors.jobs }}
             >
               <Link href="/dashboard/feedback" className="gap-2">
                 Request Early Access
@@ -123,9 +122,9 @@ export default function TeamPage() {
               <CardHeader className="flex flex-row items-center gap-3 pb-2">
                 <div
                   className="flex h-10 w-10 items-center justify-center rounded-lg"
-                  style={{ backgroundColor: `${brandColors.crm}15` }}
+                  style={{ backgroundColor: `${brandColors.jobs}15` }}
                 >
-                  <Icon className="h-5 w-5" style={{ color: brandColors.crm }} />
+                  <Icon className="h-5 w-5" style={{ color: brandColors.jobs }} />
                 </div>
                 <CardTitle className="text-base">{feature.title}</CardTitle>
               </CardHeader>

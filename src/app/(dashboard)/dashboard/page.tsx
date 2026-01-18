@@ -171,7 +171,7 @@ export default async function DashboardOverviewPage() {
           {
             label: "new applications",
             value: applicationCount ?? 0,
-            href: "/dashboard/jobs/applications",
+            href: "/dashboard/employees",
           },
         ]}
         links={[
@@ -193,8 +193,8 @@ export default async function DashboardOverviewPage() {
             icon: PlusCircle,
           },
           {
-            label: "Applications",
-            href: "/dashboard/jobs/applications",
+            label: "Employees",
+            href: "/dashboard/employees",
             icon: Users,
           },
         ]}

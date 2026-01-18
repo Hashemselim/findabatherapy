@@ -167,7 +167,7 @@ export function ApplicationsList({ applications, jobs }: ApplicationsListProps) 
             const statusColor = STATUS_COLORS[app.status as ApplicationStatus];
 
             return (
-              <Link key={app.id} href={`/dashboard/jobs/applications/${app.id}`}>
+              <Link key={app.id} href={`/dashboard/employees/${app.id}`}>
                 <Card className="transition-all hover:border-emerald-300 hover:shadow-md">
                   <CardContent className="flex items-center gap-4 p-4">
                     <Avatar className="h-12 w-12 border border-border">

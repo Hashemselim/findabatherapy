@@ -22,7 +22,7 @@ import { getApplication } from "@/lib/actions/applications";
 import { POSITION_TYPES, APPLICATION_STATUSES, APPLICATION_SOURCES, type ApplicationStatus } from "@/lib/validations/jobs";
 import { ApplicationActions } from "@/components/jobs/application-actions";
 
-interface ApplicationPageProps {
+interface EmployeeApplicationPageProps {
   params: Promise<{ id: string }>;
 }
 
@@ -69,7 +69,7 @@ function getInitials(name: string): string {
     .slice(0, 2);
 }
 
-export default async function ApplicationPage({ params }: ApplicationPageProps) {
+export default async function EmployeeApplicationPage({ params }: EmployeeApplicationPageProps) {
   const { id } = await params;
   const result = await getApplication(id);
 
@@ -88,11 +88,11 @@ export default async function ApplicationPage({ params }: ApplicationPageProps) 
       {/* Back Button */}
       <div className="flex items-center gap-4">
         <Link
-          href="/dashboard/jobs/applications"
+          href="/dashboard/employees"
           className="inline-flex items-center gap-2 text-sm text-muted-foreground transition hover:text-foreground"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to Applications
+          Back to Employees
         </Link>
       </div>
 

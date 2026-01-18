@@ -836,7 +836,7 @@ export async function updateCareersPageSettings(data: {
     return { success: false, error: error.message };
   }
 
-  revalidatePath("/dashboard/jobs/careers");
+  revalidatePath("/dashboard/careers");
   return { success: true };
 }
 
@@ -879,7 +879,7 @@ export async function updateCareersHideBadge(hideBadge: boolean): Promise<Action
     return { success: false, error: error.message };
   }
 
-  revalidatePath("/dashboard/jobs/careers");
+  revalidatePath("/dashboard/careers");
   return { success: true };
 }
 

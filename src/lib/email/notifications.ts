@@ -1277,7 +1277,7 @@ export async function sendProviderNewApplicationNotification(
 
       ${alertBox("<strong>Tip:</strong> Responding quickly to qualified candidates increases your chances of hiring top talent. We recommend reviewing applications within 48 hours.", "info")}
 
-      ${primaryButton("View Application", `${siteUrl}/dashboard/jobs/applications/${params.applicationId}`, JOBS_BRAND.primary)}
+      ${primaryButton("View Application", `${siteUrl}/dashboard/employees/${params.applicationId}`, JOBS_BRAND.primary)}
 
       <p style="color: ${BRAND.textLight}; font-size: 13px; margin-top: 24px;">
         You can also contact this applicant directly at

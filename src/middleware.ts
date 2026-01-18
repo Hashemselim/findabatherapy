@@ -91,6 +91,29 @@ export async function middleware(request: NextRequest) {
   }
 
   // =============================================================================
+  // DASHBOARD NAVIGATION REDIRECTS
+  // =============================================================================
+  // These redirects handle the navigation restructure from collapsible sections
+  // to a flat navigation with dropdowns
+
+  // Redirect old /dashboard/jobs/applications to /dashboard/employees
+  if (pathname.startsWith("/dashboard/jobs/applications")) {
+    const newPath = pathname.replace("/dashboard/jobs/applications", "/dashboard/employees");
+    return NextResponse.redirect(new URL(newPath + request.nextUrl.search, request.url), 301);
+  }
+
+  // Redirect old /dashboard/jobs/careers to /dashboard/careers
+  if (pathname === "/dashboard/jobs/careers") {
+    return NextResponse.redirect(new URL("/dashboard/careers", request.url), 301);
+  }
+
+  // Redirect old /dashboard/team to /dashboard/employees
+  if (pathname.startsWith("/dashboard/team")) {
+    const newPath = pathname.replace("/dashboard/team", "/dashboard/employees");
+    return NextResponse.redirect(new URL(newPath + request.nextUrl.search, request.url), 301);
+  }
+
+  // =============================================================================
   // MULTI-DOMAIN ROUTING LOGIC
   // =============================================================================
 

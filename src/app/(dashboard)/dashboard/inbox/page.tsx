@@ -20,9 +20,9 @@ export default async function InquiriesPage() {
     return (
       <div className="space-y-4 sm:space-y-6">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">Inbox</h1>
+          <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">Notifications</h1>
           <p className="mt-1 text-sm text-muted-foreground sm:mt-2">
-            Manage messages from families interested in your services.
+            View messages from families and job applicants.
           </p>
         </div>
 
@@ -89,9 +89,9 @@ export default async function InquiriesPage() {
     return (
       <div className="space-y-4 sm:space-y-6">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">Inbox</h1>
+          <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">Notifications</h1>
           <p className="mt-1 text-sm text-muted-foreground sm:mt-2">
-            Manage messages from families interested in your services.
+            View messages from families and job applicants.
           </p>
         </div>
 
@@ -201,9 +201,9 @@ export default async function InquiriesPage() {
     return (
       <div className="space-y-4 sm:space-y-6">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">Inbox</h1>
+          <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">Notifications</h1>
           <p className="mt-1 text-sm text-muted-foreground sm:mt-2">
-            Manage messages from families interested in your services.
+            View messages from families and job applicants.
           </p>
         </div>
 
@@ -233,9 +233,9 @@ export default async function InquiriesPage() {
     <div className="flex min-h-0 flex-1 flex-col gap-4 sm:gap-6 lg:overflow-hidden">
       <div className="flex shrink-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">Inbox</h1>
+          <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">Notifications</h1>
           <p className="mt-1 text-sm text-muted-foreground sm:mt-2">
-            Manage messages from families interested in your services.
+            View messages from families and job applicants.
           </p>
         </div>
         <ContactFormToggle contactFormEnabled={contactFormEnabled} />
