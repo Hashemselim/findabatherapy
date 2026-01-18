@@ -255,7 +255,12 @@ export function ClientsTable({
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-[160px]">
                           {onEdit && (
-                            <DropdownMenuItem onClick={() => onEdit(client.id)}>
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onEdit(client.id);
+                              }}
+                            >
                               <Pencil className="mr-2 h-4 w-4" />
                               Edit
                             </DropdownMenuItem>
@@ -264,7 +269,10 @@ export function ClientsTable({
                             <>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem
-                                onClick={() => onDelete(client.id)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onDelete(client.id);
+                                }}
                                 className="text-destructive focus:text-destructive"
                               >
                                 <Trash2 className="mr-2 h-4 w-4" />
