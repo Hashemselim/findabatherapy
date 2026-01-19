@@ -3,9 +3,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 
-const STORAGE_KEY = "dashboard-nav-collapse-state-v2";
+const STORAGE_KEY = "dashboard-nav-collapse-state-v3";
 
-type SectionId = "company" | "therapy" | "jobs" | "crm";
+type SectionId = "company" | "brandedPages";
 
 interface CollapseState {
   [key: string]: boolean;
@@ -22,43 +22,28 @@ interface UseNavCollapseStateReturn {
   currentSection: SectionId | null;
 }
 
-// Map pathname patterns to sections
+// Map pathname patterns to dropdown sections
 function getSectionFromPath(pathname: string): SectionId | null {
   if (
     pathname.startsWith("/dashboard/company") ||
-    pathname.startsWith("/dashboard/locations") ||
-    pathname.startsWith("/dashboard/media")
+    pathname.startsWith("/dashboard/locations")
   ) {
     return "company";
   }
   if (
-    pathname.startsWith("/dashboard/analytics") ||
-    pathname.startsWith("/dashboard/inbox") ||
-    pathname.startsWith("/dashboard/forms")
+    pathname.startsWith("/dashboard/intake") ||
+    pathname.startsWith("/dashboard/careers") ||
+    pathname.startsWith("/dashboard/resources")
   ) {
-    return "therapy";
-  }
-  if (pathname.startsWith("/dashboard/jobs")) {
-    return "jobs";
-  }
-  if (
-    pathname.startsWith("/dashboard/clients") ||
-    pathname.startsWith("/dashboard/team")
-  ) {
-    return "crm";
+    return "brandedPages";
   }
   return null;
 }
 
-// All collapsible sections
-const ALL_SECTIONS: SectionId[] = ["company", "therapy", "jobs", "crm"];
-
 // Default state - all collapsed
 const DEFAULT_STATE: CollapseState = {
   company: false,
-  therapy: false,
-  jobs: false,
-  crm: false,
+  brandedPages: false,
 };
 
 /**

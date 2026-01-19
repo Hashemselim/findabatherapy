@@ -6,26 +6,24 @@ import NextImage from "next/image";
 import { usePathname } from "next/navigation";
 import {
   BarChart3,
+  Bell,
   Briefcase,
-  Building2,
+  CheckSquare,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
   ExternalLink,
-  FileInput,
   FileText,
   GaugeCircle,
   Heart,
   Image as ImageIcon,
-  Link2,
   LucideIcon,
-  Mail,
   MapPin,
   Menu,
-  UserPlus,
+  UserCheck,
+  UserCircle,
 } from "lucide-react";
 
-import { brandColors } from "@/config/brands";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -51,71 +49,25 @@ type QuickLink = {
   exactMatch?: boolean;
 };
 
-type QuickLinkSection = {
-  id: string;
-  label?: string;
-  icon?: LucideIcon;
-  color?: string;
-  links: QuickLink[];
-};
-
-// Company brand color (neutral slate) - matches sidebar
-const companyColor = "#64748B";
-
-// Section-based quick links for mobile horizontal scroll
-const dashboardQuickLinkSections: QuickLinkSection[] = [
-  {
-    id: "overview",
-    links: [{ href: "/dashboard", label: "Dashboard", icon: GaugeCircle }],
-  },
-  {
-    id: "company",
-    label: "Company",
-    icon: Building2,
-    color: companyColor,
-    links: [
-      { href: "/dashboard/company", label: "Profile", icon: FileText },
-      { href: "/dashboard/locations", label: "Locations", icon: MapPin },
-      { href: "/dashboard/media", label: "Media", icon: ImageIcon },
-    ],
-  },
-  {
-    id: "therapy",
-    label: "Therapy",
-    icon: Heart,
-    color: brandColors.therapy,
-    links: [
-      { href: "/dashboard/inbox", label: "Inbox", icon: Mail },
-      { href: "/dashboard/analytics", label: "Analytics", icon: BarChart3 },
-      { href: "/dashboard/forms", label: "Forms", icon: FileInput },
-    ],
-  },
-  {
-    id: "jobs",
-    label: "Jobs",
-    icon: Briefcase,
-    color: brandColors.jobs,
-    links: [
-      { href: "/dashboard/jobs", label: "Postings", icon: Briefcase, exactMatch: true },
-      { href: "/dashboard/jobs/applications", label: "Applications", icon: UserPlus },
-      { href: "/dashboard/jobs/careers", label: "Careers", icon: Link2 },
-    ],
-  },
+// Flat quick links for mobile horizontal scroll (matches new sidebar structure)
+const dashboardQuickLinks: QuickLink[] = [
+  { href: "/dashboard", label: "Dashboard", icon: GaugeCircle, exactMatch: true },
+  { href: "/dashboard/inbox", label: "Notifications", icon: Bell },
+  { href: "/dashboard/tasks", label: "Tasks", icon: CheckSquare },
+  { href: "/dashboard/clients", label: "Clients", icon: UserCircle },
+  { href: "/dashboard/employees", label: "Employees", icon: UserCheck },
+  { href: "/dashboard/jobs", label: "Jobs", icon: Briefcase },
+  { href: "/dashboard/analytics", label: "Analytics", icon: BarChart3 },
 ];
 
-// Demo mode sections - simplified flat list
-const demoQuickLinkSections: QuickLinkSection[] = [
-  {
-    id: "demo",
-    links: [
-      { href: "/demo", label: "Overview", icon: GaugeCircle },
-      { href: "/demo/company", label: "Company", icon: FileText },
-      { href: "/demo/locations", label: "Locations", icon: MapPin },
-      { href: "/demo/media", label: "Media", icon: ImageIcon },
-      { href: "/demo/analytics", label: "Analytics", icon: BarChart3 },
-      { href: "/demo/inbox", label: "Inbox", icon: Mail },
-    ],
-  },
+// Demo mode - simplified flat list
+const demoQuickLinks: QuickLink[] = [
+  { href: "/demo", label: "Overview", icon: GaugeCircle, exactMatch: true },
+  { href: "/demo/company", label: "Company", icon: FileText },
+  { href: "/demo/locations", label: "Locations", icon: MapPin },
+  { href: "/demo/media", label: "Media", icon: ImageIcon },
+  { href: "/demo/analytics", label: "Analytics", icon: BarChart3 },
+  { href: "/demo/inbox", label: "Inbox", icon: Bell },
 ];
 
 // Helper to get page title from pathname for mobile header
@@ -126,14 +78,16 @@ function getPageTitle(pathname: string, isDemo: boolean): string {
   if (pathname.includes("/company")) return "Company";
   if (pathname.includes("/locations")) return "Locations";
   if (pathname.includes("/media")) return "Media";
-  if (pathname.includes("/inbox")) return "Inbox";
+  if (pathname.includes("/inbox")) return "Notifications";
   if (pathname.includes("/analytics")) return "Analytics";
-  if (pathname.includes("/forms")) return "Forms";
-  if (pathname.includes("/jobs/applications")) return "Applications";
-  if (pathname.includes("/jobs/careers")) return "Careers Page";
-  if (pathname.includes("/jobs")) return "Job Postings";
+  if (pathname.includes("/intake")) return "Intake Form";
+  if (pathname.includes("/employees")) return "Employees";
+  if (pathname.includes("/careers")) return "Careers Page";
+  if (pathname.includes("/jobs")) return "Jobs";
   if (pathname.includes("/clients")) return "Clients";
-  if (pathname.includes("/team")) return "Team";
+  if (pathname.includes("/tasks")) return "Tasks";
+  if (pathname.includes("/resources/clients")) return "Client Resources";
+  if (pathname.includes("/resources/employees")) return "Employee Resources";
   if (pathname.includes("/account")) return "Account";
   if (pathname.includes("/onboarding")) return "Onboarding";
 
@@ -154,8 +108,8 @@ interface DashboardTopbarProps {
   providerSlug?: string | null;
   /** Company profile to display in mobile header */
   companyProfile?: CompanyProfile;
-  /** Custom quick link sections for the mobile nav */
-  customQuickLinkSections?: QuickLinkSection[];
+  /** Custom quick links for the mobile nav */
+  customQuickLinks?: QuickLink[];
   /** Custom mobile nav component for demo mode */
   mobileNavComponent?: React.ReactNode;
   /** Title for the mobile sheet */
@@ -171,7 +125,7 @@ export function DashboardTopbar({
   isDemo = false,
   providerSlug,
   companyProfile,
-  customQuickLinkSections,
+  customQuickLinks,
   mobileNavComponent,
   sheetTitle,
   sheetDescription,
@@ -182,8 +136,8 @@ export function DashboardTopbar({
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
 
-  // Determine which quick link sections to use
-  const quickLinkSections = customQuickLinkSections ?? (isDemo ? demoQuickLinkSections : dashboardQuickLinkSections);
+  // Determine which quick links to use
+  const quickLinks = customQuickLinks ?? (isDemo ? demoQuickLinks : dashboardQuickLinks);
   const basePath = isDemo ? "/demo" : "/dashboard";
 
   // Helper to check if a link is active
@@ -365,60 +319,25 @@ export function DashboardTopbar({
           ref={navRef}
           className="scrollbar-hide flex items-center gap-1.5 overflow-x-auto px-2 py-2"
         >
-          {quickLinkSections.map((section, sectionIndex) => {
-            const SectionIcon = section.icon;
-            const sectionColor = section.color;
-            const hasBrandLabel = section.label && SectionIcon && sectionColor;
+          {quickLinks.map((link) => {
+            const Icon = link.icon;
+            const isActive = isLinkActive(link);
 
             return (
-              <div key={section.id} className="flex shrink-0 items-center gap-1.5">
-                {/* Brand section label - full height with left border */}
-                {hasBrandLabel && (
-                  <span
-                    className="flex shrink-0 items-center gap-1.5 self-stretch border-l-2 pl-3 pr-1"
-                    style={{ borderLeftColor: sectionColor }}
-                  >
-                    <span
-                      className="flex h-5 w-5 items-center justify-center rounded-md"
-                      style={{ backgroundColor: sectionColor }}
-                    >
-                      <SectionIcon className="h-3 w-3 text-white" aria-hidden />
-                    </span>
-                    <span
-                      className="text-[11px] font-semibold"
-                      style={{ color: sectionColor }}
-                    >
-                      {section.label}
-                    </span>
-                  </span>
+              <Link
+                key={link.href}
+                href={link.href}
+                data-active={isActive}
+                className={cn(
+                  "flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
+                  isActive
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground"
                 )}
-
-                {/* Section links */}
-                {section.links.map((link) => {
-                  const Icon = link.icon;
-                  const isActive = isLinkActive(link);
-
-                  return (
-                    <Link
-                      key={link.href}
-                      href={link.href}
-                      data-active={isActive}
-                      className={cn(
-                        "flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
-                        isActive
-                          ? sectionColor
-                            ? "text-white shadow-sm"
-                            : "bg-primary text-primary-foreground"
-                          : "bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground"
-                      )}
-                      style={isActive && sectionColor ? { backgroundColor: sectionColor } : undefined}
-                    >
-                      <Icon className="h-3.5 w-3.5" aria-hidden />
-                      {link.label}
-                    </Link>
-                  );
-                })}
-              </div>
+              >
+                <Icon className="h-3.5 w-3.5" aria-hidden />
+                {link.label}
+              </Link>
             );
           })}
         </nav>

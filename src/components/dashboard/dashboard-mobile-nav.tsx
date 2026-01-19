@@ -1,38 +1,43 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   BarChart3,
+  Bell,
   Briefcase,
   Building2,
   CheckSquare,
+  ChevronDown,
   ClipboardList,
   ExternalLink,
   Eye,
   FileInput,
   FileText,
+  FolderOpen,
   GaugeCircle,
-  Heart,
+  Globe,
   HelpCircle,
   Image,
-  Link2,
   LogOut,
   LucideIcon,
-  Mail,
   MapPin,
   MessageSquare,
   User,
+  UserCheck,
   UserCircle,
-  UserPlus,
-  Users,
 } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { SheetClose } from "@/components/ui/sheet";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { SupportContactDialog } from "@/components/support-contact-dialog";
-import { brandColors } from "@/config/brands";
 import { cn } from "@/lib/utils";
 import { signOut } from "@/lib/auth/actions";
 
@@ -43,86 +48,42 @@ export type MobileNavItem = {
   showBadge?: boolean;
   isPlaceholder?: boolean;
   isExternal?: boolean;
+  exactMatch?: boolean;
 };
 
-export type MobileNavSection = {
-  id: string;
-  label: string;
-  icon?: LucideIcon;
-  brandColor?: string;
-  items: MobileNavItem[];
-};
+// Main navigation items - direct links (matches sidebar)
+const mainNavItems: MobileNavItem[] = [
+  { href: "/dashboard", label: "Dashboard", icon: GaugeCircle, exactMatch: true },
+  { href: "/dashboard/inbox", label: "Notifications", icon: Bell, showBadge: true },
+  { href: "/dashboard/tasks", label: "Tasks", icon: CheckSquare },
+  { href: "/dashboard/clients", label: "Clients", icon: UserCircle },
+  { href: "/dashboard/employees", label: "Employees", icon: UserCheck, showBadge: true },
+  { href: "/dashboard/jobs", label: "Jobs", icon: Briefcase },
+  { href: "/dashboard/analytics", label: "Analytics", icon: BarChart3 },
+];
 
-// Company brand color (neutral slate)
-const companyColor = "#64748B";
+// Company dropdown items
+const companyDropdownItems: MobileNavItem[] = [
+  { href: "/dashboard/company", label: "Profile", icon: FileText },
+  { href: "/dashboard/locations", label: "Locations", icon: MapPin },
+];
 
-// Section-based mobile navigation (matches sidebar structure)
-const dashboardNavSections: MobileNavSection[] = [
-  {
-    id: "overview",
-    label: "",
-    items: [{ href: "/dashboard", label: "Dashboard", icon: GaugeCircle }],
-  },
-  {
-    id: "company",
-    label: "Company Details",
-    icon: Building2,
-    brandColor: companyColor,
-    items: [
-      { href: "/dashboard/company", label: "Company Profile", icon: FileText },
-      { href: "/dashboard/locations", label: "Locations", icon: MapPin },
-      { href: "/dashboard/media", label: "Media", icon: Image },
-    ],
-  },
-  {
-    id: "therapy",
-    label: "Find ABA Therapy",
-    icon: Heart,
-    brandColor: brandColors.therapy,
-    items: [
-      { href: "/dashboard/inbox", label: "Inbox", icon: Mail, showBadge: true },
-      { href: "/dashboard/analytics", label: "Analytics", icon: BarChart3 },
-      { href: "/dashboard/forms", label: "Forms", icon: FileInput },
-    ],
-  },
-  {
-    id: "jobs",
-    label: "Find ABA Jobs",
-    icon: Briefcase,
-    brandColor: brandColors.jobs,
-    items: [
-      { href: "/dashboard/jobs", label: "Job Postings", icon: Briefcase },
-      { href: "/dashboard/jobs/applications", label: "Applications", icon: UserPlus, showBadge: true },
-      { href: "/dashboard/jobs/careers", label: "Careers Page", icon: Link2 },
-    ],
-  },
-  {
-    id: "crm",
-    label: "Team & CRM",
-    icon: Users,
-    brandColor: brandColors.crm,
-    items: [
-      { href: "/dashboard/clients", label: "Clients", icon: UserCircle },
-      { href: "/dashboard/tasks", label: "Tasks", icon: CheckSquare },
-      { href: "/dashboard/team", label: "Staff / Team", icon: Users, isPlaceholder: true },
-    ],
-  },
+// Branded Pages dropdown items
+const brandedPagesDropdownItems: MobileNavItem[] = [
+  { href: "/dashboard/intake", label: "Intake Form", icon: FileInput },
+  { href: "/dashboard/careers", label: "Careers Page", icon: Globe },
+  { href: "/dashboard/resources/clients", label: "Client Resources", icon: FolderOpen, isPlaceholder: true },
+  { href: "/dashboard/resources/employees", label: "Employee Resources", icon: FolderOpen, isPlaceholder: true },
 ];
 
 // Demo navigation - simplified flat list
-const demoNavSections: MobileNavSection[] = [
-  {
-    id: "demo",
-    label: "",
-    items: [
-      { href: "/demo", label: "Overview", icon: GaugeCircle },
-      { href: "/demo/company", label: "Company Details", icon: FileText },
-      { href: "/demo/locations", label: "Locations", icon: MapPin },
-      { href: "/demo/media", label: "Media", icon: Image },
-      { href: "/demo/analytics", label: "Analytics", icon: BarChart3 },
-      { href: "/demo/inbox", label: "Contact Form Inbox", icon: Mail, showBadge: true },
-    ],
-  },
+const demoNavItems: MobileNavItem[] = [
+  { href: "/demo", label: "Overview", icon: GaugeCircle, exactMatch: true },
+  { href: "/demo/company", label: "Company Details", icon: FileText },
+  { href: "/demo/locations", label: "Locations", icon: MapPin },
+  { href: "/demo/media", label: "Media", icon: Image },
+  { href: "/demo/analytics", label: "Analytics", icon: BarChart3 },
+  { href: "/demo/inbox", label: "Contact Form Inbox", icon: Bell, showBadge: true },
 ];
 
 // Onboarding nav item shown when onboarding is incomplete
@@ -154,6 +115,8 @@ export function DashboardMobileNav({
   providerSlug,
 }: DashboardMobileNavProps) {
   const pathname = usePathname();
+  const [companyOpen, setCompanyOpen] = useState(false);
+  const [brandedPagesOpen, setBrandedPagesOpen] = useState(false);
 
   const handleLogout = async () => {
     // Clear dev bypass cookie on client side
@@ -161,6 +124,8 @@ export function DashboardMobileNav({
     // Use server action for reliable logout
     await signOut();
   };
+
+  const basePath = isDemo ? "/demo" : "/dashboard";
 
   // Get badge count for an item
   const getBadgeCount = (href: string): number => {
@@ -172,81 +137,26 @@ export function DashboardMobileNav({
     return 0;
   };
 
-  // Build navigation sections
-  const getNavSections = (): MobileNavSection[] => {
-    // If custom nav items provided, wrap in single section
-    if (customNavItems) {
-      return [{ id: "custom", label: "", items: customNavItems }];
-    }
-
-    if (isDemo) {
-      return demoNavSections;
-    }
-
-    // Inject "View Profile" items when providerSlug is available
-    const sectionsWithProfiles = providerSlug
-      ? dashboardNavSections.map((section) => {
-          if (section.id === "jobs") {
-            return {
-              ...section,
-              items: [
-                ...section.items,
-                {
-                  href: `/employers/${providerSlug}`,
-                  label: "View Profile",
-                  icon: Eye,
-                  isExternal: true,
-                },
-              ],
-            };
-          }
-          if (section.id === "therapy") {
-            return {
-              ...section,
-              items: [
-                ...section.items,
-                {
-                  href: `/provider/${providerSlug}`,
-                  label: "View Profile",
-                  icon: Eye,
-                  isExternal: true,
-                },
-              ],
-            };
-          }
-          return section;
-        })
-      : dashboardNavSections;
-
-    // If onboarding incomplete, add onboarding item first
-    if (!isOnboardingComplete) {
-      return [
-        { id: "onboarding", label: "", items: [onboardingNavItem] },
-        ...sectionsWithProfiles,
-      ];
-    }
-
-    return sectionsWithProfiles;
+  // Check if item is active
+  const isItemActive = (item: MobileNavItem): boolean => {
+    if (item.isExternal) return false;
+    if (item.exactMatch) return pathname === item.href;
+    return item.href === basePath
+      ? pathname === basePath
+      : pathname === item.href || pathname.startsWith(item.href + "/");
   };
 
-  const navSections = getNavSections();
-  const basePath = isDemo ? "/demo" : "/dashboard";
+  // Check if dropdown has active child
+  const hasActiveChild = (items: MobileNavItem[]): boolean => {
+    return items.some(isItemActive);
+  };
 
-  // Render a single nav item with brand color support
-  const renderNavItem = (item: MobileNavItem, brandColor: string) => {
+  // Render a single nav item
+  const renderNavItem = (item: MobileNavItem, showBadge = true) => {
     const Icon = item.icon;
-    // External links are never "active"
-    const isActive = item.isExternal
-      ? false
-      : item.href === basePath
-        ? pathname === basePath
-        : pathname === item.href || pathname.startsWith(item.href + "/");
-
-    const isLocked =
-      !isDemo && !isOnboardingComplete && item.href !== "/dashboard/onboarding";
-
-    const badgeCount = item.showBadge ? getBadgeCount(item.href) : 0;
-    const showBadge = item.showBadge && badgeCount > 0;
+    const isActive = isItemActive(item);
+    const isLocked = !isDemo && !isOnboardingComplete && item.href !== "/dashboard/onboarding";
+    const badgeCount = showBadge && item.showBadge ? getBadgeCount(item.href) : 0;
 
     const linkContent = (
       <>
@@ -262,13 +172,12 @@ export function DashboardMobileNav({
             </Badge>
           )}
         </span>
-        {showBadge && (
+        {badgeCount > 0 && (
           <span
             className={cn(
               "flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-xs font-semibold",
-              isActive ? "bg-white/20 text-white" : "text-white"
+              isActive ? "bg-white/20 text-white" : "bg-primary text-primary-foreground"
             )}
-            style={!isActive ? { backgroundColor: brandColor } : undefined}
           >
             {badgeCount > 99 ? "99+" : badgeCount}
           </span>
@@ -283,15 +192,11 @@ export function DashboardMobileNav({
       buttonVariants({ variant: "ghost" }),
       "min-h-[44px] w-full justify-start gap-3 rounded-xl px-3 py-2.5 text-sm font-medium",
       isActive
-        ? "shadow-sm text-white"
+        ? "bg-primary text-primary-foreground shadow-sm"
         : "text-muted-foreground hover:bg-accent hover:text-foreground",
       isLocked && "opacity-60"
     );
 
-    // Active style with brand color
-    const activeStyle = isActive ? { backgroundColor: brandColor } : undefined;
-
-    // External links use <a> with target="_blank"
     if (item.isExternal) {
       return (
         <SheetClose asChild key={item.href}>
@@ -300,7 +205,6 @@ export function DashboardMobileNav({
             target="_blank"
             rel="noopener noreferrer"
             className={linkClassName}
-            style={activeStyle}
           >
             {linkContent}
           </a>
@@ -310,80 +214,110 @@ export function DashboardMobileNav({
 
     return (
       <SheetClose asChild key={item.href}>
-        <Link href={item.href} className={linkClassName} style={activeStyle}>
+        <Link href={item.href} className={linkClassName}>
           {linkContent}
         </Link>
       </SheetClose>
     );
   };
 
-  // Check if section has an active child
-  const sectionHasActiveChild = (section: MobileNavSection): boolean => {
-    return section.items.some((item) => {
-      if (item.isExternal) return false;
-      return item.href === basePath
-        ? pathname === basePath
-        : pathname === item.href || pathname.startsWith(item.href + "/");
-    });
+  // Render a dropdown section
+  const renderDropdown = (
+    id: string,
+    label: string,
+    icon: LucideIcon,
+    items: MobileNavItem[],
+    isOpen: boolean,
+    setIsOpen: (open: boolean) => void
+  ) => {
+    const Icon = icon;
+    const hasActive = hasActiveChild(items);
+
+    return (
+      <Collapsible key={id} open={isOpen} onOpenChange={setIsOpen}>
+        <div
+          className={cn(
+            "rounded-xl overflow-hidden transition-all",
+            hasActive && "ring-1 ring-primary/20"
+          )}
+        >
+          <CollapsibleTrigger
+            className={cn(
+              "flex w-full items-center justify-between min-h-[44px] px-3 py-2.5 text-sm font-medium transition-all rounded-xl",
+              hasActive
+                ? "bg-primary/10 text-primary"
+                : "text-muted-foreground hover:bg-accent hover:text-foreground"
+            )}
+          >
+            <div className="flex items-center gap-3">
+              <Icon className="h-4 w-4" />
+              <span>{label}</span>
+            </div>
+            <ChevronDown
+              className={cn(
+                "h-4 w-4 transition-transform duration-200",
+                isOpen && "rotate-180"
+              )}
+            />
+          </CollapsibleTrigger>
+          <CollapsibleContent className="space-y-1 px-2 pb-2 pt-1">
+            {items.map((item) => renderNavItem(item, false))}
+          </CollapsibleContent>
+        </div>
+      </Collapsible>
+    );
   };
 
+  // Build view profile links
+  const viewProfileLinks = providerSlug ? [
+    { href: `/provider/${providerSlug}`, label: "Therapy Profile", icon: Eye },
+    { href: `/employers/${providerSlug}`, label: "Jobs Profile", icon: Eye },
+  ] : [];
+
+  // Get nav items based on mode
+  const navItems = customNavItems || (isDemo ? demoNavItems : mainNavItems);
+
   return (
-    <nav className="mt-6 flex flex-col gap-2">
-      {navSections.map((section) => {
-        const brandColor = section.brandColor || "#6B7280";
-        const hasActiveChild = sectionHasActiveChild(section);
+    <nav className="mt-6 flex flex-col gap-1">
+      {/* Onboarding item if needed */}
+      {!isOnboardingComplete && !customNavItems && !isDemo && renderNavItem(onboardingNavItem)}
 
-        // Non-labeled sections (like overview) render items directly
-        if (!section.label) {
-          return (
-            <div key={section.id} className="space-y-1">
-              {section.items.map((item) => renderNavItem(item, brandColor))}
-            </div>
-          );
-        }
+      {/* Main navigation items */}
+      {navItems.map((item) => renderNavItem(item))}
 
-        // Labeled sections get the styled container matching desktop
-        return (
-          <div
-            key={section.id}
-            className="rounded-xl overflow-hidden transition-all"
-            style={{
-              borderLeft: hasActiveChild
-                ? `3px solid ${brandColor}`
-                : "3px solid transparent",
-            }}
-          >
-            {/* Section header - matches desktop style */}
-            <div
-              className="flex items-center gap-2.5 px-3 py-2.5"
-              style={{ backgroundColor: `${brandColor}15` }}
-            >
-              {section.icon && (
-                <div
-                  className="flex h-6 w-6 items-center justify-center rounded-md"
-                  style={{ backgroundColor: brandColor }}
-                >
-                  <section.icon className="h-3.5 w-3.5 text-white" aria-hidden />
-                </div>
-              )}
-              <span
-                className="text-sm font-semibold"
-                style={{ color: brandColor }}
+      {/* Dropdown sections (only for non-demo, non-custom mode) */}
+      {!customNavItems && !isDemo && (
+        <div className="pt-2 space-y-1">
+          {renderDropdown("company", "Company", Building2, companyDropdownItems, companyOpen, setCompanyOpen)}
+          {renderDropdown("brandedPages", "Branded Pages", Globe, brandedPagesDropdownItems, brandedPagesOpen, setBrandedPagesOpen)}
+        </div>
+      )}
+
+      {/* View Profile links */}
+      {viewProfileLinks.length > 0 && (
+        <div className="border-t border-border/60 pt-3 mt-3">
+          <p className="px-3 pb-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            Public Pages
+          </p>
+          {viewProfileLinks.map((link) => (
+            <SheetClose asChild key={link.href}>
+              <a
+                href={link.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={cn(
+                  buttonVariants({ variant: "ghost" }),
+                  "min-h-[44px] w-full justify-start gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
+                )}
               >
-                {section.label}
-              </span>
-            </div>
-
-            {/* Section items with tinted background */}
-            <div
-              className="space-y-1 px-2 pb-2 pt-1"
-              style={{ backgroundColor: `${brandColor}08` }}
-            >
-              {section.items.map((item) => renderNavItem(item, brandColor))}
-            </div>
-          </div>
-        );
-      })}
+                <link.icon className="h-4 w-4" aria-hidden />
+                <span className="flex-1">{link.label}</span>
+                <ExternalLink className="h-3.5 w-3.5" aria-hidden />
+              </a>
+            </SheetClose>
+          ))}
+        </div>
+      )}
 
       <div className="my-4 h-px bg-border" />
 

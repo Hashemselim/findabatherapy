@@ -6,32 +6,36 @@ import NextImage from "next/image";
 import { usePathname } from "next/navigation";
 import {
   BarChart3,
+  Bell,
   Briefcase,
   Building2,
   CheckSquare,
   ChevronDown,
   ClipboardList,
+  ExternalLink,
   Eye,
+  FileInput,
   FileText,
+  FolderOpen,
   GaugeCircle,
-  Heart,
+  Globe,
   HelpCircle,
-  Image,
-  Link2,
   LogOut,
   LucideIcon,
-  Mail,
   MapPin,
   MessageSquare,
   User,
+  UserCheck,
   UserCircle,
-  UserPlus,
-  Users,
-  FileInput,
 } from "lucide-react";
 
-import { Button, buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -40,79 +44,38 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { SupportContactDialog } from "@/components/support-contact-dialog";
-import { NavSectionComponent, NavSection, NavItem } from "./nav-section";
-import { brandColors } from "@/config/brands";
+import { NavItem } from "./nav-section";
 import { cn } from "@/lib/utils";
 import { getUnreadInquiryCount } from "@/lib/actions/inquiries";
 import { getNewApplicationCount } from "@/lib/actions/applications";
 import { signOut } from "@/lib/auth/actions";
 import { useNavCollapseState } from "@/hooks/use-nav-collapse-state";
 
-export type { NavItem, NavSection };
+export type { NavItem };
 
-// Company brand color (neutral slate)
-const companyColor = "#64748B";
+// Main navigation items - direct links (no collapsible sections)
+const mainNavItems: NavItem[] = [
+  { href: "/dashboard", label: "Dashboard", icon: GaugeCircle, exactMatch: true },
+  { href: "/dashboard/inbox", label: "Notifications", icon: Bell, showBadge: true },
+  { href: "/dashboard/tasks", label: "Tasks", icon: CheckSquare },
+  { href: "/dashboard/clients", label: "Clients", icon: UserCircle },
+  { href: "/dashboard/employees", label: "Employees", icon: UserCheck, showBadge: true },
+  { href: "/dashboard/jobs", label: "Jobs", icon: Briefcase },
+  { href: "/dashboard/analytics", label: "Analytics", icon: BarChart3 },
+];
 
-// Section-based dashboard navigation structure
-const dashboardNavSections: NavSection[] = [
-  {
-    id: "overview",
-    label: "",
-    isCollapsible: false,
-    items: [{ href: "/dashboard", label: "Dashboard", icon: GaugeCircle }],
-  },
-  {
-    id: "company",
-    label: "Company Details",
-    icon: Building2,
-    brandColor: companyColor,
-    isCollapsible: true,
-    defaultOpen: false,
-    items: [
-      { href: "/dashboard/company", label: "Company Profile", icon: FileText },
-      { href: "/dashboard/locations", label: "Locations", icon: MapPin },
-      { href: "/dashboard/media", label: "Media", icon: Image },
-    ],
-  },
-  {
-    id: "therapy",
-    label: "Find ABA Therapy",
-    icon: Heart,
-    brandColor: brandColors.therapy,
-    isCollapsible: true,
-    defaultOpen: false,
-    items: [
-      { href: "/dashboard/inbox", label: "Inbox", icon: Mail, showBadge: true },
-      { href: "/dashboard/analytics", label: "Analytics", icon: BarChart3 },
-      { href: "/dashboard/forms", label: "Forms", icon: FileInput },
-    ],
-  },
-  {
-    id: "jobs",
-    label: "Find ABA Jobs",
-    icon: Briefcase,
-    brandColor: brandColors.jobs,
-    isCollapsible: true,
-    defaultOpen: false,
-    items: [
-      { href: "/dashboard/jobs", label: "Job Postings", icon: Briefcase, exactMatch: true },
-      { href: "/dashboard/jobs/applications", label: "Applications", icon: UserPlus, showBadge: true },
-      { href: "/dashboard/jobs/careers", label: "Careers Page", icon: Link2 },
-    ],
-  },
-  {
-    id: "crm",
-    label: "Team & CRM",
-    icon: Users,
-    brandColor: brandColors.crm,
-    isCollapsible: true,
-    defaultOpen: false,
-    items: [
-      { href: "/dashboard/clients", label: "Clients", icon: UserCircle },
-      { href: "/dashboard/tasks", label: "Tasks", icon: CheckSquare },
-      { href: "/dashboard/team", label: "Staff / Team", icon: Users, isPlaceholder: true },
-    ],
-  },
+// Company dropdown items
+const companyDropdownItems: NavItem[] = [
+  { href: "/dashboard/company", label: "Profile", icon: FileText },
+  { href: "/dashboard/locations", label: "Locations", icon: MapPin },
+];
+
+// Branded Pages dropdown items
+const brandedPagesDropdownItems: NavItem[] = [
+  { href: "/dashboard/intake", label: "Intake Form", icon: FileInput },
+  { href: "/dashboard/careers", label: "Careers Page", icon: Globe },
+  { href: "/dashboard/resources/clients", label: "Client Resources", icon: FolderOpen, isPlaceholder: true },
+  { href: "/dashboard/resources/employees", label: "Employee Resources", icon: FolderOpen, isPlaceholder: true },
 ];
 
 // Onboarding nav item shown when onboarding is incomplete
@@ -165,7 +128,7 @@ export function DashboardSidebar({
   const [unreadCount, setUnreadCount] = useState(staticUnreadCount ?? 0);
   const [newApplicationCount, setNewApplicationCount] = useState(0);
 
-  // Smart collapse state for all collapsible sections (accordion behavior)
+  // Smart collapse state for dropdown sections
   const { isSectionOpen, toggleSection } = useNavCollapseState();
 
   useEffect(() => {
@@ -196,90 +159,147 @@ export function DashboardSidebar({
 
   // Helper function to get badge count for a nav item
   const getBadgeCount = (href: string): number => {
-    if (href.includes("/applications")) return newApplicationCount;
-    if (href.includes("/inbox")) return unreadCount;
+    if (href === "/dashboard/employees") return newApplicationCount;
+    if (href === "/dashboard/inbox") return unreadCount;
     return 0;
   };
 
-  // Helper to get total badge count for a section (for collapsed display)
-  const getSectionBadgeCount = (sectionId: string): number => {
-    const section = dashboardNavSections.find((s) => s.id === sectionId);
-    if (!section) return 0;
-
-    return section.items.reduce((total, item) => {
-      if (item.showBadge) {
-        return total + getBadgeCount(item.href);
-      }
-      return total;
-    }, 0);
+  // Check if item is active based on pathname
+  const isItemActive = (item: NavItem): boolean => {
+    if (item.isExternal) return false;
+    if (item.exactMatch) return pathname === item.href;
+    return item.href === "/dashboard"
+      ? pathname === "/dashboard"
+      : pathname === item.href || pathname.startsWith(item.href + "/");
   };
 
-  // Build navigation sections based on mode
-  const getNavSections = (): NavSection[] => {
-    // If custom nav items provided (demo mode), convert to single section
-    if (customNavItems) {
-      return [
-        {
-          id: "custom",
-          label: "",
-          isCollapsible: false,
-          items: customNavItems,
-        },
-      ];
-    }
-
-    // Inject "View Profile" items when providerSlug is available
-    const sectionsWithProfiles = providerSlug
-      ? dashboardNavSections.map((section) => {
-          if (section.id === "jobs") {
-            return {
-              ...section,
-              items: [
-                ...section.items,
-                {
-                  href: `/employers/${providerSlug}`,
-                  label: "View Profile",
-                  icon: Eye,
-                  isExternal: true,
-                },
-              ],
-            };
-          }
-          if (section.id === "therapy") {
-            return {
-              ...section,
-              items: [
-                ...section.items,
-                {
-                  href: `/provider/${providerSlug}`,
-                  label: "View Profile",
-                  icon: Eye,
-                  isExternal: true,
-                },
-              ],
-            };
-          }
-          return section;
-        })
-      : dashboardNavSections;
-
-    // If onboarding incomplete, show onboarding item first
-    if (!isOnboardingComplete) {
-      return [
-        {
-          id: "onboarding",
-          label: "",
-          isCollapsible: false,
-          items: [onboardingNavItem],
-        },
-        ...sectionsWithProfiles,
-      ];
-    }
-
-    return sectionsWithProfiles;
+  // Check if dropdown section has an active child
+  const hasActiveChild = (items: NavItem[]): boolean => {
+    return items.some(isItemActive);
   };
 
-  const navSections = getNavSections();
+  // Render a single nav item
+  const renderNavItem = (item: NavItem, showBadge = true) => {
+    const Icon = item.icon;
+    const isActive = isItemActive(item);
+    const isLocked = !isDemo && !isOnboardingComplete && item.href !== "/dashboard/onboarding";
+    const badgeCount = showBadge && item.showBadge ? getBadgeCount(item.href) : 0;
+
+    const linkContent = (
+      <>
+        <Icon className="h-4 w-4" aria-hidden />
+        <span className="flex flex-1 items-center gap-1.5">
+          {item.label}
+          {item.isPlaceholder && (
+            <Badge
+              variant="outline"
+              className="ml-auto bg-purple-50 px-1.5 py-0 text-[10px] text-purple-600"
+            >
+              Soon
+            </Badge>
+          )}
+        </span>
+        {badgeCount > 0 && (
+          <span
+            className={cn(
+              "flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-xs font-semibold",
+              isActive ? "bg-white/20 text-white" : "bg-primary text-primary-foreground"
+            )}
+          >
+            {badgeCount > 99 ? "99+" : badgeCount}
+          </span>
+        )}
+        {item.isExternal && (
+          <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
+        )}
+      </>
+    );
+
+    const linkClassName = cn(
+      buttonVariants({ variant: "ghost" }),
+      "w-full justify-start gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
+      isActive
+        ? "bg-primary text-primary-foreground shadow-sm"
+        : "text-muted-foreground hover:bg-accent hover:text-foreground",
+      isLocked && "opacity-60"
+    );
+
+    if (item.isExternal) {
+      return (
+        <a
+          key={item.href}
+          href={item.href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={linkClassName}
+        >
+          {linkContent}
+        </a>
+      );
+    }
+
+    return (
+      <Link key={item.href} href={item.href} className={linkClassName}>
+        {linkContent}
+      </Link>
+    );
+  };
+
+  // Render a dropdown section
+  const renderDropdown = (
+    id: string,
+    label: string,
+    icon: LucideIcon,
+    items: NavItem[]
+  ) => {
+    const Icon = icon;
+    const isOpen = isSectionOpen(id);
+    const hasActive = hasActiveChild(items);
+
+    return (
+      <Collapsible
+        key={id}
+        open={isOpen}
+        onOpenChange={() => toggleSection(id)}
+      >
+        <div
+          className={cn(
+            "rounded-xl overflow-hidden transition-all",
+            hasActive && "ring-1 ring-primary/20"
+          )}
+        >
+          <CollapsibleTrigger
+            className={cn(
+              "flex w-full items-center justify-between px-3 py-2.5 text-sm font-medium transition-all rounded-xl",
+              hasActive
+                ? "bg-primary/10 text-primary"
+                : "text-muted-foreground hover:bg-accent hover:text-foreground"
+            )}
+          >
+            <div className="flex items-center gap-3">
+              <Icon className="h-4 w-4" />
+              <span>{label}</span>
+            </div>
+            <ChevronDown
+              className={cn(
+                "h-4 w-4 transition-transform duration-200",
+                isOpen && "rotate-180"
+              )}
+            />
+          </CollapsibleTrigger>
+          <CollapsibleContent className="space-y-1 px-2 pb-2 pt-1">
+            {items.map((item) => renderNavItem(item, false))}
+          </CollapsibleContent>
+        </div>
+      </Collapsible>
+    );
+  };
+
+  // Build view profile links for external viewing
+  const viewProfileLinks = providerSlug ? [
+    { href: `/provider/${providerSlug}`, label: "Therapy Profile", icon: Eye },
+    { href: `/employers/${providerSlug}`, label: "Jobs Profile", icon: Eye },
+  ] : [];
 
   return (
     <aside
@@ -323,26 +343,50 @@ export function DashboardSidebar({
           </div>
         )}
 
-        <nav className="space-y-2">
-          {navSections.map((section) => {
-            // Use controlled state for all collapsible sections
-            const isControlled = section.isCollapsible;
+        <nav className="space-y-1">
+          {/* Onboarding item if needed */}
+          {!isOnboardingComplete && !customNavItems && renderNavItem(onboardingNavItem)}
 
-            return (
-              <NavSectionComponent
-                key={section.id}
-                section={section}
-                pathname={pathname}
-                getBadgeCount={getBadgeCount}
-                sectionBadgeCount={getSectionBadgeCount(section.id)}
-                isOnboardingComplete={isOnboardingComplete}
-                isDemo={isDemo}
-                // Controlled props for collapsible sections
-                controlledOpen={isControlled ? isSectionOpen(section.id) : undefined}
-                onToggle={isControlled ? () => toggleSection(section.id) : undefined}
-              />
-            );
-          })}
+          {/* Custom nav items for demo mode */}
+          {customNavItems ? (
+            customNavItems.map((item) => renderNavItem(item))
+          ) : (
+            <>
+              {/* Main navigation items - flat list */}
+              {mainNavItems.map((item) => renderNavItem(item))}
+
+              {/* Dropdown sections */}
+              <div className="pt-2">
+                {renderDropdown("company", "Company", Building2, companyDropdownItems)}
+                {renderDropdown("brandedPages", "Branded Pages", Globe, brandedPagesDropdownItems)}
+              </div>
+
+              {/* View Profile links */}
+              {viewProfileLinks.length > 0 && (
+                <div className="border-t border-border/60 pt-3 mt-3">
+                  <p className="px-3 pb-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Public Pages
+                  </p>
+                  {viewProfileLinks.map((link) => (
+                    <a
+                      key={link.href}
+                      href={link.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={cn(
+                        buttonVariants({ variant: "ghost" }),
+                        "w-full justify-start gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
+                      )}
+                    >
+                      <link.icon className="h-4 w-4" aria-hidden />
+                      <span className="flex-1">{link.label}</span>
+                      <ExternalLink className="h-3.5 w-3.5" aria-hidden />
+                    </a>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
         </nav>
       </div>
 
