@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useTransition, useEffect } from "react";
-import { Check, Loader2, ExternalLink } from "lucide-react";
+import { useState, useTransition, useEffect, useRef } from "react";
+import { Check, Loader2, ExternalLink, Pipette } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -33,13 +33,12 @@ export function IntakeFormSettings({
   urlTemplate = "/contact/{slug}",
   previewLabel = "Interest Form",
 }: IntakeFormSettingsProps) {
+  const normalizeHex = (value: string) => value.trim().toUpperCase();
+
+  const colorInputRef = useRef<HTMLInputElement>(null);
   const [settings, setSettings] = useState(initialSettings);
   const [isPending, startTransition] = useTransition();
-  const [customColor, setCustomColor] = useState(
-    COLOR_PRESETS.some((p) => p.value === settings.background_color)
-      ? ""
-      : settings.background_color
-  );
+  const [hexDraft, setHexDraft] = useState(normalizeHex(initialSettings.background_color));
   const [previewUrl, setPreviewUrl] = useState(
     urlTemplate.replace("{slug}", listingSlug)
   );
@@ -52,20 +51,22 @@ export function IntakeFormSettings({
   }, [listingSlug, urlTemplate]);
 
   const handleColorChange = (color: string) => {
-    setSettings((prev) => ({ ...prev, background_color: color }));
-    setCustomColor(COLOR_PRESETS.some((p) => p.value === color) ? "" : color);
+    const normalized = normalizeHex(color);
+    setSettings((prev) => ({ ...prev, background_color: normalized }));
+    setHexDraft(normalized);
     startTransition(async () => {
-      await updateIntakeFormSettings({ background_color: color });
+      await updateIntakeFormSettings({ background_color: normalized });
     });
   };
 
   const handleCustomColorChange = (value: string) => {
-    setCustomColor(value);
+    const normalized = normalizeHex(value);
+    setHexDraft(normalized);
     // Only update if valid hex color
-    if (/^#[0-9A-Fa-f]{6}$/.test(value)) {
-      setSettings((prev) => ({ ...prev, background_color: value }));
+    if (/^#[0-9A-F]{6}$/.test(normalized)) {
+      setSettings((prev) => ({ ...prev, background_color: normalized }));
       startTransition(async () => {
-        await updateIntakeFormSettings({ background_color: value });
+        await updateIntakeFormSettings({ background_color: normalized });
       });
     }
   };
@@ -77,8 +78,7 @@ export function IntakeFormSettings({
     });
   };
 
-  const selectedPreset = COLOR_PRESETS.find((p) => p.value === settings.background_color);
-  const isCustomColor = !selectedPreset && settings.background_color !== "#5788FF";
+  const normalizedBackgroundColor = normalizeHex(settings.background_color);
 
   return (
     <div className="space-y-6">
@@ -103,7 +103,7 @@ export function IntakeFormSettings({
         <CardContent className="space-y-6">
           {/* Color Presets */}
           <div className="space-y-3">
-            <Label className="text-sm font-medium">Background Color</Label>
+            <Label className="text-sm font-medium">Color</Label>
             <div className="flex flex-wrap gap-3">
               {COLOR_PRESETS.map((color) => (
                 <button
@@ -111,14 +111,14 @@ export function IntakeFormSettings({
                   type="button"
                   onClick={() => handleColorChange(color.value)}
                   className={`group relative h-10 w-10 rounded-xl border-2 transition-all duration-200 hover:scale-110 ${
-                    settings.background_color === color.value
+                    normalizedBackgroundColor === normalizeHex(color.value)
                       ? "border-foreground ring-2 ring-foreground/20"
                       : "border-transparent hover:border-border"
                   }`}
                   style={{ backgroundColor: color.value }}
                   title={color.name}
                 >
-                  {settings.background_color === color.value && (
+                  {normalizedBackgroundColor === normalizeHex(color.value) && (
                     <Check className="absolute left-1/2 top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 text-white drop-shadow-md" />
                   )}
                 </button>
@@ -129,23 +129,40 @@ export function IntakeFormSettings({
           {/* Custom Color */}
           <div className="space-y-3">
             <Label htmlFor="custom-color" className="text-sm font-medium">
-              Custom Color (Hex)
+              Pick or enter a hex color
             </Label>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
               <div
-                className={`h-10 w-10 shrink-0 rounded-xl border-2 ${
-                  isCustomColor ? "border-foreground ring-2 ring-foreground/20" : "border-border"
-                }`}
-                style={{ backgroundColor: customColor || settings.background_color }}
+                className="h-10 w-10 shrink-0 rounded-xl border-2 border-border"
+                style={{ backgroundColor: normalizedBackgroundColor }}
               />
-              <Input
-                id="custom-color"
-                type="text"
-                placeholder="#5788FF"
-                value={customColor}
-                onChange={(e) => handleCustomColorChange(e.target.value)}
-                className="max-w-[150px] font-mono"
-              />
+              <div className="flex items-center gap-3">
+                <Input
+                  id="custom-color"
+                  type="text"
+                  placeholder="#5788FF"
+                  value={hexDraft}
+                  onChange={(e) => handleCustomColorChange(e.target.value)}
+                  className="max-w-[150px] font-mono"
+                />
+                <input
+                  ref={colorInputRef}
+                  type="color"
+                  value={normalizedBackgroundColor}
+                  onChange={(e) => handleColorChange(e.target.value)}
+                  className="sr-only"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                  onClick={() => colorInputRef.current?.click()}
+                >
+                  <Pipette className="h-4 w-4" />
+                  Pick
+                </Button>
+              </div>
             </div>
           </div>
 

@@ -61,6 +61,7 @@ export default async function ResourcesLayout({ children, params }: ResourcesLay
   const { listing, profile } = result.data;
   const { background_color, show_powered_by } = profile.intakeFormSettings;
   const contrastColor = getContrastColor(background_color);
+  const brandTextColor = contrastColor === "#000000" ? "#1f2937" : "#FFFFFF";
 
   const initials = profile.agencyName
     .split(" ")
@@ -92,7 +93,7 @@ export default async function ResourcesLayout({ children, params }: ResourcesLay
                 ) : null}
                 <AvatarFallback
                   className="text-xl font-bold sm:text-2xl"
-                  style={{ backgroundColor: getLighterShade(background_color, 0.15), color: background_color }}
+                  style={{ backgroundColor: getLighterShade(background_color, 0.15), color: brandTextColor }}
                 >
                   {initials}
                 </AvatarFallback>
@@ -121,7 +122,7 @@ export default async function ResourcesLayout({ children, params }: ResourcesLay
                     className="rounded-full"
                     style={{
                       borderColor: background_color,
-                      color: background_color,
+                      color: "#111827",
                     }}
                   >
                     <a href={profile.website} target="_blank" rel="noopener noreferrer" className="gap-2">
@@ -148,7 +149,7 @@ export default async function ResourcesLayout({ children, params }: ResourcesLay
                   ) : null}
                   <AvatarFallback
                     className="text-[10px] font-semibold"
-                    style={{ backgroundColor: getLighterShade(background_color, 0.15), color: background_color }}
+                    style={{ backgroundColor: getLighterShade(background_color, 0.15), color: brandTextColor }}
                   >
                     {initials}
                   </AvatarFallback>
@@ -167,7 +168,7 @@ export default async function ResourcesLayout({ children, params }: ResourcesLay
             <Link
               href="/"
               className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-semibold shadow-lg transition-all hover:scale-105 hover:shadow-xl"
-              style={{ color: background_color }}
+              style={{ color: brandTextColor }}
             >
               <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />

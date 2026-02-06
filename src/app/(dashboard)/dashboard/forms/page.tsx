@@ -1,14 +1,12 @@
 import Link from "next/link";
-import { ArrowRight, ClipboardList, CheckCircle2, FileText } from "lucide-react";
+import { ArrowRight, CheckCircle2, ClipboardList, FileText, Palette } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { BubbleBackground } from "@/components/ui/bubble-background";
-import { IntakeFormShareCard } from "@/components/dashboard/intake/intake-form-share-card";
-import { IntakeFormSettings } from "@/components/dashboard/intake/intake-form-settings";
-import { ClientIntakeShareCard } from "@/components/dashboard/intake/client-intake-share-card";
+import { BrandedPageCard } from "@/components/dashboard/branded-page-card";
 import { getProfile, createClient } from "@/lib/supabase/server";
-import type { IntakeFormSettings as IntakeFormSettingsType } from "@/lib/actions/intake";
+import { getJobsByProvider } from "@/lib/queries/jobs";
 
 export default async function IntakeFormPage() {
   const profile = await getProfile();
@@ -18,9 +16,9 @@ export default async function IntakeFormPage() {
     return (
       <div className="space-y-4 sm:space-y-6">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">Forms</h1>
+          <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">Done-for-you Branded Pages</h1>
           <p className="mt-1 text-sm text-muted-foreground sm:mt-2">
-            Share branded forms for families to contact you or submit intake information.
+            Share ready-made pages for inquiries, intake, hiring, and family education.
           </p>
         </div>
 
@@ -92,9 +90,9 @@ export default async function IntakeFormPage() {
     return (
       <div className="space-y-4 sm:space-y-6">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">Forms</h1>
+          <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">Done-for-you Branded Pages</h1>
           <p className="mt-1 text-sm text-muted-foreground sm:mt-2">
-            Share branded forms for families to contact you or submit intake information.
+            Share ready-made pages for inquiries, intake, hiring, and family education.
           </p>
         </div>
 
@@ -118,50 +116,74 @@ export default async function IntakeFormPage() {
     );
   }
 
-  // Get intake form settings with defaults
-  const defaultSettings: IntakeFormSettingsType = {
-    background_color: "#5788FF",
-    show_powered_by: true,
-  };
-  const intakeFormSettings = profile.intake_form_settings
-    ? {
-        ...defaultSettings,
-        ...(profile.intake_form_settings as Partial<IntakeFormSettingsType>),
-      }
-    : defaultSettings;
+  const jobs = await getJobsByProvider(listingSlug);
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">Forms</h1>
-        <p className="mt-1 text-sm text-muted-foreground sm:mt-2">
-          Share branded forms for families to contact you or submit intake information.
-        </p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">Done-for-you Branded Pages</h1>
+          <p className="mt-1 text-sm text-muted-foreground sm:mt-2">
+            Share ready-made pages for inquiries, intake, hiring, and family education.
+          </p>
+        </div>
+        <Button asChild size="sm" variant="outline" className="w-fit self-start sm:mt-1">
+          <Link href="/dashboard/branding" className="items-center gap-2">
+            <Palette className="h-4 w-4" />
+            Edit Brand Style
+          </Link>
+        </Button>
       </div>
 
-      {/* Contact Form Section */}
       <div className="space-y-4">
-        <h2 className="text-lg font-medium text-foreground">Contact Form</h2>
-        <IntakeFormShareCard listingSlug={listingSlug} />
-      </div>
-
-      {/* Client Intake Form Section */}
-      <div className="space-y-4">
-        <h2 className="text-lg font-medium text-foreground">Client Intake Form</h2>
-        <ClientIntakeShareCard
-          listingSlug={listingSlug}
-          isEnabled={clientIntakeEnabled}
+        <BrandedPageCard
+          title="Client Contact Form"
+          sentence="Capture new family inquiries with a fast, low-friction first step."
+          relativePath={`/contact/${listingSlug}`}
+          iconName="contact"
+          howItWorks={[
+            "A family opens your contact page and enters basic details.",
+            "The inquiry is sent to your dashboard inbox and email notifications.",
+            "Your team follows up and guides the family to next steps.",
+          ]}
+        />
+        <BrandedPageCard
+          title="Client Intake Form"
+          sentence={clientIntakeEnabled
+            ? "Collect complete parent, child, and insurance details before the first call."
+            : "Enable this when you are ready to collect full onboarding details up front."}
+          relativePath={`/intake/${listingSlug}/client`}
+          iconName="intake"
+          howItWorks={[
+            "A family completes your detailed intake questionnaire.",
+            "Information is organized for your team to review quickly.",
+            "You can prioritize follow-up based on readiness and fit.",
+          ]}
+        />
+        <BrandedPageCard
+          title="Client Resources"
+          sentence="Share one trusted page with FAQs, glossary terms, and parent guides."
+          relativePath={`/resources/${listingSlug}`}
+          iconName="resources"
+          howItWorks={[
+            "Share the link after inquiry or during onboarding.",
+            "Families browse FAQs, terms, and educational guides.",
+            "Your team spends less time repeating the same basics.",
+          ]}
+        />
+        <BrandedPageCard
+          title="Careers Page"
+          sentence={`Publish one hiring destination for ${jobs.length} ${jobs.length === 1 ? "open role" : "open roles"} with direct applications.`}
+          relativePath={`/careers/${listingSlug}`}
+          iconName="careers"
+          howItWorks={[
+            "Candidates view all active roles on one page.",
+            "They open a role and submit an application directly.",
+            "Your team reviews applicants in your hiring workflow.",
+          ]}
         />
       </div>
 
-      {/* Shared Settings */}
-      <div className="space-y-4">
-        <h2 className="text-lg font-medium text-foreground">Form Appearance</h2>
-        <IntakeFormSettings
-          listingSlug={listingSlug}
-          settings={intakeFormSettings}
-        />
-      </div>
     </div>
   );
 }

@@ -1,22 +1,24 @@
 import Link from "next/link";
-import { ArrowRight, BookOpen, CheckCircle2, FileText } from "lucide-react";
+import { ArrowLeft, ArrowRight, CheckCircle2, FileText, Palette } from "lucide-react";
 
 import { BubbleBackground } from "@/components/ui/bubble-background";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { ClientResourcesShareCard } from "@/components/dashboard/resources/client-resources-share-card";
-import { getProfile, createClient } from "@/lib/supabase/server";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { IntakeFormSettings } from "@/components/dashboard/intake/intake-form-settings";
+import { LogoUploader } from "@/components/dashboard/logo-uploader";
+import { createClient, getProfile } from "@/lib/supabase/server";
+import type { IntakeFormSettings as IntakeFormSettingsType } from "@/lib/actions/intake";
 
-export default async function ClientResourcesPage() {
+export default async function BrandingPage() {
   const profile = await getProfile();
 
   if (!profile?.onboarding_completed_at) {
     return (
       <div className="space-y-4 sm:space-y-6">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">Client Resources</h1>
+          <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">Brand Style</h1>
           <p className="mt-1 text-sm text-muted-foreground sm:mt-2">
-            Share a branded parent education page with FAQ, glossary terms, and featured guides.
+            Set your logo and colors once for every page.
           </p>
         </div>
 
@@ -34,21 +36,19 @@ export default async function ClientResourcesPage() {
               sixth: "240,248,255",
             }}
           >
-            <CardContent className="flex flex-col items-center py-12 px-6 text-center">
+            <CardContent className="flex flex-col items-center px-6 py-12 text-center">
               <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#5788FF] shadow-lg shadow-[#5788FF]/25">
-                <BookOpen className="h-8 w-8 text-white" />
+                <Palette className="h-8 w-8 text-white" />
               </div>
 
-              <h3 className="text-xl font-semibold text-slate-900">
-                Complete Onboarding First
-              </h3>
+              <h3 className="text-xl font-semibold text-slate-900">Complete Onboarding First</h3>
 
               <p className="mt-3 max-w-md text-sm text-slate-600">
-                Finish setting up your practice profile to access your branded client resources page.
+                Finish setting up your practice profile to configure your shared brand style.
               </p>
 
               <div className="mt-6 flex flex-wrap justify-center gap-3">
-                {["Shareable link", "Custom branding", "Parent education"].map((benefit) => (
+                {["One shared style", "Logo + colors", "All forms & pages"].map((benefit) => (
                   <span
                     key={benefit}
                     className="inline-flex items-center gap-1.5 rounded-full bg-white/80 px-3 py-1.5 text-xs font-medium text-slate-600"
@@ -75,19 +75,20 @@ export default async function ClientResourcesPage() {
   const supabase = await createClient();
   const listingResult = await supabase
     .from("listings")
-    .select("slug")
+    .select("slug, logo_url")
     .eq("profile_id", profile.id)
     .single();
 
   const listingSlug = listingResult.data?.slug ?? null;
+  const logoUrl = listingResult.data?.logo_url ?? null;
 
   if (!listingSlug) {
     return (
       <div className="space-y-4 sm:space-y-6">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">Client Resources</h1>
+          <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">Brand Style</h1>
           <p className="mt-1 text-sm text-muted-foreground sm:mt-2">
-            Share a branded parent education page with FAQ, glossary terms, and featured guides.
+            Set your logo and colors once for every page.
           </p>
         </div>
 
@@ -96,14 +97,12 @@ export default async function ClientResourcesPage() {
             <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
               <FileText className="h-6 w-6 text-muted-foreground" />
             </div>
-            <h3 className="text-lg font-semibold">Unable to load client resources</h3>
+            <h3 className="text-lg font-semibold">Unable to load brand style settings</h3>
             <p className="mt-2 max-w-sm text-sm text-muted-foreground">
-              Please complete your company profile setup to access your branded resources page.
+              Please complete your company profile setup to configure your forms and pages.
             </p>
             <Button asChild className="mt-6">
-              <Link href="/dashboard/company">
-                Go to Company Profile
-              </Link>
+              <Link href="/dashboard/company">Go to Company Profile</Link>
             </Button>
           </CardContent>
         </Card>
@@ -111,28 +110,53 @@ export default async function ClientResourcesPage() {
     );
   }
 
+  const defaultSettings: IntakeFormSettingsType = {
+    background_color: "#5788FF",
+    show_powered_by: true,
+  };
+
+  const intakeFormSettings = profile.intake_form_settings
+    ? {
+        ...defaultSettings,
+        ...(profile.intake_form_settings as Partial<IntakeFormSettingsType>),
+      }
+    : defaultSettings;
+
   return (
     <div className="space-y-4 sm:space-y-6">
+      <Button asChild size="sm" variant="ghost" className="w-fit -ml-2">
+        <Link href="/dashboard/forms" className="items-center gap-2">
+          <ArrowLeft className="h-4 w-4" />
+          Back
+        </Link>
+      </Button>
+
       <div>
-        <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">Client Resources</h1>
-        <p className="mt-1 text-sm text-muted-foreground sm:mt-2">
-          Share a branded parent education page with FAQ, glossary terms, and featured guides.
-        </p>
+        <div>
+          <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">Brand Style</h1>
+          <p className="mt-1 text-sm text-muted-foreground sm:mt-2">
+            Set your logo and colors once for every page.
+          </p>
+        </div>
       </div>
 
-      <Card className="border-border/60 bg-muted/20">
-        <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm text-muted-foreground">
-            Branding is now managed in one place for all branded pages.
-          </p>
-          <Button asChild size="sm" variant="outline">
-            <Link href="/dashboard/branding">Manage Branding</Link>
-          </Button>
+      <Card className="border-border/60 bg-white">
+        <CardHeader>
+          <CardTitle className="text-foreground">Logo</CardTitle>
+          <CardDescription>
+            Update your logo here or in Company Details. Both screens edit the same logo. Recommended: 400x400px, max 2MB.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <LogoUploader currentLogoUrl={logoUrl} hideHeader />
         </CardContent>
       </Card>
 
-      <ClientResourcesShareCard listingSlug={listingSlug} />
-
+      <IntakeFormSettings
+        listingSlug={listingSlug}
+        settings={intakeFormSettings}
+        previewLabel="All Forms & Pages"
+      />
     </div>
   );
 }

@@ -81,6 +81,8 @@ function getPageTitle(pathname: string, isDemo: boolean): string {
   if (pathname.includes("/inbox")) return "Notifications";
   if (pathname.includes("/analytics")) return "Analytics";
   if (pathname.includes("/intake")) return "Intake Form";
+  if (pathname.includes("/forms")) return "Branded Forms";
+  if (pathname.includes("/branding")) return "Brand Style";
   if (pathname.includes("/employees")) return "Employees";
   if (pathname.includes("/careers")) return "Careers Page";
   if (pathname.includes("/jobs")) return "Jobs";

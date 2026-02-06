@@ -22,9 +22,10 @@ import { FILE_SIZE_LIMITS, ALLOWED_IMAGE_TYPES } from "@/lib/storage/config";
 
 interface LogoUploaderProps {
   currentLogoUrl: string | null;
+  hideHeader?: boolean;
 }
 
-export function LogoUploader({ currentLogoUrl }: LogoUploaderProps) {
+export function LogoUploader({ currentLogoUrl, hideHeader = false }: LogoUploaderProps) {
   const [logoUrl, setLogoUrl] = useState<string | null>(currentLogoUrl);
   const [isUploading, setIsUploading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -86,10 +87,14 @@ export function LogoUploader({ currentLogoUrl }: LogoUploaderProps) {
 
   return (
     <div className="space-y-2">
-      <Label>Logo</Label>
-      <p className="text-xs text-muted-foreground">
-        Upload your agency logo. Recommended size: 400x400 pixels. Max file size: 2MB.
-      </p>
+      {!hideHeader && (
+        <>
+          <Label>Logo</Label>
+          <p className="text-xs text-muted-foreground">
+            Upload your agency logo. Recommended size: 400x400 pixels. Max file size: 2MB.
+          </p>
+        </>
+      )}
       <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center">
         {/* Logo Preview */}
         <div className="relative h-24 w-24 flex-shrink-0 overflow-hidden rounded-lg border-2 border-dashed border-border bg-muted/30">

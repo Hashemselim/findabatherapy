@@ -39,8 +39,10 @@ interface ProviderProfile {
   website: string | null;
   planTier: PlanTier;
   isVerified: boolean;
-  careersBrandColor: string;
-  careersCtaText: string;
+  intakeFormSettings: {
+    background_color: string;
+    show_powered_by: boolean;
+  };
 }
 
 async function getProviderBySlug(slug: string): Promise<ProviderProfile | null> {
@@ -51,9 +53,7 @@ async function getProviderBySlug(slug: string): Promise<ProviderProfile | null> 
     .select(`
       profile_id,
       slug,
-      logo_url,
-      careers_brand_color,
-      careers_cta_text
+      logo_url
     `)
     .eq("slug", slug)
     .single();
@@ -69,7 +69,8 @@ async function getProviderBySlug(slug: string): Promise<ProviderProfile | null> 
       agency_name,
       website,
       plan_tier,
-      subscription_status
+      subscription_status,
+      intake_form_settings
     `)
     .eq("id", listing.profile_id)
     .single();
@@ -82,6 +83,9 @@ async function getProviderBySlug(slug: string): Promise<ProviderProfile | null> 
     profile.subscription_status === "active" ||
     profile.subscription_status === "trialing";
   const effectiveTier = (isActiveSubscription ? profile.plan_tier : "free") as PlanTier;
+  const intakeFormSettings = (profile.intake_form_settings as
+    | { background_color?: string; show_powered_by?: boolean }
+    | null) || null;
 
   return {
     id: profile.id,
@@ -91,8 +95,10 @@ async function getProviderBySlug(slug: string): Promise<ProviderProfile | null> 
     website: profile.website,
     planTier: effectiveTier,
     isVerified: effectiveTier !== "free",
-    careersBrandColor: listing.careers_brand_color || "#10B981",
-    careersCtaText: listing.careers_cta_text || "Apply Now",
+    intakeFormSettings: {
+      background_color: intakeFormSettings?.background_color || "#5788FF",
+      show_powered_by: intakeFormSettings?.show_powered_by ?? true,
+    },
   };
 }
 
@@ -219,13 +225,8 @@ export default async function BrandedJobPage({ params }: BrandedJobPageProps) {
     notFound();
   }
 
-  // Free tier gets default emerald color, Pro+ gets custom color
-  const isFreeUser = provider.planTier === "free";
-  const brandColor = isFreeUser ? "#10B981" : provider.careersBrandColor;
+  const brandColor = provider.intakeFormSettings.background_color;
   const contrastColor = getContrastColor(brandColor);
-
-  // Free tier gets default CTA, Pro+ gets custom
-  const effectiveCtaText = isFreeUser ? "Apply Now" : provider.careersCtaText;
 
   const positionLabel = POSITION_TYPES.find((p) => p.value === job.positionType)?.label || job.positionType;
   const employmentLabels = job.employmentTypes
@@ -588,10 +589,9 @@ export default async function BrandedJobPage({ params }: BrandedJobPageProps) {
           </div>
         </div>
 
-        {/* Powered by badge - prominent for free tier, subtle for Pro+ */}
+        {/* Powered by badge */}
         <div className="mt-6 text-center">
-          {isFreeUser ? (
-            // Free tier: prominent white badge with more visibility
+          {provider.intakeFormSettings.show_powered_by ? (
             <a
               href="https://findabatherapy.com"
               target="_blank"
@@ -605,7 +605,6 @@ export default async function BrandedJobPage({ params }: BrandedJobPageProps) {
               Powered by Find ABA Therapy
             </a>
           ) : (
-            // Pro+ tier: subtle transparent badge
             <a
               href="https://findabatherapy.com"
               target="_blank"

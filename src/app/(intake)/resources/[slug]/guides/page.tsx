@@ -17,7 +17,7 @@ export default async function ResourcesGuidesPage({ params }: ResourcesGuidesPag
     <div className="space-y-5">
       <Link
         href={`/resources/${slug}`}
-        className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
+        className="inline-flex items-center gap-2 text-sm font-medium text-foreground hover:underline"
       >
         <ArrowLeft className="h-4 w-4" />
         Back to Parent Resources
@@ -46,7 +46,7 @@ export default async function ResourcesGuidesPage({ params }: ResourcesGuidesPag
                 <CardDescription className="line-clamp-2 text-sm">{guide.description}</CardDescription>
               </CardHeader>
               <CardContent>
-                <span className="inline-flex items-center gap-1 text-sm font-medium text-primary">
+                <span className="inline-flex items-center gap-1 text-sm font-medium text-foreground">
                   Read guide
                   <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
                 </span>

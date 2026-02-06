@@ -134,7 +134,7 @@ export default async function ContactPage({ params }: ContactPageProps) {
                     className="rounded-full"
                     style={{
                       borderColor: background_color,
-                      color: background_color,
+                      color: "#111827",
                     }}
                   >
                     <a

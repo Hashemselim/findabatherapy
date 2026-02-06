@@ -15,7 +15,7 @@ export default async function ResourcesGlossaryPage({ params }: ResourcesGlossar
     <div className="space-y-5">
       <Link
         href={`/resources/${slug}`}
-        className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
+        className="inline-flex items-center gap-2 text-sm font-medium text-foreground hover:underline"
       >
         <ArrowLeft className="h-4 w-4" />
         Back to Parent Resources

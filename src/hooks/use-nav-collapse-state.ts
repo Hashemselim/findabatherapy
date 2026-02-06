@@ -31,6 +31,7 @@ function getSectionFromPath(pathname: string): SectionId | null {
     return "company";
   }
   if (
+    pathname.startsWith("/dashboard/branding") ||
     pathname.startsWith("/dashboard/forms") ||
     pathname.startsWith("/dashboard/careers") ||
     pathname.startsWith("/dashboard/resources")

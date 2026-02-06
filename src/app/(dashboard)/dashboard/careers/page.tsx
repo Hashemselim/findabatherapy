@@ -5,9 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { BubbleBackground } from "@/components/ui/bubble-background";
 import { CareersPageShareCard } from "@/components/dashboard/jobs/careers-page-share-card";
-import { CareersPageSettings } from "@/components/dashboard/jobs/careers-page-settings";
 import { getProfile } from "@/lib/supabase/server";
-import { getListingSlug, getCareersPageSettings } from "@/lib/actions/listings";
+import { getListingSlug } from "@/lib/actions/listings";
 import { getJobsByProvider } from "@/lib/queries/jobs";
 
 export default async function CareersPageDashboard() {
@@ -110,24 +109,7 @@ export default async function CareersPageDashboard() {
     );
   }
 
-  // Get jobs count and careers page settings for this provider
-  const [jobs, settingsResult] = await Promise.all([
-    getJobsByProvider(listingSlug),
-    getCareersPageSettings(),
-  ]);
-
-  // Determine effective plan tier (free if no active subscription)
-  const isActiveSubscription =
-    profile.subscription_status === "active" ||
-    profile.subscription_status === "trialing";
-  const effectivePlanTier = isActiveSubscription ? (profile.plan_tier || "free") : "free";
-  const isFreeUser = effectivePlanTier === "free";
-
-  // Use defaults if settings failed to load
-  const brandColor = settingsResult.success && settingsResult.data ? settingsResult.data.brandColor : "#10B981";
-  const headline = settingsResult.success && settingsResult.data ? settingsResult.data.headline : null;
-  const ctaText = settingsResult.success && settingsResult.data ? settingsResult.data.ctaText : "Join Our Team";
-  const hideBadge = settingsResult.success && settingsResult.data ? settingsResult.data.hideBadge : false;
+  const jobs = await getJobsByProvider(listingSlug);
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -138,18 +120,21 @@ export default async function CareersPageDashboard() {
         </p>
       </div>
 
+      <Card className="border-border/60 bg-muted/20">
+        <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-muted-foreground">
+            Branding is now managed in one place for all branded pages.
+          </p>
+          <Button asChild size="sm" variant="outline">
+            <Link href="/dashboard/branding">Manage Branding</Link>
+          </Button>
+        </CardContent>
+      </Card>
+
       <CareersPageShareCard
         listingSlug={listingSlug}
         companyName={profile.agency_name}
         jobCount={jobs.length}
-      />
-
-      <CareersPageSettings
-        initialBrandColor={brandColor}
-        initialHeadline={headline}
-        initialCtaText={ctaText}
-        initialHideBadge={hideBadge}
-        isFreeUser={isFreeUser}
       />
     </div>
   );

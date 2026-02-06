@@ -24,7 +24,7 @@ export default async function GuideDetailPage({ params }: GuideDetailPageProps) 
       <div className="flex flex-wrap items-center gap-4">
         <Link
           href={`/resources/${slug}/guides`}
-          className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
+          className="inline-flex items-center gap-2 text-sm font-medium text-foreground hover:underline"
         >
           <ArrowLeft className="h-4 w-4" />
           Back to Guides
@@ -32,7 +32,7 @@ export default async function GuideDetailPage({ params }: GuideDetailPageProps) 
 
         <Link
           href={`/resources/${slug}`}
-          className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
+          className="inline-flex items-center gap-2 text-sm font-medium text-foreground hover:underline"
         >
           <ArrowLeft className="h-4 w-4" />
           Back to Parent Resources
@@ -55,7 +55,7 @@ export default async function GuideDetailPage({ params }: GuideDetailPageProps) 
       </header>
 
       <div
-        className="prose prose-slate max-w-none prose-headings:font-semibold prose-h2:text-2xl prose-h3:text-xl prose-h4:text-lg prose-a:text-primary prose-a:no-underline hover:prose-a:underline"
+        className="prose prose-slate max-w-none prose-headings:font-semibold prose-h2:text-2xl prose-h3:text-xl prose-h4:text-lg prose-a:text-foreground prose-a:no-underline hover:prose-a:underline"
         dangerouslySetInnerHTML={{ __html: article.content }}
       />
     </article>

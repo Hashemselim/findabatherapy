@@ -50,14 +50,14 @@ export default async function ResourcesHubPage({ params }: ResourcesHubPageProps
             <Link key={card.key} href={card.href(slug)} className="group">
               <Card className="h-full border-border/60 transition-all hover:border-primary/30 hover:shadow-md">
                 <CardHeader className="pb-2">
-                  <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-primary/20 text-foreground">
                     <Icon className="h-5 w-5" />
                   </div>
                   <CardTitle className="text-base leading-tight">{card.title}</CardTitle>
                   <CardDescription className="text-sm">{card.description}</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <span className="inline-flex items-center gap-1 text-sm font-medium text-primary">
+                  <span className="inline-flex items-center gap-1 text-sm font-medium text-foreground">
                     Open
                     <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
                   </span>

@@ -15,9 +15,7 @@ import {
   Eye,
   FileInput,
   FileText,
-  FolderOpen,
   GaugeCircle,
-  Globe,
   HelpCircle,
   Image,
   LogOut,
@@ -56,6 +54,7 @@ const mainNavItems: MobileNavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: GaugeCircle, exactMatch: true },
   { href: "/dashboard/inbox", label: "Notifications", icon: Bell, showBadge: true },
   { href: "/dashboard/tasks", label: "Tasks", icon: CheckSquare },
+  { href: "/dashboard/forms", label: "Branded Forms", icon: FileInput },
   { href: "/dashboard/clients", label: "Clients", icon: UserCircle },
   { href: "/dashboard/employees", label: "Employees", icon: UserCheck, showBadge: true },
   { href: "/dashboard/jobs", label: "Jobs", icon: Briefcase },
@@ -66,14 +65,6 @@ const mainNavItems: MobileNavItem[] = [
 const companyDropdownItems: MobileNavItem[] = [
   { href: "/dashboard/company", label: "Profile", icon: FileText },
   { href: "/dashboard/locations", label: "Locations", icon: MapPin },
-];
-
-// Branded Pages dropdown items
-const brandedPagesDropdownItems: MobileNavItem[] = [
-  { href: "/dashboard/forms", label: "Forms", icon: FileInput },
-  { href: "/dashboard/careers", label: "Careers Page", icon: Globe },
-  { href: "/dashboard/resources/clients", label: "Client Resources", icon: FolderOpen },
-  { href: "/dashboard/resources/employees", label: "Employee Resources", icon: FolderOpen, isPlaceholder: true },
 ];
 
 // Demo navigation - simplified flat list
@@ -116,7 +107,6 @@ export function DashboardMobileNav({
 }: DashboardMobileNavProps) {
   const pathname = usePathname();
   const [companyOpen, setCompanyOpen] = useState(false);
-  const [brandedPagesOpen, setBrandedPagesOpen] = useState(false);
 
   const handleLogout = async () => {
     // Clear dev bypass cookie on client side
@@ -245,7 +235,7 @@ export function DashboardMobileNav({
             className={cn(
               "flex w-full items-center justify-between min-h-[44px] px-3 py-2.5 text-sm font-medium transition-all rounded-xl",
               hasActive
-                ? "bg-primary/10 text-primary"
+                ? "bg-primary/20 text-foreground"
                 : "text-muted-foreground hover:bg-accent hover:text-foreground"
             )}
           >
@@ -289,7 +279,6 @@ export function DashboardMobileNav({
       {!customNavItems && !isDemo && (
         <div className="pt-2 space-y-1">
           {renderDropdown("company", "Company", Building2, companyDropdownItems, companyOpen, setCompanyOpen)}
-          {renderDropdown("brandedPages", "Branded Pages", Globe, brandedPagesDropdownItems, brandedPagesOpen, setBrandedPagesOpen)}
         </div>
       )}
 

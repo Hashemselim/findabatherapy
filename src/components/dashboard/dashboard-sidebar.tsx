@@ -16,9 +16,7 @@ import {
   Eye,
   FileInput,
   FileText,
-  FolderOpen,
   GaugeCircle,
-  Globe,
   HelpCircle,
   LogOut,
   LucideIcon,
@@ -58,6 +56,7 @@ const mainNavItems: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: GaugeCircle, exactMatch: true },
   { href: "/dashboard/inbox", label: "Notifications", icon: Bell, showBadge: true },
   { href: "/dashboard/tasks", label: "Tasks", icon: CheckSquare },
+  { href: "/dashboard/forms", label: "Branded Forms", icon: FileInput },
   { href: "/dashboard/clients", label: "Clients", icon: UserCircle },
   { href: "/dashboard/employees", label: "Employees", icon: UserCheck, showBadge: true },
   { href: "/dashboard/jobs", label: "Jobs", icon: Briefcase },
@@ -68,14 +67,6 @@ const mainNavItems: NavItem[] = [
 const companyDropdownItems: NavItem[] = [
   { href: "/dashboard/company", label: "Profile", icon: FileText },
   { href: "/dashboard/locations", label: "Locations", icon: MapPin },
-];
-
-// Branded Pages dropdown items
-const brandedPagesDropdownItems: NavItem[] = [
-  { href: "/dashboard/forms", label: "Forms", icon: FileInput },
-  { href: "/dashboard/careers", label: "Careers Page", icon: Globe },
-  { href: "/dashboard/resources/clients", label: "Client Resources", icon: FolderOpen },
-  { href: "/dashboard/resources/employees", label: "Employee Resources", icon: FolderOpen, isPlaceholder: true },
 ];
 
 // Onboarding nav item shown when onboarding is incomplete
@@ -272,7 +263,7 @@ export function DashboardSidebar({
             className={cn(
               "flex w-full items-center justify-between px-3 py-2.5 text-sm font-medium transition-all rounded-xl",
               hasActive
-                ? "bg-primary/10 text-primary"
+                ? "bg-primary/20 text-foreground"
                 : "text-muted-foreground hover:bg-accent hover:text-foreground"
             )}
           >
@@ -358,7 +349,6 @@ export function DashboardSidebar({
               {/* Dropdown sections */}
               <div className="pt-2">
                 {renderDropdown("company", "Company", Building2, companyDropdownItems)}
-                {renderDropdown("brandedPages", "Branded Pages", Globe, brandedPagesDropdownItems)}
               </div>
 
               {/* View Profile links */}

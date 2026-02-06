@@ -135,7 +135,7 @@ export default async function ClientIntakePage({ params }: ClientIntakePageProps
                     className="rounded-full"
                     style={{
                       borderColor: background_color,
-                      color: background_color,
+                      color: "#111827",
                     }}
                   >
                     <a
