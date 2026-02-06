@@ -23,11 +23,15 @@ const COLOR_PRESETS = [
 interface IntakeFormSettingsProps {
   listingSlug: string;
   settings: IntakeFormSettingsType;
+  urlTemplate?: string;
+  previewLabel?: string;
 }
 
 export function IntakeFormSettings({
   listingSlug,
   settings: initialSettings,
+  urlTemplate = "/contact/{slug}",
+  previewLabel = "Interest Form",
 }: IntakeFormSettingsProps) {
   const [settings, setSettings] = useState(initialSettings);
   const [isPending, startTransition] = useTransition();
@@ -36,12 +40,16 @@ export function IntakeFormSettings({
       ? ""
       : settings.background_color
   );
-  const [contactUrl, setIntakeUrl] = useState(`/contact/${listingSlug}`);
+  const [previewUrl, setPreviewUrl] = useState(
+    urlTemplate.replace("{slug}", listingSlug)
+  );
 
   // Set full URL after hydration to avoid hydration mismatch
   useEffect(() => {
-    setIntakeUrl(`${window.location.origin}/contact/${listingSlug}`);
-  }, [listingSlug]);
+    setPreviewUrl(
+      `${window.location.origin}${urlTemplate.replace("{slug}", listingSlug)}`
+    );
+  }, [listingSlug, urlTemplate]);
 
   const handleColorChange = (color: string) => {
     setSettings((prev) => ({ ...prev, background_color: color }));
@@ -81,7 +89,7 @@ export function IntakeFormSettings({
             <div>
               <CardTitle className="text-foreground">Customize Appearance</CardTitle>
               <CardDescription>
-                Customize how your intake form page looks to visitors.
+                Customize how your branded page looks to visitors.
               </CardDescription>
             </div>
             {isPending && (
@@ -165,7 +173,7 @@ export function IntakeFormSettings({
         <CardHeader>
           <CardTitle className="text-foreground">Preview</CardTitle>
           <CardDescription>
-            See how your intake form will appear to visitors.
+            See how your page will appear to visitors.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -182,7 +190,7 @@ export function IntakeFormSettings({
                 <div className="mb-2 h-12 w-12 rounded-lg bg-muted" />
                 <p className="text-sm font-semibold">Your Agency Name</p>
                 <div className="my-2 h-px w-8 bg-border/50" />
-                <p className="text-xs text-muted-foreground">Interest Form</p>
+                <p className="text-xs text-muted-foreground">{previewLabel}</p>
               </div>
               <div className="mt-3 space-y-2">
                 <div className="h-8 rounded-lg bg-muted/50" />
@@ -201,7 +209,7 @@ export function IntakeFormSettings({
           </div>
           <div className="mt-4 flex justify-center">
             <Button asChild variant="outline" size="sm">
-              <a href={contactUrl} target="_blank" rel="noopener noreferrer" className="gap-2">
+              <a href={previewUrl} target="_blank" rel="noopener noreferrer" className="gap-2">
                 <ExternalLink className="h-4 w-4" />
                 View Full Page
               </a>

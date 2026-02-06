@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { isDevOnboardingPreviewEnabled } from "@/lib/onboarding-preview";
 import { createClient, getUser } from "@/lib/supabase/server";
 import type {
   CompanyBasics,
@@ -14,6 +15,13 @@ import type {
 type ActionResult<T = void> =
   | { success: true; data?: T }
   | { success: false; error: string };
+
+function unauthenticatedResult<T = void>(data?: T): ActionResult<T> {
+  if (isDevOnboardingPreviewEnabled()) {
+    return data === undefined ? { success: true } : { success: true, data };
+  }
+  return { success: false, error: "Not authenticated" };
+}
 
 /**
  * Generate a URL-friendly slug from agency name
@@ -34,7 +42,7 @@ export async function updateProfileBasics(
 ): Promise<ActionResult> {
   const user = await getUser();
   if (!user) {
-    return { success: false, error: "Not authenticated" };
+    return unauthenticatedResult();
   }
 
   const supabase = await createClient();
@@ -67,7 +75,7 @@ export async function updateProfilePlan(
 ): Promise<ActionResult> {
   const user = await getUser();
   if (!user) {
-    return { success: false, error: "Not authenticated" };
+    return unauthenticatedResult();
   }
 
   // For free plan, update directly. For paid plans, this will be updated after Stripe checkout
@@ -99,7 +107,7 @@ export async function updateListingDetails(
 ): Promise<ActionResult<{ listingId: string }>> {
   const user = await getUser();
   if (!user) {
-    return { success: false, error: "Not authenticated" };
+    return unauthenticatedResult();
   }
 
   const supabase = await createClient();
@@ -215,7 +223,7 @@ export async function updateListingLocation(
 ): Promise<ActionResult> {
   const user = await getUser();
   if (!user) {
-    return { success: false, error: "Not authenticated" };
+    return unauthenticatedResult();
   }
 
   const supabase = await createClient();
@@ -283,7 +291,7 @@ export async function updateListingLocationWithServices(
 ): Promise<ActionResult> {
   const user = await getUser();
   if (!user) {
-    return { success: false, error: "Not authenticated" };
+    return unauthenticatedResult();
   }
 
   const supabase = await createClient();
@@ -371,7 +379,7 @@ export async function updateBasicAttributes(
 ): Promise<ActionResult> {
   const user = await getUser();
   if (!user) {
-    return { success: false, error: "Not authenticated" };
+    return unauthenticatedResult();
   }
 
   const supabase = await createClient();
@@ -426,7 +434,7 @@ export async function updateListingAttributes(
 ): Promise<ActionResult> {
   const user = await getUser();
   if (!user) {
-    return { success: false, error: "Not authenticated" };
+    return unauthenticatedResult();
   }
 
   const supabase = await createClient();
@@ -498,7 +506,7 @@ export async function completeOnboarding(
 ): Promise<ActionResult<{ redirectTo: string }>> {
   const user = await getUser();
   if (!user) {
-    return { success: false, error: "Not authenticated" };
+    return unauthenticatedResult();
   }
 
   const supabase = await createClient();
@@ -579,7 +587,7 @@ export async function updatePremiumAttributes(data: {
 }): Promise<ActionResult> {
   const user = await getUser();
   if (!user) {
-    return { success: false, error: "Not authenticated" };
+    return unauthenticatedResult();
   }
 
   const supabase = await createClient();
@@ -717,7 +725,12 @@ export async function getOnboardingData(): Promise<
 > {
   const user = await getUser();
   if (!user) {
-    return { success: false, error: "Not authenticated" };
+    return unauthenticatedResult({
+      profile: null,
+      listing: null,
+      location: null,
+      attributes: {},
+    });
   }
 
   const supabase = await createClient();
@@ -840,7 +853,7 @@ export async function saveOnboardingDraft(data: {
 }): Promise<ActionResult> {
   const user = await getUser();
   if (!user) {
-    return { success: false, error: "Not authenticated" };
+    return unauthenticatedResult();
   }
 
   const supabase = await createClient();

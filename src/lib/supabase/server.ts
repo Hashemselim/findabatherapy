@@ -68,14 +68,19 @@ export async function createAdminClient() {
  * Returns null if not authenticated.
  */
 export async function getUser(): Promise<User | null> {
-  const supabase = await createClient();
-  const { data: { user }, error } = await supabase.auth.getUser();
+  try {
+    const supabase = await createClient();
+    const { data: { user }, error } = await supabase.auth.getUser();
 
-  if (error || !user) {
+    if (error || !user) {
+      return null;
+    }
+
+    return user;
+  } catch {
+    // Supabase auth can throw AbortError when there's no valid session
     return null;
   }
-
-  return user;
 }
 
 /**

@@ -1,141 +1,149 @@
 import Link from "next/link";
-import {
-  ArrowRight,
-  FileText,
-  FolderOpen,
-  Link2,
-  Share2,
-  Sparkles,
-} from "lucide-react";
+import { ArrowRight, BookOpen, CheckCircle2, FileText } from "lucide-react";
 
 import { BubbleBackground } from "@/components/ui/bubble-background";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { brandColors } from "@/config/brands";
+import { Card, CardContent } from "@/components/ui/card";
+import { ClientResourcesShareCard } from "@/components/dashboard/resources/client-resources-share-card";
+import { IntakeFormSettings } from "@/components/dashboard/intake/intake-form-settings";
+import { getProfile, createClient } from "@/lib/supabase/server";
+import type { IntakeFormSettings as IntakeFormSettingsType } from "@/lib/actions/intake";
 
-export default function ClientResourcesPage() {
-  const features = [
-    {
-      icon: FileText,
-      title: "Document Uploads",
-      description: "Upload and organize documents to share with families",
-    },
-    {
-      icon: Link2,
-      title: "Shareable Links",
-      description: "Generate secure links for clients to access resources",
-    },
-    {
-      icon: FolderOpen,
-      title: "Resource Library",
-      description: "Build a library of educational materials and forms",
-    },
-    {
-      icon: Share2,
-      title: "Easy Sharing",
-      description: "Share resources directly from client profiles",
-    },
-  ];
+export default async function ClientResourcesPage() {
+  const profile = await getProfile();
 
-  return (
-    <div className="space-y-6 sm:space-y-8">
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">
-          Client Resources
-        </h1>
-        <p className="mt-1 max-w-2xl text-sm text-muted-foreground sm:mt-2">
-          Documents and materials for families.
-        </p>
+  if (!profile?.onboarding_completed_at) {
+    return (
+      <div className="space-y-4 sm:space-y-6">
+        <div>
+          <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">Client Resources</h1>
+          <p className="mt-1 text-sm text-muted-foreground sm:mt-2">
+            Share a branded parent education page with FAQ, glossary terms, and featured guides.
+          </p>
+        </div>
+
+        <Card className="overflow-hidden border-slate-200">
+          <BubbleBackground
+            interactive={false}
+            size="default"
+            className="bg-gradient-to-br from-white via-yellow-50/50 to-blue-50/50"
+            colors={{
+              first: "255,255,255",
+              second: "255,236,170",
+              third: "135,176,255",
+              fourth: "255,248,210",
+              fifth: "190,210,255",
+              sixth: "240,248,255",
+            }}
+          >
+            <CardContent className="flex flex-col items-center py-12 px-6 text-center">
+              <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#5788FF] shadow-lg shadow-[#5788FF]/25">
+                <BookOpen className="h-8 w-8 text-white" />
+              </div>
+
+              <h3 className="text-xl font-semibold text-slate-900">
+                Complete Onboarding First
+              </h3>
+
+              <p className="mt-3 max-w-md text-sm text-slate-600">
+                Finish setting up your practice profile to access your branded client resources page.
+              </p>
+
+              <div className="mt-6 flex flex-wrap justify-center gap-3">
+                {["Shareable link", "Custom branding", "Parent education"].map((benefit) => (
+                  <span
+                    key={benefit}
+                    className="inline-flex items-center gap-1.5 rounded-full bg-white/80 px-3 py-1.5 text-xs font-medium text-slate-600"
+                  >
+                    <CheckCircle2 className="h-3.5 w-3.5 text-[#5788FF]" />
+                    {benefit}
+                  </span>
+                ))}
+              </div>
+
+              <Button asChild size="lg" className="mt-8">
+                <Link href="/dashboard/onboarding" className="gap-2">
+                  Continue Onboarding
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </Button>
+            </CardContent>
+          </BubbleBackground>
+        </Card>
       </div>
+    );
+  }
 
-      <Card className="overflow-hidden border-blue-200/60">
-        <BubbleBackground
-          interactive={false}
-          size="default"
-          className="bg-gradient-to-br from-white via-blue-50/50 to-slate-50"
-          colors={{
-            first: "255,255,255",
-            second: "213,233,255",
-            third: "87,136,255",
-            fourth: "238,245,255",
-            fifth: "181,196,253",
-            sixth: "245,250,255",
-          }}
-        >
-          <CardContent className="flex flex-col items-center px-6 py-12 text-center">
-            <div
-              className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl shadow-lg"
-              style={{
-                backgroundColor: brandColors.therapy,
-                boxShadow: `0 10px 25px -5px ${brandColors.therapy}40`,
-              }}
-            >
-              <FolderOpen className="h-8 w-8 text-white" />
+  const supabase = await createClient();
+  const listingResult = await supabase
+    .from("listings")
+    .select("slug")
+    .eq("profile_id", profile.id)
+    .single();
+
+  const listingSlug = listingResult.data?.slug ?? null;
+
+  if (!listingSlug) {
+    return (
+      <div className="space-y-4 sm:space-y-6">
+        <div>
+          <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">Client Resources</h1>
+          <p className="mt-1 text-sm text-muted-foreground sm:mt-2">
+            Share a branded parent education page with FAQ, glossary terms, and featured guides.
+          </p>
+        </div>
+
+        <Card className="border-dashed">
+          <CardContent className="flex flex-col items-center py-12 text-center">
+            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+              <FileText className="h-6 w-6 text-muted-foreground" />
             </div>
-
-            <h3 className="text-xl font-semibold text-slate-900">
-              Client Resources Coming Soon
-            </h3>
-
-            <p className="mt-3 max-w-md text-sm text-slate-600">
-              Share documents, intake forms, and educational materials with
-              families. Build a resource library that clients can access
-              anytime from their portal.
+            <h3 className="text-lg font-semibold">Unable to load client resources</h3>
+            <p className="mt-2 max-w-sm text-sm text-muted-foreground">
+              Please complete your company profile setup to access your branded resources page.
             </p>
-
-            <div className="mt-6 flex flex-wrap justify-center gap-3">
-              {features.map((feature) => (
-                <span
-                  key={feature.title}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-white/80 px-3 py-1.5 text-xs font-medium text-slate-600 shadow-sm"
-                >
-                  <Sparkles
-                    className="h-3.5 w-3.5"
-                    style={{ color: brandColors.therapy }}
-                  />
-                  {feature.title}
-                </span>
-              ))}
-            </div>
-
-            <Button
-              asChild
-              size="lg"
-              className="mt-8"
-              style={{ backgroundColor: brandColors.therapy }}
-            >
-              <Link href="/dashboard/feedback" className="gap-2">
-                Request Early Access
-                <ArrowRight className="h-4 w-4" />
+            <Button asChild className="mt-6">
+              <Link href="/dashboard/company">
+                Go to Company Profile
               </Link>
             </Button>
           </CardContent>
-        </BubbleBackground>
-      </Card>
+        </Card>
+      </div>
+    );
+  }
 
-      {/* Feature Preview Cards */}
-      <div className="grid gap-4 sm:grid-cols-2">
-        {features.map((feature) => {
-          const Icon = feature.icon;
-          return (
-            <Card key={feature.title} className="border-border/60">
-              <CardHeader className="flex flex-row items-center gap-3 pb-2">
-                <div
-                  className="flex h-10 w-10 items-center justify-center rounded-lg"
-                  style={{ backgroundColor: `${brandColors.therapy}15` }}
-                >
-                  <Icon className="h-5 w-5" style={{ color: brandColors.therapy }} />
-                </div>
-                <CardTitle className="text-base">{feature.title}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  {feature.description}
-                </p>
-              </CardContent>
-            </Card>
-          );
-        })}
+  const defaultSettings: IntakeFormSettingsType = {
+    background_color: "#5788FF",
+    show_powered_by: true,
+  };
+
+  const intakeFormSettings = profile.intake_form_settings
+    ? {
+        ...defaultSettings,
+        ...(profile.intake_form_settings as Partial<IntakeFormSettingsType>),
+      }
+    : defaultSettings;
+
+  return (
+    <div className="space-y-4 sm:space-y-6">
+      <div>
+        <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">Client Resources</h1>
+        <p className="mt-1 text-sm text-muted-foreground sm:mt-2">
+          Share a branded parent education page with FAQ, glossary terms, and featured guides.
+        </p>
+      </div>
+
+      <ClientResourcesShareCard listingSlug={listingSlug} />
+
+      <div className="space-y-4">
+        <h2 className="text-lg font-medium text-foreground">Page Appearance</h2>
+        <IntakeFormSettings
+          listingSlug={listingSlug}
+          settings={intakeFormSettings}
+          urlTemplate="/resources/{slug}"
+          previewLabel="Parent Resources"
+        />
       </div>
     </div>
   );

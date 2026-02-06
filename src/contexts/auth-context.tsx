@@ -90,27 +90,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+      try {
+        setSession(session);
+        setUser(session?.user ?? null);
 
-      if (session?.user) {
-        await fetchProfile(session.user.id);
-      } else {
-        setProfile(null);
-      }
+        if (session?.user) {
+          await fetchProfile(session.user.id);
+        } else {
+          setProfile(null);
+        }
 
-      // Handle specific auth events
-      if (event === "SIGNED_IN" && session?.user) {
-        // Identify user in PostHog
-        posthog.identify(session.user.id, {
-          email: session.user.email,
-        });
-        router.refresh();
-      } else if (event === "SIGNED_OUT") {
-        // Reset PostHog on logout
-        posthog.reset();
-        setProfile(null);
-        router.refresh();
+        // Handle specific auth events
+        if (event === "SIGNED_IN" && session?.user) {
+          // Identify user in PostHog
+          posthog.identify(session.user.id, {
+            email: session.user.email,
+          });
+          router.refresh();
+        } else if (event === "SIGNED_OUT") {
+          // Reset PostHog on logout
+          posthog.reset();
+          setProfile(null);
+          router.refresh();
+        }
+      } catch {
+        // Auth state change can throw when there's no valid session (e.g., dev preview mode)
       }
     });
 

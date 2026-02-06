@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+import { isDevOnboardingPreviewEnabled } from "@/lib/onboarding-preview";
 import { updateSession } from "@/lib/supabase/middleware";
 import { domains, type Brand } from "@/lib/utils/domains";
 
@@ -209,6 +210,15 @@ export async function middleware(request: NextRequest) {
 
   // Check if the route is an auth route
   const isAuthRoute = AUTH_ROUTES.some((route) => pathname.startsWith(route));
+
+  // Dev preview: allow unauthenticated onboarding only when explicit preview flag is enabled
+  if (
+    isDevOnboardingPreviewEnabled() &&
+    pathname.startsWith("/dashboard/onboarding") &&
+    !user
+  ) {
+    return supabaseResponse;
+  }
 
   // If protected route and not authenticated, redirect to sign in
   if (isProtectedRoute && !user) {
