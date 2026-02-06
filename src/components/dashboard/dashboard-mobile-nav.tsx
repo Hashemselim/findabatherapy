@@ -70,7 +70,7 @@ const companyDropdownItems: MobileNavItem[] = [
 
 // Branded Pages dropdown items
 const brandedPagesDropdownItems: MobileNavItem[] = [
-  { href: "/dashboard/intake", label: "Intake Form", icon: FileInput },
+  { href: "/dashboard/forms", label: "Forms", icon: FileInput },
   { href: "/dashboard/careers", label: "Careers Page", icon: Globe },
   { href: "/dashboard/resources/clients", label: "Client Resources", icon: FolderOpen, isPlaceholder: true },
   { href: "/dashboard/resources/employees", label: "Employee Resources", icon: FolderOpen, isPlaceholder: true },
