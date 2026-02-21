@@ -87,14 +87,14 @@ export function BwPricingCards({
       {/* Billing toggle */}
       <BwFadeUp>
         <div className="flex flex-col items-center gap-3">
-          <div className="inline-flex items-center rounded-full border border-slate-200 bg-white p-1">
+          <div className="inline-flex items-center rounded-full border border-amber-200/60 bg-white p-1">
             <button
               type="button"
               onClick={() => setInterval("monthly")}
               className={cn(
                 "rounded-full px-5 py-2 text-sm font-medium transition-colors",
                 interval === "monthly"
-                  ? "bg-[#0F2B5B] text-white"
+                  ? "bg-[#1A2744] text-white"
                   : "text-slate-500 hover:text-slate-900"
               )}
             >
@@ -106,7 +106,7 @@ export function BwPricingCards({
               className={cn(
                 "rounded-full px-5 py-2 text-sm font-medium transition-colors",
                 interval === "annual"
-                  ? "bg-[#0F2B5B] text-white"
+                  ? "bg-[#1A2744] text-white"
                   : "text-slate-500 hover:text-slate-900"
               )}
             >
@@ -114,7 +114,7 @@ export function BwPricingCards({
             </button>
           </div>
           {interval === "annual" && (
-            <span className="rounded-full border border-teal-200 bg-teal-50 px-3 py-1 text-xs font-semibold text-teal-700">
+            <span className="rounded-full border border-amber-200 bg-[#FFDC33]/10 px-3 py-1 text-xs font-semibold text-amber-700">
               Save up to {PLAN_CONFIGS.pro.pricing.annual.savingsPercent}% with
               annual billing
             </span>
@@ -141,25 +141,25 @@ export function BwPricingCards({
                 className={cn(
                   "relative flex h-full flex-col rounded-2xl border p-6 sm:p-8",
                   isPro
-                    ? "border-teal-300 bg-white shadow-xl shadow-teal-100/50 ring-1 ring-teal-200"
-                    : "border-slate-200 bg-white"
+                    ? "border-amber-300 bg-white shadow-xl shadow-amber-100/50 ring-1 ring-amber-200"
+                    : "border-amber-200/40 bg-white"
                 )}
               >
                 {"badge" in plan && plan.badge && (
-                  <span className="absolute -top-3 left-6 rounded-full bg-teal-600 px-3 py-1 text-xs font-bold text-white">
+                  <span className="absolute -top-3 left-6 rounded-full bg-[#FFDC33] px-3 py-1 text-xs font-bold text-[#1A2744]">
                     {plan.badge}
                   </span>
                 )}
 
                 <div>
-                  <h3 className="text-lg font-bold text-[#0F2B5B]">
+                  <h3 className="text-lg font-bold text-[#1A2744]">
                     {config.displayName}
                   </h3>
                   <p className="mt-1 text-sm text-slate-500">{plan.tagline}</p>
                 </div>
 
                 <div className="mt-5">
-                  <span className="text-4xl font-bold text-[#0F2B5B]">
+                  <span className="text-4xl font-bold text-[#1A2744]">
                     ${price}
                   </span>
                   <span className="text-sm text-slate-400">
@@ -175,7 +175,7 @@ export function BwPricingCards({
                       key={feature}
                       className="flex items-start gap-2 text-sm text-slate-600"
                     >
-                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-teal-500" />
+                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
                       <span>{feature}</span>
                     </li>
                   ))}
@@ -198,8 +198,8 @@ export function BwPricingCards({
                     className={cn(
                       "flex h-12 w-full items-center justify-center gap-2 rounded-full text-sm font-semibold transition-all active:scale-[0.98]",
                       plan.ctaStyle === "primary"
-                        ? "bg-teal-600 text-white hover:bg-teal-700"
-                        : "border border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50"
+                        ? "bg-[#FFDC33] text-[#1A2744] shadow-lg shadow-amber-500/20 hover:bg-[#F5CF1B] hover:shadow-xl hover:shadow-amber-500/25"
+                        : "border border-amber-200/60 bg-white text-slate-700 hover:border-amber-300 hover:bg-amber-50/30"
                     )}
                   >
                     {plan.ctaLabel}

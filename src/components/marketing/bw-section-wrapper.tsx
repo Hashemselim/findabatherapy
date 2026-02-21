@@ -4,7 +4,7 @@ interface BwSectionWrapperProps {
   children: React.ReactNode;
   id?: string;
   className?: string;
-  background?: "white" | "slate" | "dark";
+  background?: "cream" | "white" | "golden" | "dark";
   narrow?: boolean;
 }
 
@@ -12,7 +12,7 @@ export function BwSectionWrapper({
   children,
   id,
   className,
-  background = "white",
+  background = "cream",
   narrow = false,
 }: BwSectionWrapperProps) {
   return (
@@ -20,9 +20,10 @@ export function BwSectionWrapper({
       id={id}
       className={cn(
         "py-24 lg:py-32",
+        background === "cream" && "bg-[#FFFBF0]",
         background === "white" && "bg-white",
-        background === "slate" && "bg-slate-50",
-        background === "dark" && "bg-slate-900",
+        background === "golden" && "bg-[#FFF7E1]",
+        background === "dark" && "bg-[#1A2744]",
         className
       )}
     >

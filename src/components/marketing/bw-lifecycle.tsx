@@ -19,10 +19,11 @@ const stages = [
     title: "Contact",
     subtitle: "Get found. Capture every lead.",
     icon: Megaphone,
-    color: "bg-blue-500",
-    lightColor: "bg-blue-50",
-    textColor: "text-blue-600",
-    borderColor: "border-blue-200",
+    color: "bg-[#5788FF]",
+    lightColor: "bg-[#5788FF]/10",
+    textColor: "text-[#5788FF]",
+    borderColor: "border-[#5788FF]/30",
+    ringColor: "ring-[#5788FF]/20",
     features: [
       "Listed on FindABATherapy.org directory",
       "SEO-optimized provider profile",
@@ -37,10 +38,11 @@ const stages = [
     title: "Intake",
     subtitle: "Convert inquiries into clients — automatically.",
     icon: ClipboardList,
-    color: "bg-amber-500",
-    lightColor: "bg-amber-50",
+    color: "bg-[#FFDC33]",
+    lightColor: "bg-[#FFDC33]/10",
     textColor: "text-amber-600",
-    borderColor: "border-amber-200",
+    borderColor: "border-amber-300/40",
+    ringColor: "ring-amber-200/40",
     features: [
       "Branded digital intake form",
       "Collect child details, parent info & insurance",
@@ -55,10 +57,11 @@ const stages = [
     title: "Nurture",
     subtitle: "Keep families engaged at every stage.",
     icon: Mail,
-    color: "bg-violet-500",
-    lightColor: "bg-violet-50",
-    textColor: "text-violet-600",
-    borderColor: "border-violet-200",
+    color: "bg-[#8B5CF6]",
+    lightColor: "bg-[#8B5CF6]/10",
+    textColor: "text-[#8B5CF6]",
+    borderColor: "border-[#8B5CF6]/30",
+    ringColor: "ring-[#8B5CF6]/20",
     features: [
       "22 branded email templates",
       "Merge fields for personalization",
@@ -73,10 +76,11 @@ const stages = [
     title: "Manage",
     subtitle: "Every authorization, credential & family — in one place.",
     icon: LayoutDashboard,
-    color: "bg-teal-500",
-    lightColor: "bg-teal-50",
-    textColor: "text-teal-600",
-    borderColor: "border-teal-200",
+    color: "bg-[#F59E0B]",
+    lightColor: "bg-[#F59E0B]/10",
+    textColor: "text-[#F59E0B]",
+    borderColor: "border-amber-400/30",
+    ringColor: "ring-amber-300/20",
     features: [
       "Client records with full history",
       "Insurance & authorization tracking",
@@ -91,10 +95,11 @@ const stages = [
     title: "Grow",
     subtitle: "Scale your agency with data and talent.",
     icon: TrendingUp,
-    color: "bg-emerald-500",
-    lightColor: "bg-emerald-50",
-    textColor: "text-emerald-600",
-    borderColor: "border-emerald-200",
+    color: "bg-[#10B981]",
+    lightColor: "bg-[#10B981]/10",
+    textColor: "text-[#10B981]",
+    borderColor: "border-[#10B981]/30",
+    ringColor: "ring-[#10B981]/20",
     features: [
       "Referral source analytics",
       "Listing views, clicks & CTR reporting",
@@ -108,15 +113,19 @@ const stages = [
 
 export function BwLifecycle() {
   return (
-    <BwSectionWrapper id="lifecycle" background="slate">
+    <BwSectionWrapper id="lifecycle" background="golden">
       <BwFadeUp>
         <div className="mx-auto max-w-3xl text-center">
-          <span className="inline-flex items-center rounded-full border border-slate-200 bg-white px-3.5 py-1 text-xs font-semibold tracking-wide text-slate-600">
+          <span className="inline-flex items-center rounded-full border border-amber-200/60 bg-white/80 px-4 py-1.5 text-xs font-bold tracking-wide text-amber-700">
             The Client Funnel
           </span>
-          <h2 className="mt-5 text-3xl font-bold tracking-tight text-[#0F2B5B] sm:text-4xl lg:text-5xl">
+          <h2 className="mt-5 text-3xl font-extrabold tracking-tight text-[#1A2744] sm:text-4xl lg:text-5xl">
             One platform. Every stage of the{" "}
-            <span className="text-teal-600">client journey</span>.
+            <span className="relative inline-block">
+              <span className="relative z-10">client journey</span>
+              <span className="absolute -bottom-1 left-0 right-0 z-0 h-3 rounded-full bg-[#FFDC33]/30" />
+            </span>
+            .
           </h2>
           <p className="mt-4 text-lg text-slate-500">
             From the moment a family discovers your agency to the day you scale
@@ -128,8 +137,8 @@ export function BwLifecycle() {
       {/* Vertical funnel timeline */}
       <div className="mx-auto mt-16 max-w-3xl">
         <div className="relative">
-          {/* Vertical connecting line */}
-          <div className="absolute bottom-0 left-6 top-0 w-px bg-gradient-to-b from-blue-200 via-teal-200 to-emerald-200 sm:left-8" />
+          {/* Vertical connecting line — warm gradient */}
+          <div className="absolute bottom-0 left-6 top-0 w-px bg-gradient-to-b from-[#5788FF]/40 via-[#FFDC33]/40 to-[#10B981]/40 sm:left-8" />
 
           {stages.map((stage, i) => {
             const Icon = stage.icon;
@@ -139,19 +148,20 @@ export function BwLifecycle() {
                 <div className={cn("relative pb-12", isLast && "pb-0")}>
                   {/* Stage node */}
                   <div className="flex gap-5 sm:gap-7">
-                    {/* Left: Number + icon node */}
+                    {/* Left: icon node */}
                     <div className="relative z-10 flex shrink-0 flex-col items-center">
                       <div
                         className={cn(
-                          "flex h-12 w-12 items-center justify-center rounded-2xl border-2 bg-white shadow-sm sm:h-16 sm:w-16",
-                          stage.borderColor
+                          "flex h-12 w-12 items-center justify-center rounded-2xl border bg-white shadow-sm ring-4 sm:h-16 sm:w-16",
+                          stage.borderColor,
+                          stage.ringColor
                         )}
                       >
                         <Icon className={cn("h-5 w-5 sm:h-6 sm:w-6", stage.textColor)} />
                       </div>
                       <span
                         className={cn(
-                          "mt-1.5 text-[10px] font-bold tracking-widest",
+                          "mt-1.5 text-[10px] font-extrabold tracking-widest",
                           stage.textColor
                         )}
                       >
@@ -161,14 +171,16 @@ export function BwLifecycle() {
 
                     {/* Right: Content card */}
                     <div className="flex-1 pt-1">
-                      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md">
+                      <div className="overflow-hidden rounded-2xl border border-amber-200/40 bg-white shadow-sm transition-all hover:shadow-md hover:shadow-amber-100/50">
                         {/* Header */}
-                        <div className="border-b border-slate-100 px-5 py-4 sm:px-6">
+                        <div className="border-b border-amber-100/50 px-5 py-4 sm:px-6">
                           <div className="flex items-center gap-3">
                             <span
                               className={cn(
-                                "inline-flex h-6 items-center rounded-full px-2.5 text-[11px] font-bold uppercase tracking-wider text-white",
-                                stage.color
+                                "inline-flex h-6 items-center rounded-full px-2.5 text-[11px] font-extrabold uppercase tracking-wider",
+                                stage.title === "Intake"
+                                  ? "bg-[#FFDC33] text-[#1A2744]"
+                                  : cn(stage.color, "text-white")
                               )}
                             >
                               {stage.title}
@@ -202,12 +214,11 @@ export function BwLifecycle() {
                     </div>
                   </div>
 
-                  {/* Funnel narrowing visual — wedge between stages */}
+                  {/* Arrow between stages */}
                   {!isLast && (
                     <div className="ml-[1.35rem] mt-3 flex items-center gap-3 sm:ml-[1.85rem]">
-                      <div className={cn("h-4 w-px", stage.color, "opacity-30")} />
                       <svg
-                        className="h-3 w-3 text-slate-300"
+                        className="h-3 w-3 text-amber-300"
                         viewBox="0 0 12 12"
                         fill="none"
                       >

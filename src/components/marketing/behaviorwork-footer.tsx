@@ -20,17 +20,15 @@ const legalLinks = [
 
 export function BehaviorWorkFooter() {
   return (
-    <footer className="bg-slate-900">
+    <footer className="bg-[#1A2744]">
       <div className="mx-auto max-w-6xl px-5 sm:px-6 lg:px-8">
         <div className="grid gap-8 py-12 sm:grid-cols-2 lg:grid-cols-4 lg:py-16">
           {/* Brand */}
           <div className="sm:col-span-2 lg:col-span-1">
-            <div className="flex items-center gap-2.5">
-              <span className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-white/10 text-[10px] font-bold text-white">
-                BW
-              </span>
-              <span className="text-sm font-semibold text-white">
-                BehaviorWork
+            <div className="flex items-center">
+              <span className="relative inline-block text-2xl tracking-[-0.08em] text-[#5788FF]">
+                <span className="relative z-10"><span className="font-light">Behavior</span><span className="font-extrabold">Work</span></span>
+                <span className="absolute bottom-[3px] left-0 -right-3 z-0 h-[4px] rounded-full bg-[#FFDC33]/50" />
               </span>
             </div>
             <p className="mt-3 max-w-xs text-sm leading-relaxed text-slate-400">
@@ -41,7 +39,7 @@ export function BehaviorWorkFooter() {
 
           {/* Product */}
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
               Product
             </p>
             <ul className="mt-3 space-y-2">
@@ -49,7 +47,7 @@ export function BehaviorWorkFooter() {
                 <li key={link.label}>
                   <Link
                     href={link.href}
-                    className="text-sm text-slate-400 transition-colors hover:text-white"
+                    className="text-sm text-slate-400 transition-colors hover:text-[#FFDC33]"
                   >
                     {link.label}
                   </Link>
@@ -60,7 +58,7 @@ export function BehaviorWorkFooter() {
 
           {/* Company */}
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
               Company
             </p>
             <ul className="mt-3 space-y-2">
@@ -68,7 +66,7 @@ export function BehaviorWorkFooter() {
                 <li key={link.label}>
                   <Link
                     href={link.href}
-                    className="text-sm text-slate-400 transition-colors hover:text-white"
+                    className="text-sm text-slate-400 transition-colors hover:text-[#FFDC33]"
                   >
                     {link.label}
                   </Link>
@@ -79,7 +77,7 @@ export function BehaviorWorkFooter() {
 
           {/* Legal */}
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
               Legal
             </p>
             <ul className="mt-3 space-y-2">
@@ -87,7 +85,7 @@ export function BehaviorWorkFooter() {
                 <li key={link.label}>
                   <Link
                     href={link.href}
-                    className="text-sm text-slate-400 transition-colors hover:text-white"
+                    className="text-sm text-slate-400 transition-colors hover:text-[#FFDC33]"
                   >
                     {link.label}
                   </Link>
@@ -97,7 +95,7 @@ export function BehaviorWorkFooter() {
           </div>
         </div>
 
-        <div className="border-t border-slate-800 py-6">
+        <div className="border-t border-white/10 py-6">
           <div className="flex flex-col items-center justify-between gap-2 sm:flex-row">
             <p className="text-xs text-slate-500">
               &copy; {new Date().getFullYear()} BehaviorWork. All rights

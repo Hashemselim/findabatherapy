@@ -12,10 +12,10 @@ const channels = [
     tagline: "Public provider directory",
     description:
       "Families search to find ABA providers near them. Your listing drives high-intent leads to your branded pages.",
-    gradient: "from-blue-600 to-indigo-600",
+    gradient: "from-[#5788FF] to-[#3D6BE5]",
     footerTag: "Drives client leads",
-    footerColor: "text-blue-600",
-    footerBg: "bg-blue-50",
+    footerColor: "text-[#5788FF]",
+    footerBg: "bg-[#5788FF]/10",
     href: "https://www.findabatherapy.org",
     logoType: "image" as const,
     bullets: [
@@ -30,10 +30,10 @@ const channels = [
     tagline: "ABA-specific job board",
     description:
       "ABA professionals search for BCBA, RBT, and clinical roles. Your postings reach thousands of candidates.",
-    gradient: "from-emerald-600 to-teal-600",
+    gradient: "from-[#10B981] to-[#059669]",
     footerTag: "Drives hiring pipeline",
-    footerColor: "text-emerald-600",
-    footerBg: "bg-emerald-50",
+    footerColor: "text-[#10B981]",
+    footerBg: "bg-[#10B981]/10",
     href: "https://www.findabajobs.org",
     logoType: "icon" as const,
     bullets: [
@@ -47,15 +47,18 @@ const channels = [
 
 export function BwDistributionChannels() {
   return (
-    <BwSectionWrapper background="slate">
+    <BwSectionWrapper background="golden">
       <BwFadeUp>
         <div className="mx-auto max-w-2xl text-center">
-          <span className="inline-flex items-center rounded-full border border-slate-200 bg-white px-3.5 py-1 text-xs font-semibold tracking-wide text-slate-600">
+          <span className="inline-flex items-center rounded-full border border-amber-200/60 bg-white/80 px-4 py-1.5 text-xs font-bold tracking-wide text-amber-700">
             Built-In Distribution
           </span>
-          <h2 className="mt-5 text-3xl font-bold tracking-tight text-[#0F2B5B] sm:text-4xl">
+          <h2 className="mt-5 text-3xl font-extrabold tracking-tight text-[#1A2744] sm:text-4xl">
             How families and candidates{" "}
-            <span className="text-teal-600">find you</span>
+            <span className="relative inline-block">
+              <span className="relative z-10">find you</span>
+              <span className="absolute -bottom-0.5 left-0 right-0 z-0 h-2.5 rounded-full bg-[#FFDC33]/30" />
+            </span>
           </h2>
           <p className="mt-4 text-lg text-slate-500">
             Every BehaviorWork account includes two public channels that bring
@@ -71,15 +74,14 @@ export function BwDistributionChannels() {
               href={channel.href}
               target="_blank"
               rel="noopener noreferrer"
-              className="group flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-lg"
+              className="group flex h-full flex-col overflow-hidden rounded-2xl border border-amber-200/40 bg-white shadow-sm transition-all hover:shadow-lg hover:shadow-amber-100/50"
             >
-              {/* Gradient header with logo */}
+              {/* Gradient header */}
               <div
                 className={`bg-gradient-to-r ${channel.gradient} px-6 py-5 sm:px-8`}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    {/* Logo */}
                     {channel.logoType === "image" ? (
                       <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm">
                         <Image
@@ -120,16 +122,16 @@ export function BwDistributionChannels() {
                       key={bullet}
                       className="flex items-start gap-2.5 text-sm text-slate-600"
                     >
-                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-teal-500" />
+                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
                       <span>{bullet}</span>
                     </li>
                   ))}
                 </ul>
 
                 {/* Footer tag */}
-                <div className="mt-6 border-t border-slate-100 pt-4">
+                <div className="mt-6 border-t border-amber-100/60 pt-4">
                   <span
-                    className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${channel.footerBg} ${channel.footerColor}`}
+                    className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-bold ${channel.footerBg} ${channel.footerColor}`}
                   >
                     {channel.footerTag} &rarr;
                   </span>

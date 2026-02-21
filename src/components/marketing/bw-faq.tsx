@@ -50,10 +50,10 @@ const faqs = [
 
 export function BwFaq() {
   return (
-    <BwSectionWrapper id="faq" background="white" narrow>
+    <BwSectionWrapper id="faq" background="cream" narrow>
       <BwFadeUp>
         <div className="text-center">
-          <h2 className="text-3xl font-bold tracking-tight text-[#0F2B5B] sm:text-4xl">
+          <h2 className="text-3xl font-extrabold tracking-tight text-[#1A2744] sm:text-4xl">
             Frequently asked questions
           </h2>
         </div>
@@ -65,7 +65,7 @@ export function BwFaq() {
             <AccordionItem
               key={faq.question}
               value={`faq-${i}`}
-              className="border-slate-200"
+              className="border-amber-200/40"
             >
               <AccordionTrigger
                 onClick={() =>
@@ -74,7 +74,7 @@ export function BwFaq() {
                     pageLocation: "behaviorwork-pricing",
                   })
                 }
-                className="text-left text-base font-semibold text-[#0F2B5B] hover:no-underline [&[data-state=open]]:text-teal-700"
+                className="text-left text-base font-semibold text-[#1A2744] hover:no-underline [&[data-state=open]]:text-amber-700"
               >
                 {faq.question}
               </AccordionTrigger>

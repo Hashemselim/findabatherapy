@@ -4,12 +4,10 @@ import { BehaviorWorkTracker } from "@/components/marketing/behaviorwork-tracker
 import { BehaviorWorkHeader } from "@/components/marketing/behaviorwork-header";
 import { BehaviorWorkFooter } from "@/components/marketing/behaviorwork-footer";
 import { BwHero } from "@/components/marketing/bw-hero";
-import { BwIdentityBanner } from "@/components/marketing/bw-identity-banner";
 import { BwTrustBar } from "@/components/marketing/bw-trust-bar";
 import { BwProblem } from "@/components/marketing/bw-problem";
 import { BwLifecycle } from "@/components/marketing/bw-lifecycle";
 import { BwBrandedPages } from "@/components/marketing/bw-branded-pages";
-import { BwPillars } from "@/components/marketing/bw-pillars";
 import { BwDistributionChannels } from "@/components/marketing/bw-distribution-channels";
 import { BwRoiCard } from "@/components/marketing/bw-roi-card";
 import { BwTestimonials } from "@/components/marketing/bw-testimonials";
@@ -42,18 +40,16 @@ export const metadata: Metadata = {
 
 export default function BehaviorWorkPage() {
   return (
-    <div className="min-h-screen bg-white text-slate-900">
+    <div className="min-h-screen bg-[#FFFBF0] text-slate-900">
       <BehaviorWorkTracker mode="lander" />
       <BehaviorWorkHeader />
 
       <main>
         <BwHero />
-        <BwIdentityBanner />
         <BwTrustBar />
         <BwProblem />
         <BwLifecycle />
         <BwBrandedPages />
-        <BwPillars />
         <BwDistributionChannels />
         <BwRoiCard />
         <BwTestimonials />

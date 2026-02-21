@@ -11,17 +11,17 @@ const trustItems = [
 
 export function BwTrustBar() {
   return (
-    <section className="border-y border-slate-100 bg-slate-50 py-5">
+    <section className="border-y border-amber-200/40 bg-[#FFF7E1]/50 py-5">
       <div className="mx-auto max-w-6xl px-5 sm:px-6 lg:px-8">
         <BwFadeUp>
-          <div className="grid grid-cols-2 gap-4 sm:flex sm:items-center sm:justify-center sm:gap-0 sm:divide-x sm:divide-slate-200">
+          <div className="grid grid-cols-2 gap-4 sm:flex sm:items-center sm:justify-center sm:gap-0 sm:divide-x sm:divide-amber-200/50">
             {trustItems.map(({ icon: Icon, label }) => (
               <div
                 key={label}
                 className="flex items-center justify-center gap-2 sm:px-8"
               >
-                <Icon className="h-4 w-4 text-slate-400" />
-                <span className="text-xs font-medium tracking-wide text-slate-500 sm:text-sm">
+                <Icon className="h-4 w-4 text-amber-500" />
+                <span className="text-xs font-semibold tracking-wide text-slate-600 sm:text-sm">
                   {label}
                 </span>
               </div>

@@ -12,15 +12,15 @@ export function BwFeatureMatrix() {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <BwSectionWrapper background="slate" className="py-16 lg:py-20">
+    <BwSectionWrapper background="golden" className="py-16 lg:py-20">
       <BwFadeUp>
         <div className="mx-auto max-w-4xl">
           <button
             type="button"
             onClick={() => setIsOpen(!isOpen)}
-            className="flex w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-6 py-4 text-left transition-colors hover:bg-slate-50"
+            className="flex w-full items-center justify-between rounded-xl border border-amber-200/60 bg-white px-6 py-4 text-left transition-colors hover:bg-amber-50/30"
           >
-            <span className="text-base font-semibold text-[#0F2B5B]">
+            <span className="text-base font-semibold text-[#1A2744]">
               Compare all features
             </span>
             <ChevronDown
@@ -32,9 +32,9 @@ export function BwFeatureMatrix() {
           </button>
 
           {isOpen && (
-            <div className="mt-4 overflow-hidden rounded-xl border border-slate-200 bg-white">
+            <div className="mt-4 overflow-hidden rounded-xl border border-amber-200/40 bg-white">
               {/* Header row - desktop only */}
-              <div className="hidden grid-cols-4 border-b border-slate-100 bg-slate-50 px-5 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 md:grid">
+              <div className="hidden grid-cols-4 border-b border-amber-100/60 bg-[#FFF7E1]/60 px-5 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 md:grid">
                 <p>Feature</p>
                 <p className="text-center">Free</p>
                 <p className="text-center">Pro</p>
@@ -44,14 +44,14 @@ export function BwFeatureMatrix() {
               {behaviorWorkFeatureMatrix.map((group, groupIndex) => (
                 <div
                   key={group.group}
-                  className={cn(groupIndex > 0 && "border-t border-slate-100")}
+                  className={cn(groupIndex > 0 && "border-t border-amber-100/60")}
                 >
-                  <div className="bg-slate-50/60 px-5 py-3">
-                    <p className="text-sm font-semibold text-[#0F2B5B]">
+                  <div className="bg-[#FFF7E1]/40 px-5 py-3">
+                    <p className="text-sm font-semibold text-[#1A2744]">
                       {group.group}
                     </p>
                   </div>
-                  <div className="divide-y divide-slate-50">
+                  <div className="divide-y divide-amber-50">
                     {group.rows.map((row) => (
                       <div key={row.label}>
                         {/* Mobile layout */}
@@ -68,8 +68,8 @@ export function BwFeatureMatrix() {
                                 className={cn(
                                   "rounded-md p-2 text-center",
                                   tier === "pro"
-                                    ? "border border-teal-100 bg-teal-50/50"
-                                    : "bg-slate-50"
+                                    ? "border border-amber-200/60 bg-[#FFDC33]/10"
+                                    : "bg-amber-50/30"
                                 )}
                               >
                                 <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">

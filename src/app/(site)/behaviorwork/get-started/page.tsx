@@ -36,33 +36,36 @@ export const metadata: Metadata = {
 
 export default function BehaviorWorkGetStartedPage() {
   return (
-    <div className="min-h-screen bg-white text-slate-900">
+    <div className="min-h-screen bg-[#FFFBF0] text-slate-900">
       <BehaviorWorkTracker mode="get-started" />
       <BehaviorWorkHeader />
 
       <main>
-        {/* Pricing Hero */}
+        {/* Pricing Hero + Cards — single section to avoid double padding */}
         <BwSectionWrapper
           background="white"
-          className="pb-8 pt-16 sm:pb-12 sm:pt-24 lg:pt-28"
+          className="pb-16 pt-16 sm:pb-20 sm:pt-24 lg:pb-24 lg:pt-28"
         >
           <BwFadeUp>
             <div className="mx-auto max-w-2xl text-center">
-              <h1 className="text-3xl font-bold tracking-tight text-[#0F2B5B] sm:text-4xl lg:text-5xl">
+              <h1 className="text-3xl font-extrabold tracking-tight text-[#1A2744] sm:text-4xl lg:text-5xl">
                 Simple pricing that{" "}
-                <span className="text-teal-600">grows with you</span>.
+                <span className="relative inline-block">
+                  <span className="relative z-10">grows with you</span>
+                  <span className="absolute -bottom-0.5 left-0 right-0 z-0 h-2.5 rounded-full bg-[#FFDC33]/30" />
+                </span>
+                .
               </h1>
-              <p className="mt-5 text-lg text-slate-600">
+              <p className="mt-4 text-lg text-slate-600">
                 Start free. Upgrade when you&apos;re ready to unlock the full
                 growth engine.
               </p>
             </div>
           </BwFadeUp>
-        </BwSectionWrapper>
 
-        {/* Pricing Cards */}
-        <BwSectionWrapper background="white" className="py-8 sm:py-12">
-          <BwPricingCards defaultInterval="annual" />
+          <div className="mt-10 sm:mt-12">
+            <BwPricingCards defaultInterval="annual" />
+          </div>
         </BwSectionWrapper>
 
         {/* Feature Matrix */}
