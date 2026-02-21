@@ -255,7 +255,7 @@ export default async function DashboardBillingPage() {
                 </div>
                 <p className="text-sm text-slate-500">
                   {isFreePlan
-                    ? "Basic listing features"
+                    ? "Professional listing with up to 3 locations"
                     : `$${planPrice}/mo${isAnnual ? " (billed annually)" : ""} • ${renewalDate ? `Renews ${renewalDate}` : "Active subscription"}`}
                 </p>
                 {!isFreePlan && isAnnual && (
@@ -385,9 +385,11 @@ export default async function DashboardBillingPage() {
           <ul className="grid gap-2 sm:grid-cols-2">
             {(isPro ? STRIPE_PLANS.pro.features : isEnterprise ? STRIPE_PLANS.enterprise.features : [
               "Standard search placement",
-              "1 location",
-              "Basic profile",
+              "Up to 3 locations",
+              "Up to 3 photos",
+              "Ages, languages, diagnoses & specialties",
               "Insurance list display",
+              "1 job posting & 10 client records",
               "SEO-boosting backlink",
             ]).map((feature, idx) => (
               <li key={idx} className="flex items-center gap-2 text-sm text-slate-600">
@@ -442,7 +444,7 @@ export default async function DashboardBillingPage() {
                   </div>
                   <div>
                     <CardTitle className="text-slate-900">Pro</CardTitle>
-                    <CardDescription className="text-slate-500">For growing practices</CardDescription>
+                    <CardDescription className="text-slate-500">Branded pages, full CRM & growth tools</CardDescription>
                   </div>
                 </div>
               </CardHeader>

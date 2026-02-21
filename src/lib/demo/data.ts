@@ -67,6 +67,10 @@ We accept most major insurance plans and offer flexible scheduling to accommodat
     website: "https://sunriseaba.example.com",
     planTier: "pro",
     subscriptionStatus: "active",
+    intakeFormSettings: {
+      background_color: "#5788FF",
+      show_powered_by: true,
+    },
   },
   primaryLocation: {
     id: "demo-loc-1",

@@ -105,11 +105,11 @@ export function MultiBrandStats({
           <p className="text-xs text-muted-foreground">
             {isPaidPlan ? (
               <Link
-                href="/dashboard/inbox"
+                href="/dashboard/notifications"
                 className="hover:underline"
                 style={{ color: brandColors.therapy }}
               >
-                View inbox
+                View notifications
               </Link>
             ) : (
               "Upgrade to receive inquiries"

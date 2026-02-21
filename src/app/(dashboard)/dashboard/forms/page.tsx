@@ -137,6 +137,17 @@ export default async function IntakeFormPage() {
 
       <div className="space-y-4">
         <BrandedPageCard
+          title="Branded Agency Page"
+          sentence="Your shareable agency page for referral partners, doctors, and families."
+          relativePath={`/p/${listingSlug}`}
+          iconName="agency"
+          howItWorks={[
+            "Share your branded page link with referral sources, doctors, or schools.",
+            "They see your full agency profile, services, and locations.",
+            "Families can contact you or start intake directly from the page.",
+          ]}
+        />
+        <BrandedPageCard
           title="Client Contact Form"
           sentence="Capture new family inquiries with a fast, low-friction first step."
           relativePath={`/contact/${listingSlug}`}

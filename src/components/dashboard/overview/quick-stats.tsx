@@ -87,10 +87,10 @@ export function QuickStats({ listing, isPaidPlan, inquiryCount }: QuickStatsProp
             </div>
             <p className="text-xs text-muted-foreground">
               <Link
-                href="/dashboard/inbox"
+                href="/dashboard/notifications"
                 className="text-[#5788FF] hover:underline"
               >
-                View inbox
+                View notifications
               </Link>
             </p>
           </CardContent>

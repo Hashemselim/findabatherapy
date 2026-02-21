@@ -24,6 +24,9 @@ export const contactFormSchema = z.object({
     .string()
     .min(10, "Message must be at least 10 characters")
     .max(2000, "Message must be less than 2000 characters"),
+  // Referral source
+  referralSource: z.string().optional().or(z.literal("")),
+  referralSourceOther: z.string().max(500).optional().or(z.literal("")),
   // Honeypot field for spam protection
   website: z.string().max(0, "").optional(),
 });

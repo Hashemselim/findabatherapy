@@ -63,7 +63,7 @@ export function LockedFeature({
             {planConfig.displayName} Feature
           </h3>
           <p className="mt-1 text-sm text-slate-500">
-            {message || `Upgrade to ${planConfig.displayName} to unlock this feature`}
+            {message || `Upgrade to ${planConfig.displayName} for branded pages, client management tools, and communication templates`}
           </p>
           <Button asChild size="sm" className="mt-4 rounded-full">
             <Link href="/dashboard/billing">

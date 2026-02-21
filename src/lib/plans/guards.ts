@@ -110,19 +110,11 @@ export async function guardUploadPhoto(
   const tier = await getCurrentPlanTier();
   const features = getPlanFeatures(tier);
 
-  if (!features.hasPhotoGallery) {
-    return {
-      allowed: false,
-      reason: "Photo gallery is a Pro feature",
-      requiredPlan: "pro",
-    };
-  }
-
   if (currentCount >= features.maxPhotos) {
     return {
       allowed: false,
-      reason: `Your ${tier} plan allows up to ${features.maxPhotos} photos`,
-      requiredPlan: "enterprise",
+      reason: `Your ${tier} plan allows up to ${features.maxPhotos} photo${features.maxPhotos === 1 ? "" : "s"}`,
+      requiredPlan: tier === "free" ? "pro" : "enterprise",
     };
   }
 
@@ -203,6 +195,24 @@ export async function guardMinimumPlan(
 }
 
 /**
+ * Guard: Check if user can use communications
+ */
+export async function guardCommunications(): Promise<GuardResult> {
+  const tier = await getCurrentPlanTier();
+  const features = getPlanFeatures(tier);
+
+  if (!features.hasCommunications) {
+    return {
+      allowed: false,
+      reason: "Client communications is a Pro feature",
+      requiredPlan: "pro",
+    };
+  }
+
+  return { allowed: true };
+}
+
+/**
  * Guard: Check if user is eligible for Featured add-on
  */
 export async function guardFeaturedAddon(): Promise<GuardResult> {
@@ -213,6 +223,152 @@ export async function guardFeaturedAddon(): Promise<GuardResult> {
     return {
       allowed: false,
       reason: "Featured add-on requires a Pro or Enterprise plan",
+      requiredPlan: "pro",
+    };
+  }
+
+  return { allowed: true };
+}
+
+/**
+ * Guard: Check if user can use task automation
+ */
+export async function guardTaskAutomation(): Promise<GuardResult> {
+  const tier = await getCurrentPlanTier();
+  const features = getPlanFeatures(tier);
+
+  if (!features.hasTaskAutomation) {
+    return {
+      allowed: false,
+      reason: "Task automation is a Pro feature",
+      requiredPlan: "pro",
+    };
+  }
+
+  return { allowed: true };
+}
+
+/**
+ * Guard: Check if user can track employee credentials
+ */
+export async function guardCredentialTracking(): Promise<GuardResult> {
+  const tier = await getCurrentPlanTier();
+  const features = getPlanFeatures(tier);
+
+  if (!features.hasCredentialTracking) {
+    return {
+      allowed: false,
+      reason: "Credential tracking is a Pro feature",
+      requiredPlan: "pro",
+    };
+  }
+
+  return { allowed: true };
+}
+
+/**
+ * Guard: Check if user can add more clients
+ */
+export async function guardAddClient(
+  currentCount: number
+): Promise<GuardResult> {
+  const tier = await getCurrentPlanTier();
+  const features = getPlanFeatures(tier);
+
+  if (currentCount >= features.maxClients) {
+    return {
+      allowed: false,
+      reason: `Your ${tier} plan allows up to ${features.maxClients} client${features.maxClients === 1 ? "" : "s"}`,
+      requiredPlan: tier === "free" ? "pro" : "enterprise",
+    };
+  }
+
+  return { allowed: true };
+}
+
+/**
+ * Guard: Check if user can use branded pages
+ */
+export async function guardBrandedPages(): Promise<GuardResult> {
+  const tier = await getCurrentPlanTier();
+  const features = getPlanFeatures(tier);
+
+  if (!features.hasBrandedPages) {
+    return {
+      allowed: false,
+      reason: "Branded pages are a Pro feature",
+      requiredPlan: "pro",
+    };
+  }
+
+  return { allowed: true };
+}
+
+/**
+ * Guard: Check if user can use insurance tracking
+ */
+export async function guardInsuranceTracking(): Promise<GuardResult> {
+  const tier = await getCurrentPlanTier();
+  const features = getPlanFeatures(tier);
+
+  if (!features.hasInsuranceTracking) {
+    return {
+      allowed: false,
+      reason: "Insurance tracking is a Pro feature",
+      requiredPlan: "pro",
+    };
+  }
+
+  return { allowed: true };
+}
+
+/**
+ * Guard: Check if user can use authorization tracking
+ */
+export async function guardAuthTracking(): Promise<GuardResult> {
+  const tier = await getCurrentPlanTier();
+  const features = getPlanFeatures(tier);
+
+  if (!features.hasAuthTracking) {
+    return {
+      allowed: false,
+      reason: "Authorization tracking is a Pro feature",
+      requiredPlan: "pro",
+    };
+  }
+
+  return { allowed: true };
+}
+
+/**
+ * Guard: Check if user can use document management
+ */
+export async function guardDocuments(): Promise<GuardResult> {
+  const tier = await getCurrentPlanTier();
+  const features = getPlanFeatures(tier);
+
+  if (!features.hasDocuments) {
+    return {
+      allowed: false,
+      reason: "Document management is a Pro feature",
+      requiredPlan: "pro",
+    };
+  }
+
+  return { allowed: true };
+}
+
+/**
+ * Guard: Check if user can use referral tracking analytics
+ */
+export async function guardReferralTracking(): Promise<GuardResult> {
+  const tier = await getCurrentPlanTier();
+  const features = getPlanFeatures(tier);
+
+  if (!features.hasReferralTracking) {
+    return {
+      allowed: false,
+      reason: "Referral tracking is a Pro feature",
       requiredPlan: "pro",
     };
   }

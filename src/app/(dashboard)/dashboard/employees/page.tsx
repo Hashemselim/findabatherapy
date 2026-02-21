@@ -1,16 +1,18 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { ArrowRight, CheckCircle2, ClipboardList, Users, Award, Calendar, Clock } from "lucide-react";
+import { ArrowRight, CheckCircle2, ClipboardList, Lock } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { BubbleBackground } from "@/components/ui/bubble-background";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getProfile } from "@/lib/supabase/server";
 import { getApplications } from "@/lib/actions/applications";
 import { getJobPostings } from "@/lib/actions/jobs";
+import { getTeamMembers } from "@/lib/actions/team";
 import { ApplicationsInbox } from "@/components/dashboard/jobs";
-import { brandColors } from "@/config/brands";
+import { TeamMembersList } from "@/components/dashboard/team/team-members-list";
+
 
 export default async function EmployeesPage() {
   const profile = await getProfile();
@@ -78,39 +80,18 @@ export default async function EmployeesPage() {
     );
   }
 
-  // Fetch applications and jobs in parallel
-  const [applicationsResult, jobsResult] = await Promise.all([
+  // Fetch applications, jobs, and team members in parallel
+  const [applicationsResult, jobsResult, teamResult] = await Promise.all([
     getApplications(),
     getJobPostings(),
+    getTeamMembers(),
   ]);
 
   const applications = applicationsResult.success ? applicationsResult.data?.applications || [] : [];
   const newCount = applicationsResult.success ? applicationsResult.data?.newCount || 0 : 0;
   const jobs = jobsResult.success ? jobsResult.data || [] : [];
-
-  // Team features (coming soon)
-  const teamFeatures = [
-    {
-      icon: Users,
-      title: "Employee Profiles",
-      description: "Store contact info, certifications, and employment history",
-    },
-    {
-      icon: Award,
-      title: "Certification Tracking",
-      description: "Track BCBA, RBT certifications and renewal dates",
-    },
-    {
-      icon: Calendar,
-      title: "Scheduling",
-      description: "Manage employee schedules and availability",
-    },
-    {
-      icon: Clock,
-      title: "Time Tracking",
-      description: "Track hours worked and billable time",
-    },
-  ];
+  const teamMembers = teamResult.success ? teamResult.data || [] : [];
+  const teamGated = !teamResult.success; // guard returned error = feature not available
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4 sm:gap-6">
@@ -140,7 +121,14 @@ export default async function EmployeesPage() {
               </span>
             )}
           </TabsTrigger>
-          <TabsTrigger value="team">Team</TabsTrigger>
+          <TabsTrigger value="team" className="gap-2">
+            Team
+            {!teamGated && teamMembers.length > 0 && (
+              <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-purple-600 px-1.5 text-xs font-semibold text-white">
+                {teamMembers.length}
+              </span>
+            )}
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="applicants" className="flex min-h-0 flex-1 flex-col mt-4">
@@ -184,95 +172,64 @@ export default async function EmployeesPage() {
         </TabsContent>
 
         <TabsContent value="team" className="mt-4">
-          <Card className="overflow-hidden border-purple-200/60">
-            <BubbleBackground
-              interactive={false}
-              size="default"
-              className="bg-gradient-to-br from-white via-purple-50/50 to-slate-50"
-              colors={{
-                first: "255,255,255",
-                second: "233,213,255",
-                third: "139,92,246",
-                fourth: "245,238,255",
-                fifth: "196,181,253",
-                sixth: "250,245,255",
-              }}
-            >
-              <CardContent className="flex flex-col items-center px-6 py-12 text-center">
-                <div
-                  className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl shadow-lg"
-                  style={{
-                    backgroundColor: brandColors.crm,
-                    boxShadow: `0 10px 25px -5px ${brandColors.crm}40`,
-                  }}
-                >
-                  <Users className="h-8 w-8 text-white" />
-                </div>
+          {teamGated ? (
+            <Card className="overflow-hidden border-purple-200/60">
+              <BubbleBackground
+                interactive={false}
+                size="default"
+                className="bg-gradient-to-br from-white via-purple-50/50 to-slate-50"
+                colors={{
+                  first: "255,255,255",
+                  second: "233,213,255",
+                  third: "139,92,246",
+                  fourth: "245,238,255",
+                  fifth: "196,181,253",
+                  sixth: "250,245,255",
+                }}
+              >
+                <CardContent className="flex flex-col items-center px-6 py-12 text-center">
+                  <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-purple-600 shadow-lg shadow-purple-600/25">
+                    <Lock className="h-8 w-8 text-white" />
+                  </div>
 
-                <h3 className="text-xl font-semibold text-slate-900">
-                  Team Management Coming Soon
-                </h3>
+                  <h3 className="text-xl font-semibold text-slate-900">
+                    Team Management
+                  </h3>
 
-                <p className="mt-3 max-w-md text-sm text-slate-600">
-                  Manage your team, track employee certifications, and streamline HR
-                  processes. Convert job applicants hired through Find ABA Jobs
-                  directly into team members.
-                </p>
+                  <p className="mt-3 max-w-md text-sm text-slate-600">
+                    Upgrade to Pro to manage your team, track employee certifications and
+                    renewal dates, assign tasks, and store documents.
+                  </p>
 
-                <div className="mt-6 flex flex-wrap justify-center gap-3">
-                  {teamFeatures.map((feature) => (
-                    <span
-                      key={feature.title}
-                      className="inline-flex items-center gap-1.5 rounded-full bg-white/80 px-3 py-1.5 text-xs font-medium text-slate-600 shadow-sm"
-                    >
-                      <feature.icon
-                        className="h-3.5 w-3.5"
-                        style={{ color: brandColors.crm }}
-                      />
-                      {feature.title}
-                    </span>
-                  ))}
-                </div>
+                  <div className="mt-6 flex flex-wrap justify-center gap-3">
+                    {[
+                      "Employee Profiles",
+                      "Credential Tracking",
+                      "Task Assignment",
+                      "Document Storage",
+                    ].map((feature) => (
+                      <span
+                        key={feature}
+                        className="inline-flex items-center gap-1.5 rounded-full bg-white/80 px-3 py-1.5 text-xs font-medium text-slate-600 shadow-sm"
+                      >
+                        <CheckCircle2 className="h-3.5 w-3.5 text-purple-600" />
+                        {feature}
+                      </span>
+                    ))}
+                  </div>
 
-                <Button
-                  asChild
-                  size="lg"
-                  className="mt-8"
-                  style={{ backgroundColor: brandColors.crm }}
-                >
-                  <Link href="/dashboard/feedback" className="gap-2">
-                    Request Early Access
-                    <ArrowRight className="h-4 w-4" />
-                  </Link>
-                </Button>
-              </CardContent>
-            </BubbleBackground>
-          </Card>
-
-          {/* Feature Preview Cards */}
-          <div className="mt-6 grid gap-4 sm:grid-cols-2">
-            {teamFeatures.map((feature) => {
-              const Icon = feature.icon;
-              return (
-                <Card key={feature.title} className="border-border/60">
-                  <CardHeader className="flex flex-row items-center gap-3 pb-2">
-                    <div
-                      className="flex h-10 w-10 items-center justify-center rounded-lg"
-                      style={{ backgroundColor: `${brandColors.crm}15` }}
-                    >
-                      <Icon className="h-5 w-5" style={{ color: brandColors.crm }} />
-                    </div>
-                    <CardTitle className="text-base">{feature.title}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-muted-foreground">
-                      {feature.description}
-                    </p>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
+                  <Button asChild size="lg" className="mt-8 bg-purple-600 hover:bg-purple-700">
+                    <Link href="/dashboard/settings/billing" className="gap-2">
+                      Upgrade to Pro
+                      <ArrowRight className="h-4 w-4" />
+                    </Link>
+                  </Button>
+                </CardContent>
+              </BubbleBackground>
+            </Card>
+          ) : (
+            <TeamMembersList initialMembers={teamMembers} />
+          )}
         </TabsContent>
       </Tabs>
     </div>

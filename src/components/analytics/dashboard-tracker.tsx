@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import { trackDashboardViewed } from "@/lib/posthog/events";
 
 interface DashboardTrackerProps {
-  section: "overview" | "listing" | "locations" | "inbox" | "analytics" | "settings";
+  section: "overview" | "listing" | "locations" | "inbox" | "analytics" | "settings" | "pipeline" | "communications";
 }
 
 /**

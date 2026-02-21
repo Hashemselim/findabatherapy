@@ -20,6 +20,7 @@ import {
   Loader2,
   Stethoscope,
   ClipboardList,
+  Mail,
   type LucideIcon,
 } from "lucide-react";
 import { useState, useTransition } from "react";
@@ -96,6 +97,8 @@ import {
   ClinicalInfoEditDialog,
   StatusEditDialog,
 } from "@/components/dashboard/clients/edit";
+import { SendCommunicationDialog } from "@/components/dashboard/clients/send-communication-dialog";
+import { CommunicationHistory } from "@/components/dashboard/clients/communication-history";
 
 interface ClientFullDetailProps {
   client: ClientDetail;
@@ -279,6 +282,10 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
   const [locationDialogOpen, setLocationDialogOpen] = useState(false);
   const [editingLocation, setEditingLocation] = useState<(typeof client.locations)[number] | undefined>(undefined);
 
+  // Communication dialog state
+  const [communicationDialogOpen, setCommunicationDialogOpen] = useState(false);
+  const [communicationRefreshKey, setCommunicationRefreshKey] = useState(0);
+
   // Link management state
   const [isAddingLink, setIsAddingLink] = useState(false);
   const [editingLinkId, setEditingLinkId] = useState<string | null>(null);
@@ -289,6 +296,15 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
   const childName = [client.child_first_name, client.child_last_name].filter(Boolean).join(" ") || "Client";
   const activeTasks = client.tasks?.filter((t) => t.status !== "completed") || [];
   const completedTasks = client.tasks?.filter((t) => t.status === "completed") || [];
+  const primaryParent = client.parents?.find((p) => p.is_primary) || client.parents?.[0];
+  const recipientsWithEmail = (client.parents || [])
+    .filter((p) => p.email)
+    .map((p) => ({
+      email: p.email!,
+      name: [p.first_name, p.last_name].filter(Boolean).join(" ") || "Parent/Guardian",
+      relationship: p.relationship || "guardian",
+      isPrimary: p.is_primary,
+    }));
 
   const handleDelete = (
     type: "parent" | "insurance" | "authorization" | "location" | "document" | "task",
@@ -913,18 +929,24 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
                     >
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <button
-                            type="button"
-                            disabled={isPending}
-                            className="mt-0.5 shrink-0 transition-colors hover:opacity-80"
+                          <div
+                            role="button"
+                            tabIndex={0}
+                            aria-disabled={isPending || undefined}
+                            className={cn(
+                              "mt-0.5 shrink-0 transition-colors hover:opacity-80 cursor-pointer",
+                              isPending && "pointer-events-none opacity-50"
+                            )}
                           >
                             <Checkbox
                               checked={task.status === "completed"}
+                              tabIndex={-1}
                               className={cn(
+                                "pointer-events-none",
                                 task.status === "in_progress" && "border-blue-500 data-[state=checked]:bg-blue-500"
                               )}
                             />
-                          </button>
+                          </div>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="start">
                           {TASK_STATUS_OPTIONS.map((option) => (
@@ -1003,9 +1025,17 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
                       >
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <button type="button" disabled={isPending} className="mt-0.5 shrink-0">
-                              <Checkbox checked className="data-[state=checked]:bg-green-500 border-green-500" />
-                            </button>
+                            <div
+                              role="button"
+                              tabIndex={0}
+                              aria-disabled={isPending || undefined}
+                              className={cn(
+                                "mt-0.5 shrink-0 cursor-pointer",
+                                isPending && "pointer-events-none opacity-50"
+                              )}
+                            >
+                              <Checkbox checked tabIndex={-1} className="pointer-events-none data-[state=checked]:bg-green-500 border-green-500" />
+                            </div>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="start">
                             {TASK_STATUS_OPTIONS.map((option) => (
@@ -1370,6 +1400,36 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
             )}
           </CardContent>
         </Card>
+
+        {/* SECTION 10: Communications */}
+        <Card>
+          <CardContent className="pt-6">
+            <SectionHeader
+              icon={Mail}
+              title="Communications"
+              rightContent={
+                recipientsWithEmail.length > 0 ? (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setCommunicationDialogOpen(true)}
+                  >
+                    <Mail className="h-4 w-4 mr-1" />
+                    Send
+                  </Button>
+                ) : null
+              }
+            />
+            {recipientsWithEmail.length > 0 ? (
+              <CommunicationHistory
+                key={communicationRefreshKey}
+                clientId={client.id}
+              />
+            ) : (
+              <EmptyState message="Add a parent email address to send communications" />
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       {/* Delete Confirmation Dialog */}
@@ -1471,6 +1531,19 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
         clientId={client.id}
         location={editingLocation}
       />
+
+      {/* Send Communication Dialog */}
+      {recipientsWithEmail.length > 0 && (
+        <SendCommunicationDialog
+          open={communicationDialogOpen}
+          onOpenChange={setCommunicationDialogOpen}
+          clientId={client.id}
+          clientName={childName}
+          recipients={recipientsWithEmail}
+          currentStage={client.status}
+          onSuccess={() => setCommunicationRefreshKey((k) => k + 1)}
+        />
+      )}
     </>
   );
 }

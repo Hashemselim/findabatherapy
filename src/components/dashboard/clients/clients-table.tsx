@@ -66,20 +66,32 @@ function ContactCell({
         <span className="text-sm font-medium text-foreground/90">{name}</span>
         <div className="flex items-center gap-2">
           {phone && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    window.location.href = `tel:${phone}`;
-                  }}
-                  className="group/btn inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  <Phone className="h-3 w-3" />
-                  <span className="tabular-nums">{phone}</span>
+            <div className="group/btn inline-flex items-center gap-1">
+              <Tooltip>
+                <TooltipTrigger asChild>
                   <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      window.location.href = `tel:${phone}`;
+                    }}
+                    className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <Phone className="h-3 w-3" />
+                    <span className="tabular-nums">{phone}</span>
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="text-xs">
+                  Click to call
+                </TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
                     onClick={(e) => handleCopy(phone, "phone", e)}
-                    className="opacity-0 group-hover/btn:opacity-100 transition-opacity ml-0.5 p-0.5 hover:bg-muted rounded"
+                    className="opacity-0 group-hover/btn:opacity-100 focus-visible:opacity-100 transition-opacity ml-0.5 p-0.5 hover:bg-muted rounded"
+                    aria-label="Copy phone number"
                   >
                     {copiedPhone ? (
                       <Check className="h-3 w-3 text-green-600" />
@@ -87,28 +99,40 @@ function ContactCell({
                       <Copy className="h-3 w-3" />
                     )}
                   </button>
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" className="text-xs">
-                Click to call • hover to copy
-              </TooltipContent>
-            </Tooltip>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="text-xs">
+                  Copy phone
+                </TooltipContent>
+              </Tooltip>
+            </div>
           )}
           {email && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    window.location.href = `mailto:${email}`;
-                  }}
-                  className="group/btn inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  <Mail className="h-3 w-3" />
-                  <span className="max-w-[140px] truncate">{email}</span>
+            <div className="group/btn inline-flex items-center gap-1">
+              <Tooltip>
+                <TooltipTrigger asChild>
                   <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      window.location.href = `mailto:${email}`;
+                    }}
+                    className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <Mail className="h-3 w-3" />
+                    <span className="max-w-[140px] truncate">{email}</span>
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="text-xs">
+                  Click to email
+                </TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
                     onClick={(e) => handleCopy(email, "email", e)}
-                    className="opacity-0 group-hover/btn:opacity-100 transition-opacity ml-0.5 p-0.5 hover:bg-muted rounded"
+                    className="opacity-0 group-hover/btn:opacity-100 focus-visible:opacity-100 transition-opacity ml-0.5 p-0.5 hover:bg-muted rounded"
+                    aria-label="Copy email"
                   >
                     {copiedEmail ? (
                       <Check className="h-3 w-3 text-green-600" />
@@ -116,12 +140,12 @@ function ContactCell({
                       <Copy className="h-3 w-3" />
                     )}
                   </button>
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" className="text-xs">
-                Click to email • hover to copy
-              </TooltipContent>
-            </Tooltip>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="text-xs">
+                  Copy email
+                </TooltipContent>
+              </Tooltip>
+            </div>
           )}
         </div>
       </div>

@@ -16,6 +16,8 @@ type ActionResult<T = void> =
   | { success: true; data?: T }
   | { success: false; error: string };
 
+export type OnboardingIntent = "therapy" | "jobs" | "both";
+
 function unauthenticatedResult<T = void>(data?: T): ActionResult<T> {
   if (isDevOnboardingPreviewEnabled()) {
     return data === undefined ? { success: true } : { success: true, data };
@@ -96,6 +98,32 @@ export async function updateProfilePlan(
   }
 
   // Store selected plan for checkout redirect (handled client-side via localStorage)
+  return { success: true };
+}
+
+/**
+ * Update onboarding intent preference.
+ */
+export async function updateProfileIntent(intent: OnboardingIntent): Promise<ActionResult> {
+  const user = await getUser();
+  if (!user) {
+    return unauthenticatedResult();
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("profiles")
+    .update({
+      primary_intent: intent,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", user.id);
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  revalidatePath("/dashboard/onboarding");
   return { success: true };
 }
 
@@ -697,6 +725,7 @@ export async function getOnboardingData(): Promise<
       website: string | null;
       planTier: string;
       billingInterval: string;
+      primaryIntent: OnboardingIntent;
     } | null;
     listing: {
       id: string;
@@ -738,7 +767,7 @@ export async function getOnboardingData(): Promise<
   // Get profile
   const { data: profile } = await supabase
     .from("profiles")
-    .select("agency_name, contact_email, contact_phone, website, plan_tier, billing_interval")
+    .select("agency_name, contact_email, contact_phone, website, plan_tier, billing_interval, primary_intent")
     .eq("id", user.id)
     .single();
 
@@ -802,6 +831,7 @@ export async function getOnboardingData(): Promise<
             website: profile.website,
             planTier: profile.plan_tier,
             billingInterval: profile.billing_interval || "month",
+            primaryIntent: (profile.primary_intent || "both") as OnboardingIntent,
           }
         : null,
       listing: listing

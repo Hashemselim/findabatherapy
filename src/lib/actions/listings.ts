@@ -33,6 +33,10 @@ export interface ListingWithRelations extends ListingData {
     website: string | null;
     planTier: string;
     subscriptionStatus: string | null;
+    intakeFormSettings: {
+      background_color: string;
+      show_powered_by: boolean;
+    };
   };
   primaryLocation: {
     id: string;
@@ -124,7 +128,8 @@ export async function getListing(): Promise<ActionResult<ListingWithRelations>> 
         contact_phone,
         website,
         plan_tier,
-        subscription_status
+        subscription_status,
+        intake_form_settings
       )
     `)
     .eq("profile_id", user.id)
@@ -166,7 +171,10 @@ export async function getListing(): Promise<ActionResult<ListingWithRelations>> 
     website: string | null;
     plan_tier: string;
     subscription_status: string | null;
+    intake_form_settings: { background_color?: string; show_powered_by?: boolean } | null;
   };
+
+  const dashboardIntakeSettings = profile.intake_form_settings || null;
 
   return {
     success: true,
@@ -191,6 +199,10 @@ export async function getListing(): Promise<ActionResult<ListingWithRelations>> 
         website: profile.website,
         planTier: profile.plan_tier,
         subscriptionStatus: profile.subscription_status,
+        intakeFormSettings: {
+          background_color: dashboardIntakeSettings?.background_color || "#5788FF",
+          show_powered_by: dashboardIntakeSettings?.show_powered_by ?? true,
+        },
       },
       primaryLocation: primaryLocation
         ? {
@@ -915,7 +927,8 @@ export async function getListingBySlug(
         contact_phone,
         website,
         plan_tier,
-        subscription_status
+        subscription_status,
+        intake_form_settings
       )
     `)
     .eq("slug", slug)
@@ -976,7 +989,10 @@ export async function getListingBySlug(
     website: string | null;
     plan_tier: string;
     subscription_status: string | null;
+    intake_form_settings: { background_color?: string; show_powered_by?: boolean } | null;
   };
+
+  const intakeSettings = profile.intake_form_settings || null;
 
   return {
     success: true,
@@ -1001,6 +1017,10 @@ export async function getListingBySlug(
         website: profile.website,
         planTier: profile.plan_tier,
         subscriptionStatus: profile.subscription_status,
+        intakeFormSettings: {
+          background_color: intakeSettings?.background_color || "#5788FF",
+          show_powered_by: intakeSettings?.show_powered_by ?? true,
+        },
       },
       primaryLocation: primaryLocation
         ? {

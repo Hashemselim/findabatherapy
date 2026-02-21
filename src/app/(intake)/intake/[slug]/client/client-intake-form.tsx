@@ -21,7 +21,7 @@ import {
 import { cn } from "@/lib/utils";
 import { submitPublicClientIntake } from "@/lib/actions/clients";
 import { DIAGNOSIS_OPTIONS, INSURANCE_OPTIONS } from "@/lib/validations/onboarding";
-import { PARENT_RELATIONSHIP_OPTIONS } from "@/lib/validations/clients";
+import { PARENT_RELATIONSHIP_OPTIONS, PUBLIC_REFERRAL_SOURCE_OPTIONS } from "@/lib/validations/clients";
 
 const clientIntakeSchema = z.object({
   // Parent info
@@ -42,6 +42,9 @@ const clientIntakeSchema = z.object({
   // Location
   preferred_city: z.string().optional(),
   preferred_state: z.string().optional(),
+  // Referral
+  referral_source: z.string().optional(),
+  referral_source_other: z.string().optional(),
   // Notes
   notes: z.string().optional(),
 });
@@ -53,6 +56,7 @@ interface ClientIntakeFormProps {
   profileId: string;
   providerName: string;
   brandColor: string;
+  initialReferralSource?: string;
 }
 
 export function ClientIntakeForm({
@@ -60,6 +64,7 @@ export function ClientIntakeForm({
   profileId,
   providerName,
   brandColor,
+  initialReferralSource,
 }: ClientIntakeFormProps) {
   const [isPending, startTransition] = useTransition();
   const [isSuccess, setIsSuccess] = useState(false);
@@ -76,6 +81,7 @@ export function ClientIntakeForm({
       parent_email: "",
       child_first_name: "",
       child_diagnosis: [],
+      referral_source: initialReferralSource || "",
     },
   });
 
@@ -113,6 +119,8 @@ export function ClientIntakeForm({
         insurance_member_id: data.insurance_member_id,
         preferred_city: data.preferred_city,
         preferred_state: data.preferred_state,
+        referral_source: data.referral_source,
+        referral_source_other: data.referral_source === "other" ? data.referral_source_other : undefined,
         notes: data.notes,
         turnstileToken,
       });
@@ -366,6 +374,42 @@ export function ClientIntakeForm({
             />
           </div>
         </div>
+      </div>
+
+      {/* Referral Source */}
+      <div className="space-y-4">
+        <div className="space-y-2">
+          <Label>
+            How did you hear about us?{" "}
+            <span className="text-muted-foreground">(optional)</span>
+          </Label>
+          <Select
+            value={form.watch("referral_source") || ""}
+            onValueChange={(value) => form.setValue("referral_source", value)}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select an option" />
+            </SelectTrigger>
+            <SelectContent>
+              {PUBLIC_REFERRAL_SOURCE_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {form.watch("referral_source") === "other" && (
+          <div className="space-y-2">
+            <Label htmlFor="referral_source_other">Please specify</Label>
+            <Input
+              id="referral_source_other"
+              {...form.register("referral_source_other")}
+              placeholder="How did you find us?"
+            />
+          </div>
+        )}
       </div>
 
       {/* Additional Notes */}

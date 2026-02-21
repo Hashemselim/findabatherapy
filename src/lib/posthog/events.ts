@@ -32,6 +32,17 @@ export const POSTHOG_EVENTS = {
   GET_LISTED_DEMO_CLICKED: "get_listed_demo_clicked",
   GET_LISTED_FAQ_VIEWED: "get_listed_faq_viewed",
 
+  // Behavior Work Landing + Pricing Funnel
+  BW_HERO_VIEW: "bw_hero_view",
+  BW_ENGINES_VIEW: "bw_engines_view",
+  BW_FUNNEL_VIEW: "bw_funnel_view",
+  BW_PRICING_TEASER_VIEW: "bw_pricing_teaser_view",
+  BW_FAQ_VIEW: "bw_faq_view",
+  BW_CTA_CLICK: "bw_cta_click",
+  BW_GET_STARTED_VIEW: "bw_get_started_view",
+  BW_PLAN_SELECT: "bw_plan_select",
+  BW_PLAN_CTA_CLICK: "bw_plan_cta_click",
+
   // Sign Up Flow (CRO)
   SIGNUP_PAGE_VIEWED: "signup_page_viewed",
   SIGNUP_METHOD_SELECTED: "signup_method_selected",
@@ -298,6 +309,82 @@ export function trackGetListedFaqViewed(params: {
   capture(POSTHOG_EVENTS.GET_LISTED_FAQ_VIEWED, {
     question: params.question,
     question_index: params.questionIndex,
+  });
+}
+
+// ============================================================================
+// Behavior Work Landing + Pricing Events
+// ============================================================================
+
+export function trackBehaviorWorkSectionViewed(params: {
+  sectionId: string;
+  event:
+    | "bw_hero_view"
+    | "bw_engines_view"
+    | "bw_funnel_view"
+    | "bw_pricing_teaser_view"
+    | "bw_faq_view";
+  source?: string;
+}) {
+  const eventMap: Record<typeof params.event, PostHogEventName> = {
+    bw_hero_view: POSTHOG_EVENTS.BW_HERO_VIEW,
+    bw_engines_view: POSTHOG_EVENTS.BW_ENGINES_VIEW,
+    bw_funnel_view: POSTHOG_EVENTS.BW_FUNNEL_VIEW,
+    bw_pricing_teaser_view: POSTHOG_EVENTS.BW_PRICING_TEASER_VIEW,
+    bw_faq_view: POSTHOG_EVENTS.BW_FAQ_VIEW,
+  };
+
+  capture(eventMap[params.event], {
+    section_id: params.sectionId,
+    source: params.source,
+  });
+}
+
+export function trackBehaviorWorkCtaClick(params: {
+  section: string;
+  ctaLabel: string;
+  destination?: string;
+  source?: string;
+}) {
+  capture(POSTHOG_EVENTS.BW_CTA_CLICK, {
+    section: params.section,
+    cta_label: params.ctaLabel,
+    destination: params.destination,
+    source: params.source ?? "behaviorwork",
+  });
+}
+
+export function trackBehaviorWorkGetStartedViewed(params?: {
+  source?: string;
+}) {
+  capture(POSTHOG_EVENTS.BW_GET_STARTED_VIEW, {
+    source: params?.source ?? "behaviorwork",
+  });
+}
+
+export function trackBehaviorWorkPlanSelect(params: {
+  plan: "free" | "pro" | "enterprise";
+  billingInterval: "monthly" | "annual";
+  source?: string;
+}) {
+  capture(POSTHOG_EVENTS.BW_PLAN_SELECT, {
+    plan: params.plan,
+    billing_interval: params.billingInterval,
+    source: params.source ?? "behaviorwork",
+  });
+}
+
+export function trackBehaviorWorkPlanCtaClick(params: {
+  plan: "free" | "pro" | "enterprise";
+  billingInterval: "monthly" | "annual";
+  destination?: string;
+  source?: string;
+}) {
+  capture(POSTHOG_EVENTS.BW_PLAN_CTA_CLICK, {
+    plan: params.plan,
+    billing_interval: params.billingInterval,
+    destination: params.destination,
+    source: params.source ?? "behaviorwork",
   });
 }
 
@@ -668,7 +755,7 @@ export function trackSubscriptionChange(params: {
 // ============================================================================
 
 export function trackDashboardViewed(params: {
-  section: "overview" | "listing" | "locations" | "inbox" | "analytics" | "settings";
+  section: "overview" | "listing" | "locations" | "inbox" | "analytics" | "settings" | "pipeline" | "communications";
 }) {
   capture(POSTHOG_EVENTS.DASHBOARD_VIEWED, params);
 }

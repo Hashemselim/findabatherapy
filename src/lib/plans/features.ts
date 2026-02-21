@@ -11,6 +11,7 @@ export interface PlanFeatures {
   maxLocations: number;
   maxPhotos: number;
   maxJobPostings: number; // -1 for unlimited
+  maxClients: number; // -1 for unlimited
 
   // Features
   hasContactForm: boolean;
@@ -22,11 +23,24 @@ export interface PlanFeatures {
   hasFeaturedAddonEligibility: boolean;
   hasGoogleRating: boolean;
 
-  // Premium profile attributes (gated in onboarding)
+  // Profile attributes (free for all tiers)
   hasAgeRange: boolean;
   hasLanguages: boolean;
   hasDiagnoses: boolean;
   hasSpecialties: boolean;
+
+  // Branded pages & workflow tools (Pro+)
+  hasBrandedPages: boolean;
+  hasCommunications: boolean;
+  hasInsuranceTracking: boolean;
+  hasAuthTracking: boolean;
+  hasDocuments: boolean;
+  hasAutoTasks: boolean;
+  hasReferralTracking: boolean;
+
+  // Operations
+  hasTaskAutomation: boolean;
+  hasCredentialTracking: boolean;
 
   // Search
   searchPriority: "standard" | "priority";
@@ -60,39 +74,53 @@ export const PLAN_CONFIGS: Record<PlanTier, PlanConfig> = {
   free: {
     name: "free",
     displayName: "Free",
-    description: "Get started with basic visibility",
+    description: "Get started with a professional listing",
     pricing: {
       monthly: { price: 0 },
       annual: { price: 0, totalPrice: 0, savings: 0, savingsPercent: 0 },
     },
     features: {
-      maxLocations: 1,
-      maxPhotos: 0,
-      maxJobPostings: 0,
+      maxLocations: 3,
+      maxPhotos: 3,
+      maxJobPostings: 1,
+      maxClients: 10,
       hasContactForm: false,
-      hasPhotoGallery: false,
+      hasPhotoGallery: true,
       hasVideoEmbed: false,
       hasVerifiedBadge: false,
       hasAnalytics: false,
       hasHomepagePlacement: false,
       hasFeaturedAddonEligibility: false,
       hasGoogleRating: false,
-      hasAgeRange: false,
-      hasLanguages: false,
-      hasDiagnoses: false,
-      hasSpecialties: false,
+      hasAgeRange: true,
+      hasLanguages: true,
+      hasDiagnoses: true,
+      hasSpecialties: true,
+      hasBrandedPages: false,
+      hasCommunications: false,
+      hasInsuranceTracking: false,
+      hasAuthTracking: false,
+      hasDocuments: false,
+      hasAutoTasks: false,
+      hasReferralTracking: false,
+      hasTaskAutomation: false,
+      hasCredentialTracking: false,
       searchPriority: "standard",
     },
     highlights: [
-      "Basic listing",
-      "1 service location",
-      "Email contact only",
+      "Professional listing with all profile details",
+      "Up to 3 service locations",
+      "Photo gallery (up to 3)",
+      "Ages, languages, diagnoses & specialties",
+      "1 job posting",
+      "10 client records",
+      "SEO-boosting backlink",
     ],
   },
   pro: {
     name: "pro",
     displayName: "Pro",
-    description: "Stand out and connect with more families",
+    description: "Branded pages, full CRM, and growth tools",
     pricing: {
       monthly: { price: 79 },
       annual: { price: 47, totalPrice: 564, savings: 384, savingsPercent: 40 },
@@ -101,6 +129,7 @@ export const PLAN_CONFIGS: Record<PlanTier, PlanConfig> = {
       maxLocations: 5,
       maxPhotos: 10,
       maxJobPostings: 5,
+      maxClients: 250,
       hasContactForm: true,
       hasPhotoGallery: true,
       hasVideoEmbed: true,
@@ -113,20 +142,29 @@ export const PLAN_CONFIGS: Record<PlanTier, PlanConfig> = {
       hasLanguages: true,
       hasDiagnoses: true,
       hasSpecialties: true,
+      hasBrandedPages: true,
+      hasCommunications: true,
+      hasInsuranceTracking: true,
+      hasAuthTracking: true,
+      hasDocuments: true,
+      hasAutoTasks: true,
+      hasReferralTracking: true,
+      hasTaskAutomation: true,
+      hasCredentialTracking: true,
       searchPriority: "priority",
     },
     highlights: [
+      "Branded agency page & intake forms",
+      "Up to 250 CRM contacts",
+      "Communication templates",
       "Up to 5 locations",
-      "Contact form on listing",
       "Photo gallery (up to 10)",
       "Video embed",
-      "Verified badge",
-      "Google star rating integration",
+      "Verified badge & Google rating",
       "Analytics dashboard",
-      "Priority in search results",
-      "Ages, languages, diagnoses & specialties",
+      "Priority search placement",
       "Up to 5 job postings",
-      "Up to 250 CRM contacts",
+      "Insurance & authorization tracking",
     ],
   },
   enterprise: {
@@ -141,6 +179,7 @@ export const PLAN_CONFIGS: Record<PlanTier, PlanConfig> = {
       maxLocations: 999, // Essentially unlimited
       maxPhotos: 10,
       maxJobPostings: -1, // Unlimited
+      maxClients: 999, // Essentially unlimited
       hasContactForm: true,
       hasPhotoGallery: true,
       hasVideoEmbed: true,
@@ -153,15 +192,23 @@ export const PLAN_CONFIGS: Record<PlanTier, PlanConfig> = {
       hasLanguages: true,
       hasDiagnoses: true,
       hasSpecialties: true,
+      hasBrandedPages: true,
+      hasCommunications: true,
+      hasInsuranceTracking: true,
+      hasAuthTracking: true,
+      hasDocuments: true,
+      hasAutoTasks: true,
+      hasReferralTracking: true,
+      hasTaskAutomation: true,
+      hasCredentialTracking: true,
       searchPriority: "priority",
     },
     highlights: [
-      "Unlimited locations",
       "Everything in Pro",
+      "Unlimited locations & CRM contacts",
       "Homepage placement",
-      "Dedicated support",
       "Unlimited job postings",
-      "Unlimited CRM contacts",
+      "Dedicated support",
     ],
   },
 };
@@ -181,12 +228,17 @@ export const FEATURE_METADATA: Record<
   maxPhotos: {
     name: "Photo Gallery",
     description: "Number of photos you can add to your listing",
-    upgradeMessage: "Upgrade to Pro to showcase your facility with photos",
+    upgradeMessage: "Upgrade to add more photos",
   },
   maxJobPostings: {
     name: "Job Postings",
     description: "Number of job postings you can create",
-    upgradeMessage: "Upgrade to Pro to post jobs",
+    upgradeMessage: "Upgrade to post more jobs",
+  },
+  maxClients: {
+    name: "Client Records",
+    description: "Number of client records you can manage",
+    upgradeMessage: "Upgrade to Pro for more client records and full CRM tools",
   },
   hasContactForm: {
     name: "Contact Form",
@@ -236,22 +288,67 @@ export const FEATURE_METADATA: Record<
   hasAgeRange: {
     name: "Age Range",
     description: "Display the age range you serve on your listing",
-    upgradeMessage: "Upgrade to Pro to display ages served",
+    upgradeMessage: "Available on all plans",
   },
   hasLanguages: {
     name: "Languages Spoken",
     description: "Display languages your team speaks",
-    upgradeMessage: "Upgrade to Pro to display languages spoken",
+    upgradeMessage: "Available on all plans",
   },
   hasDiagnoses: {
     name: "Diagnoses Supported",
     description: "Display diagnoses your practice specializes in",
-    upgradeMessage: "Upgrade to Pro to display diagnoses supported",
+    upgradeMessage: "Available on all plans",
   },
   hasSpecialties: {
     name: "Clinical Specialties",
     description: "Display your clinical specialties and services",
-    upgradeMessage: "Upgrade to Pro to display clinical specialties",
+    upgradeMessage: "Available on all plans",
+  },
+  hasBrandedPages: {
+    name: "Branded Agency Page",
+    description: "A professional, shareable agency page with your branding",
+    upgradeMessage: "Upgrade to Pro for branded pages, CRM tools, and communication templates",
+  },
+  hasCommunications: {
+    name: "Client Communications",
+    description: "Send templated emails to clients throughout the lifecycle",
+    upgradeMessage: "Upgrade to Pro to send communications to clients",
+  },
+  hasInsuranceTracking: {
+    name: "Insurance Tracking",
+    description: "Track client insurance details and verification status",
+    upgradeMessage: "Upgrade to Pro for insurance tracking and full CRM tools",
+  },
+  hasAuthTracking: {
+    name: "Authorization Tracking",
+    description: "Track client authorizations and expiration dates",
+    upgradeMessage: "Upgrade to Pro for authorization tracking and automated reminders",
+  },
+  hasDocuments: {
+    name: "Document Management",
+    description: "Upload and organize client documents",
+    upgradeMessage: "Upgrade to Pro for document management",
+  },
+  hasAutoTasks: {
+    name: "Automated Tasks",
+    description: "Automatically create tasks for expiring authorizations and credentials",
+    upgradeMessage: "Upgrade to Pro for automated task reminders",
+  },
+  hasReferralTracking: {
+    name: "Referral Analytics",
+    description: "Track where your clients come from with referral source analytics",
+    upgradeMessage: "Upgrade to Pro for referral source tracking and analytics",
+  },
+  hasTaskAutomation: {
+    name: "Task Automation",
+    description: "Automatically create reminder tasks for expiring authorizations and credentials",
+    upgradeMessage: "Upgrade to Pro to enable automated task reminders",
+  },
+  hasCredentialTracking: {
+    name: "Credential Tracking",
+    description: "Track employee credentials and expiration dates",
+    upgradeMessage: "Upgrade to Pro to track employee credentials",
   },
 };
 

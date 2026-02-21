@@ -415,7 +415,7 @@ export async function createClient(
       .update({ status: "converted" })
       .eq("id", parsed.data.inquiry_id);
 
-    revalidatePath("/dashboard/inbox");
+    revalidatePath("/dashboard/notifications");
   }
 
   revalidatePath("/dashboard/clients");
@@ -441,10 +441,10 @@ export async function updateClient(
 
   const supabase = await createSupabaseClient();
 
-  // Verify ownership
+  // Verify ownership and fetch current status for change logging
   const { data: existing } = await supabase
     .from("clients")
-    .select("id")
+    .select("id, status, child_first_name, child_last_name")
     .eq("id", clientId)
     .eq("profile_id", user.id)
     .is("deleted_at", null)
@@ -485,6 +485,38 @@ export async function updateClient(
   if (error) {
     console.error("[CLIENTS] Failed to update client:", error);
     return { success: false, error: "Failed to update client" };
+  }
+
+  // Log status change for pipeline activity feed + create notification
+  if (parsed.data.status && existing.status !== parsed.data.status) {
+    await supabase
+      .from("client_status_changes")
+      .insert({
+        client_id: clientId,
+        profile_id: user.id,
+        from_status: existing.status,
+        to_status: parsed.data.status,
+      })
+      .then(({ error: logError }) => {
+        if (logError) {
+          console.error("[CLIENTS] Failed to log status change:", logError);
+        }
+      });
+
+    // Create in-app notification for status change
+    const clientName = [existing.child_first_name, existing.child_last_name].filter(Boolean).join(" ") || "Client";
+    const { createNotification } = await import("@/lib/actions/notifications");
+    createNotification({
+      profileId: user.id,
+      type: "status_change",
+      title: `${clientName} moved to ${parsed.data.status.replace(/_/g, " ")}`,
+      body: `Status changed from ${existing.status.replace(/_/g, " ")}`,
+      link: `/dashboard/clients/${clientId}`,
+      entityId: clientId,
+      entityType: "client_status_change",
+    }).catch((err) => {
+      console.error("[CLIENTS] Failed to create status change notification:", err);
+    });
   }
 
   revalidatePath("/dashboard/clients");
@@ -545,6 +577,17 @@ export async function updateClientStatus(
 
   const supabase = await createSupabaseClient();
 
+  // Fetch current status and name for change logging
+  const { data: current } = await supabase
+    .from("clients")
+    .select("status, child_first_name, child_last_name")
+    .eq("id", clientId)
+    .eq("profile_id", user.id)
+    .is("deleted_at", null)
+    .single();
+
+  const previousStatus = current?.status;
+
   const { error } = await supabase
     .from("clients")
     .update({ status })
@@ -555,6 +598,37 @@ export async function updateClientStatus(
   if (error) {
     console.error("[CLIENTS] Failed to update status:", error);
     return { success: false, error: "Failed to update status" };
+  }
+
+  // Log status change for pipeline activity feed + create notification
+  if (previousStatus && previousStatus !== status) {
+    await supabase
+      .from("client_status_changes")
+      .insert({
+        client_id: clientId,
+        profile_id: user.id,
+        from_status: previousStatus,
+        to_status: status,
+      })
+      .then(({ error: logError }) => {
+        if (logError) {
+          console.error("[CLIENTS] Failed to log status change:", logError);
+        }
+      });
+
+    const clientName = [current?.child_first_name, current?.child_last_name].filter(Boolean).join(" ") || "Client";
+    const { createNotification } = await import("@/lib/actions/notifications");
+    createNotification({
+      profileId: user.id,
+      type: "status_change",
+      title: `${clientName} moved to ${status.replace(/_/g, " ")}`,
+      body: `Status changed from ${previousStatus.replace(/_/g, " ")}`,
+      link: `/dashboard/clients/${clientId}`,
+      entityId: clientId,
+      entityType: "client_status_change",
+    }).catch((err) => {
+      console.error("[CLIENTS] Failed to create status change notification:", err);
+    });
   }
 
   revalidatePath("/dashboard/clients");
@@ -1772,6 +1846,35 @@ export async function getTasks(
   };
 }
 
+/**
+ * Get count of actionable tasks (pending/in_progress, overdue or due today)
+ * Used for sidebar badge display.
+ */
+export async function getActionableTaskCount(): Promise<ActionResult<number>> {
+  const user = await getUser();
+  if (!user) {
+    return { success: false, error: "Not authenticated" };
+  }
+
+  const supabase = await createSupabaseClient();
+  const today = new Date().toISOString().split("T")[0];
+
+  const { count, error } = await supabase
+    .from("client_tasks")
+    .select("id", { count: "exact", head: true })
+    .eq("profile_id", user.id)
+    .in("status", ["pending", "in_progress"])
+    .is("deleted_at", null)
+    .or(`due_date.is.null,due_date.lte.${today}`);
+
+  if (error) {
+    console.error("[CLIENTS] Failed to count actionable tasks:", error);
+    return { success: false, error: "Failed to count tasks" };
+  }
+
+  return { success: true, data: count ?? 0 };
+}
+
 // =============================================================================
 // CLIENT CONTACTS
 // =============================================================================
@@ -1954,9 +2057,12 @@ export async function convertInquiryToClient(
   const lastName = nameParts.slice(1).join(" ") || "";
 
   // Create prefill data for the client form
+  // Carry referral source from inquiry to client
   const prefillData: Partial<ClientWithRelated> = {
     inquiry_id: inquiryId,
     status: "intake_pending",
+    referral_source: inquiry.referral_source || "findabatherapy",
+    referral_source_other: inquiry.referral_source_other || "",
     notes: inquiry.message || "",
     parents: [
       {
@@ -2019,7 +2125,7 @@ export async function markInquiryAsConverted(inquiryId: string): Promise<ActionR
     return { success: false, error: "Failed to update inquiry" };
   }
 
-  revalidatePath("/dashboard/inbox");
+  revalidatePath("/dashboard/notifications");
   return { success: true };
 }
 
@@ -2052,6 +2158,9 @@ export async function submitPublicClientIntake(data: {
   // Location
   preferred_city?: string;
   preferred_state?: string;
+  // Referral
+  referral_source?: string;
+  referral_source_other?: string;
   // Notes
   notes?: string;
   // Turnstile token for verification
@@ -2094,7 +2203,8 @@ export async function submitPublicClientIntake(data: {
       child_diagnosis: data.child_diagnosis || [],
       child_primary_concerns: data.child_primary_concerns || null,
       notes: data.notes || null,
-      referral_source: "public_intake",
+      referral_source: data.referral_source || "public_intake",
+      referral_source_other: data.referral_source_other || null,
       referral_date: new Date().toISOString().split("T")[0],
     })
     .select("id")
@@ -2142,7 +2252,20 @@ export async function submitPublicClientIntake(data: {
     });
   }
 
-  // TODO: Send notification email to provider
+  // Create in-app notification for the provider
+  const childName = [data.child_first_name, data.child_last_name].filter(Boolean).join(" ") || "Unknown";
+  const { createNotification } = await import("@/lib/actions/notifications");
+  createNotification({
+    profileId: data.profileId,
+    type: "intake_submission",
+    title: `Intake form submitted for ${childName}`,
+    body: data.parent_first_name ? `Parent: ${data.parent_first_name} ${data.parent_last_name || ""}`.trim() : undefined,
+    link: `/dashboard/clients/${client.id}`,
+    entityId: client.id,
+    entityType: "client",
+  }).catch((err) => {
+    console.error("[CLIENTS] Failed to create intake notification:", err);
+  });
 
   return { success: true, data: { clientId: client.id } };
 }

@@ -173,10 +173,10 @@ export function ContactFormCard({ planTier, contactFormEnabled = true }: Contact
                 <p className="font-medium text-emerald-900">Contact form is active</p>
                 <p className="text-sm text-emerald-700">
                   Families can reach you through your listing. Check your{" "}
-                  <Link href="/dashboard/inbox" className="underline hover:no-underline">
-                    Contact Form Inbox
+                  <Link href="/dashboard/notifications" className="underline hover:no-underline">
+                    Notifications
                   </Link>{" "}
-                  for inquiries.
+                  for new inquiries.
                 </p>
               </div>
             </div>

@@ -15,6 +15,7 @@ type ClientIntakePageParams = {
 
 type ClientIntakePageProps = {
   params: Promise<ClientIntakePageParams>;
+  searchParams: Promise<{ ref?: string }>;
 };
 
 // Revalidate every 5 minutes (ISR)
@@ -54,8 +55,9 @@ function getContrastColor(hexColor: string) {
   return luminance > 0.5 ? "#000000" : "#FFFFFF";
 }
 
-export default async function ClientIntakePage({ params }: ClientIntakePageProps) {
+export default async function ClientIntakePage({ params, searchParams }: ClientIntakePageProps) {
   const { slug } = await params;
+  const { ref } = await searchParams;
   const result = await getClientIntakePageData(slug);
 
   if (!result.success || !result.data) {
@@ -160,6 +162,7 @@ export default async function ClientIntakePage({ params }: ClientIntakePageProps
               profileId={listing.profileId}
               providerName={profile.agencyName}
               brandColor={background_color}
+              initialReferralSource={ref === "findabatherapy" ? "findabatherapy" : undefined}
             />
           </div>
 

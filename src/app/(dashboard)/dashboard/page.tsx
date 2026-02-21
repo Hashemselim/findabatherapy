@@ -7,7 +7,7 @@ import {
   ExternalLink,
   Eye,
   FileText,
-  Inbox,
+  Bell,
   PlusCircle,
   Users,
 } from "lucide-react";
@@ -154,7 +154,7 @@ export default async function DashboardOverviewPage() {
           </Button>
         ) : (
           <Button className="w-full rounded-full sm:w-auto" asChild>
-            <Link href="/dashboard/company">
+            <Link href="/dashboard/intake-pages/directory">
               Complete your listing
               <ArrowRight className="ml-2 h-4 w-4" aria-hidden />
             </Link>
@@ -171,7 +171,7 @@ export default async function DashboardOverviewPage() {
           {
             label: "new applications",
             value: applicationCount ?? 0,
-            href: "/dashboard/employees",
+            href: "/dashboard/team/applicants",
           },
         ]}
         links={[
@@ -189,12 +189,12 @@ export default async function DashboardOverviewPage() {
           },
           {
             label: "Post a Job",
-            href: "/dashboard/jobs/new",
+            href: "/dashboard/team/jobs/new",
             icon: PlusCircle,
           },
           {
             label: "Employees",
-            href: "/dashboard/employees",
+            href: "/dashboard/team/applicants",
             icon: Users,
           },
         ]}
@@ -209,14 +209,14 @@ export default async function DashboardOverviewPage() {
           {
             label: "new messages",
             value: inquiryCount ?? 0,
-            href: "/dashboard/inbox",
+            href: "/dashboard/notifications",
           },
           ...(isPaidPlan && analytics?.views !== undefined
             ? [
                 {
                   label: "profile views",
                   value: analytics.views,
-                  href: "/dashboard/analytics",
+                  href: "/dashboard/settings/analytics",
                 },
               ]
             : []),
@@ -235,9 +235,9 @@ export default async function DashboardOverviewPage() {
             external: true,
           },
           {
-            label: "Inbox",
-            href: "/dashboard/inbox",
-            icon: Inbox,
+            label: "Notifications",
+            href: "/dashboard/notifications",
+            icon: Bell,
           },
         ]}
       />

@@ -550,7 +550,7 @@ function GooglePlacesResultCard({ listing, position, searchQuery }: GooglePlaces
     : `${listing.city}, ${listing.state}`;
 
   return (
-    <Link href={`/provider/p/${listing.slug}`} className="group">
+    <Link href={`/provider/p/${listing.slug}?ref=findabatherapy`} className="group">
       <Card className="border-dashed border-muted-foreground/30 transition-all duration-300 ease-premium hover:-translate-y-[2px] hover:border-[#5788FF]/40 hover:shadow-[0_8px_30px_rgba(87,136,255,0.08)] active:translate-y-0 active:shadow-none">
         <CardContent className="flex gap-4 p-4">
           {/* Logo */}

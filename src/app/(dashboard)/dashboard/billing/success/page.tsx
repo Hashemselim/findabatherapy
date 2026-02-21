@@ -32,9 +32,9 @@ export default async function BillingSuccessPage({ searchParams }: BillingSucces
     await verifyAndSyncCheckoutSession(params.session_id);
   }
 
-  // If user came from onboarding, redirect back to first step (Practice Details) with payment success
+  // If user came from onboarding, redirect to the Go Live step
   if (params.return_to === "onboarding") {
-    redirect("/dashboard/onboarding/details?payment=success");
+    redirect("/dashboard/onboarding/review?payment=success");
   }
 
   const listing = await getListingData();

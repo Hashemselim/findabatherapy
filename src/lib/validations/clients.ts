@@ -9,6 +9,7 @@ export const CLIENT_STATUS_OPTIONS = [
   { value: "intake_pending", label: "Intake Pending", color: "purple" },
   { value: "waitlist", label: "Waitlist", color: "amber" },
   { value: "assessment", label: "Assessment", color: "orange" },
+  { value: "authorization", label: "Authorization", color: "cyan" },
   { value: "active", label: "Active", color: "green" },
   { value: "on_hold", label: "On Hold", color: "yellow" },
   { value: "discharged", label: "Discharged", color: "gray" },
@@ -137,16 +138,31 @@ export const BILLING_CODE_OPTIONS = SERVICE_BILLING_MAP.filter(s => s.code !== "
 // Units per hour constant (4 units = 1 hour in ABA billing)
 export const UNITS_PER_HOUR = 4;
 
-// Referral source options
+// Referral source options (for dashboard client forms)
 export const REFERRAL_SOURCE_OPTIONS = [
+  { value: "findabatherapy", label: "FindABATherapy Directory" },
+  { value: "agency_website", label: "Agency Website" },
+  { value: "pediatrician", label: "Pediatrician Referral" },
+  { value: "school", label: "School Referral" },
+  { value: "regional_center", label: "Regional Center" },
+  { value: "insurance_referral", label: "Insurance Provider" },
+  { value: "word_of_mouth", label: "Word of Mouth" },
+  { value: "social_media", label: "Social Media" },
+  { value: "google", label: "Google Search" },
+  { value: "existing_client", label: "Existing Client Referral" },
+  { value: "other", label: "Other" },
+] as const;
+
+// Referral source options for public-facing forms (intake/contact)
+export const PUBLIC_REFERRAL_SOURCE_OPTIONS = [
+  { value: "findabatherapy", label: "FindABATherapy" },
+  { value: "agency_website", label: "Provider's website" },
   { value: "pediatrician", label: "Pediatrician" },
   { value: "school", label: "School" },
-  { value: "regional_center", label: "Regional Center" },
-  { value: "web_search", label: "Web Search" },
-  { value: "social_media", label: "Social Media" },
-  { value: "word_of_mouth", label: "Word of Mouth" },
-  { value: "insurance_referral", label: "Insurance Referral" },
-  { value: "existing_client", label: "Existing Client Referral" },
+  { value: "insurance_referral", label: "Insurance company" },
+  { value: "word_of_mouth", label: "Friend or family" },
+  { value: "social_media", label: "Social media" },
+  { value: "google", label: "Google search" },
   { value: "other", label: "Other" },
 ] as const;
 
@@ -192,6 +208,7 @@ export const clientStatusSchema = z.enum([
   "intake_pending",
   "waitlist",
   "assessment",
+  "authorization",
   "active",
   "on_hold",
   "discharged",
@@ -431,6 +448,7 @@ export const clientSchema = z.object({
   // Status and workflow
   status: clientStatusSchema.default("inquiry"),
   referral_source: z.string().max(100).optional().or(z.literal("")),
+  referral_source_other: z.string().max(500).optional().or(z.literal("")),
   referral_date: z.string().optional().or(z.literal("")),
   service_start_date: z.string().optional().or(z.literal("")),
   service_end_date: z.string().optional().or(z.literal("")),

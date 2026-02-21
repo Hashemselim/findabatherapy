@@ -20,6 +20,14 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { signUpWithEmail, signInWithOAuth } from "@/lib/auth/actions";
 import { SignupPageTracker, useSignupTracking } from "@/components/analytics/signup-tracker";
 
+type SignupIntent = "therapy" | "jobs" | "both";
+
+function normalizeIntent(value: string | null): SignupIntent {
+  if (value === "therapy" || value === "jobs" || value === "both") return value;
+  if (value === "context_jobs" || value === "jobs_only") return "jobs";
+  return "both";
+}
+
 function SignUpForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -35,6 +43,8 @@ function SignUpForm() {
   // Get selected plan and billing interval from URL if coming from pricing page
   const selectedPlan = searchParams.get("plan");
   const billingInterval = searchParams.get("interval") || "monthly";
+  const urlIntent = searchParams.get("intent") || searchParams.get("context");
+  const [selectedIntent, setSelectedIntent] = useState<SignupIntent>(normalizeIntent(urlIntent));
 
   // PostHog tracking
   const tracking = useSignupTracking(selectedPlan);
@@ -63,6 +73,7 @@ function SignUpForm() {
       formData.set("selectedPlan", selectedPlan);
     }
     formData.set("billingInterval", billingInterval);
+    formData.set("selectedIntent", selectedIntent);
     formData.set("turnstileToken", turnstileToken);
 
     startTransition(async () => {
@@ -94,7 +105,7 @@ function SignUpForm() {
     tracking.trackFormSubmitted("google", billingInterval);
 
     // For OAuth, we pass plan and interval via URL state (handled in callback)
-    const result = await signInWithOAuth("google", selectedPlan || undefined, billingInterval);
+    const result = await signInWithOAuth("google", selectedPlan || undefined, billingInterval, selectedIntent);
 
     if ("error" in result) {
       setError(result.message);
@@ -112,7 +123,7 @@ function SignUpForm() {
     tracking.trackFormSubmitted("microsoft", billingInterval);
 
     // For OAuth, we pass plan and interval via URL state (handled in callback)
-    const result = await signInWithOAuth("azure", selectedPlan || undefined, billingInterval);
+    const result = await signInWithOAuth("azure", selectedPlan || undefined, billingInterval, selectedIntent);
 
     if ("error" in result) {
       setError(result.message);
@@ -160,6 +171,39 @@ function SignUpForm() {
             {success}
           </div>
         )}
+
+        <div className="space-y-2">
+          <p className="text-sm font-medium text-foreground">What are you focused on first?</p>
+          <div className="grid grid-cols-3 gap-2">
+            <Button
+              type="button"
+              variant={selectedIntent === "therapy" ? "default" : "outline"}
+              className="rounded-full text-xs"
+              onClick={() => setSelectedIntent("therapy")}
+              disabled={isLoading}
+            >
+              Get Found
+            </Button>
+            <Button
+              type="button"
+              variant={selectedIntent === "jobs" ? "default" : "outline"}
+              className="rounded-full text-xs"
+              onClick={() => setSelectedIntent("jobs")}
+              disabled={isLoading}
+            >
+              Hire Staff
+            </Button>
+            <Button
+              type="button"
+              variant={selectedIntent === "both" ? "default" : "outline"}
+              className="rounded-full text-xs"
+              onClick={() => setSelectedIntent("both")}
+              disabled={isLoading}
+            >
+              Both
+            </Button>
+          </div>
+        </div>
 
         {/* PRD 3.2.1: OAuth buttons first */}
         <div className="grid gap-2">
@@ -227,6 +271,7 @@ function SignUpForm() {
 
         {/* PRD 3.2.1: Email form - Email, Password, Terms checkbox, Continue button */}
         <form action={handleSubmit} className="space-y-4">
+          <input type="hidden" name="selectedIntent" value={selectedIntent} />
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input

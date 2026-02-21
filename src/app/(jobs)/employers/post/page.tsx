@@ -277,7 +277,7 @@ export default function PostJobPage() {
                     size="lg"
                     className="rounded-full bg-emerald-600 px-8 text-base font-semibold text-white shadow-[0_4px_14px_rgba(16,185,129,0.4)] transition-all duration-300 ease-premium hover:-translate-y-[2px] hover:bg-emerald-700 hover:shadow-[0_8px_20px_rgba(16,185,129,0.5)] active:translate-y-0 active:shadow-[0_2px_8px_rgba(16,185,129,0.3)]"
                   >
-                    <Link href="/auth/sign-up?plan=free&context=jobs">
+                    <Link href="/auth/sign-up?plan=free&intent=jobs">
                       Post a job free
                       <ArrowRight className="ml-2 h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
                     </Link>
@@ -497,7 +497,7 @@ export default function PostJobPage() {
                         variant="outline"
                         className="w-full rounded-full text-base font-semibold transition-all duration-300 ease-premium hover:-translate-y-[1px] hover:border-emerald-500/50 hover:shadow-[0_4px_12px_rgba(16,185,129,0.15)]"
                       >
-                        <Link href="/auth/sign-up?plan=free&context=jobs">{plan.cta}</Link>
+                        <Link href="/auth/sign-up?plan=free&intent=jobs">{plan.cta}</Link>
                       </Button>
                     ) : (
                       <div className="flex flex-col gap-2">
@@ -510,7 +510,7 @@ export default function PostJobPage() {
                               : "bg-emerald-600 text-white shadow-[0_4px_14px_rgba(16,185,129,0.3)] hover:bg-emerald-700 hover:shadow-[0_8px_20px_rgba(16,185,129,0.4)]"
                           )}
                         >
-                          <Link href={`/auth/sign-up?plan=${plan.tier}&interval=annual&context=jobs`}>
+                          <Link href={`/auth/sign-up?plan=${plan.tier}&interval=annual&intent=jobs`}>
                             {plan.cta} (Annual)
                           </Link>
                         </Button>
@@ -519,7 +519,7 @@ export default function PostJobPage() {
                           variant="outline"
                           className="w-full rounded-full text-base font-semibold transition-all duration-300 ease-premium hover:-translate-y-[1px] hover:border-emerald-500/50 hover:shadow-[0_4px_12px_rgba(16,185,129,0.15)]"
                         >
-                          <Link href={`/auth/sign-up?plan=${plan.tier}&interval=monthly&context=jobs`}>
+                          <Link href={`/auth/sign-up?plan=${plan.tier}&interval=monthly&intent=jobs`}>
                             Start Monthly
                           </Link>
                         </Button>
@@ -776,7 +776,7 @@ export default function PostJobPage() {
                   size="lg"
                   className="rounded-full bg-emerald-600 px-8 text-base font-semibold text-white shadow-[0_4px_14px_rgba(16,185,129,0.4)] transition-all duration-300 ease-premium hover:-translate-y-[2px] hover:bg-emerald-700 hover:shadow-[0_8px_20px_rgba(16,185,129,0.5)] active:translate-y-0"
                 >
-                  <Link href="/auth/sign-up?plan=free&context=jobs">
+                  <Link href="/auth/sign-up?plan=free&intent=jobs">
                     Post a job free
                     <ArrowRight className="ml-2 h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
                   </Link>

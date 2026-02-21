@@ -125,7 +125,7 @@ export default async function BrandingPage() {
   return (
     <div className="space-y-4 sm:space-y-6">
       <Button asChild size="sm" variant="ghost" className="w-fit -ml-2">
-        <Link href="/dashboard/forms" className="items-center gap-2">
+        <Link href="/dashboard/branded-pages" className="items-center gap-2">
           <ArrowLeft className="h-4 w-4" />
           Back
         </Link>

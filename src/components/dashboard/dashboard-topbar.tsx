@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import NextImage from "next/image";
 import { usePathname } from "next/navigation";
@@ -8,7 +8,6 @@ import {
   BarChart3,
   Bell,
   Briefcase,
-  CheckSquare,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -20,8 +19,6 @@ import {
   LucideIcon,
   MapPin,
   Menu,
-  UserCheck,
-  UserCircle,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -41,26 +38,21 @@ import {
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { DashboardMobileNav } from "./dashboard-mobile-nav";
+import {
+  getQuickLinkGroups,
+  isNavItemActive,
+  type NavItemConfig,
+} from "./nav-config";
 
 type QuickLink = {
   href: string;
   label: string;
   icon: LucideIcon;
   exactMatch?: boolean;
+  aliases?: string[];
 };
 
-// Flat quick links for mobile horizontal scroll (matches new sidebar structure)
-const dashboardQuickLinks: QuickLink[] = [
-  { href: "/dashboard", label: "Dashboard", icon: GaugeCircle, exactMatch: true },
-  { href: "/dashboard/inbox", label: "Notifications", icon: Bell },
-  { href: "/dashboard/tasks", label: "Tasks", icon: CheckSquare },
-  { href: "/dashboard/clients", label: "Clients", icon: UserCircle },
-  { href: "/dashboard/employees", label: "Employees", icon: UserCheck },
-  { href: "/dashboard/jobs", label: "Jobs", icon: Briefcase },
-  { href: "/dashboard/analytics", label: "Analytics", icon: BarChart3 },
-];
-
-// Demo mode - simplified flat list
+// Demo mode - simplified flat list (not driven by shared config)
 const demoQuickLinks: QuickLink[] = [
   { href: "/demo", label: "Overview", icon: GaugeCircle, exactMatch: true },
   { href: "/demo/company", label: "Company", icon: FileText },
@@ -75,21 +67,27 @@ function getPageTitle(pathname: string, isDemo: boolean): string {
   const basePath = isDemo ? "/demo" : "/dashboard";
 
   if (pathname === basePath) return "Dashboard";
-  if (pathname.includes("/company")) return "Company";
+  if (pathname.includes("/pipeline")) return "Pipeline";
+  if (pathname.includes("/communications")) return "Communications";
+  if (pathname.includes("/inbox") || pathname.includes("/notifications")) return "Notifications";
+  if (pathname.includes("/leads")) return "Leads";
+  if (pathname.includes("/intake-form") || pathname.includes("/intake-pages/intake")) return "Intake Form";
+  if (pathname.includes("/contact-form")) return "Contact Form";
+  if (pathname.includes("/directory")) return "Directory Listing";
+  if (pathname.includes("/profile") || pathname.includes("/company")) return "Profile";
   if (pathname.includes("/locations")) return "Locations";
   if (pathname.includes("/media")) return "Media";
-  if (pathname.includes("/inbox")) return "Notifications";
   if (pathname.includes("/analytics")) return "Analytics";
-  if (pathname.includes("/intake")) return "Intake Form";
   if (pathname.includes("/forms")) return "Branded Forms";
   if (pathname.includes("/branding")) return "Brand Style";
+  if (pathname.includes("/applicants")) return "Applicants";
   if (pathname.includes("/employees")) return "Employees";
   if (pathname.includes("/careers")) return "Careers Page";
   if (pathname.includes("/jobs")) return "Jobs";
   if (pathname.includes("/clients")) return "Clients";
   if (pathname.includes("/tasks")) return "Tasks";
-  if (pathname.includes("/resources/clients")) return "Client Resources";
-  if (pathname.includes("/resources/employees")) return "Employee Resources";
+  if (pathname.includes("/resources")) return "Resources";
+  if (pathname.includes("/billing")) return "Billing";
   if (pathname.includes("/account")) return "Account";
   if (pathname.includes("/onboarding")) return "Onboarding";
 
@@ -138,18 +136,28 @@ export function DashboardTopbar({
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
 
-  // Determine which quick links to use
-  const quickLinks = customQuickLinks ?? (isDemo ? demoQuickLinks : dashboardQuickLinks);
+  // Build quick link groups from shared config (memoised so it doesn't
+  // recompute on every render).
+  const quickLinkGroups = useMemo(() => getQuickLinkGroups(), []);
+
+  // For demo / custom overrides we fall back to a flat list
+  const useGroupedLinks = !isDemo && !customQuickLinks;
+  const flatQuickLinks = customQuickLinks ?? (isDemo ? demoQuickLinks : []);
+
   const basePath = isDemo ? "/demo" : "/dashboard";
 
   // Helper to check if a link is active
-  const isLinkActive = (link: QuickLink): boolean => {
-    if (link.exactMatch) {
-      return pathname === link.href;
-    }
-    return link.href === basePath
-      ? pathname === basePath
-      : pathname === link.href || pathname.startsWith(link.href + "/");
+  const isLinkActive = (link: QuickLink | NavItemConfig): boolean => {
+    // NavItemConfig items use the shared helper
+    if ("quickLink" in link) return isNavItemActive(link, pathname);
+
+    if (link.exactMatch) return pathname === link.href;
+    const pathsToMatch = [link.href, ...(link.aliases || [])];
+    return pathsToMatch.some((p) =>
+      link.href === basePath
+        ? pathname === basePath || pathname === p
+        : pathname === p || pathname.startsWith(p + "/")
+    );
   };
 
   // Check scroll position and update indicators
@@ -321,27 +329,68 @@ export function DashboardTopbar({
           ref={navRef}
           className="scrollbar-hide flex items-center gap-1.5 overflow-x-auto px-2 py-2"
         >
-          {quickLinks.map((link) => {
-            const Icon = link.icon;
-            const isActive = isLinkActive(link);
+          {useGroupedLinks
+            ? /* ── Grouped quick links with section labels & dividers ── */
+              quickLinkGroups.map((group, groupIdx) => (
+                <Fragment key={group.sectionId ?? "persistent"}>
+                  {/* Divider between groups */}
+                  {groupIdx > 0 && (
+                    <div className="mx-0.5 h-5 w-px shrink-0 bg-border/60" aria-hidden />
+                  )}
 
-            return (
-              <Link
-                key={link.href}
-                href={link.href}
-                data-active={isActive}
-                className={cn(
-                  "flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
-                  isActive
-                    ? "bg-primary text-primary-foreground shadow-sm"
-                    : "bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground"
-                )}
-              >
-                <Icon className="h-3.5 w-3.5" aria-hidden />
-                {link.label}
-              </Link>
-            );
-          })}
+                  {/* Section label chip (skip for persistent items) */}
+                  {group.sectionLabel && (
+                    <span className="shrink-0 px-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+                      {group.sectionLabel}
+                    </span>
+                  )}
+
+                  {/* Items in this group */}
+                  {group.items.map((link) => {
+                    const Icon = link.icon;
+                    const isActive = isNavItemActive(link, pathname);
+
+                    return (
+                      <Link
+                        key={link.href}
+                        href={link.href}
+                        data-active={isActive}
+                        className={cn(
+                          "flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
+                          isActive
+                            ? "bg-primary text-primary-foreground shadow-sm"
+                            : "bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground"
+                        )}
+                      >
+                        <Icon className="h-3.5 w-3.5" aria-hidden />
+                        {link.label}
+                      </Link>
+                    );
+                  })}
+                </Fragment>
+              ))
+            : /* ── Flat quick links (demo / custom) ── */
+              flatQuickLinks.map((link) => {
+                const Icon = link.icon;
+                const isActive = isLinkActive(link);
+
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    data-active={isActive}
+                    className={cn(
+                      "flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
+                      isActive
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : "bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground"
+                    )}
+                  >
+                    <Icon className="h-3.5 w-3.5" aria-hidden />
+                    {link.label}
+                  </Link>
+                );
+              })}
         </nav>
 
         {/* Right scroll indicator */}

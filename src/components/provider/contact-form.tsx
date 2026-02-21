@@ -58,6 +58,7 @@ export function ContactForm({ listingId, providerName, locationId }: ContactForm
           providerName={providerName}
           locationId={locationId}
           source="listing_page"
+          initialReferralSource="findabatherapy"
           onSuccess={() => setIsSuccess(true)}
         />
       </CardContent>

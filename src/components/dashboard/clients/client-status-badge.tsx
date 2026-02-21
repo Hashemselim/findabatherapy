@@ -14,6 +14,7 @@ const statusColorMap: Record<ClientStatus, string> = {
   intake_pending: "bg-purple-100 text-purple-700 hover:bg-purple-100",
   waitlist: "bg-amber-100 text-amber-700 hover:bg-amber-100",
   assessment: "bg-orange-100 text-orange-700 hover:bg-orange-100",
+  authorization: "bg-cyan-100 text-cyan-700 hover:bg-cyan-100",
   active: "bg-green-100 text-green-700 hover:bg-green-100",
   on_hold: "bg-yellow-100 text-yellow-700 hover:bg-yellow-100",
   discharged: "bg-gray-100 text-gray-700 hover:bg-gray-100",

@@ -10,12 +10,14 @@ interface ContactFormIntakeProps {
   listingId: string;
   providerName: string;
   websiteUrl?: string | null;
+  initialReferralSource?: string;
 }
 
 export function ContactFormIntake({
   listingId,
   providerName,
   websiteUrl,
+  initialReferralSource,
 }: ContactFormIntakeProps) {
   const [isSubmitted, setIsSubmitted] = useState(false);
 
@@ -37,6 +39,7 @@ export function ContactFormIntake({
             listingId={listingId}
             providerName={providerName}
             source="intake_standalone"
+            initialReferralSource={initialReferralSource}
             onSuccess={() => setIsSubmitted(true)}
             submitButtonText="Submit Inquiry"
           />

@@ -3,6 +3,18 @@ import { NextResponse } from "next/server";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { sendAdminNewSignupNotification } from "@/lib/email/notifications";
 
+type SignupIntent = "therapy" | "jobs" | "both";
+
+function normalizeSignupIntent(value: string | null | undefined): SignupIntent {
+  if (value === "therapy" || value === "jobs" || value === "both") {
+    return value;
+  }
+  if (value === "context_jobs" || value === "jobs_only") {
+    return "jobs";
+  }
+  return "both";
+}
+
 /**
  * OAuth callback handler.
  * This route handles the redirect from OAuth providers after authentication.
@@ -11,9 +23,10 @@ import { sendAdminNewSignupNotification } from "@/lib/email/notifications";
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/dashboard";
+  const next = searchParams.get("next") ?? "/dashboard/clients/pipeline";
   const selectedPlan = searchParams.get("plan");
   const selectedInterval = searchParams.get("interval");
+  const selectedIntent = normalizeSignupIntent(searchParams.get("intent"));
 
   // Validate plan tier and billing interval
   // Normalize to "month"/"year" to match Stripe's convention
@@ -38,7 +51,7 @@ export async function GET(request: Request) {
       // Check if profile exists
       const { data: existingProfile } = await supabase
         .from("profiles")
-        .select("id, onboarding_completed_at")
+        .select("id, onboarding_completed_at, primary_intent")
         .eq("id", data.user.id)
         .single();
 
@@ -57,6 +70,9 @@ export async function GET(request: Request) {
         // Get plan and interval from user metadata (email signup) or URL param (OAuth)
         const userPlan = data.user.user_metadata?.selected_plan || planTier;
         const userInterval = data.user.user_metadata?.billing_interval || billingInterval;
+        const userIntent = normalizeSignupIntent(
+          data.user.user_metadata?.selected_intent || selectedIntent
+        );
 
         const { error: profileError } = await adminClient
           .from("profiles")
@@ -66,6 +82,7 @@ export async function GET(request: Request) {
             contact_email: data.user.email!,
             plan_tier: userPlan,
             billing_interval: userInterval,
+            primary_intent: userIntent,
           });
 
         if (profileError) {
@@ -97,6 +114,12 @@ export async function GET(request: Request) {
 
       // Existing user without completed onboarding
       if (!existingProfile.onboarding_completed_at) {
+        if (!existingProfile.primary_intent) {
+          await supabase
+            .from("profiles")
+            .update({ primary_intent: selectedIntent })
+            .eq("id", data.user.id);
+        }
         return NextResponse.redirect(`${origin}/dashboard/onboarding`);
       }
 

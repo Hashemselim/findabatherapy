@@ -69,6 +69,7 @@ const clientFormSchema = z.object({
   // Status
   status: z.string().optional(),
   referral_source: z.string().optional(),
+  referral_source_other: z.string().optional(),
   funding_source: z.string().optional(),
   preferred_language: z.string().optional(),
   service_start_date: z.string().optional(),
@@ -223,6 +224,7 @@ export function ClientForm({ defaultValues, inquiryId, clientId, isEditMode = fa
           const updateResult = await updateClient(clientId, {
             status: data.status as ClientStatus,
             referral_source: data.referral_source,
+            referral_source_other: data.referral_source === "other" ? data.referral_source_other : "",
             funding_source: data.funding_source as FundingSource | undefined,
             preferred_language: data.preferred_language,
             service_start_date: data.service_start_date,
@@ -336,6 +338,7 @@ export function ClientForm({ defaultValues, inquiryId, clientId, isEditMode = fa
           const clientResult = await createClient({
             status: data.status as ClientStatus,
             referral_source: data.referral_source,
+            referral_source_other: data.referral_source === "other" ? data.referral_source_other : "",
             funding_source: data.funding_source as FundingSource | undefined,
             preferred_language: data.preferred_language,
             service_start_date: data.service_start_date,
@@ -491,6 +494,16 @@ export function ClientForm({ defaultValues, inquiryId, clientId, isEditMode = fa
                   </SelectContent>
                 </Select>
               </div>
+
+              {form.watch("referral_source") === "other" && (
+                <div className="space-y-2">
+                  <Label>Other Source Details</Label>
+                  <Input
+                    placeholder="Please specify..."
+                    {...form.register("referral_source_other")}
+                  />
+                </div>
+              )}
 
               <div className="space-y-2">
                 <Label>Funding Source</Label>

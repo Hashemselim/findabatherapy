@@ -150,23 +150,39 @@ export default async function DashboardListingPage() {
               )}
             </Badge>
             {isPublished && (
-              <Button variant="outline" size="sm" className="hidden sm:inline-flex" asChild>
-                <Link href={`/provider/${listing.slug}`} target="_blank">
-                  <ExternalLink className="mr-2 h-4 w-4" />
-                  View Live
-                </Link>
-              </Button>
+              <>
+                <Button variant="outline" size="sm" className="hidden sm:inline-flex" asChild>
+                  <a href={`/provider/${listing.slug}`} target="_blank" rel="noopener noreferrer">
+                    <ExternalLink className="mr-2 h-4 w-4" />
+                    Therapy Profile
+                  </a>
+                </Button>
+                <Button variant="outline" size="sm" className="hidden sm:inline-flex" asChild>
+                  <a href={`/employers/${listing.slug}`} target="_blank" rel="noopener noreferrer">
+                    <ExternalLink className="mr-2 h-4 w-4" />
+                    Jobs Profile
+                  </a>
+                </Button>
+              </>
             )}
           </div>
         </div>
-        {/* Mobile View Live Button */}
+        {/* Mobile Profile Links */}
         {isPublished && (
-          <Button variant="outline" size="sm" className="w-full sm:hidden" asChild>
-            <Link href={`/provider/${listing.slug}`} target="_blank">
-              <ExternalLink className="mr-2 h-4 w-4" />
-              View Live Listing
-            </Link>
-          </Button>
+          <div className="flex gap-2 sm:hidden">
+            <Button variant="outline" size="sm" className="flex-1" asChild>
+              <a href={`/provider/${listing.slug}`} target="_blank" rel="noopener noreferrer">
+                <ExternalLink className="mr-2 h-4 w-4" />
+                Therapy Profile
+              </a>
+            </Button>
+            <Button variant="outline" size="sm" className="flex-1" asChild>
+              <a href={`/employers/${listing.slug}`} target="_blank" rel="noopener noreferrer">
+                <ExternalLink className="mr-2 h-4 w-4" />
+                Jobs Profile
+              </a>
+            </Button>
+          </div>
         )}
 
         {/* Status and Actions Card */}

@@ -14,6 +14,7 @@ type ContactPageParams = {
 
 type ContactPageProps = {
   params: Promise<ContactPageParams>;
+  searchParams: Promise<{ ref?: string }>;
 };
 
 // Revalidate every 5 minutes (ISR)
@@ -53,8 +54,9 @@ function getContrastColor(hexColor: string) {
   return luminance > 0.5 ? "#000000" : "#FFFFFF";
 }
 
-export default async function ContactPage({ params }: ContactPageProps) {
+export default async function ContactPage({ params, searchParams }: ContactPageProps) {
   const { slug } = await params;
+  const { ref } = await searchParams;
   const result = await getContactPageData(slug);
 
   if (!result.success || !result.data) {
@@ -158,6 +160,7 @@ export default async function ContactPage({ params }: ContactPageProps) {
               listingId={listing.id}
               providerName={profile.agencyName}
               websiteUrl={profile.website}
+              initialReferralSource={ref === "findabatherapy" ? "findabatherapy" : undefined}
             />
           </div>
 

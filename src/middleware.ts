@@ -36,6 +36,16 @@ const JOBS_ROUTES = [
 // Provider careers pages pattern (e.g., /provider/acme-aba/careers)
 const PROVIDER_CAREERS_PATTERN = /^\/provider\/[^/]+\/careers$/;
 
+function withBehaviorWorkRequestHeaders(request: NextRequest) {
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-behaviorwork-page", "1");
+  return requestHeaders;
+}
+
+function isBehaviorWorkPath(pathname: string): boolean {
+  return pathname === "/behaviorwork" || pathname.startsWith("/behaviorwork/");
+}
+
 /**
  * Detect which brand/site the request is for
  */
@@ -91,27 +101,24 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // =============================================================================
-  // DASHBOARD NAVIGATION REDIRECTS
-  // =============================================================================
-  // These redirects handle the navigation restructure from collapsible sections
-  // to a flat navigation with dropdowns
-
-  // Redirect old /dashboard/jobs/applications to /dashboard/employees
-  if (pathname.startsWith("/dashboard/jobs/applications")) {
-    const newPath = pathname.replace("/dashboard/jobs/applications", "/dashboard/employees");
-    return NextResponse.redirect(new URL(newPath + request.nextUrl.search, request.url), 301);
+  // Unified get-started route (works on parent domain + QA fallback domains)
+  if (pathname === "/get-started") {
+    const url = request.nextUrl.clone();
+    url.pathname = "/behaviorwork/get-started";
+    return NextResponse.rewrite(url, {
+      request: {
+        headers: withBehaviorWorkRequestHeaders(request),
+      },
+    });
   }
 
-  // Redirect old /dashboard/jobs/careers to /dashboard/careers
-  if (pathname === "/dashboard/jobs/careers") {
-    return NextResponse.redirect(new URL("/dashboard/careers", request.url), 301);
-  }
-
-  // Redirect old /dashboard/team to /dashboard/employees
-  if (pathname.startsWith("/dashboard/team")) {
-    const newPath = pathname.replace("/dashboard/team", "/dashboard/employees");
-    return NextResponse.redirect(new URL(newPath + request.nextUrl.search, request.url), 301);
+  // Direct Behavior Work route fallback path
+  if (isBehaviorWorkPath(pathname)) {
+    return NextResponse.next({
+      request: {
+        headers: withBehaviorWorkRequestHeaders(request),
+      },
+    });
   }
 
   // =============================================================================
@@ -151,6 +158,23 @@ export async function middleware(request: NextRequest) {
 
   // Parent site (behaviorwork.com) routing
   if (brand === "parent") {
+    if (pathname === "/pricing") {
+      const pricingRedirectUrl = request.nextUrl.clone();
+      pricingRedirectUrl.pathname = "/get-started";
+      return NextResponse.redirect(pricingRedirectUrl, 301);
+    }
+
+    // Parent-domain root marketing page
+    if (pathname === "/" || pathname === "") {
+      const url = request.nextUrl.clone();
+      url.pathname = "/behaviorwork";
+      return NextResponse.rewrite(url, {
+        request: {
+          headers: withBehaviorWorkRequestHeaders(request),
+        },
+      });
+    }
+
     // Parent site serves the unified dashboard
     // Allow all dashboard routes, auth routes, and API routes
     // Block public-facing therapy/jobs content routes
@@ -241,8 +265,8 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL("/dashboard/onboarding", request.url));
     }
 
-    // Otherwise redirect to dashboard
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+    // Otherwise redirect to the default dashboard landing page
+    return NextResponse.redirect(new URL("/dashboard/clients/pipeline", request.url));
   }
 
   // Note: Onboarding gating is handled at the page level, not in middleware.

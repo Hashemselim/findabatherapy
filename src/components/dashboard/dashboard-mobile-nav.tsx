@@ -1,99 +1,55 @@
 "use client";
 
-import { useState } from "react";
+import { type ComponentType } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  BarChart3,
-  Bell,
-  Briefcase,
-  Building2,
-  CheckSquare,
   ChevronDown,
-  ClipboardList,
-  ExternalLink,
-  Eye,
-  FileInput,
-  FileText,
-  GaugeCircle,
   HelpCircle,
-  Image,
   LogOut,
-  LucideIcon,
-  MapPin,
   MessageSquare,
   User,
-  UserCheck,
-  UserCircle,
 } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { SheetClose } from "@/components/ui/sheet";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { SheetClose } from "@/components/ui/sheet";
 import { SupportContactDialog } from "@/components/support-contact-dialog";
 import { cn } from "@/lib/utils";
 import { signOut } from "@/lib/auth/actions";
+import {
+  persistentItems,
+  sectionNav,
+  onboardingNavItem,
+  isNavItemActive,
+  type NavItemConfig,
+} from "./nav-config";
 
 export type MobileNavItem = {
   href: string;
   label: string;
-  icon: LucideIcon;
+  icon: ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
   showBadge?: boolean;
-  isPlaceholder?: boolean;
   isExternal?: boolean;
   exactMatch?: boolean;
+  aliases?: string[];
+  proBadge?: boolean;
 };
 
-// Main navigation items - direct links (matches sidebar)
-const mainNavItems: MobileNavItem[] = [
-  { href: "/dashboard", label: "Dashboard", icon: GaugeCircle, exactMatch: true },
-  { href: "/dashboard/inbox", label: "Notifications", icon: Bell, showBadge: true },
-  { href: "/dashboard/tasks", label: "Tasks", icon: CheckSquare },
-  { href: "/dashboard/forms", label: "Branded Forms", icon: FileInput },
-  { href: "/dashboard/clients", label: "Clients", icon: UserCircle },
-  { href: "/dashboard/employees", label: "Employees", icon: UserCheck, showBadge: true },
-  { href: "/dashboard/jobs", label: "Jobs", icon: Briefcase },
-  { href: "/dashboard/analytics", label: "Analytics", icon: BarChart3 },
-];
-
-// Company dropdown items
-const companyDropdownItems: MobileNavItem[] = [
-  { href: "/dashboard/company", label: "Profile", icon: FileText },
-  { href: "/dashboard/locations", label: "Locations", icon: MapPin },
-];
-
-// Demo navigation - simplified flat list
-const demoNavItems: MobileNavItem[] = [
-  { href: "/demo", label: "Overview", icon: GaugeCircle, exactMatch: true },
-  { href: "/demo/company", label: "Company Details", icon: FileText },
-  { href: "/demo/locations", label: "Locations", icon: MapPin },
-  { href: "/demo/media", label: "Media", icon: Image },
-  { href: "/demo/analytics", label: "Analytics", icon: BarChart3 },
-  { href: "/demo/inbox", label: "Contact Form Inbox", icon: Bell, showBadge: true },
-];
-
-// Onboarding nav item shown when onboarding is incomplete
-const onboardingNavItem: MobileNavItem = {
-  href: "/dashboard/onboarding",
-  label: "Onboarding",
-  icon: ClipboardList,
-};
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
 
 interface DashboardMobileNavProps {
   isOnboardingComplete: boolean;
   isDemo?: boolean;
-  /** Custom nav items (overrides default nav) */
   customNavItems?: MobileNavItem[];
-  /** Static unread count for demo mode */
   staticUnreadCount?: number;
-  /** Badge counts by href */
   badgeCounts?: Record<string, number>;
-  /** Provider's listing slug for "View Profile" links */
   providerSlug?: string | null;
 }
 
@@ -106,60 +62,49 @@ export function DashboardMobileNav({
   providerSlug,
 }: DashboardMobileNavProps) {
   const pathname = usePathname();
-  const [companyOpen, setCompanyOpen] = useState(false);
 
   const handleLogout = async () => {
-    // Clear dev bypass cookie on client side
     document.cookie = "dev_bypass=; path=/; max-age=0";
-    // Use server action for reliable logout
     await signOut();
   };
 
-  const basePath = isDemo ? "/demo" : "/dashboard";
-
-  // Get badge count for an item
   const getBadgeCount = (href: string): number => {
     if (badgeCounts[href]) return badgeCounts[href];
-    // Fallback for demo mode
-    if (staticUnreadCount !== undefined && href.includes("/inbox")) {
+    if (staticUnreadCount !== undefined && (href === "/dashboard/notifications" || href === "/dashboard/inbox")) {
       return staticUnreadCount;
     }
     return 0;
   };
 
-  // Check if item is active
-  const isItemActive = (item: MobileNavItem): boolean => {
-    if (item.isExternal) return false;
-    if (item.exactMatch) return pathname === item.href;
-    return item.href === basePath
-      ? pathname === basePath
-      : pathname === item.href || pathname.startsWith(item.href + "/");
-  };
-
-  // Check if dropdown has active child
-  const hasActiveChild = (items: MobileNavItem[]): boolean => {
-    return items.some(isItemActive);
-  };
-
-  // Render a single nav item
-  const renderNavItem = (item: MobileNavItem, showBadge = true) => {
+  const renderNavItem = (item: NavItemConfig | MobileNavItem) => {
     const Icon = item.icon;
-    const isActive = isItemActive(item);
+    const isActive = isNavItemActive(item as NavItemConfig, pathname);
     const isLocked = !isDemo && !isOnboardingComplete && item.href !== "/dashboard/onboarding";
-    const badgeCount = showBadge && item.showBadge ? getBadgeCount(item.href) : 0;
+    const badgeCount = item.showBadge ? getBadgeCount(item.href) : 0;
 
-    const linkContent = (
+    const className = cn(
+      buttonVariants({ variant: "ghost" }),
+      "min-h-[44px] w-full justify-start gap-3 rounded-xl px-3 py-2.5 text-sm font-medium",
+      isActive
+        ? "bg-primary text-primary-foreground shadow-sm"
+        : "text-muted-foreground hover:bg-accent hover:text-foreground",
+      isLocked && "pointer-events-none opacity-60"
+    );
+
+    const content = (
       <>
         <Icon className="h-4 w-4" aria-hidden />
         <span className="flex flex-1 items-center gap-1.5">
           {item.label}
-          {item.isPlaceholder && (
-            <Badge
-              variant="outline"
-              className="ml-auto bg-purple-50 px-1.5 py-0 text-[10px] text-purple-600"
+          {item.proBadge && (
+            <span
+              className={cn(
+                "rounded px-1.5 py-0.5 text-[10px] font-semibold",
+                isActive ? "bg-white/20 text-white" : "bg-blue-100 text-blue-700"
+              )}
             >
-              Soon
-            </Badge>
+              Pro
+            </span>
           )}
         </span>
         {badgeCount > 0 && (
@@ -172,31 +117,14 @@ export function DashboardMobileNav({
             {badgeCount > 99 ? "99+" : badgeCount}
           </span>
         )}
-        {item.isExternal && (
-          <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
-        )}
       </>
     );
 
-    const linkClassName = cn(
-      buttonVariants({ variant: "ghost" }),
-      "min-h-[44px] w-full justify-start gap-3 rounded-xl px-3 py-2.5 text-sm font-medium",
-      isActive
-        ? "bg-primary text-primary-foreground shadow-sm"
-        : "text-muted-foreground hover:bg-accent hover:text-foreground",
-      isLocked && "opacity-60"
-    );
-
-    if (item.isExternal) {
+    if ("isExternal" in item && item.isExternal) {
       return (
         <SheetClose asChild key={item.href}>
-          <a
-            href={item.href}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={linkClassName}
-          >
-            {linkContent}
+          <a href={item.href} target="_blank" rel="noopener noreferrer" className={className}>
+            {content}
           </a>
         </SheetClose>
       );
@@ -204,113 +132,69 @@ export function DashboardMobileNav({
 
     return (
       <SheetClose asChild key={item.href}>
-        <Link href={item.href} className={linkClassName}>
-          {linkContent}
+        <Link href={item.href} className={className}>
+          {content}
         </Link>
       </SheetClose>
     );
   };
 
-  // Render a dropdown section
-  const renderDropdown = (
-    id: string,
-    label: string,
-    icon: LucideIcon,
-    items: MobileNavItem[],
-    isOpen: boolean,
-    setIsOpen: (open: boolean) => void
-  ) => {
-    const Icon = icon;
-    const hasActive = hasActiveChild(items);
-
+  // Custom nav items mode (demo)
+  if (customNavItems) {
     return (
-      <Collapsible key={id} open={isOpen} onOpenChange={setIsOpen}>
-        <div
-          className={cn(
-            "rounded-xl overflow-hidden transition-all",
-            hasActive && "ring-1 ring-primary/20"
-          )}
-        >
-          <CollapsibleTrigger
-            className={cn(
-              "flex w-full items-center justify-between min-h-[44px] px-3 py-2.5 text-sm font-medium transition-all rounded-xl",
-              hasActive
-                ? "bg-primary/20 text-foreground"
-                : "text-muted-foreground hover:bg-accent hover:text-foreground"
-            )}
-          >
-            <div className="flex items-center gap-3">
-              <Icon className="h-4 w-4" />
-              <span>{label}</span>
-            </div>
-            <ChevronDown
-              className={cn(
-                "h-4 w-4 transition-transform duration-200",
-                isOpen && "rotate-180"
-              )}
-            />
-          </CollapsibleTrigger>
-          <CollapsibleContent className="space-y-1 px-2 pb-2 pt-1">
-            {items.map((item) => renderNavItem(item, false))}
-          </CollapsibleContent>
-        </div>
-      </Collapsible>
+      <nav className="mt-6 flex flex-col gap-1">
+        {customNavItems.map((item) => renderNavItem(item))}
+      </nav>
     );
-  };
-
-  // Build view profile links
-  const viewProfileLinks = providerSlug ? [
-    { href: `/provider/${providerSlug}`, label: "Therapy Profile", icon: Eye },
-    { href: `/employers/${providerSlug}`, label: "Jobs Profile", icon: Eye },
-  ] : [];
-
-  // Get nav items based on mode
-  const navItems = customNavItems || (isDemo ? demoNavItems : mainNavItems);
+  }
 
   return (
     <nav className="mt-6 flex flex-col gap-1">
       {/* Onboarding item if needed */}
-      {!isOnboardingComplete && !customNavItems && !isDemo && renderNavItem(onboardingNavItem)}
+      {!isOnboardingComplete && !isDemo && renderNavItem(onboardingNavItem)}
 
-      {/* Main navigation items */}
-      {navItems.map((item) => renderNavItem(item))}
+      {/* Persistent items: Notifications & Tasks */}
+      {persistentItems.map((item) => renderNavItem(item))}
 
-      {/* Dropdown sections (only for non-demo, non-custom mode) */}
-      {!customNavItems && !isDemo && (
-        <div className="pt-2 space-y-1">
-          {renderDropdown("company", "Company", Building2, companyDropdownItems, companyOpen, setCompanyOpen)}
-        </div>
-      )}
+      <div className="my-2 h-px bg-border" />
 
-      {/* View Profile links */}
-      {viewProfileLinks.length > 0 && (
-        <div className="border-t border-border/60 pt-3 mt-3">
-          <p className="px-3 pb-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-            Public Pages
-          </p>
-          {viewProfileLinks.map((link) => (
-            <SheetClose asChild key={link.href}>
-              <a
-                href={link.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={cn(
-                  buttonVariants({ variant: "ghost" }),
-                  "min-h-[44px] w-full justify-start gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
-                )}
-              >
-                <link.icon className="h-4 w-4" aria-hidden />
-                <span className="flex-1">{link.label}</span>
-                <ExternalLink className="h-3.5 w-3.5" aria-hidden />
-              </a>
-            </SheetClose>
-          ))}
-        </div>
-      )}
+      {/* Section groups - driven from shared config */}
+      {sectionNav.map((section) => {
+        const SectionIcon = section.icon;
+        const hasActiveChild = section.items.some((item) => isNavItemActive(item, pathname));
+
+        return (
+          <Collapsible key={section.id} defaultOpen={section.id === "clients"}>
+            <CollapsibleTrigger className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-sm font-medium transition-colors hover:bg-accent/50">
+              <div className="flex items-center gap-2.5">
+                <SectionIcon
+                  className={cn(
+                    "h-4 w-4",
+                    hasActiveChild ? "text-primary" : "text-muted-foreground"
+                  )}
+                  aria-hidden
+                />
+                <span
+                  className={cn(
+                    "text-xs font-semibold uppercase tracking-wider",
+                    hasActiveChild ? "text-foreground" : "text-muted-foreground"
+                  )}
+                >
+                  {section.label}
+                </span>
+              </div>
+              <ChevronDown className="h-3.5 w-3.5 text-muted-foreground transition-transform duration-200 data-[state=open]:rotate-180" aria-hidden />
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-0.5 pl-2 pt-0.5">
+              {section.items.map((item) => renderNavItem(item))}
+            </CollapsibleContent>
+          </Collapsible>
+        );
+      })}
 
       <div className="my-4 h-px bg-border" />
 
-      {/* Bottom actions - Account, Help, Feedback, Logout */}
+      {/* Bottom utilities */}
       <div className="space-y-1">
         <SheetClose asChild>
           <Link
@@ -318,9 +202,7 @@ export function DashboardMobileNav({
             className={cn(
               buttonVariants({ variant: "ghost" }),
               "min-h-[44px] w-full justify-start gap-3 rounded-xl px-3 py-2.5 text-sm font-medium",
-              pathname.startsWith("/dashboard/account") ||
-                pathname === "/dashboard/billing" ||
-                pathname === "/dashboard/settings"
+              pathname.startsWith("/dashboard/account")
                 ? "bg-muted text-foreground"
                 : "text-muted-foreground hover:bg-accent hover:text-foreground"
             )}

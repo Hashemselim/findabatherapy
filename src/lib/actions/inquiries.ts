@@ -6,6 +6,7 @@ import { createClient, createAdminClient, getUser } from "@/lib/supabase/server"
 import { contactFormSchema, type ContactFormData, type InquiryStatus } from "@/lib/validations/contact";
 import { verifyTurnstileToken } from "@/lib/turnstile";
 import { sendProviderInquiryNotification, sendFamilyInquiryConfirmation } from "@/lib/email/notifications";
+import { createNotification } from "@/lib/actions/notifications";
 
 type ActionResult<T = void> =
   | { success: true; data?: T }
@@ -97,20 +98,102 @@ export async function submitInquiry(
   }
 
   // Insert inquiry
-  const { error: insertError } = await supabase.from("inquiries").insert({
-    listing_id: listingId,
-    location_id: locationId || null,
-    family_name: parsed.data.familyName,
-    family_email: parsed.data.familyEmail,
-    family_phone: parsed.data.familyPhone || null,
-    child_age: parsed.data.childAge || null,
-    message: parsed.data.message,
-    status: "unread",
-    source,
-  });
+  const { data: inquiry, error: insertError } = await supabase
+    .from("inquiries")
+    .insert({
+      listing_id: listingId,
+      location_id: locationId || null,
+      family_name: parsed.data.familyName,
+      family_email: parsed.data.familyEmail,
+      family_phone: parsed.data.familyPhone || null,
+      child_age: parsed.data.childAge || null,
+      message: parsed.data.message,
+      status: "converted", // Auto-converted to client lead
+      source,
+      referral_source: parsed.data.referralSource || null,
+      referral_source_other: parsed.data.referralSource === "other" ? (parsed.data.referralSourceOther || null) : null,
+    })
+    .select("id")
+    .single();
 
-  if (insertError) {
+  if (insertError || !inquiry) {
     return { success: false, error: "Failed to submit inquiry. Please try again." };
+  }
+
+  // Auto-create client record as a lead (status: 'inquiry')
+  const profileId = listing.profile_id;
+  const nameParts = parsed.data.familyName.trim().split(/\s+/);
+  const parentFirstName = nameParts[0] || "";
+  const parentLastName = nameParts.length > 1 ? nameParts.slice(1).join(" ") : "";
+
+  // Build notes from message + child age
+  const notesParts: string[] = [];
+  if (parsed.data.childAge) {
+    notesParts.push(`Child's age: ${parsed.data.childAge}`);
+  }
+  notesParts.push(parsed.data.message);
+  const notes = notesParts.join("\n\n");
+
+  const { data: client, error: clientError } = await supabase
+    .from("clients")
+    .insert({
+      profile_id: profileId,
+      listing_id: listingId,
+      inquiry_id: inquiry.id,
+      status: "inquiry",
+      referral_source: parsed.data.referralSource || null,
+      referral_source_other: parsed.data.referralSource === "other" ? (parsed.data.referralSourceOther || null) : null,
+      notes,
+    })
+    .select("id")
+    .single();
+
+  if (clientError || !client) {
+    console.error("[INQUIRY] Failed to auto-create client lead:", clientError);
+    // Don't fail the inquiry — the inquiry record was created successfully
+  }
+
+  // Create parent record for the client lead
+  if (client) {
+    await supabase.from("client_parents").insert({
+      client_id: client.id,
+      first_name: parentFirstName || null,
+      last_name: parentLastName || null,
+      email: parsed.data.familyEmail || null,
+      phone: parsed.data.familyPhone || null,
+      is_primary: true,
+      sort_order: 0,
+    }).then(({ error: parentError }) => {
+      if (parentError) {
+        console.error("[INQUIRY] Failed to create parent record:", parentError);
+      }
+    });
+
+    // If a location was specified, create the client_locations record
+    if (locationId) {
+      await supabase.from("client_locations").insert({
+        client_id: client.id,
+        location_id: locationId,
+        is_primary: true,
+      }).then(({ error: locError }) => {
+        if (locError) {
+          console.error("[INQUIRY] Failed to create client location:", locError);
+        }
+      });
+    }
+
+    // Create in-app notification for the provider
+    createNotification({
+      profileId,
+      type: "contact_form",
+      title: `New contact from ${parsed.data.familyName}`,
+      body: parsed.data.message.slice(0, 200),
+      link: `/dashboard/clients/${client.id}`,
+      entityId: client.id,
+      entityType: "client",
+    }).catch((err) => {
+      console.error("[INQUIRY] Failed to create notification:", err);
+    });
   }
 
   // Send email notifications (fire and forget - don't block on email delivery)

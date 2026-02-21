@@ -31,7 +31,7 @@ function SignInForm() {
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const turnstileRef = useRef<TurnstileInstance>(null);
 
-  const redirectTo = searchParams.get("redirect") || "/dashboard";
+  const redirectTo = searchParams.get("redirect") || "/dashboard/clients/pipeline";
   const showTurnstile = failedAttempts >= 2;
 
   async function handleSubmit(formData: FormData) {

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { createClient, createAdminClient, getUser } from "@/lib/supabase/server";
 import { verifyTurnstileToken } from "@/lib/turnstile";
+import { createNotification } from "@/lib/actions/notifications";
 import {
   applicationFormSchema,
   updateApplicationStatusSchema,
@@ -200,6 +201,19 @@ export async function submitApplication(
 
     return { success: false, error: "Failed to submit application. Please try again." };
   }
+
+  // Create in-app notification for the provider
+  createNotification({
+    profileId: job.profile_id,
+    type: "job_application",
+    title: `New application from ${parsed.data.applicantName}`,
+    body: `Applied for ${job.title}`,
+    link: "/dashboard/team/applicants",
+    entityId: insertedApp.id,
+    entityType: "job_application",
+  }).catch((err) => {
+    console.error("[APPLICATION] Failed to create notification:", err);
+  });
 
   // Send email notifications (fire and forget - don't block on email delivery)
   const jobUrl = `https://www.findabajobs.org/job/${job.slug}`;

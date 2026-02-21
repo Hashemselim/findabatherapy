@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useEffect, useTransition } from "react";
-import { Loader2, CheckCircle2, Settings2, Sparkles, Search, Users, Globe, Stethoscope, Pencil, X, Save } from "lucide-react";
-import Link from "next/link";
+import { Loader2, CheckCircle2, Pencil, X, Save } from "lucide-react";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -24,7 +23,7 @@ import {
 import { getListingAttributes, updateListingAttributes } from "@/lib/actions/listings";
 
 interface ServicesAttributesCardProps {
-  planTier: string;
+  planTier?: string; // No longer used for gating — kept for API compatibility
 }
 
 interface AttributeData {
@@ -35,6 +34,7 @@ interface AttributeData {
   agesServedMax: number;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function ServicesAttributesCard({ planTier }: ServicesAttributesCardProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [data, setData] = useState<AttributeData>({
@@ -56,8 +56,6 @@ export function ServicesAttributesCard({ planTier }: ServicesAttributesCardProps
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-
-  const isPaidPlan = planTier !== "free";
 
   useEffect(() => {
     async function loadData() {
@@ -81,7 +79,6 @@ export function ServicesAttributesCard({ planTier }: ServicesAttributesCardProps
   }, []);
 
   function toggleArrayItem(array: string[], item: string, field: keyof AttributeData) {
-    if (!isPaidPlan) return;
     const newArray = array.includes(item)
       ? array.filter((i) => i !== item)
       : [...array, item];
@@ -95,7 +92,6 @@ export function ServicesAttributesCard({ planTier }: ServicesAttributesCardProps
   }
 
   async function handleSave() {
-    if (!isPaidPlan) return;
     setError(null);
     setSuccess(false);
 
@@ -130,109 +126,7 @@ export function ServicesAttributesCard({ planTier }: ServicesAttributesCardProps
     );
   }
 
-  // Free plan: Show locked view with all available features
-  if (!isPaidPlan) {
-    return (
-      <div className="relative overflow-hidden rounded-xl border border-purple-100 bg-gradient-to-br from-purple-50/80 via-white to-slate-50 shadow-sm">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(147,51,234,0.06),transparent_50%)]" />
-
-        <div className="relative p-6">
-          {/* Header with strong value prop */}
-          <div className="flex items-start gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-purple-100 text-purple-600">
-              <Settings2 className="h-6 w-6" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-lg font-semibold text-slate-900">Services & Specialties</h3>
-                <span className="inline-flex items-center gap-1 rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-medium text-purple-700">
-                  <Sparkles className="h-3 w-3" />
-                  Pro
-                </span>
-              </div>
-              <p className="mt-1.5 text-sm text-slate-600 leading-relaxed">
-                <span className="font-medium text-slate-800">Get found by the right families.</span> When parents search for specific needs - like &quot;Spanish-speaking ABA for toddlers&quot; - your listing shows up. Without these details, you&apos;re invisible to them.
-              </p>
-            </div>
-          </div>
-
-          {/* What you can showcase */}
-          <div className="mt-6 grid gap-3 sm:grid-cols-2">
-            <div className="flex items-start gap-3 rounded-lg border border-slate-100 bg-white p-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
-                <Users className="h-4 w-4" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-slate-800">Ages Served</p>
-                <p className="text-xs text-slate-500">Show families you work with their child&apos;s age group</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3 rounded-lg border border-slate-100 bg-white p-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
-                <Globe className="h-4 w-4" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-slate-800">Languages</p>
-                <p className="text-xs text-slate-500">Reach bilingual families searching in their language</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3 rounded-lg border border-slate-100 bg-white p-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-50 text-amber-600">
-                <Stethoscope className="h-4 w-4" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-slate-800">Diagnoses</p>
-                <p className="text-xs text-slate-500">ASD, ADHD, developmental delays & more</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3 rounded-lg border border-slate-100 bg-white p-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-rose-50 text-rose-600">
-                <Search className="h-4 w-4" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-slate-800">Specialties</p>
-                <p className="text-xs text-slate-500">Early intervention, feeding therapy, social skills</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Why this matters */}
-          <div className="mt-5 grid gap-2 sm:grid-cols-2">
-            <div className="flex items-center gap-2 text-sm text-slate-600">
-              <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-              <span>Appear in filtered searches</span>
-            </div>
-            <div className="flex items-center gap-2 text-sm text-slate-600">
-              <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-              <span>Attract your ideal clients</span>
-            </div>
-            <div className="flex items-center gap-2 text-sm text-slate-600">
-              <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-              <span>Stand out from basic listings</span>
-            </div>
-            <div className="flex items-center gap-2 text-sm text-slate-600">
-              <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-              <span>Update anytime as you grow</span>
-            </div>
-          </div>
-
-          {/* CTA */}
-          <div className="mt-6 flex items-center justify-between rounded-lg bg-slate-50 p-4">
-            <p className="text-sm text-slate-600">
-              <span className="font-medium text-slate-800">Ready to get discovered?</span>
-            </p>
-            <Button asChild size="sm" className="rounded-full">
-              <Link href="/dashboard/billing">
-                Upgrade Now
-              </Link>
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Paid plan: View Mode - Read-only display
+  // View Mode - Read-only display
   if (!isEditing) {
     const hasAnyData = savedData.languages.length > 0 ||
                        savedData.diagnoses.length > 0 ||
@@ -331,7 +225,7 @@ export function ServicesAttributesCard({ planTier }: ServicesAttributesCardProps
     );
   }
 
-  // Paid plan: Edit Mode - Full editing capability
+  // Edit Mode - Full editing capability
   return (
     <Card className="border-border/60">
       <CardHeader>

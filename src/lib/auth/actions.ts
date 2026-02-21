@@ -21,6 +21,19 @@ export type AuthSuccess = {
 
 export type AuthResult = AuthError | AuthSuccess;
 
+export type SignupIntent = "therapy" | "jobs" | "both";
+
+function normalizeSignupIntent(value: string | null | undefined): SignupIntent {
+  if (value === "therapy" || value === "jobs" || value === "both") {
+    return value;
+  }
+  // Backward compatibility with older links that used context=jobs
+  if (value === "context_jobs" || value === "jobs_only") {
+    return "jobs";
+  }
+  return "both";
+}
+
 /**
  * Sign in with email and password
  */
@@ -63,7 +76,7 @@ export async function signInWithEmail(formData: FormData): Promise<AuthResult> {
 
   // Check if user has completed onboarding to determine redirect
   const { data: { user } } = await supabase.auth.getUser();
-  let redirectTo = "/dashboard";
+  let redirectTo = "/dashboard/clients/pipeline";
 
   if (user) {
     const { data: profile } = await supabase
@@ -91,6 +104,7 @@ export async function signUpWithEmail(formData: FormData): Promise<AuthResult> {
   const agencyName = formData.get("agencyName") as string;
   const selectedPlan = (formData.get("selectedPlan") as string) || "free";
   const billingInterval = (formData.get("billingInterval") as string) || "monthly";
+  const selectedIntent = normalizeSignupIntent(formData.get("selectedIntent") as string | null);
   const turnstileToken = formData.get("turnstileToken") as string;
 
   // Verify Turnstile token
@@ -143,6 +157,7 @@ export async function signUpWithEmail(formData: FormData): Promise<AuthResult> {
         agency_name: agencyName || email.split("@")[0],
         selected_plan: planTier,
         billing_interval: interval,
+        selected_intent: selectedIntent,
       },
     },
   });
@@ -169,10 +184,11 @@ export async function signUpWithEmail(formData: FormData): Promise<AuthResult> {
     await adminClient.from("profiles").insert({
       id: data.user.id,
       agency_name: finalAgencyName,
-      contact_email: email,
-      plan_tier: planTier,
-      billing_interval: interval,
-    });
+        contact_email: email,
+        plan_tier: planTier,
+        billing_interval: interval,
+        primary_intent: selectedIntent,
+      });
 
     // Send admin notification for new signup
     await sendAdminNewSignupNotification({
@@ -195,7 +211,8 @@ export async function signUpWithEmail(formData: FormData): Promise<AuthResult> {
 export async function signInWithOAuth(
   provider: "google" | "azure",
   selectedPlan?: string,
-  billingInterval?: string
+  billingInterval?: string,
+  selectedIntent?: string
 ): Promise<{ url: string } | AuthError> {
   const headersList = await headers();
   const origin = headersList.get("origin") || process.env.NEXT_PUBLIC_SITE_URL;
@@ -205,13 +222,14 @@ export async function signInWithOAuth(
   const validPlans = ["free", "pro", "enterprise"];
   const planTier = selectedPlan && validPlans.includes(selectedPlan) ? selectedPlan : "free";
   const interval = billingInterval === "annual" || billingInterval === "year" ? "year" : "month";
+  const intent = normalizeSignupIntent(selectedIntent);
 
   const supabase = await createClient();
 
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider,
     options: {
-      redirectTo: `${origin}/auth/callback?plan=${planTier}&interval=${interval}`,
+      redirectTo: `${origin}/auth/callback?plan=${planTier}&interval=${interval}&intent=${intent}`,
       queryParams: provider === "azure" ? {
         // Microsoft-specific params if needed
       } : undefined,

@@ -78,18 +78,20 @@ const plans = [
     subtext: "No credit card required.",
     features: [
       { text: "Standard search placement", highlightWord: "Standard", highlightType: "blue" as const },
-      { text: `${PLAN_CONFIGS.free.features.maxLocations} location`, highlightWord: `${PLAN_CONFIGS.free.features.maxLocations}`, highlightType: "blue" as const },
-      { text: "Basic profile", highlightWord: "Basic", highlightType: "blue" as const },
+      { text: `Up to ${PLAN_CONFIGS.free.features.maxLocations} locations`, highlightWord: `${PLAN_CONFIGS.free.features.maxLocations}`, highlightType: "blue" as const },
+      { text: `Photo gallery (up to ${PLAN_CONFIGS.free.features.maxPhotos})`, highlightWord: "Photo gallery", highlightType: "blue" as const },
+      { text: "Ages, languages, diagnoses & specialties", highlightWord: "Ages, languages", highlightType: "blue" as const },
       "Insurance list display",
+      "1 job posting",
+      "10 client records",
       "SEO-boosting backlink",
     ],
     notIncluded: [
-      "Services & specialties filters",
-      "Direct contact form & inbox",
-      "Photo gallery",
+      "Branded agency page",
+      "Contact form & inbox",
+      "Communication templates",
       "Video embed",
-      "Google star rating and reviews",
-      "Verified badge",
+      "Analytics dashboard",
     ],
     cta: "Get Found Free",
     ctaVariant: "outline" as const,
@@ -103,15 +105,16 @@ const plans = [
     popular: true,
     features: [
       { text: "Priority search placement", highlightWord: "Priority", highlightType: "yellow" as const },
-      { text: `Up to ${PLAN_CONFIGS.pro.features.maxLocations} locations`, highlightWord: `${PLAN_CONFIGS.pro.features.maxLocations}`, highlightType: "yellow" as const },
-      { text: "Services & specialties filters", highlightWord: "Services & specialties", highlightType: "yellow" as const },
+      { text: "Branded agency page", highlightWord: "Branded agency page", highlightType: "yellow" as const },
       { text: "Direct contact form & inbox", highlightWord: "Direct contact form", highlightType: "yellow" as const },
+      { text: "Up to 250 CRM contacts", highlightWord: "250 CRM", highlightType: "yellow" as const },
+      { text: "Communication templates", highlightWord: "Communication", highlightType: "yellow" as const },
+      { text: `Up to ${PLAN_CONFIGS.pro.features.maxLocations} locations`, highlightWord: `${PLAN_CONFIGS.pro.features.maxLocations}`, highlightType: "yellow" as const },
       { text: "Photo gallery (up to 10)", highlightWord: "Photo gallery", highlightType: "yellow" as const },
       { text: "Video embed", highlightWord: "Video", highlightType: "yellow" as const },
       { text: "Google star rating and reviews", highlightWord: "Google", highlightType: "google" as const },
-      "Verified badge",
-      "Insurance list display",
-      "SEO-boosting backlink",
+      "Verified badge & analytics",
+      "Insurance & authorization tracking",
     ],
     notIncluded: [],
     cta: "Get Started",
@@ -124,17 +127,12 @@ const plans = [
     description: PLAN_CONFIGS.enterprise.description,
     subtext: "Cancel anytime. No long-term contract.",
     features: [
-      { text: "Priority search placement", highlightWord: "Priority", highlightType: "yellow" as const },
+      { text: "Everything in Pro", highlightWord: "Everything in Pro", highlightType: "yellow" as const },
       { text: "Unlimited locations", highlightWord: "Unlimited", highlightType: "yellow" as const },
-      { text: "Services & specialties filters", highlightWord: "Services & specialties", highlightType: "yellow" as const },
-      { text: "Direct contact form & inbox", highlightWord: "Direct contact form", highlightType: "yellow" as const },
-      { text: "Photo gallery (up to 10)", highlightWord: "Photo gallery", highlightType: "yellow" as const },
-      { text: "Video embed", highlightWord: "Video", highlightType: "yellow" as const },
-      { text: "Google star rating and reviews", highlightWord: "Google", highlightType: "google" as const },
-      "Verified badge",
-      "Insurance list display",
-      "SEO-boosting backlink",
+      { text: "Unlimited CRM contacts", highlightWord: "Unlimited CRM", highlightType: "yellow" as const },
+      { text: "Unlimited job postings", highlightWord: "Unlimited job", highlightType: "yellow" as const },
       { text: "Featured homepage placement", highlightWord: "Featured homepage", highlightType: "yellow" as const },
+      "Dedicated support",
     ],
     notIncluded: [],
     cta: "Get Started",
@@ -191,7 +189,7 @@ const faqs = [
   {
     question: "What's included in the free plan?",
     answer:
-      "The free plan includes a basic profile with your contact info (phone, email, website), insurance list, service modes, and 1 location. Upgrade to Pro for priority placement, direct contact forms, photo galleries, and more.",
+      "The free plan includes a professional listing with up to 3 locations, 3 photos, ages, languages, diagnoses, specialties, insurance list, 1 job posting, and 10 client records. Upgrade to Pro for branded pages, full CRM, communication templates, analytics, and more.",
   },
 ];
 
@@ -232,8 +230,7 @@ export default function GetListedPage() {
                 </span>
               </h1>
               <p className="mx-auto hidden max-w-2xl text-lg text-muted-foreground sm:block">
-                Join 500+ ABA providers reaching thousands of families every month. List your
-                practice, boost your SEO, and grow your caseload.
+                Join 500+ ABA providers reaching thousands of families every month. Get a professional listing, branded intake forms, and tools to manage every family&apos;s journey.
               </p>
             </div>
 
@@ -245,7 +242,7 @@ export default function GetListedPage() {
                   size="lg"
                   className="rounded-full border border-[#FEE720] bg-[#FEE720] px-8 text-base font-semibold text-[#333333] shadow-[0_4px_14px_rgba(254,231,32,0.4)] transition-all duration-300 ease-premium hover:-translate-y-[2px] hover:bg-[#FFF5C2] hover:shadow-[0_8px_20px_rgba(254,231,32,0.5)] active:translate-y-0 active:shadow-[0_2px_8px_rgba(254,231,32,0.3)]"
                 >
-                  <Link href="/auth/sign-up?plan=free">
+                  <Link href="/auth/sign-up?plan=free&intent=therapy">
                     Get listed free
                     <ArrowRight className="ml-2 h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
                   </Link>
@@ -480,7 +477,7 @@ export default function GetListedPage() {
                         variant="outline"
                         className="w-full rounded-full text-base font-semibold transition-all duration-300 ease-premium hover:-translate-y-[1px] hover:border-[#5788FF]/50 hover:shadow-[0_4px_12px_rgba(87,136,255,0.15)]"
                       >
-                        <Link href="/auth/sign-up?plan=free">{plan.cta}</Link>
+                        <Link href="/auth/sign-up?plan=free&intent=therapy">{plan.cta}</Link>
                       </Button>
                     ) : (
                       <div className="flex flex-col gap-2">
@@ -493,7 +490,7 @@ export default function GetListedPage() {
                               : "bg-[#5788FF] text-white shadow-[0_4px_14px_rgba(87,136,255,0.3)] hover:bg-[#4a77e8] hover:shadow-[0_8px_20px_rgba(87,136,255,0.4)]"
                           )}
                         >
-                          <Link href={`/auth/sign-up?plan=${plan.tier}&interval=annual`}>
+                          <Link href={`/auth/sign-up?plan=${plan.tier}&interval=annual&intent=therapy`}>
                             {plan.cta} (Annual)
                           </Link>
                         </Button>
@@ -502,7 +499,7 @@ export default function GetListedPage() {
                           variant="outline"
                           className="w-full rounded-full text-base font-semibold transition-all duration-300 ease-premium hover:-translate-y-[1px] hover:border-[#5788FF]/50 hover:shadow-[0_4px_12px_rgba(87,136,255,0.15)]"
                         >
-                          <Link href={`/auth/sign-up?plan=${plan.tier}&interval=monthly`}>
+                          <Link href={`/auth/sign-up?plan=${plan.tier}&interval=monthly&intent=therapy`}>
                             Start Monthly
                           </Link>
                         </Button>
@@ -631,11 +628,10 @@ export default function GetListedPage() {
               Why list with us
             </p>
             <h2 className="mt-2 text-3xl font-semibold sm:text-4xl">
-              Everything you need to grow your practice
+              Everything you need to fill your caseload
             </h2>
             <p className="mx-auto mt-4 max-w-2xl text-lg text-muted-foreground">
-              More than just a directory. Get the tools and visibility you need to connect with
-              families actively searching for ABA services.
+              More than just a directory. Get the tools and visibility to capture families, manage intake, and grow your practice.
             </p>
           </header>
           <div className="mt-12 flex flex-wrap justify-center gap-6">
@@ -823,11 +819,11 @@ export default function GetListedPage() {
                 <Star className="h-8 w-8 fill-[#5788FF] text-[#5788FF]" />
               </div>
               <h2 className="text-3xl font-semibold sm:text-4xl">
-                Ready to grow your ABA practice?
+                Ready to fill your caseload?
               </h2>
               <p className="mx-auto mt-4 max-w-xl text-lg text-muted-foreground">
-                Join hundreds of providers already connecting with families. Start with a free listing
-                and upgrade anytime.
+                Join hundreds of providers already capturing families. Start with a free listing
+                and upgrade for branded pages, intake forms, and full CRM.
               </p>
               <div className="mt-8">
                 <Button
@@ -835,7 +831,7 @@ export default function GetListedPage() {
                   size="lg"
                   className="rounded-full border border-[#FEE720] bg-[#FEE720] px-8 text-base font-semibold text-[#333333] shadow-[0_4px_14px_rgba(254,231,32,0.4)] transition-all duration-300 ease-premium hover:-translate-y-[2px] hover:bg-[#FFF5C2] hover:shadow-[0_8px_20px_rgba(254,231,32,0.5)] active:translate-y-0"
                 >
-                  <Link href="/auth/sign-up?plan=free">
+                  <Link href="/auth/sign-up?plan=free&intent=therapy">
                     Get started free
                     <ArrowRight className="ml-2 h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
                   </Link>

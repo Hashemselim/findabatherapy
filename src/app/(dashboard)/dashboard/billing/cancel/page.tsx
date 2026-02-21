@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import Link from "next/link";
 import { AlertCircle, ArrowRight, HelpCircle } from "lucide-react";
 
@@ -5,10 +6,21 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { resetPlanToFree } from "@/lib/actions/billing";
 
-export default async function BillingCancelPage() {
+interface BillingCancelPageProps {
+  searchParams: Promise<{ return_to?: string }>;
+}
+
+export default async function BillingCancelPage({ searchParams }: BillingCancelPageProps) {
+  const params = await searchParams;
+
   // Reset plan to free since payment wasn't completed
   // This is safe to call even if they have an active subscription (no-op)
   await resetPlanToFree();
+
+  // If user came from onboarding, redirect back to the branded preview step
+  if (params.return_to === "onboarding") {
+    redirect("/dashboard/onboarding/branded-preview");
+  }
 
   return (
     <div className="flex min-h-[60vh] items-center justify-center">

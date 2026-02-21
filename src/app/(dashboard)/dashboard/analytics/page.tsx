@@ -9,13 +9,16 @@ import {
   Search,
   Sparkles,
   TrendingUp,
+  Users,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { BubbleBackground } from "@/components/ui/bubble-background";
 import { AnalyticsClient } from "@/components/dashboard/analytics-client";
 import { getProfile } from "@/lib/supabase/server";
+import { getReferralAnalytics } from "@/lib/actions/referral-analytics";
 
 export default async function AnalyticsPage() {
   const profile = await getProfile();
@@ -190,5 +193,87 @@ export default async function AnalyticsPage() {
   }
 
   // User has Pro/Enterprise with active subscription - show analytics
-  return <AnalyticsClient />;
+  const referralResult = await getReferralAnalytics();
+  const referralData = referralResult.success ? referralResult.data : null;
+
+  return (
+    <div className="space-y-8">
+      <AnalyticsClient />
+
+      {/* Referral Source Analytics */}
+      {referralData && referralData.totalClients > 0 && (
+        <div className="space-y-4">
+          <div>
+            <h2 className="text-lg font-semibold text-foreground">Client Sources</h2>
+            <p className="text-sm text-muted-foreground">
+              Where your clients are coming from
+            </p>
+          </div>
+
+          {/* FindABATherapy Attribution Callout */}
+          {referralData.findabatherapyCount > 0 && (
+            <Card className="border-primary/20 bg-primary/5">
+              <CardContent className="flex items-center gap-4 py-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                  <Sparkles className="h-6 w-6 text-primary" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-primary">
+                    {referralData.findabatherapyCount}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    client{referralData.findabatherapyCount !== 1 ? "s" : ""} found you through FindABATherapy
+                  </p>
+                </div>
+                <Badge variant="secondary" className="ml-auto bg-primary/10 text-primary">
+                  {referralData.totalClients > 0
+                    ? Math.round((referralData.findabatherapyCount / referralData.totalClients) * 100)
+                    : 0}% of total
+                </Badge>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Referral Source Breakdown */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Users className="h-4 w-4" />
+                Referral Source Breakdown
+              </CardTitle>
+              <CardDescription>
+                {referralData.totalWithSource} of {referralData.totalClients} clients have a known source
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {referralData.breakdown.map((item) => (
+                  <div key={item.source} className="flex items-center gap-3">
+                    <div className="w-32 shrink-0 truncate text-sm font-medium">
+                      {item.label}
+                    </div>
+                    <div className="flex-1">
+                      <div className="h-6 w-full overflow-hidden rounded-full bg-muted">
+                        <div
+                          className="flex h-full items-center rounded-full bg-primary/80 px-2 text-xs font-medium text-white transition-all"
+                          style={{
+                            width: `${Math.max(item.percentage, 4)}%`,
+                          }}
+                        >
+                          {item.percentage > 10 ? `${item.percentage}%` : ""}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="w-16 shrink-0 text-right text-sm text-muted-foreground">
+                      {item.count} ({item.percentage}%)
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+    </div>
+  );
 }

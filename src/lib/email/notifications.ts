@@ -377,7 +377,7 @@ export async function sendProviderInquiryNotification(
 
       ${alertBox("<strong>Tip:</strong> Responding quickly to inquiries increases your chances of connecting with families. We recommend responding within 24 hours.", "info")}
 
-      ${primaryButton("View in Dashboard", `${siteUrl}/dashboard/inbox`)}
+      ${primaryButton("View in Dashboard", `${siteUrl}/dashboard/clients/leads`)}
 
       <p style="color: ${BRAND.textLight}; font-size: 13px; margin-top: 24px;">
         You can also reply directly to this family by emailing them at

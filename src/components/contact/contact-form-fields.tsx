@@ -19,8 +19,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { submitInquiry } from "@/lib/actions/inquiries";
 import { contactFormSchema, type ContactFormData } from "@/lib/validations/contact";
+import { PUBLIC_REFERRAL_SOURCE_OPTIONS } from "@/lib/validations/clients";
 
 export type InquirySource = "listing_page" | "intake_standalone";
 
@@ -29,6 +37,7 @@ interface ContactFormFieldsProps {
   providerName: string;
   locationId?: string;
   source?: InquirySource;
+  initialReferralSource?: string;
   onSuccess?: () => void;
   onError?: (error: string) => void;
   submitButtonText?: string;
@@ -40,6 +49,7 @@ export function ContactFormFields({
   providerName,
   locationId,
   source = "listing_page",
+  initialReferralSource,
   onSuccess,
   onError,
   submitButtonText = "Send Message",
@@ -55,6 +65,7 @@ export function ContactFormFields({
     handleSubmit,
     reset,
     setValue,
+    watch,
     formState: { errors },
   } = useForm<ContactFormData>({
     resolver: zodResolver(contactFormSchema),
@@ -64,6 +75,8 @@ export function ContactFormFields({
       familyPhone: "",
       childAge: "",
       message: "",
+      referralSource: initialReferralSource || "",
+      referralSourceOther: "",
       website: "", // Honeypot
     },
   });
@@ -211,6 +224,42 @@ export function ContactFormFields({
             <p className="text-sm text-destructive">{errors.message.message}</p>
           )}
         </div>
+
+        {/* Referral Source */}
+        <div className="space-y-2">
+          <Label className="text-sm font-medium">
+            How did you hear about us? <span className="text-muted-foreground">(optional)</span>
+          </Label>
+          <Select
+            value={watch("referralSource") || ""}
+            onValueChange={(value) => setValue("referralSource", value)}
+          >
+            <SelectTrigger className="rounded-xl border-border/60 bg-muted/30 transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] focus:border-[#5788FF] focus:bg-background focus:shadow-[0_0_0_3px_rgba(87,136,255,0.1)] focus:ring-0">
+              <SelectValue placeholder="Select an option" />
+            </SelectTrigger>
+            <SelectContent>
+              {PUBLIC_REFERRAL_SOURCE_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {watch("referralSource") === "other" && (
+          <div className="space-y-2">
+            <Label htmlFor="referralSourceOther" className="text-sm font-medium">
+              Please specify
+            </Label>
+            <Input
+              id="referralSourceOther"
+              placeholder="How did you find us?"
+              className="rounded-xl border-border/60 bg-muted/30 transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] focus:border-[#5788FF] focus:bg-background focus:shadow-[0_0_0_3px_rgba(87,136,255,0.1)] focus:ring-0"
+              {...register("referralSourceOther")}
+            />
+          </div>
+        )}
 
         {/* Honeypot field - hidden from users */}
         <input
