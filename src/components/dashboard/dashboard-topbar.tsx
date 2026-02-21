@@ -37,7 +37,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
-import { DashboardMobileNav } from "./dashboard-mobile-nav";
+import { DashboardSidebar } from "./dashboard-sidebar";
 import {
   getQuickLinkGroups,
   isNavItemActive,
@@ -135,6 +135,12 @@ export function DashboardTopbar({
   const navRef = useRef<HTMLElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
+
+  // Close mobile sheet on navigation
+  useEffect(() => {
+    setSheetOpen(false);
+  }, [pathname]);
 
   // Build quick link groups from shared config (memoised so it doesn't
   // recompute on every render).
@@ -253,7 +259,7 @@ export function DashboardTopbar({
     <header className="border-b border-border/60 bg-background lg:hidden">
       <div className="container flex h-14 items-center justify-between px-4 sm:h-16 sm:px-6">
         <div className="flex min-w-0 items-center gap-2 sm:gap-4">
-          <Sheet>
+          <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
             <SheetTrigger asChild>
               <Button
                 variant="ghost"
@@ -264,17 +270,22 @@ export function DashboardTopbar({
                 <Menu className="h-5 w-5" aria-hidden />
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="flex w-72 flex-col overflow-hidden sm:w-80">
-              <SheetHeader>
+            <SheetContent side="left" className="flex w-72 flex-col overflow-hidden p-0 sm:w-80">
+              <SheetHeader className="sr-only">
                 <SheetTitle>{sheetTitle ?? (isDemo ? "Demo Dashboard" : "Dashboard")}</SheetTitle>
                 <SheetDescription>
                   {sheetDescription ?? (isDemo ? "Explore the provider dashboard" : "Navigate your provider dashboard")}
                 </SheetDescription>
               </SheetHeader>
-              <div className="-mx-6 flex-1 overflow-y-auto px-6">
-                {mobileNavComponent ?? (
-                  <DashboardMobileNav isOnboardingComplete={isOnboardingComplete} isDemo={isDemo} providerSlug={providerSlug} />
-                )}
+              <div className="flex-1 overflow-y-auto">
+                {sheetOpen && (mobileNavComponent ?? (
+                  <DashboardSidebar
+                    inSheet
+                    isOnboardingComplete={isOnboardingComplete}
+                    isDemo={isDemo}
+                    providerSlug={providerSlug}
+                  />
+                ))}
               </div>
             </SheetContent>
           </Sheet>

@@ -45,6 +45,18 @@ export function DashboardShell({
           isDemo={isDemo}
           providerSlug={providerSlug}
           companyProfile={companyProfile}
+          mobileNavComponent={
+            <DashboardSidebar
+              inSheet
+              isOnboardingComplete={isOnboardingComplete}
+              isDemo={isDemo}
+              companyProfile={companyProfile}
+              userProfile={userProfile}
+              staticUnreadCount={staticUnreadCount}
+              customNavItems={customNavItems}
+              providerSlug={providerSlug}
+            />
+          }
         />
       </div>
 

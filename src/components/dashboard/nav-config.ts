@@ -2,11 +2,10 @@
  * Single source of truth for all dashboard navigation.
  *
  * Consumed by:
- *   - DashboardSidebar   (desktop)
- *   - DashboardMobileNav (mobile drawer)
+ *   - DashboardSidebar   (desktop sidebar and mobile drawer — same component)
  *   - DashboardTopbar    (mobile quick-link slider)
  *
- * Any change here is automatically reflected in all three.
+ * Any change here is automatically reflected everywhere.
  */
 
 import {

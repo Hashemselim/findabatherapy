@@ -36,7 +36,9 @@
     "test:e2e:dashboard:additional": "playwright test dashboard/additional.spec.ts",
     "test:e2e:contact": "playwright test contact/",
     "test:e2e:admin": "playwright test admin/",
-    "test:e2e:demo": "playwright test demo/"
+    "test:e2e:demo": "playwright test demo/",
+    "seed:test-user": "npx tsx scripts/seed-test-user.ts",
+    "seed:reset": "npx tsx scripts/seed-test-user.ts --reset"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

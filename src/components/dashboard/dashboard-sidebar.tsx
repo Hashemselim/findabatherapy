@@ -107,6 +107,8 @@ interface DashboardSidebarProps {
   customNavItems?: NavItem[];
   dataTour?: string;
   providerSlug?: string | null;
+  /** When true, adjusts styling for rendering inside a Sheet drawer (mobile) */
+  inSheet?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -122,18 +124,13 @@ export function DashboardSidebar({
   customNavItems,
   dataTour,
   providerSlug,
+  inSheet = false,
 }: DashboardSidebarProps) {
   const pathname = usePathname();
   const [notificationCount, setNotificationCount] = useState(staticUnreadCount ?? 0);
   const [applicantCount, setApplicantCount] = useState(0);
   const [taskCount, setTaskCount] = useState(0);
-  const [sectionOpen, setSectionOpen] = useState<Record<SectionId, boolean>>(getDefaultOpenState);
-
-  // Load persisted section state on mount
-  useEffect(() => {
-    const saved = loadSectionState();
-    setSectionOpen(saved);
-  }, []);
+  const [sectionOpen, setSectionOpen] = useState<Record<SectionId, boolean>>(loadSectionState);
 
   // Auto-expand section containing current route
   useEffect(() => {
@@ -190,12 +187,17 @@ export function DashboardSidebar({
     return 0;
   }
 
+  const containerClasses = cn(
+    "flex h-full w-full flex-col justify-between overflow-y-auto p-4",
+    !inSheet && "rounded-2xl border border-border/60 bg-white shadow-sm dark:bg-zinc-950"
+  );
+
   // If custom nav items are provided (demo mode), use the old simple list
   if (customNavItems) {
     return (
       <aside
         data-tour={dataTour}
-        className="flex h-full w-full flex-col justify-between overflow-y-auto rounded-2xl border border-border/60 bg-white p-4 shadow-sm dark:bg-zinc-950"
+        className={containerClasses}
       >
         <div className="space-y-4">
           <nav className="space-y-1">
@@ -212,7 +214,7 @@ export function DashboardSidebar({
   return (
     <aside
       data-tour={dataTour}
-      className="flex h-full w-full flex-col justify-between overflow-y-auto rounded-2xl border border-border/60 bg-white p-4 shadow-sm dark:bg-zinc-950"
+      className={containerClasses}
     >
       <div className="space-y-3">
         {/* Company profile card */}
@@ -426,7 +428,7 @@ function renderNavLink(
       href={item.href}
       className={cn(
         buttonVariants({ variant: "ghost" }),
-        "w-full justify-start gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
+        "min-h-[44px] w-full justify-start gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
         isActive
           ? "bg-primary text-primary-foreground shadow-sm"
           : "text-muted-foreground hover:bg-accent hover:text-foreground",
