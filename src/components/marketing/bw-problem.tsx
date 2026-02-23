@@ -50,11 +50,15 @@ export function BwProblem() {
             </p>
 
             <BwMotion variant="scale-in" delay={0.2}>
-              <div className="mx-auto mt-10 max-w-lg rounded-2xl border border-[#10B981]/25 bg-[#10B981]/8 px-6 py-5 backdrop-blur-sm">
-                <p className="text-center text-base font-bold text-[#10B981]">
-                  BehaviorWork captures that revenue for you.
+              <div className="mx-auto mt-12 max-w-xl">
+                <p className="text-center text-2xl font-extrabold tracking-tight text-white sm:text-3xl">
+                  <span className="relative inline-block">
+                    <span className="relative z-10 text-[#FFDC33]">BehaviorWork</span>
+                    <span className="absolute -bottom-0.5 left-0 right-0 z-0 h-2.5 rounded-full bg-[#FFDC33]/20" />
+                  </span>{" "}
+                  captures that revenue for you.
                 </p>
-                <p className="mt-2 text-center text-sm leading-relaxed text-slate-400">
+                <p className="mx-auto mt-4 max-w-md text-center text-base leading-relaxed text-slate-400">
                   Branded intake forms. Automated follow-ups. A client
                   pipeline that shows every lead at a glance.
                 </p>

@@ -1,8 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { Settings, Globe, LayoutDashboard } from "lucide-react";
 import { BwMotion } from "@/components/marketing/bw-motion";
 import { BwSectionWrapper } from "@/components/marketing/bw-section-wrapper";
+import { trackBehaviorWorkCtaClick } from "@/lib/posthog/events";
 
 const steps = [
   {
@@ -75,6 +77,25 @@ export function BwHowItWorks() {
             );
           })}
         </div>
+
+        {/* CTA */}
+        <BwMotion variant="fade-up" delay={0.4}>
+          <div className="mt-10 flex justify-center">
+            <Link
+              href="/behaviorwork/get-started"
+              onClick={() =>
+                trackBehaviorWorkCtaClick({
+                  section: "how_it_works",
+                  ctaLabel: "Get Started Free",
+                  destination: "/behaviorwork/get-started",
+                })
+              }
+              className="inline-flex h-12 items-center justify-center rounded-full bg-[#FFDC33] px-8 text-sm font-extrabold text-[#1A2744] shadow-md shadow-amber-200/40 transition-all hover:bg-[#F5CF1B] hover:shadow-lg hover:shadow-amber-200/50 active:scale-[0.97]"
+            >
+              Get Started Free &rarr;
+            </Link>
+          </div>
+        </BwMotion>
       </div>
     </BwSectionWrapper>
   );

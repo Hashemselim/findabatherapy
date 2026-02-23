@@ -39,6 +39,8 @@ export default function BehaviorWorkGetStartedPage() {
     <div className="min-h-screen bg-[#FFFBF0] text-slate-900">
       <BehaviorWorkTracker mode="get-started" />
       <BehaviorWorkHeader />
+      {/* Spacer for fixed header */}
+      <div className="h-16" />
 
       <main>
         {/* Pricing Hero + Cards — single section to avoid double padding */}

@@ -665,6 +665,46 @@ export function BwBrandedPages() {
           onMouseEnter={() => setPaused(true)}
           onMouseLeave={() => setPaused(false)}
         >
+          {/* Slide info + dots — ABOVE the mockup */}
+          <div className="mb-5 text-center">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={`info-${active}`}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                <h3 className="text-lg font-extrabold text-[#1A2744]">
+                  {slide.title}
+                </h3>
+                <p className="mt-0.5 font-mono text-xs text-slate-400">
+                  {slide.path}
+                </p>
+                <p className="mx-auto mt-1.5 max-w-md text-sm text-slate-500">
+                  {slide.description}
+                </p>
+              </motion.div>
+            </AnimatePresence>
+
+            {/* Dots */}
+            <div className="mt-4 flex items-center justify-center gap-2">
+              {slides.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => setActive(i)}
+                  aria-label={`Go to slide ${i + 1}`}
+                  className={cn(
+                    "h-2 rounded-full transition-all",
+                    i === active
+                      ? "w-6 bg-[#FFDC33]"
+                      : "w-2 bg-slate-300/50 hover:bg-slate-300"
+                  )}
+                />
+              ))}
+            </div>
+          </div>
+
           {/* Browser mockup */}
           <BrowserChrome urlBar={slide.urlBar} color={slide.color}>
             <AnimatePresence mode="wait">
@@ -695,36 +735,6 @@ export function BwBrandedPages() {
           >
             <ChevronRight className="h-4 w-4 text-[#1A2744]" />
           </button>
-
-          {/* Slide info + dots */}
-          <div className="mt-6 text-center">
-            <h3 className="text-lg font-extrabold text-[#1A2744]">
-              {slide.title}
-            </h3>
-            <p className="mt-0.5 font-mono text-xs text-slate-400">
-              {slide.path}
-            </p>
-            <p className="mt-1.5 text-sm text-slate-500">
-              {slide.description}
-            </p>
-
-            {/* Dots */}
-            <div className="mt-4 flex items-center justify-center gap-2">
-              {slides.map((_, i) => (
-                <button
-                  key={i}
-                  onClick={() => setActive(i)}
-                  aria-label={`Go to slide ${i + 1}`}
-                  className={cn(
-                    "h-2 rounded-full transition-all",
-                    i === active
-                      ? "w-6 bg-[#FFDC33]"
-                      : "w-2 bg-slate-300/50 hover:bg-slate-300"
-                  )}
-                />
-              ))}
-            </div>
-          </div>
         </div>
       </BwFadeUp>
     </BwSectionWrapper>

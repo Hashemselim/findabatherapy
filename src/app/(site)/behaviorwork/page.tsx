@@ -46,6 +46,8 @@ export default function BehaviorWorkPage() {
     <div className="min-h-screen bg-[#FFFBF0] text-slate-900">
       <BehaviorWorkTracker mode="lander" />
       <BehaviorWorkHeader />
+      {/* Spacer for fixed header */}
+      <div className="h-16" />
 
       <main>
         <BwHero />
