@@ -48,7 +48,7 @@ const faqs = [
   },
 ] as const;
 
-export function BwFaq() {
+export function BwFaq({ pageLocation = "behaviorwork-lander" }: { pageLocation?: string }) {
   return (
     <BwSectionWrapper id="faq" background="cream" narrow>
       <BwFadeUp>
@@ -71,7 +71,7 @@ export function BwFaq() {
                 onClick={() =>
                   trackFaqExpanded({
                     question: faq.question,
-                    pageLocation: "behaviorwork-pricing",
+                    pageLocation,
                   })
                 }
                 className="text-left text-base font-semibold text-[#1A2744] hover:no-underline [&[data-state=open]]:text-amber-700"

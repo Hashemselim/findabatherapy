@@ -5,21 +5,24 @@ import { BehaviorWorkHeader } from "@/components/marketing/behaviorwork-header";
 import { BehaviorWorkFooter } from "@/components/marketing/behaviorwork-footer";
 import { BwHero } from "@/components/marketing/bw-hero";
 import { BwTrustBar } from "@/components/marketing/bw-trust-bar";
+import { BwHowItWorks } from "@/components/marketing/bw-how-it-works";
 import { BwProblem } from "@/components/marketing/bw-problem";
 import { BwLifecycle } from "@/components/marketing/bw-lifecycle";
+import { BwFeatures } from "@/components/marketing/bw-features";
 import { BwBrandedPages } from "@/components/marketing/bw-branded-pages";
 import { BwDistributionChannels } from "@/components/marketing/bw-distribution-channels";
 import { BwRoiCard } from "@/components/marketing/bw-roi-card";
 import { BwTestimonials } from "@/components/marketing/bw-testimonials";
+import { BwFaq } from "@/components/marketing/bw-faq";
 import { BwDarkCta } from "@/components/marketing/bw-dark-cta";
 
 const BASE_URL = "https://www.behaviorwork.com";
 
 export const metadata: Metadata = {
   title:
-    "BehaviorWork | Fill Your ABA Caseload & Manage Every Family's Journey",
+    "BehaviorWork | Attract, Intake & Manage ABA Families — One Platform",
   description:
-    "From first inquiry to active services — one platform that captures leads, automates intake, and keeps families engaged. Built for ABA agencies.",
+    "The ABA client management platform with built-in tools to attract families, capture their information, and manage your caseload. Set up in 5 minutes.",
   alternates: {
     canonical: BASE_URL,
   },
@@ -47,12 +50,15 @@ export default function BehaviorWorkPage() {
       <main>
         <BwHero />
         <BwTrustBar />
+        <BwHowItWorks />
         <BwProblem />
         <BwLifecycle />
+        <BwFeatures />
         <BwBrandedPages />
         <BwDistributionChannels />
-        <BwRoiCard />
         <BwTestimonials />
+        <BwRoiCard />
+        <BwFaq />
         <BwDarkCta />
       </main>
 

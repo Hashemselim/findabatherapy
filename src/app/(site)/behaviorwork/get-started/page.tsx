@@ -72,7 +72,7 @@ export default function BehaviorWorkGetStartedPage() {
         <BwFeatureMatrix />
 
         {/* FAQ */}
-        <BwFaq />
+        <BwFaq pageLocation="behaviorwork-pricing" />
 
         {/* Final CTA */}
         <BwDarkCta

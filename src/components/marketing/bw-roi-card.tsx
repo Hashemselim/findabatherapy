@@ -3,14 +3,58 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
-import { BwFadeUp } from "@/components/marketing/bw-fade-up";
+import { BwMotion } from "@/components/marketing/bw-motion";
 import { BwSectionWrapper } from "@/components/marketing/bw-section-wrapper";
+import { useAnimatedCounter } from "@/hooks/use-animated-counter";
 import { trackBehaviorWorkCtaClick } from "@/lib/posthog/events";
+
+function RoiMetric({
+  end,
+  prefix,
+  suffix,
+  label,
+  highlight,
+}: {
+  end: number;
+  prefix?: string;
+  suffix?: string;
+  label: string;
+  highlight?: boolean;
+}) {
+  const counter = useAnimatedCounter({
+    end,
+    prefix,
+    suffix,
+    duration: 1600,
+  });
+
+  return (
+    <div
+      className={
+        highlight
+          ? "rounded-2xl bg-[#FFDC33]/15 p-4 text-center backdrop-blur-sm ring-1 ring-[#FFDC33]/20"
+          : "rounded-2xl bg-white/10 p-4 text-center backdrop-blur-sm"
+      }
+    >
+      <p
+        ref={counter.ref as React.RefObject<HTMLParagraphElement>}
+        className={`text-2xl font-extrabold sm:text-3xl ${highlight ? "text-[#FFDC33]" : "text-white"}`}
+      >
+        {counter.display}
+      </p>
+      <p
+        className={`mt-1 text-xs ${highlight ? "text-amber-200/80" : "text-slate-300"}`}
+      >
+        {label}
+      </p>
+    </div>
+  );
+}
 
 export function BwRoiCard() {
   return (
-    <BwSectionWrapper background="cream">
-      <BwFadeUp>
+    <BwSectionWrapper background="golden">
+      <BwMotion variant="scale-in">
         <div className="mx-auto max-w-2xl">
           <div className="relative overflow-hidden rounded-3xl bg-[#1A2744] p-8 shadow-2xl sm:p-12">
             {/* Decorative warm glow */}
@@ -24,30 +68,23 @@ export function BwRoiCard() {
               </h2>
 
               <div className="mt-8 grid gap-4 sm:grid-cols-3">
-                <div className="rounded-2xl bg-white/10 p-4 text-center backdrop-blur-sm">
-                  <p className="text-2xl font-extrabold text-white sm:text-3xl">
-                    $60K+
-                  </p>
-                  <p className="mt-1 text-xs text-slate-300">
-                    Revenue from one ABA client/year
-                  </p>
-                </div>
-                <div className="rounded-2xl bg-white/10 p-4 text-center backdrop-blur-sm">
-                  <p className="text-2xl font-extrabold text-white sm:text-3xl">
-                    $948
-                  </p>
-                  <p className="mt-1 text-xs text-slate-300">
-                    BehaviorWork Pro per year
-                  </p>
-                </div>
-                <div className="rounded-2xl bg-[#FFDC33]/15 p-4 text-center backdrop-blur-sm ring-1 ring-[#FFDC33]/20">
-                  <p className="text-2xl font-extrabold text-[#FFDC33] sm:text-3xl">
-                    63 yrs
-                  </p>
-                  <p className="mt-1 text-xs text-amber-200/80">
-                    Paid for by a single client
-                  </p>
-                </div>
+                <RoiMetric
+                  end={60}
+                  prefix="$"
+                  suffix="K+"
+                  label="Revenue from one ABA client/year"
+                />
+                <RoiMetric
+                  end={948}
+                  prefix="$"
+                  label="BehaviorWork Pro per year"
+                />
+                <RoiMetric
+                  end={63}
+                  suffix=" yrs"
+                  label="Paid for by a single client"
+                  highlight
+                />
               </div>
 
               <div className="mt-8 flex justify-center">
@@ -69,7 +106,7 @@ export function BwRoiCard() {
             </div>
           </div>
         </div>
-      </BwFadeUp>
+      </BwMotion>
     </BwSectionWrapper>
   );
 }

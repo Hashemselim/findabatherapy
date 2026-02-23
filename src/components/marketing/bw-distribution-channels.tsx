@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { Briefcase, Check, ExternalLink } from "lucide-react";
 
+import { BwMotion } from "@/components/marketing/bw-motion";
 import { BwFadeUp } from "@/components/marketing/bw-fade-up";
 import { BwSectionWrapper } from "@/components/marketing/bw-section-wrapper";
 
@@ -11,7 +12,7 @@ const channels = [
     name: "FindABATherapy.org",
     tagline: "Public provider directory",
     description:
-      "Families search to find ABA providers near them. Your listing drives high-intent leads to your branded pages.",
+      "Families search by insurance and location to find ABA providers. Your listing drives high-intent leads directly to your branded pages.",
     gradient: "from-[#5788FF] to-[#3D6BE5]",
     footerTag: "Drives client leads",
     footerColor: "text-[#5788FF]",
@@ -19,7 +20,7 @@ const channels = [
     href: "https://www.findabatherapy.org",
     logoType: "image" as const,
     bullets: [
-      "SEO-optimized listing",
+      "SEO-optimized listing by insurance + location",
       "Profile with locations, services, insurance & photos",
       "Direct link to your branded contact form",
       "Auto-included with every account",
@@ -29,7 +30,7 @@ const channels = [
     name: "FindABAJobs.org",
     tagline: "ABA-specific job board",
     description:
-      "ABA professionals search for BCBA, RBT, and clinical roles. Your postings reach thousands of candidates.",
+      "ABA professionals search for BCBA, RBT, and clinical roles. Your postings reach thousands of qualified candidates.",
     gradient: "from-[#10B981] to-[#059669]",
     footerTag: "Drives hiring pipeline",
     footerColor: "text-[#10B981]",
@@ -39,7 +40,7 @@ const channels = [
     bullets: [
       "ABA-specific job board",
       "Branded careers page",
-      "Applicant tracking",
+      "Applicant tracking pipeline",
       "Unlimited postings on Pro+",
     ],
   },
@@ -47,16 +48,16 @@ const channels = [
 
 export function BwDistributionChannels() {
   return (
-    <BwSectionWrapper background="golden">
+    <BwSectionWrapper background="cream">
       <BwFadeUp>
         <div className="mx-auto max-w-2xl text-center">
-          <span className="inline-flex items-center rounded-full border border-amber-200/60 bg-white/80 px-4 py-1.5 text-xs font-bold tracking-wide text-amber-700">
+          <span className="inline-flex items-center rounded-full border border-amber-200/60 bg-[#FFDC33]/10 px-4 py-1.5 text-xs font-bold tracking-wide text-amber-700">
             Built-In Distribution
           </span>
           <h2 className="mt-5 text-3xl font-extrabold tracking-tight text-[#1A2744] sm:text-4xl">
             How families and candidates{" "}
             <span className="relative inline-block">
-              <span className="relative z-10">find you</span>
+              <span className="relative z-10 text-[#5788FF]">find you</span>
               <span className="absolute -bottom-0.5 left-0 right-0 z-0 h-2.5 rounded-full bg-[#FFDC33]/30" />
             </span>
           </h2>
@@ -69,12 +70,16 @@ export function BwDistributionChannels() {
 
       <div className="mt-14 grid gap-6 lg:grid-cols-2">
         {channels.map((channel, i) => (
-          <BwFadeUp key={channel.name} delay={i * 0.1}>
+          <BwMotion
+            key={channel.name}
+            variant={i === 0 ? "fade-right" : "fade-left"}
+            delay={i * 0.12}
+          >
             <a
               href={channel.href}
               target="_blank"
               rel="noopener noreferrer"
-              className="group flex h-full flex-col overflow-hidden rounded-2xl border border-amber-200/40 bg-white shadow-sm transition-all hover:shadow-lg hover:shadow-amber-100/50"
+              className="group flex h-full flex-col overflow-hidden rounded-2xl border border-amber-200/40 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-amber-100/50"
             >
               {/* Gradient header */}
               <div
@@ -138,7 +143,7 @@ export function BwDistributionChannels() {
                 </div>
               </div>
             </a>
-          </BwFadeUp>
+          </BwMotion>
         ))}
       </div>
     </BwSectionWrapper>

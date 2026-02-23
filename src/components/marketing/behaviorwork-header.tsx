@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Menu } from "lucide-react";
 
@@ -14,6 +15,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { trackBehaviorWorkCtaClick } from "@/lib/posthog/events";
+import { cn } from "@/lib/utils";
 
 const navItems = [
   { href: "/behaviorwork#lifecycle", label: "Platform" },
@@ -22,6 +24,15 @@ const navItems = [
 ] as const;
 
 export function BehaviorWorkHeader() {
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 20);
+    onScroll(); // check on mount
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   const trackHeaderCta = () => {
     trackBehaviorWorkCtaClick({
       section: "header",
@@ -31,7 +42,14 @@ export function BehaviorWorkHeader() {
   };
 
   return (
-    <header className="sticky top-0 z-50 border-b border-amber-100/60 bg-[#FFFBF0]/90 backdrop-blur-md supports-[backdrop-filter]:bg-[#FFFBF0]/80">
+    <header
+      className={cn(
+        "sticky top-0 z-50 transition-all duration-300",
+        scrolled
+          ? "border-b border-amber-200/60 bg-[#FFFBF0]/95 shadow-sm shadow-amber-100/40 backdrop-blur-xl supports-[backdrop-filter]:bg-[#FFFBF0]/85"
+          : "border-b border-transparent bg-[#FFFBF0]/80 backdrop-blur-md"
+      )}
+    >
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5 sm:px-6 lg:px-8">
         {/* Logo */}
         <Link
@@ -40,7 +58,10 @@ export function BehaviorWorkHeader() {
           aria-label="BehaviorWork home"
         >
           <span className="relative inline-block text-3xl tracking-[-0.08em] text-[#5788FF]">
-            <span className="relative z-10"><span className="font-light">Behavior</span><span className="font-extrabold">Work</span></span>
+            <span className="relative z-10">
+              <span className="font-light">Behavior</span>
+              <span className="font-extrabold">Work</span>
+            </span>
             <span className="absolute bottom-[3px] left-0 -right-3 z-0 h-[4px] rounded-full bg-[#FFDC33]/50" />
           </span>
         </Link>
@@ -87,9 +108,20 @@ export function BehaviorWorkHeader() {
               <Menu className="h-5 w-5" />
             </Button>
           </SheetTrigger>
-          <SheetContent side="right" className="w-72 border-amber-100 bg-[#FFFBF0] sm:w-80">
+          <SheetContent
+            side="right"
+            className="w-72 border-amber-100 bg-[#FFFBF0] sm:w-80"
+          >
             <SheetHeader>
-              <SheetTitle className="tracking-[-0.08em] text-[#5788FF]"><span className="relative inline-block"><span className="relative z-10"><span className="font-light">Behavior</span><span className="font-extrabold">Work</span></span><span className="absolute bottom-[3px] left-0 -right-3 z-0 h-[4px] rounded-full bg-[#FFDC33]/50" /></span></SheetTitle>
+              <SheetTitle className="tracking-[-0.08em] text-[#5788FF]">
+                <span className="relative inline-block">
+                  <span className="relative z-10">
+                    <span className="font-light">Behavior</span>
+                    <span className="font-extrabold">Work</span>
+                  </span>
+                  <span className="absolute bottom-[3px] left-0 -right-3 z-0 h-[4px] rounded-full bg-[#FFDC33]/50" />
+                </span>
+              </SheetTitle>
               <SheetDescription>
                 The growth engine for ABA agencies.
               </SheetDescription>
