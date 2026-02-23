@@ -44,7 +44,7 @@ export function BehaviorWorkHeader() {
   return (
     <header
       className={cn(
-        "fixed left-0 right-0 top-0 z-50 will-change-transform transition-[background-color,border-color,box-shadow] duration-300",
+        "fixed inset-x-0 top-0 z-50 transition-all duration-300",
         scrolled
           ? "border-b border-amber-200/60 bg-[#FFFBF0] shadow-sm shadow-amber-100/40 sm:bg-[#FFFBF0]/95 sm:backdrop-blur-xl sm:supports-[backdrop-filter]:bg-[#FFFBF0]/85"
           : "border-b border-transparent bg-[#FFFBF0]"
