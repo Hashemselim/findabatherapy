@@ -10,11 +10,10 @@ import {
   HelpCircle,
   LogOut,
   MessageSquare,
+  Settings,
   User,
 } from "lucide-react";
 
-import { buttonVariants } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
   Collapsible,
   CollapsibleContent,
@@ -35,7 +34,7 @@ import { signOut } from "@/lib/auth/actions";
 import { cn } from "@/lib/utils";
 import type { NavItem } from "./nav-section";
 import {
-  persistentItems,
+  mainNavItems,
   sectionNav,
   onboardingNavItem,
   inferActiveSectionFromPath,
@@ -49,16 +48,16 @@ export type { NavItem };
 // Section state persistence
 // ---------------------------------------------------------------------------
 
-const SECTION_STORAGE_KEY = "dashboard_sections_v2";
+const SECTION_STORAGE_KEY = "dashboard_sections_v3";
 
-type SectionId = "clients" | "intake_pages" | "team" | "settings";
+type SectionId = string;
 
 function getDefaultOpenState(): Record<SectionId, boolean> {
   const state: Record<string, boolean> = {};
   for (const s of sectionNav) {
     state[s.id] = s.defaultOpen;
   }
-  return state as Record<SectionId, boolean>;
+  return state;
 }
 
 function loadSectionState(): Record<SectionId, boolean> {
@@ -112,6 +111,12 @@ interface DashboardSidebarProps {
 }
 
 // ---------------------------------------------------------------------------
+// Brand color
+// ---------------------------------------------------------------------------
+
+const BRAND_BLUE = "#5788FF";
+
+// ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
@@ -134,7 +139,7 @@ export function DashboardSidebar({
 
   // Auto-expand section containing current route
   useEffect(() => {
-    const activeSection = inferActiveSectionFromPath(pathname) as SectionId | null;
+    const activeSection = inferActiveSectionFromPath(pathname);
     if (activeSection) {
       setSectionOpen((prev) => {
         if (prev[activeSection]) return prev;
@@ -187,24 +192,24 @@ export function DashboardSidebar({
     return 0;
   }
 
-  const containerClasses = cn(
-    "flex h-full w-full flex-col justify-between overflow-y-auto p-4",
-    !inSheet && "rounded-2xl border border-border/60 bg-white shadow-sm dark:bg-zinc-950"
-  );
-
   // If custom nav items are provided (demo mode), use the old simple list
   if (customNavItems) {
     return (
       <aside
         data-tour={dataTour}
-        className={containerClasses}
+        className={cn(
+          "flex h-full w-full flex-col justify-between overflow-y-auto",
+          !inSheet && "bg-white dark:bg-zinc-950"
+        )}
       >
-        <div className="space-y-4">
+        <div className="px-5 py-6">
           <nav className="space-y-1">
-            {customNavItems.map((item) => renderNavLink(item as NavItemConfig, pathname, isOnboardingComplete, isDemo, getBadgeCount))}
+            {customNavItems.map((item) =>
+              renderNavLink(item as NavItemConfig, pathname, isOnboardingComplete, isDemo, getBadgeCount)
+            )}
           </nav>
         </div>
-        <div className="border-t border-border/60 pt-4">
+        <div className="px-5 pb-4">
           {isDemo && <p className="text-center text-xs text-muted-foreground">Demo mode - changes won&apos;t be saved</p>}
         </div>
       </aside>
@@ -214,59 +219,41 @@ export function DashboardSidebar({
   return (
     <aside
       data-tour={dataTour}
-      className={containerClasses}
+      className={cn(
+        "flex h-full w-full flex-col justify-between overflow-y-auto",
+        !inSheet && "bg-white dark:bg-zinc-950"
+      )}
     >
-      <div className="space-y-3">
-        {/* Company profile card */}
-        {companyProfile && (
-          <div className="flex items-center gap-3 rounded-xl border border-border/60 bg-background/50 p-3">
-            <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg border border-border/60">
-              {companyProfile.logoUrl ? (
-                <NextImage
-                  src={companyProfile.logoUrl}
-                  alt={companyProfile.name}
-                  fill
-                  sizes="40px"
-                  className="object-cover"
-                />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center bg-[#5788FF]/10 text-sm font-bold text-[#5788FF]">
-                  {companyProfile.name
-                    .split(" ")
-                    .map((w) => w[0])
-                    .slice(0, 2)
-                    .join("")}
-                </div>
-              )}
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium text-foreground">{companyProfile.name}</p>
-              <Badge variant="secondary" className="mt-0.5 text-xs">
-                {(companyProfile.planTier === "pro" || companyProfile.planTier === "enterprise") &&
-                (companyProfile.subscriptionStatus === "active" || companyProfile.subscriptionStatus === "trialing")
-                  ? companyProfile.planTier === "enterprise"
-                    ? "Enterprise Plan"
-                    : "Pro Plan"
-                  : "Free Plan"}
-              </Badge>
-            </div>
-          </div>
-        )}
-
-        {/* Persistent top-level items: Notifications & Tasks */}
-        <div className="space-y-1">
-          {!isOnboardingComplete && renderNavLink(onboardingNavItem, pathname, isOnboardingComplete, isDemo, getBadgeCount)}
-          {persistentItems.map((item) =>
-            renderNavLink(item, pathname, isOnboardingComplete, isDemo, getBadgeCount)
-          )}
+      {/* Top: Logo */}
+      <div className="flex flex-col">
+        <div className="flex items-center gap-2.5 px-6 pb-2 pt-6">
+          <NextImage
+            src="/logo-icon.png"
+            alt="BehaviorWork"
+            width={32}
+            height={32}
+            className="shrink-0"
+          />
+          <span className="text-lg font-bold tracking-tight text-foreground">
+            BehaviorWork
+          </span>
         </div>
 
-        <div className="h-px bg-border/60" />
+        {/* Divider */}
+        <div className="mx-5 my-4 h-px bg-border/50" />
 
-        {/* Collapsible section groups */}
-        <nav className="space-y-1.5">
+        {/* Main nav items */}
+        <nav className="space-y-0.5 px-3">
+          {!isOnboardingComplete && renderNavLink(onboardingNavItem, pathname, isOnboardingComplete, isDemo, getBadgeCount)}
+          {mainNavItems.map((item) =>
+            renderNavLink(item, pathname, isOnboardingComplete, isDemo, getBadgeCount)
+          )}
+        </nav>
+
+        {/* Collapsible sections */}
+        <div className="mt-1 space-y-0.5 px-3">
           {sectionNav.map((section) => {
-            const isOpen = sectionOpen[section.id as SectionId] ?? section.defaultOpen;
+            const isOpen = sectionOpen[section.id] ?? section.defaultOpen;
             const SectionIcon = section.icon;
             const hasActiveChild = section.items.some((item) => isNavItemActive(item, pathname));
 
@@ -280,43 +267,44 @@ export function DashboardSidebar({
               <Collapsible
                 key={section.id}
                 open={isOpen}
-                onOpenChange={() => toggleSection(section.id as SectionId)}
+                onOpenChange={() => toggleSection(section.id)}
               >
                 <CollapsibleTrigger
                   className={cn(
-                    "flex w-full items-center justify-between rounded-xl bg-blue-50/80 px-3 py-2 text-sm font-medium text-muted-foreground transition-all duration-200 hover:bg-blue-100/80 dark:bg-blue-950/25 dark:hover:bg-blue-900/30",
-                    hasActiveChild && "ring-[1.5px] ring-inset ring-blue-500 text-blue-900 dark:text-blue-100 dark:ring-blue-400"
+                    "group relative flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                    hasActiveChild && !isOpen
+                      ? "text-foreground"
+                      : "text-zinc-600 dark:text-zinc-400 hover:text-foreground"
                   )}
                 >
-                  <div className="flex items-center gap-2.5">
-                    <SectionIcon
-                      className={cn(
-                        "h-4 w-4",
-                        hasActiveChild ? "text-blue-600 dark:text-blue-400" : "text-blue-400 dark:text-blue-500"
-                      )}
-                      aria-hidden
+                  {/* Active indicator bar (left side) - show when section has active child */}
+                  {hasActiveChild && !isOpen && (
+                    <span
+                      className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full"
+                      style={{ backgroundColor: BRAND_BLUE }}
                     />
-                    <span className="text-xs font-semibold uppercase tracking-wider">
-                      {section.label}
-                    </span>
-                  </div>
+                  )}
+                  <SectionIcon className="h-[18px] w-[18px] shrink-0" aria-hidden />
+                  <span className="flex-1 text-left">{section.label}</span>
                   <div className="flex items-center gap-1.5">
                     {!isOpen && sectionBadgeTotal > 0 && (
-                      <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-semibold text-primary-foreground">
+                      <span
+                        className="flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] font-semibold text-white"
+                        style={{ backgroundColor: BRAND_BLUE }}
+                      >
                         {sectionBadgeTotal > 99 ? "99+" : sectionBadgeTotal}
                       </span>
                     )}
                     <ChevronDown
                       className={cn(
-                        "h-3.5 w-3.5 transition-transform duration-200",
-                        hasActiveChild ? "text-blue-600 dark:text-blue-400" : "text-muted-foreground",
+                        "h-4 w-4 shrink-0 text-muted-foreground/50 transition-transform duration-200",
                         isOpen && "rotate-180"
                       )}
                       aria-hidden
                     />
                   </div>
                 </CollapsibleTrigger>
-                <CollapsibleContent className="space-y-0.5 pl-2 pt-0.5">
+                <CollapsibleContent className="space-y-0.5 pb-1 pl-3 pt-0.5">
                   {section.items.map((item) =>
                     renderNavLink(item, pathname, isOnboardingComplete, isDemo, getBadgeCount)
                   )}
@@ -324,46 +312,82 @@ export function DashboardSidebar({
               </Collapsible>
             );
           })}
-        </nav>
+        </div>
 
+        {/* General section label */}
+        <div className="mx-5 my-3 h-px bg-border/50" />
+        <div className="px-6 pb-2">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/60">
+            General
+          </span>
+        </div>
+
+        {/* Settings link */}
+        <nav className="space-y-0.5 px-3">
+          {renderNavLink(
+            {
+              href: "/dashboard/settings",
+              label: "Settings",
+              icon: Settings,
+              exactMatch: true,
+            },
+            pathname,
+            isOnboardingComplete,
+            isDemo,
+            getBadgeCount
+          )}
+        </nav>
       </div>
 
-      {/* User account dropdown */}
-      <div className="border-t border-border/60 pt-4">
+      {/* Bottom: Company account dropdown */}
+      <div className="mt-auto px-3 pb-4 pt-4">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
               type="button"
-              className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-accent"
+              className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-accent"
             >
-              <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full border border-border/60 bg-muted">
-                {userProfile?.avatarUrl ? (
+              {/* Company logo */}
+              <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-lg border border-border/50">
+                {companyProfile?.logoUrl ? (
                   <NextImage
-                    src={userProfile.avatarUrl}
-                    alt={userProfile.name}
+                    src={companyProfile.logoUrl}
+                    alt={companyProfile?.name ?? "Company"}
                     fill
                     sizes="36px"
                     className="object-cover"
                   />
                 ) : (
-                  <div className="flex h-full w-full items-center justify-center text-sm font-medium text-muted-foreground">
-                    {userProfile?.name
+                  <div
+                    className="flex h-full w-full items-center justify-center text-xs font-bold text-white"
+                    style={{ backgroundColor: BRAND_BLUE }}
+                  >
+                    {companyProfile?.name
                       ?.split(" ")
                       .map((w) => w[0])
                       .slice(0, 2)
                       .join("")
-                      .toUpperCase() || <User className="h-4 w-4" />}
+                      .toUpperCase() || "BW"}
                   </div>
                 )}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-foreground">{userProfile?.name || "Account"}</p>
-                {userProfile?.email && <p className="truncate text-xs text-muted-foreground">{userProfile.email}</p>}
+                <p className="truncate text-sm font-medium text-foreground">
+                  {companyProfile?.name || "My Company"}
+                </p>
+                <p className="truncate text-xs text-muted-foreground">
+                  {(companyProfile?.planTier === "pro" || companyProfile?.planTier === "enterprise") &&
+                  (companyProfile?.subscriptionStatus === "active" || companyProfile?.subscriptionStatus === "trialing")
+                    ? companyProfile.planTier === "enterprise"
+                      ? "Enterprise"
+                      : "Pro Plan"
+                    : "Free Plan"}
+                </p>
               </div>
-              <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+              <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground/50" />
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
+          <DropdownMenuContent align="start" side="top" className="w-56">
             <DropdownMenuItem asChild>
               <Link href="/dashboard/account" className="cursor-pointer">
                 <User className="mr-2 h-4 w-4" />
@@ -407,7 +431,7 @@ export function DashboardSidebar({
 }
 
 // ---------------------------------------------------------------------------
-// Shared nav item renderer
+// Shared nav item renderer — Donezo-style with left active indicator
 // ---------------------------------------------------------------------------
 
 function renderNavLink(
@@ -427,22 +451,36 @@ function renderNavLink(
       key={item.href}
       href={item.href}
       className={cn(
-        buttonVariants({ variant: "ghost" }),
-        "min-h-[44px] w-full justify-start gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
+        "group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
         isActive
-          ? "bg-primary text-primary-foreground shadow-sm"
-          : "text-muted-foreground hover:bg-accent hover:text-foreground",
-        isLocked && "pointer-events-none opacity-60"
+          ? "bg-[#5788FF]/[0.08] text-foreground"
+          : "text-zinc-600 dark:text-zinc-400 hover:bg-accent/50 hover:text-foreground",
+        isLocked && "pointer-events-none opacity-50"
       )}
     >
-      <Icon className="h-4 w-4" aria-hidden />
+      {/* Active indicator bar */}
+      {isActive && (
+        <span
+          className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full"
+          style={{ backgroundColor: BRAND_BLUE }}
+        />
+      )}
+      <Icon
+        className={cn(
+          "h-[18px] w-[18px] shrink-0",
+          isActive && "text-[#5788FF]"
+        )}
+        aria-hidden
+      />
       <span className="flex flex-1 items-center gap-1.5">
         {item.label}
         {item.proBadge && (
           <span
             className={cn(
               "rounded px-1.5 py-0.5 text-[10px] font-semibold",
-              isActive ? "bg-white/20 text-white" : "bg-blue-100 text-blue-700"
+              isActive
+                ? "bg-[#5788FF]/20 text-[#5788FF]"
+                : "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
             )}
           >
             Pro
@@ -451,10 +489,8 @@ function renderNavLink(
       </span>
       {badgeCount > 0 && (
         <span
-          className={cn(
-            "flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-xs font-semibold",
-            isActive ? "bg-white/20 text-white" : "bg-primary text-primary-foreground"
-          )}
+          className="flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] font-semibold text-white"
+          style={{ backgroundColor: BRAND_BLUE }}
         >
           {badgeCount > 99 ? "99+" : badgeCount}
         </span>

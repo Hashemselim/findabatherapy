@@ -36,7 +36,7 @@ export function DashboardShell({
   sidebarDataTour,
 }: DashboardShellProps) {
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-[#F5F5F0] text-foreground dark:bg-zinc-900">
       {demoBanner}
       {/* Fixed header - mobile only (hidden on lg+) */}
       <div className="fixed left-0 right-0 top-0 z-40 lg:hidden">
@@ -60,14 +60,14 @@ export function DashboardShell({
         />
       </div>
 
-      {/* Main layout with fixed sidebar */}
+      {/* Main layout */}
       {/* Mobile: header (3.5rem) + border (1px) + mobile nav (~2.5rem) + spacing (1rem) */}
       {/* Desktop sm: header (4rem) + border (1px) + mobile nav (~2.5rem) + spacing (1.5rem) */}
-      {/* Desktop lg: no header, just spacing (2rem) */}
-      <div className="container flex gap-6 px-4 pt-[calc(3.5rem+1px+2.5rem+1rem)] sm:px-6 sm:pt-[calc(4rem+1px+2.5rem+1.5rem)] lg:pt-8">
-        {/* Fixed sidebar - positioned relative to container */}
-        <div className="hidden w-72 flex-none lg:block">
-          <div className="fixed w-72 top-8" style={{ height: 'calc(100vh - 4rem)' }}>
+      {/* Desktop lg: no header, just spacing */}
+      <div className="flex min-h-screen pt-[calc(3.5rem+1px+2.5rem+1rem)] sm:pt-[calc(4rem+1px+2.5rem+1.5rem)] lg:pt-0">
+        {/* Fixed sidebar */}
+        <div className="hidden w-[250px] flex-none lg:block">
+          <div className="fixed left-0 top-0 h-screen w-[250px] border-r border-border/40 bg-white dark:bg-zinc-950">
             <DashboardSidebar
               isOnboardingComplete={isOnboardingComplete}
               isDemo={isDemo}
@@ -82,9 +82,11 @@ export function DashboardShell({
         </div>
 
         {/* Scrolling main content */}
-        <main className="min-w-0 flex-1 pb-6 sm:pb-8">
-          <div className="rounded-2xl border border-border/60 bg-card p-4 shadow-sm sm:p-6">
-            {children}
+        <main className="min-w-0 flex-1 px-4 py-6 sm:px-8 sm:py-8">
+          <div className="mx-auto max-w-6xl">
+            <div className="rounded-2xl border border-border/50 bg-white p-5 shadow-sm dark:bg-zinc-950 sm:p-7">
+              {children}
+            </div>
           </div>
         </main>
       </div>

@@ -11,15 +11,18 @@
 import {
   BarChart3,
   Bell,
+  BookOpen,
   Briefcase,
   Building2,
   CheckSquare,
+  ClipboardList,
   CreditCard,
   FileInput,
-  FileText,
+  Globe,
   LayoutDashboard,
   Mail,
   MapPin,
+  MessageSquare,
   Palette,
   Settings,
   User,
@@ -59,7 +62,57 @@ export interface NavSectionConfig {
 }
 
 // ---------------------------------------------------------------------------
-// Persistent items (always visible above sections)
+// Main navigation items (flat, top-level — displayed in order)
+// ---------------------------------------------------------------------------
+
+export const mainNavItems: NavItemConfig[] = [
+  {
+    href: "/dashboard/clients/pipeline",
+    label: "Dashboard",
+    icon: LayoutDashboard,
+    quickLink: true,
+    aliases: ["/dashboard/client-growth"],
+  },
+  {
+    href: "/dashboard/tasks",
+    label: "Tasks",
+    icon: CheckSquare,
+    showBadge: true,
+    quickLink: true,
+    aliases: ["/dashboard/operations/tasks"],
+  },
+  {
+    href: "/dashboard/notifications",
+    label: "Notifications",
+    icon: Bell,
+    showBadge: true,
+    quickLink: true,
+    aliases: ["/dashboard/inbox", "/dashboard/client-growth/notifications"],
+  },
+  {
+    href: "/dashboard/clients/leads",
+    label: "Leads",
+    icon: UserPlus,
+    quickLink: true,
+  },
+  {
+    href: "/dashboard/clients",
+    label: "Clients",
+    icon: UserCircle,
+    exactMatch: true,
+    quickLink: true,
+    aliases: ["/dashboard/operations/clients"],
+  },
+  {
+    href: "/dashboard/clients/communications",
+    label: "Communications",
+    icon: Mail,
+    proBadge: true,
+  },
+];
+
+// ---------------------------------------------------------------------------
+// Legacy persistent items (kept for backwards compat)
 // ---------------------------------------------------------------------------
 
 export const persistentItems: NavItemConfig[] = [
@@ -82,63 +135,44 @@ export const persistentItems: NavItemConfig[] = [
 ];
 
 // ---------------------------------------------------------------------------
-// Section-based navigation
+// Section-based navigation (collapsible groups)
 // ---------------------------------------------------------------------------
 
 export const sectionNav: NavSectionConfig[] = [
   {
-    id: "clients",
-    label: "Clients",
-    icon: Users,
-    defaultOpen: true,
-    items: [
-      {
-        href: "/dashboard/clients/pipeline",
-        label: "Pipeline",
-        icon: LayoutDashboard,
-        quickLink: true,
-        aliases: ["/dashboard/client-growth"],
-      },
-      {
-        href: "/dashboard/clients/leads",
-        label: "Leads",
-        icon: UserPlus,
-        quickLink: true,
-      },
-      {
-        href: "/dashboard/clients",
-        label: "All Clients",
-        icon: UserCircle,
-        exactMatch: true,
-        quickLink: true,
-        aliases: ["/dashboard/operations/clients"],
-      },
-      {
-        href: "/dashboard/clients/communications",
-        label: "Communications",
-        icon: Mail,
-        proBadge: true,
-      },
-    ],
-  },
-  {
-    id: "intake_pages",
-    label: "Branded Pages",
+    id: "forms",
+    label: "Forms",
     icon: FileInput,
     defaultOpen: false,
     items: [
       {
-        href: "/dashboard/branded-pages",
-        label: "All Pages",
-        icon: FileText,
+        href: "/dashboard/forms/contact",
+        label: "Contact Form",
+        icon: MessageSquare,
         aliases: [
+          "/dashboard/branded-pages",
           "/dashboard/forms",
-          "/dashboard/intake-pages/intake-form",
           "/dashboard/intake-pages/contact-form",
-          "/dashboard/intake-pages/resources",
-          "/dashboard/intake-pages/branded-page",
           "/dashboard/operations/forms",
         ],
+      },
+      {
+        href: "/dashboard/forms/intake",
+        label: "Intake Form",
+        icon: ClipboardList,
+        aliases: ["/dashboard/intake-pages/intake-form"],
+      },
+      {
+        href: "/dashboard/forms/agency",
+        label: "Agency Brochure",
+        icon: Globe,
+        aliases: ["/dashboard/intake-pages/branded-page"],
+      },
+      {
+        href: "/dashboard/forms/resources",
+        label: "Family Resources",
+        icon: BookOpen,
+        aliases: ["/dashboard/intake-pages/resources"],
       },
       {
         href: "/dashboard/branding",
@@ -183,9 +217,9 @@ export const sectionNav: NavSectionConfig[] = [
     ],
   },
   {
-    id: "settings",
-    label: "Company & Settings",
-    icon: Settings,
+    id: "company",
+    label: "Company",
+    icon: Building2,
     defaultOpen: false,
     items: [
       {
@@ -212,10 +246,10 @@ export const sectionNav: NavSectionConfig[] = [
         aliases: ["/dashboard/client-growth/analytics", "/dashboard/analytics"],
       },
       {
-        href: "/dashboard/settings/billing",
-        label: "Billing",
-        icon: CreditCard,
-        aliases: ["/dashboard/billing"],
+        href: "/dashboard/settings",
+        label: "Settings",
+        icon: Settings,
+        exactMatch: true,
       },
     ],
   },
@@ -235,21 +269,21 @@ export const onboardingNavItem: NavItemConfig = {
 // Derived helpers
 // ---------------------------------------------------------------------------
 
-/** All nav items flattened (persistent + all section items). */
+/** All nav items flattened (main + all section items). */
 export function getAllNavItems(): NavItemConfig[] {
   return [
-    ...persistentItems,
+    ...mainNavItems,
     ...sectionNav.flatMap((s) => s.items),
   ];
 }
 
 /**
  * Quick-link items for the mobile slider, preserving section grouping.
- * Returns an array of groups: persistent items first, then each section
+ * Returns an array of groups: main items first, then each section
  * that has at least one quickLink item.
  */
 export interface QuickLinkGroup {
-  /** null for persistent items, section id for section items */
+  /** null for main items, section id for section items */
   sectionId: string | null;
   sectionLabel: string | null;
   items: NavItemConfig[];
@@ -258,10 +292,10 @@ export interface QuickLinkGroup {
 export function getQuickLinkGroups(): QuickLinkGroup[] {
   const groups: QuickLinkGroup[] = [];
 
-  // Persistent quick links
-  const persistentQL = persistentItems.filter((i) => i.quickLink);
-  if (persistentQL.length > 0) {
-    groups.push({ sectionId: null, sectionLabel: null, items: persistentQL });
+  // Main quick links
+  const mainQL = mainNavItems.filter((i) => i.quickLink);
+  if (mainQL.length > 0) {
+    groups.push({ sectionId: null, sectionLabel: null, items: mainQL });
   }
 
   // Section quick links
@@ -303,7 +337,7 @@ export function isNavItemActive(
 
 /**
  * Infer which section contains the currently active route.
- * Returns the section id, or null if the active route is a persistent item
+ * Returns the section id, or null if the active route is a main item
  * or not found.
  */
 export function inferActiveSectionFromPath(
