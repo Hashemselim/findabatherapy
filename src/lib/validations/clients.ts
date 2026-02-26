@@ -75,6 +75,12 @@ export const DOCUMENT_TYPE_OPTIONS = [
   { value: "iep", label: "IEP" },
   { value: "medical_records", label: "Medical Records" },
   { value: "consent", label: "Consent Form" },
+  { value: "diagnosis_report", label: "Diagnosis Report" },
+  { value: "referral", label: "Referral" },
+  { value: "authorization", label: "Authorization" },
+  { value: "treatment_plan", label: "Treatment Plan" },
+  { value: "legal", label: "Legal" },
+  { value: "administrative", label: "Administrative" },
   { value: "other", label: "Other" },
 ] as const;
 
@@ -192,7 +198,7 @@ export const GRADE_LEVEL_OPTIONS = [
 export const LOCATION_LABEL_OPTIONS = [
   { value: "home", label: "Home" },
   { value: "school", label: "School" },
-  { value: "clinic", label: "Clinic" },
+  { value: "clinic", label: "Center/Clinic" },
   { value: "daycare", label: "Daycare" },
   { value: "grandparents", label: "Grandparents' Home" },
   { value: "other", label: "Other" },
@@ -275,6 +281,12 @@ export const documentTypeSchema = z.enum([
   "iep",
   "medical_records",
   "consent",
+  "diagnosis_report",
+  "referral",
+  "authorization",
+  "treatment_plan",
+  "legal",
+  "administrative",
   "other",
 ]);
 
@@ -408,8 +420,22 @@ export const clientDocumentSchema = z.object({
   label: z.string().max(200).optional().or(z.literal("")),
   url: z.string().url("Please enter a valid URL").optional().or(z.literal("")),
   file_path: z.string().optional().or(z.literal("")),
+  file_name: z.string().max(255).optional().or(z.literal("")),
+  file_description: z.string().max(2000).optional().or(z.literal("")),
+  file_size: z.number().int().nonnegative().optional(),
+  file_type: z.string().max(100).optional().or(z.literal("")),
+  upload_source: z.enum(["dashboard", "intake_form"]).default("dashboard"),
+  uploaded_by: z.string().uuid().optional(),
   notes: z.string().max(2000).optional().or(z.literal("")),
   sort_order: z.number().int().default(0),
+});
+
+// Upload form schema (excludes server-set fields)
+export const clientDocumentUploadSchema = z.object({
+  label: z.string().min(1, "Document name is required").max(200),
+  document_type: documentTypeSchema.optional(),
+  file_description: z.string().max(2000).optional().or(z.literal("")),
+  notes: z.string().max(2000).optional().or(z.literal("")),
 });
 
 // Task schema
@@ -585,6 +611,7 @@ export type ClientInsurance = z.infer<typeof clientInsuranceSchema>;
 export type ClientAuthorizationService = z.infer<typeof clientAuthorizationServiceSchema>;
 export type ClientAuthorization = z.infer<typeof clientAuthorizationSchema>;
 export type ClientDocument = z.infer<typeof clientDocumentSchema>;
+export type ClientDocumentUpload = z.infer<typeof clientDocumentUploadSchema>;
 export type ClientTask = z.infer<typeof clientTaskSchema>;
 export type ClientContact = z.infer<typeof clientContactSchema>;
 

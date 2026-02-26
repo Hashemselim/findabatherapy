@@ -8,6 +8,8 @@ import {
   Shield,
   Link2,
   FileText,
+  FileImage,
+  File,
   CheckSquare,
   ExternalLink,
   Copy,
@@ -21,6 +23,9 @@ import {
   Stethoscope,
   ClipboardList,
   Mail,
+  Upload,
+  Eye,
+  Download,
   type LucideIcon,
 } from "lucide-react";
 import { useState, useTransition } from "react";
@@ -55,6 +60,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
   calculateAge,
@@ -79,11 +85,12 @@ import {
   deleteClientAuthorization,
   deleteClientLocation,
   deleteClientDocument,
-  addClientDocument,
-  updateClientDocument,
+  getDocumentSignedUrl,
+  downloadClientDocument,
 } from "@/lib/actions/clients";
 import type { ClientDetail } from "@/lib/actions/clients";
-import { TASK_STATUS_OPTIONS, type ClientTask } from "@/lib/validations/clients";
+import { TASK_STATUS_OPTIONS, DOCUMENT_TYPE_OPTIONS, type ClientTask } from "@/lib/validations/clients";
+import { formatFileSize, getDocumentIconName } from "@/lib/storage/config";
 
 import { ClientStatusBadge } from "@/components/dashboard/clients/client-status-badge";
 import { TaskFormDialog } from "@/components/dashboard/tasks";
@@ -98,7 +105,9 @@ import {
   StatusEditDialog,
 } from "@/components/dashboard/clients/edit";
 import { SendCommunicationDialog } from "@/components/dashboard/clients/send-communication-dialog";
+import { createIntakeToken } from "@/lib/actions/intake";
 import { CommunicationHistory } from "@/components/dashboard/clients/communication-history";
+import { DocumentEditDialog } from "@/components/dashboard/clients/edit/document-edit-dialog";
 
 interface ClientFullDetailProps {
   client: ClientDetail;
@@ -286,11 +295,13 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
   const [communicationDialogOpen, setCommunicationDialogOpen] = useState(false);
   const [communicationRefreshKey, setCommunicationRefreshKey] = useState(0);
 
-  // Link management state
-  const [isAddingLink, setIsAddingLink] = useState(false);
-  const [editingLinkId, setEditingLinkId] = useState<string | null>(null);
-  const [linkForm, setLinkForm] = useState({ label: "", url: "", notes: "" });
-  const [linkError, setLinkError] = useState<string | null>(null);
+  // Intake token state
+  const [intakeLinkCopied, setIntakeLinkCopied] = useState(false);
+  const [intakeLinkLoading, setIntakeLinkLoading] = useState(false);
+
+  // Document management state
+  const [documentDialogOpen, setDocumentDialogOpen] = useState(false);
+  const [editingDocument, setEditingDocument] = useState<(typeof client.documents)[number] | undefined>(undefined);
 
   const age = client.child_date_of_birth ? calculateAge(client.child_date_of_birth) : null;
   const childName = [client.child_first_name, client.child_last_name].filter(Boolean).join(" ") || "Client";
@@ -360,70 +371,47 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
     setTaskDialogOpen(true);
   };
 
-  // Link handlers
-  const resetLinkForm = () => {
-    setLinkForm({ label: "", url: "", notes: "" });
-    setLinkError(null);
-    setIsAddingLink(false);
-    setEditingLinkId(null);
+  // Document handlers
+  const handleViewDocument = async (docId: string) => {
+    const result = await getDocumentSignedUrl(docId);
+    if (result.success && result.data) {
+      window.open(result.data.url, "_blank");
+    } else {
+      toast.error(result.success === false ? result.error : "Failed to open document. Please try again.");
+    }
   };
 
-  const startEditLink = (doc: { id?: string; label?: string | null; url?: string | null; notes?: string | null }) => {
-    setLinkForm({
-      label: doc.label || "",
-      url: doc.url || "",
-      notes: doc.notes || "",
-    });
-    setEditingLinkId(doc.id || null);
-    setIsAddingLink(false);
-    setLinkError(null);
+  const handleDownloadDocument = async (docId: string) => {
+    const result = await downloadClientDocument(docId);
+    if (result.success && result.data) {
+      window.open(result.data.url, "_blank");
+    } else {
+      toast.error(result.success === false ? result.error : "Failed to download document. Please try again.");
+    }
   };
 
-  const handleSaveLink = async () => {
-    setLinkError(null);
+  const handleEditDocument = (doc: (typeof client.documents)[number]) => {
+    setEditingDocument(doc);
+    setDocumentDialogOpen(true);
+  };
 
-    // Validate
-    if (!linkForm.label.trim()) {
-      setLinkError("Label is required");
-      return;
-    }
-    if (!linkForm.url.trim()) {
-      setLinkError("URL is required");
-      return;
-    }
+  const handleAddDocument = () => {
+    setEditingDocument(undefined);
+    setDocumentDialogOpen(true);
+  };
 
-    // Basic URL validation
+  const handleSendIntakeForm = async () => {
+    setIntakeLinkLoading(true);
     try {
-      new URL(linkForm.url);
-    } catch {
-      setLinkError("Please enter a valid URL");
-      return;
+      const result = await createIntakeToken(client.id);
+      if (result.success && result.data) {
+        await navigator.clipboard.writeText(result.data.url);
+        setIntakeLinkCopied(true);
+        setTimeout(() => setIntakeLinkCopied(false), 3000);
+      }
+    } finally {
+      setIntakeLinkLoading(false);
     }
-
-    startTransition(async () => {
-      const data = {
-        label: linkForm.label.trim(),
-        url: linkForm.url.trim(),
-        notes: linkForm.notes.trim() || undefined,
-      };
-
-      let result;
-      if (editingLinkId) {
-        result = await updateClientDocument(editingLinkId, data);
-      } else {
-        result = await addClientDocument(client.id, data);
-      }
-
-      if (result.success) {
-        resetLinkForm();
-      } else {
-        setLinkError(result.error || "Failed to save link");
-      }
-    });
-  };
-
-  const handleCopyUrl = async (url: string) => {
-    await navigator.clipboard.writeText(url);
   };
 
   return (
@@ -536,12 +524,12 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
           </CardContent>
         </Card>
 
-        {/* SECTION 3: Service Locations */}
+        {/* SECTION 3: Locations */}
         <Card>
           <CardContent className="pt-6">
             <SectionHeader
               icon={MapPin}
-              title="Service Locations"
+              title="Locations"
               badgeCount={client.locations?.length}
               onAdd={() => {
                 setEditingLocation(undefined);
@@ -1163,174 +1151,95 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
           </CardContent>
         </Card>
 
-        {/* SECTION 9: Links */}
+        {/* SECTION 9: Documents */}
         <Card>
           <CardContent className="pt-6">
             <SectionHeader
-              icon={Link2}
-              title="Links"
+              icon={FileText}
+              title="Documents"
               badgeCount={client.documents?.length}
               rightContent={
-                !isAddingLink && !editingLinkId && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setIsAddingLink(true);
-                      setLinkForm({ label: "", url: "", notes: "" });
-                      setLinkError(null);
-                    }}
-                  >
-                    <Plus className="h-4 w-4 mr-1" />
-                    Add
-                  </Button>
-                )
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleAddDocument}
+                >
+                  <Upload className="h-4 w-4 mr-1" />
+                  Upload
+                </Button>
               }
             />
-            {/* Add Link Form */}
-            {isAddingLink && (
-              <div className="mb-4 p-4 rounded-lg border bg-muted/30 space-y-3">
-                <div className="space-y-2">
-                  <Label htmlFor="link-label">Label *</Label>
-                  <Input
-                    id="link-label"
-                    placeholder="e.g., Assessment Report, Insurance Card"
-                    value={linkForm.label}
-                    onChange={(e) => setLinkForm({ ...linkForm, label: e.target.value })}
-                    disabled={isPending}
-                  />                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="link-url">URL *</Label>
-                  <Input
-                    id="link-url"
-                    placeholder="https://docs.google.com/..."
-                    value={linkForm.url}
-                    onChange={(e) => setLinkForm({ ...linkForm, url: e.target.value })}
-                    disabled={isPending}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="link-notes">Notes</Label>
-                  <Textarea
-                    id="link-notes"
-                    placeholder="Optional notes about this link..."
-                    value={linkForm.notes}
-                    onChange={(e) => setLinkForm({ ...linkForm, notes: e.target.value })}
-                    disabled={isPending}
-                    rows={2}
-                  />
-                </div>
-                {linkError && (
-                  <p className="text-sm text-destructive">{linkError}</p>
-                )}
-                <div className="flex items-center gap-2 pt-2">
-                  <Button
-                    size="sm"
-                    onClick={handleSaveLink}
-                    disabled={isPending}
-                  >
-                    {isPending ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                        Saving...
-                      </>
-                    ) : (
-                      "Save Link"
-                    )}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={resetLinkForm}
-                    disabled={isPending}
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              </div>
-            )}
 
-            {/* Links List */}
             {client.documents && client.documents.length > 0 ? (
               <div className="space-y-2">
-                {client.documents.map((doc) => (
-                  editingLinkId === doc.id ? (
-                    /* Edit Form */
-                    <div key={doc.id} className="p-4 rounded-lg border bg-muted/30 space-y-3">
-                      <div className="space-y-2">
-                        <Label htmlFor={`edit-label-${doc.id}`}>Label *</Label>
-                        <Input
-                          id={`edit-label-${doc.id}`}
-                          placeholder="e.g., Assessment Report"
-                          value={linkForm.label}
-                          onChange={(e) => setLinkForm({ ...linkForm, label: e.target.value })}
-                          disabled={isPending}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor={`edit-url-${doc.id}`}>URL *</Label>
-                        <Input
-                          id={`edit-url-${doc.id}`}
-                          placeholder="https://..."
-                          value={linkForm.url}
-                          onChange={(e) => setLinkForm({ ...linkForm, url: e.target.value })}
-                          disabled={isPending}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor={`edit-notes-${doc.id}`}>Notes</Label>
-                        <Textarea
-                          id={`edit-notes-${doc.id}`}
-                          placeholder="Optional notes..."
-                          value={linkForm.notes}
-                          onChange={(e) => setLinkForm({ ...linkForm, notes: e.target.value })}
-                          disabled={isPending}
-                          rows={2}
-                        />
-                      </div>
-                      {linkError && (
-                        <p className="text-sm text-destructive">{linkError}</p>
-                      )}
-                      <div className="flex items-center gap-2 pt-2">
-                        <Button
-                          size="sm"
-                          onClick={handleSaveLink}
-                          disabled={isPending}
-                        >
-                          {isPending ? (
-                            <>
-                              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                              Saving...
-                            </>
-                          ) : (
-                            "Save"
-                          )}
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={resetLinkForm}
-                          disabled={isPending}
-                        >
-                          Cancel
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    /* Display Mode */
+                {client.documents.map((doc) => {
+                  const docRecord = doc as Record<string, unknown>;
+                  const hasFile = !!doc.file_path;
+                  const fileType = docRecord.file_type as string | null;
+                  const fileSize = docRecord.file_size as number | null;
+                  const fileName = docRecord.file_name as string | null;
+                  const fileDescription = docRecord.file_description as string | null;
+                  const docTypeLabel = DOCUMENT_TYPE_OPTIONS.find(
+                    (o) => o.value === doc.document_type
+                  )?.label;
+                  const iconType = getDocumentIconName(fileType);
+
+                  return (
                     <div
                       key={doc.id}
                       className="p-3 rounded-lg border bg-muted/30 group"
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex items-start gap-3 min-w-0 flex-1">
-                          <Link2 className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
+                          {/* File type icon */}
+                          <div className="shrink-0 mt-0.5">
+                            {iconType === "pdf" ? (
+                              <FileText className="h-5 w-5 text-red-500" />
+                            ) : iconType === "image" ? (
+                              <FileImage className="h-5 w-5 text-blue-500" />
+                            ) : iconType === "doc" ? (
+                              <FileText className="h-5 w-5 text-blue-600" />
+                            ) : hasFile ? (
+                              <File className="h-5 w-5 text-muted-foreground" />
+                            ) : (
+                              <Link2 className="h-5 w-5 text-muted-foreground" />
+                            )}
+                          </div>
                           <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2">
-                              <p className="text-sm font-medium truncate">{doc.label || "Link"}</p>
-                              {doc.label && <CopyButton value={doc.label} label="link name" />}
+                            {/* Document name + type badge */}
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <p className="text-sm font-medium truncate">
+                                {doc.label || fileName || "Document"}
+                              </p>
+                              {docTypeLabel && (
+                                <Badge variant="secondary" className="text-xs shrink-0">
+                                  {docTypeLabel}
+                                </Badge>
+                              )}
                             </div>
-                            {doc.url && (
+                            {/* Description */}
+                            {fileDescription && (
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {fileDescription}
+                              </p>
+                            )}
+                            {/* File metadata */}
+                            {hasFile && (
+                              <div className="flex items-center gap-2 mt-1">
+                                {fileSize && (
+                                  <span className="text-xs text-muted-foreground">
+                                    {formatFileSize(fileSize)}
+                                  </span>
+                                )}
+                                {fileType && (
+                                  <span className="text-xs text-muted-foreground">
+                                    {fileType.split("/").pop()?.toUpperCase()}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                            {/* URL for legacy link-type documents */}
+                            {!hasFile && doc.url && (
                               <div className="flex items-center gap-1 mt-1">
                                 <p className="text-xs text-muted-foreground truncate max-w-[250px]">
                                   {doc.url}
@@ -1338,6 +1247,7 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
                                 <CopyButton value={doc.url} label="URL" />
                               </div>
                             )}
+                            {/* Notes */}
                             {doc.notes && (
                               <p className="text-xs text-muted-foreground mt-2 whitespace-pre-wrap">
                                 {doc.notes}
@@ -1346,7 +1256,28 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
                           </div>
                         </div>
                         <div className="flex items-center gap-1 shrink-0">
-                          {doc.url && (
+                          {/* View button for uploaded files */}
+                          {hasFile && (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    onClick={() => handleViewDocument(doc.id!)}
+                                  >
+                                    <Eye className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>View document</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          )}
+                          {/* Open link for URL-based docs */}
+                          {!hasFile && doc.url && (
                             <TooltipProvider>
                               <Tooltip>
                                 <TooltipTrigger asChild>
@@ -1369,20 +1300,26 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => startEditLink(doc)}>
+                              {hasFile && (
+                                <>
+                                  <DropdownMenuItem onClick={() => handleViewDocument(doc.id!)}>
+                                    <Eye className="h-4 w-4 mr-2" />
+                                    View
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleDownloadDocument(doc.id!)}>
+                                    <Download className="h-4 w-4 mr-2" />
+                                    Download
+                                  </DropdownMenuItem>
+                                </>
+                              )}
+                              <DropdownMenuItem onClick={() => handleEditDocument(doc)}>
                                 <Pencil className="h-4 w-4 mr-2" />
                                 Edit
                               </DropdownMenuItem>
-                              {doc.url && (
-                                <DropdownMenuItem onClick={() => handleCopyUrl(doc.url!)}>
-                                  <Copy className="h-4 w-4 mr-2" />
-                                  Copy URL
-                                </DropdownMenuItem>
-                              )}
                               <DropdownMenuSeparator />
                               <DropdownMenuItem
                                 className="text-destructive"
-                                onClick={() => handleDelete("document", doc.id!, doc.label || "Link")}
+                                onClick={() => handleDelete("document", doc.id!, doc.label || "Document")}
                               >
                                 <Trash2 className="h-4 w-4 mr-2" />
                                 Delete
@@ -1392,14 +1329,23 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
                         </div>
                       </div>
                     </div>
-                  )
-                ))}
+                  );
+                })}
               </div>
             ) : (
-              !isAddingLink && <EmptyState message="No links added yet" />
+              <EmptyState message="No documents uploaded yet" />
             )}
           </CardContent>
         </Card>
+
+        {/* Document Upload/Edit Dialog */}
+        <DocumentEditDialog
+          open={documentDialogOpen}
+          onOpenChange={setDocumentDialogOpen}
+          clientId={client.id}
+          document={editingDocument as (typeof editingDocument & { id: string }) | undefined}
+          onSuccess={() => setDocumentDialogOpen(false)}
+        />
 
         {/* SECTION 10: Communications */}
         <Card>
@@ -1408,16 +1354,42 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
               icon={Mail}
               title="Communications"
               rightContent={
-                recipientsWithEmail.length > 0 ? (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setCommunicationDialogOpen(true)}
-                  >
-                    <Mail className="h-4 w-4 mr-1" />
-                    Send
-                  </Button>
-                ) : null
+                <div className="flex items-center gap-1">
+                  <TooltipProvider delayDuration={300}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleSendIntakeForm}
+                          disabled={intakeLinkLoading}
+                        >
+                          {intakeLinkLoading ? (
+                            <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                          ) : intakeLinkCopied ? (
+                            <Check className="h-4 w-4 mr-1 text-green-600" />
+                          ) : (
+                            <ClipboardList className="h-4 w-4 mr-1" />
+                          )}
+                          {intakeLinkCopied ? "Copied!" : "Intake Link"}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Generate a pre-filled intake form link and copy to clipboard</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  {recipientsWithEmail.length > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setCommunicationDialogOpen(true)}
+                    >
+                      <Mail className="h-4 w-4 mr-1" />
+                      Send
+                    </Button>
+                  )}
+                </div>
               }
             />
             {recipientsWithEmail.length > 0 ? (

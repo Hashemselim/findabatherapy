@@ -4,11 +4,13 @@
  * Buckets:
  * - listing-logos: Logo images for provider listings
  * - listing-photos: Photo gallery images for provider listings
+ * - client-documents: Client document uploads (private bucket)
  */
 
 export const STORAGE_BUCKETS = {
   logos: "listing-logos",
   photos: "listing-photos",
+  documents: "client-documents",
 } as const;
 
 export type BucketName = (typeof STORAGE_BUCKETS)[keyof typeof STORAGE_BUCKETS];
@@ -139,4 +141,128 @@ export function getPublicUrl(
   path: string
 ): string {
   return `${supabaseUrl}/storage/v1/object/public/${bucket}/${path}`;
+}
+
+// =============================================================================
+// CLIENT DOCUMENT UPLOAD CONFIG
+// =============================================================================
+
+export const DOCUMENT_MAX_SIZE = 10 * 1024 * 1024; // 10MB
+
+/**
+ * Document count limits per client
+ */
+export const DOCUMENT_LIMITS = {
+  maxPerClient: 50,
+} as const;
+
+export const ALLOWED_DOCUMENT_TYPES = [
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+] as const;
+
+export type AllowedDocumentType = (typeof ALLOWED_DOCUMENT_TYPES)[number];
+
+export const ALLOWED_DOCUMENT_EXTENSIONS = [
+  ".pdf",
+  ".doc",
+  ".docx",
+  ".jpg",
+  ".jpeg",
+  ".png",
+  ".webp",
+] as const;
+
+/**
+ * Validate document MIME type
+ */
+export function isValidDocumentType(mimeType: string): mimeType is AllowedDocumentType {
+  return ALLOWED_DOCUMENT_TYPES.includes(mimeType as AllowedDocumentType);
+}
+
+/**
+ * Validate document file size
+ */
+export function isValidDocumentSize(size: number): boolean {
+  return size <= DOCUMENT_MAX_SIZE;
+}
+
+/**
+ * Generate storage path for a client document
+ * Format: {profileId}/{clientId}/{uuid}.{ext}
+ */
+export function generateDocumentPath(
+  profileId: string,
+  clientId: string,
+  filename: string
+): string {
+  const parts = filename.split(".");
+  // Only use the extension if filename has one (more than 1 part)
+  const ext = parts.length > 1 ? parts.pop()!.toLowerCase() : "pdf";
+  const uniqueId = crypto.randomUUID();
+  return `${profileId}/${clientId}/${uniqueId}.${ext}`;
+}
+
+/**
+ * Magic byte signatures for allowed document types.
+ * Verifies that file content matches the claimed MIME type.
+ */
+const MAGIC_BYTES: Record<string, number[][]> = {
+  "application/pdf": [[0x25, 0x50, 0x44, 0x46]], // %PDF
+  "image/jpeg": [[0xff, 0xd8, 0xff]],
+  "image/png": [[0x89, 0x50, 0x4e, 0x47]], // .PNG
+  "image/webp": [[0x52, 0x49, 0x46, 0x46]], // RIFF (WebP container)
+  // DOC files start with OLE compound doc header
+  "application/msword": [[0xd0, 0xcf, 0x11, 0xe0]],
+  // DOCX files are ZIP archives
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [[0x50, 0x4b, 0x03, 0x04]],
+};
+
+/**
+ * Verify that the file's actual content matches its claimed MIME type
+ * by checking magic bytes (file signature).
+ */
+export function verifyDocumentMagicBytes(
+  buffer: ArrayBuffer,
+  mimeType: string
+): boolean {
+  const signatures = MAGIC_BYTES[mimeType];
+  if (!signatures) {
+    // No known signature for this type — skip verification
+    return true;
+  }
+
+  const header = new Uint8Array(buffer.slice(0, 8));
+  return signatures.some((sig) =>
+    sig.every((byte, i) => header[i] === byte)
+  );
+}
+
+/**
+ * Get a human-readable file size string
+ */
+export function formatFileSize(bytes: number): string {
+  if (bytes === 0) return "0 B";
+  const units = ["B", "KB", "MB", "GB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(1024));
+  const size = bytes / Math.pow(1024, i);
+  return `${size.toFixed(i === 0 ? 0 : 1)} ${units[i]}`;
+}
+
+/**
+ * Get icon name for a document based on MIME type
+ */
+export function getDocumentIconName(mimeType: string | null): "pdf" | "image" | "doc" | "file" {
+  if (!mimeType) return "file";
+  if (mimeType === "application/pdf") return "pdf";
+  if (mimeType.startsWith("image/")) return "image";
+  if (
+    mimeType === "application/msword" ||
+    mimeType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+  ) return "doc";
+  return "file";
 }

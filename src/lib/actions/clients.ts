@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { createClient as createSupabaseClient, getUser } from "@/lib/supabase/server";
+import { z } from "zod";
 import {
   clientSchema,
   clientParentSchema,
@@ -11,6 +12,7 @@ import {
   clientAuthorizationSchema,
   clientAuthorizationServiceSchema,
   clientDocumentSchema,
+  clientDocumentUploadSchema,
   clientTaskSchema,
   clientContactSchema,
   type Client,
@@ -26,6 +28,15 @@ import {
   type ClientFilters,
   type ClientStatus,
 } from "@/lib/validations/clients";
+import {
+  STORAGE_BUCKETS,
+  DOCUMENT_LIMITS,
+  isValidDocumentType,
+  isValidDocumentSize,
+  generateDocumentPath,
+  verifyDocumentMagicBytes,
+  DOCUMENT_MAX_SIZE,
+} from "@/lib/storage/config";
 
 // =============================================================================
 // TYPES
@@ -1518,16 +1529,232 @@ export async function addClientDocument(
   return { success: true, data: { id: doc.id } };
 }
 
+export async function uploadClientDocument(
+  clientId: string,
+  formData: FormData
+): Promise<ActionResult<{ id: string }>> {
+  const user = await getUser();
+  if (!user) {
+    return { success: false, error: "Not authenticated" };
+  }
+
+  // Validate clientId format
+  if (!z.string().uuid().safeParse(clientId).success) {
+    return { success: false, error: "Invalid client ID" };
+  }
+
+  const file = formData.get("file") as File | null;
+  if (!file) {
+    return { success: false, error: "No file provided" };
+  }
+
+  // Validate file MIME type
+  if (!isValidDocumentType(file.type)) {
+    return {
+      success: false,
+      error: "Invalid file type. Allowed: PDF, DOC, DOCX, JPEG, PNG, WebP.",
+    };
+  }
+
+  // Validate file size
+  if (!isValidDocumentSize(file.size)) {
+    return {
+      success: false,
+      error: `File too large. Maximum size is ${Math.round(DOCUMENT_MAX_SIZE / 1024 / 1024)}MB.`,
+    };
+  }
+
+  // Validate file content (magic bytes) to prevent MIME spoofing
+  const arrayBuffer = await file.arrayBuffer();
+  if (!verifyDocumentMagicBytes(arrayBuffer, file.type)) {
+    return {
+      success: false,
+      error: "File content does not match its type. Please upload a valid file.",
+    };
+  }
+
+  // Validate metadata through Zod schema
+  const metadata = clientDocumentUploadSchema.safeParse({
+    label: formData.get("label") || file.name,
+    document_type: formData.get("document_type") || undefined,
+    file_description: formData.get("file_description") || undefined,
+    notes: formData.get("notes") || undefined,
+  });
+  if (!metadata.success) {
+    return { success: false, error: metadata.error.issues[0]?.message || "Invalid input" };
+  }
+
+  const supabase = await createSupabaseClient();
+
+  // Verify client ownership
+  const { data: client } = await supabase
+    .from("clients")
+    .select("id")
+    .eq("id", clientId)
+    .eq("profile_id", user.id)
+    .is("deleted_at", null)
+    .single();
+
+  if (!client) {
+    return { success: false, error: "Client not found" };
+  }
+
+  // Check document count limit
+  const { count } = await supabase
+    .from("client_documents")
+    .select("id", { count: "exact", head: true })
+    .eq("client_id", clientId)
+    .is("deleted_at", null);
+
+  if (count != null && count >= DOCUMENT_LIMITS.maxPerClient) {
+    return {
+      success: false,
+      error: `Document limit reached (${DOCUMENT_LIMITS.maxPerClient} per client). Please remove old documents first.`,
+    };
+  }
+
+  // Generate storage path and upload
+  const storagePath = generateDocumentPath(user.id, clientId, file.name);
+
+  const { error: uploadError } = await supabase.storage
+    .from(STORAGE_BUCKETS.documents)
+    .upload(storagePath, arrayBuffer, {
+      contentType: file.type,
+      upsert: false,
+    });
+
+  if (uploadError) {
+    console.error("[CLIENTS] Document upload error:", uploadError);
+    return { success: false, error: "Failed to upload file" };
+  }
+
+  // Insert DB record
+  const { data: doc, error: insertError } = await supabase
+    .from("client_documents")
+    .insert({
+      client_id: clientId,
+      document_type: metadata.data.document_type || null,
+      label: metadata.data.label,
+      file_path: storagePath,
+      file_name: file.name,
+      file_description: metadata.data.file_description || null,
+      file_size: file.size,
+      file_type: file.type,
+      upload_source: "dashboard",
+      uploaded_by: user.id,
+      notes: metadata.data.notes || null,
+    })
+    .select("id")
+    .single();
+
+  if (insertError || !doc) {
+    // Cleanup: remove uploaded file if DB insert fails
+    const { error: cleanupError } = await supabase.storage
+      .from(STORAGE_BUCKETS.documents)
+      .remove([storagePath]);
+    if (cleanupError) {
+      console.error("[CLIENTS] ORPHANED FILE — manual cleanup needed:", storagePath, cleanupError);
+    }
+    console.error("[CLIENTS] Failed to save document record:", insertError);
+    return { success: false, error: "Failed to save document" };
+  }
+
+  revalidatePath(`/dashboard/clients/${clientId}`);
+  return { success: true, data: { id: doc.id } };
+}
+
+export async function getDocumentSignedUrl(
+  documentId: string
+): Promise<ActionResult<{ url: string }>> {
+  const user = await getUser();
+  if (!user) {
+    return { success: false, error: "Not authenticated" };
+  }
+
+  const supabase = await createSupabaseClient();
+
+  const { data: doc } = await supabase
+    .from("client_documents")
+    .select("file_path, clients!inner(profile_id)")
+    .eq("id", documentId)
+    .is("deleted_at", null)
+    .single();
+
+  if (!doc || (doc.clients as unknown as { profile_id: string }).profile_id !== user.id) {
+    return { success: false, error: "Document not found" };
+  }
+
+  if (!doc.file_path) {
+    return { success: false, error: "No file associated with this document" };
+  }
+
+  const { data: signedUrl, error } = await supabase.storage
+    .from(STORAGE_BUCKETS.documents)
+    .createSignedUrl(doc.file_path, 300); // 5 minute expiry for clinical documents
+
+  if (error || !signedUrl) {
+    console.error("[CLIENTS] Failed to create signed URL:", error);
+    return { success: false, error: "Failed to generate preview URL" };
+  }
+
+  return { success: true, data: { url: signedUrl.signedUrl } };
+}
+
+export async function downloadClientDocument(
+  documentId: string
+): Promise<ActionResult<{ url: string; fileName: string }>> {
+  const user = await getUser();
+  if (!user) {
+    return { success: false, error: "Not authenticated" };
+  }
+
+  const supabase = await createSupabaseClient();
+
+  const { data: doc } = await supabase
+    .from("client_documents")
+    .select("file_path, file_name, label, clients!inner(profile_id)")
+    .eq("id", documentId)
+    .is("deleted_at", null)
+    .single();
+
+  if (!doc || (doc.clients as unknown as { profile_id: string }).profile_id !== user.id) {
+    return { success: false, error: "Document not found" };
+  }
+
+  if (!doc.file_path) {
+    return { success: false, error: "No file associated with this document" };
+  }
+
+  const fileName = doc.file_name || doc.label || "document";
+
+  const { data: signedUrl, error } = await supabase.storage
+    .from(STORAGE_BUCKETS.documents)
+    .createSignedUrl(doc.file_path, 60, { download: fileName });
+
+  if (error || !signedUrl) {
+    console.error("[CLIENTS] Failed to create download URL:", error);
+    return { success: false, error: "Failed to generate download URL" };
+  }
+
+  return { success: true, data: { url: signedUrl.signedUrl, fileName } };
+}
+
 export async function updateClientDocument(
   documentId: string,
-  data: Partial<ClientDocument>
+  data: Pick<Partial<ClientDocument>, "label" | "document_type" | "file_description" | "notes">
 ): Promise<ActionResult> {
   const user = await getUser();
   if (!user) {
     return { success: false, error: "Not authenticated" };
   }
 
-  const parsed = clientDocumentSchema.partial().safeParse(data);
+  // Validate documentId format
+  if (!z.string().uuid().safeParse(documentId).success) {
+    return { success: false, error: "Invalid document ID" };
+  }
+
+  // Validate only the safe metadata fields
+  const parsed = clientDocumentUploadSchema.partial().safeParse(data);
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0]?.message || "Invalid input" };
   }
@@ -1545,15 +1772,14 @@ export async function updateClientDocument(
     return { success: false, error: "Document not found" };
   }
 
+  // Only allow updating safe metadata fields — never file_path, url, or storage fields
   const { error } = await supabase
     .from("client_documents")
     .update({
       document_type: parsed.data.document_type,
       label: parsed.data.label || null,
-      url: parsed.data.url || null,
-      file_path: parsed.data.file_path || null,
+      file_description: parsed.data.file_description || null,
       notes: parsed.data.notes || null,
-      sort_order: parsed.data.sort_order,
     })
     .eq("id", documentId);
 
@@ -1576,7 +1802,7 @@ export async function deleteClientDocument(documentId: string): Promise<ActionRe
 
   const { data: doc } = await supabase
     .from("client_documents")
-    .select("client_id, clients!inner(profile_id)")
+    .select("client_id, file_path, clients!inner(profile_id)")
     .eq("id", documentId)
     .is("deleted_at", null)
     .single();
@@ -1585,6 +1811,7 @@ export async function deleteClientDocument(documentId: string): Promise<ActionRe
     return { success: false, error: "Document not found" };
   }
 
+  // Soft delete the DB record
   const { error } = await supabase
     .from("client_documents")
     .update({ deleted_at: new Date().toISOString() })
@@ -1593,6 +1820,18 @@ export async function deleteClientDocument(documentId: string): Promise<ActionRe
   if (error) {
     console.error("[CLIENTS] Failed to delete document:", error);
     return { success: false, error: "Failed to delete document" };
+  }
+
+  // Remove file from storage if it exists
+  if (doc.file_path) {
+    const { error: storageError } = await supabase.storage
+      .from(STORAGE_BUCKETS.documents)
+      .remove([doc.file_path]);
+
+    if (storageError) {
+      console.error("[CLIENTS] ORPHANED FILE — manual cleanup needed:", doc.file_path, storageError);
+      // Don't fail the operation — DB record is already soft-deleted
+    }
   }
 
   revalidatePath(`/dashboard/clients/${doc.client_id}`);
@@ -2140,33 +2379,11 @@ export async function markInquiryAsConverted(inquiryId: string): Promise<ActionR
 export async function submitPublicClientIntake(data: {
   profileId: string;
   listingId: string;
-  // Parent info
-  parent_first_name?: string;
-  parent_last_name?: string;
-  parent_phone?: string;
-  parent_email?: string;
-  parent_relationship?: string;
-  // Child info
-  child_first_name?: string;
-  child_last_name?: string;
-  child_date_of_birth?: string;
-  child_diagnosis?: string[];
-  child_primary_concerns?: string;
-  // Insurance
-  insurance_name?: string;
-  insurance_member_id?: string;
-  // Location
-  preferred_city?: string;
-  preferred_state?: string;
-  // Referral
-  referral_source?: string;
-  referral_source_other?: string;
-  // Notes
-  notes?: string;
-  // Turnstile token for verification
-  turnstileToken?: string;
+  turnstileToken: string;
+  /** Dynamic field values from the configurable intake form */
+  fields: Record<string, unknown>;
 }): Promise<ActionResult<{ clientId: string }>> {
-  // Verify Turnstile token if provided
+  // Verify Turnstile token
   if (data.turnstileToken) {
     const { env } = await import("@/env");
     const verifyResponse = await fetch(
@@ -2190,22 +2407,22 @@ export async function submitPublicClientIntake(data: {
   const { createAdminClient } = await import("@/lib/supabase/server");
   const adminSupabase = await createAdminClient();
 
-  // Create the client
+  // Route flat field values to per-table buckets using the field registry
+  const { routeFieldsToTables } = await import("@/lib/intake/build-intake-schema");
+  const tables = routeFieldsToTables(data.fields);
+
+  // ---- Create the client record ----
+  const clientData = tables.clients as Record<string, unknown>;
   const { data: client, error: clientError } = await adminSupabase
     .from("clients")
     .insert({
       profile_id: data.profileId,
       listing_id: data.listingId,
       status: "intake_pending",
-      child_first_name: data.child_first_name || null,
-      child_last_name: data.child_last_name || null,
-      child_date_of_birth: data.child_date_of_birth || null,
-      child_diagnosis: data.child_diagnosis || [],
-      child_primary_concerns: data.child_primary_concerns || null,
-      notes: data.notes || null,
-      referral_source: data.referral_source || "public_intake",
-      referral_source_other: data.referral_source_other || null,
       referral_date: new Date().toISOString().split("T")[0],
+      // Default referral_source when not submitted
+      referral_source: (clientData.referral_source as string) || "public_intake",
+      ...clientData,
     })
     .select("id")
     .single();
@@ -2215,51 +2432,106 @@ export async function submitPublicClientIntake(data: {
     return { success: false, error: "Failed to submit intake form" };
   }
 
-  // Add parent if info provided
-  if (data.parent_first_name || data.parent_last_name || data.parent_phone || data.parent_email) {
+  // ---- Insert parent if any parent fields were submitted ----
+  const parentData = tables.client_parents as Record<string, unknown>;
+  if (Object.keys(parentData).length > 0) {
     await adminSupabase.from("client_parents").insert({
       client_id: client.id,
-      first_name: data.parent_first_name || null,
-      last_name: data.parent_last_name || null,
-      phone: data.parent_phone || null,
-      email: data.parent_email || null,
-      relationship: data.parent_relationship || null,
       is_primary: true,
       sort_order: 0,
+      ...parentData,
     });
   }
 
-  // Add insurance if info provided
-  if (data.insurance_name || data.insurance_member_id) {
+  // ---- Insert insurance if any insurance fields were submitted ----
+  const insuranceData = tables.client_insurances as Record<string, unknown>;
+  if (Object.keys(insuranceData).length > 0) {
     await adminSupabase.from("client_insurances").insert({
       client_id: client.id,
-      insurance_name: data.insurance_name || null,
-      member_id: data.insurance_member_id || null,
       is_primary: true,
       sort_order: 0,
+      ...insuranceData,
     });
   }
 
-  // Add location if info provided
-  if (data.preferred_city || data.preferred_state) {
+  // ---- Insert home address location if any home address fields were submitted ----
+  const locationData = tables.client_locations as Record<string, unknown>;
+  if (Object.keys(locationData).length > 0) {
     await adminSupabase.from("client_locations").insert({
       client_id: client.id,
-      label: "Preferred Location",
-      city: data.preferred_city || null,
-      state: data.preferred_state || null,
+      label: "Home",
       is_primary: true,
       sort_order: 0,
+      ...locationData,
     });
   }
 
-  // Create in-app notification for the provider
-  const childName = [data.child_first_name, data.child_last_name].filter(Boolean).join(" ") || "Unknown";
+  // ---- Insert service location if any service location fields were submitted ----
+  const serviceLocationData = tables.service_locations as Record<string, unknown>;
+  if (Object.keys(serviceLocationData).length > 0) {
+    // Map location_type → label column and strip non-DB keys
+    const { location_type, same_as_home, agency_location_id, formatted_address: _fa, ...svcAddress } = serviceLocationData;
+
+    // If "same as home", copy home address data
+    if (same_as_home === true && Object.keys(locationData).length > 0) {
+      Object.assign(svcAddress, {
+        street_address: locationData.street_address,
+        city: locationData.city,
+        state: locationData.state,
+        postal_code: locationData.postal_code,
+        latitude: locationData.latitude,
+        longitude: locationData.longitude,
+        place_id: locationData.place_id,
+      });
+    }
+
+    // If agency_location_id is set, fetch that location's address
+    if (agency_location_id && typeof agency_location_id === "string") {
+      const { data: agencyLoc } = await adminSupabase
+        .from("locations")
+        .select("street, city, state, postal_code, latitude, longitude")
+        .eq("id", agency_location_id)
+        .single();
+      if (agencyLoc) {
+        Object.assign(svcAddress, {
+          street_address: agencyLoc.street || svcAddress.street_address,
+          city: agencyLoc.city || svcAddress.city,
+          state: agencyLoc.state || svcAddress.state,
+          postal_code: agencyLoc.postal_code || svcAddress.postal_code,
+          latitude: agencyLoc.latitude ?? svcAddress.latitude,
+          longitude: agencyLoc.longitude ?? svcAddress.longitude,
+        });
+      }
+    }
+
+    await adminSupabase.from("client_locations").insert({
+      client_id: client.id,
+      label: (location_type as string) || undefined,
+      is_primary: false,
+      sort_order: 1,
+      ...svcAddress,
+    });
+  }
+
+  // ---- Create in-app notification for the provider ----
+  const childName = [
+    clientData.child_first_name as string | undefined,
+    clientData.child_last_name as string | undefined,
+  ]
+    .filter(Boolean)
+    .join(" ") || "Unknown";
+
+  const parentFirst = parentData.first_name as string | undefined;
+  const parentLast = parentData.last_name as string | undefined;
+
   const { createNotification } = await import("@/lib/actions/notifications");
   createNotification({
     profileId: data.profileId,
     type: "intake_submission",
     title: `Intake form submitted for ${childName}`,
-    body: data.parent_first_name ? `Parent: ${data.parent_first_name} ${data.parent_last_name || ""}`.trim() : undefined,
+    body: parentFirst
+      ? `Parent: ${parentFirst} ${parentLast || ""}`.trim()
+      : undefined,
     link: `/dashboard/clients/${client.id}`,
     entityId: client.id,
     entityType: "client",

@@ -166,8 +166,7 @@ export function LocationEditDialog({
   }, [open, location, form]);
 
   const handlePlaceSelect = (place: PlaceDetails) => {
-    // PlaceDetails provides formattedAddress, not streetAddress - use the formatted address
-    form.setValue("street_address", place.formattedAddress || "");
+    form.setValue("street_address", place.streetAddress || place.formattedAddress || "");
     form.setValue("city", place.city || "");
     form.setValue("state", place.state || "");
     form.setValue("postal_code", place.postalCode || "");
@@ -208,8 +207,8 @@ export function LocationEditDialog({
           <DialogTitle>{isEditing ? "Edit Location" : "Add Location"}</DialogTitle>
           <DialogDescription>
             {isEditing
-              ? "Update the service location details."
-              : "Add a new service location for this client."}
+              ? "Update the location details."
+              : "Add a new location for this client."}
           </DialogDescription>
         </DialogHeader>
 
@@ -319,7 +318,7 @@ export function LocationEditDialog({
                 Primary Location
               </Label>
               <p className="text-xs text-muted-foreground">
-                Mark this as the primary service location
+                Mark this as the primary location
               </p>
             </div>
             <Switch

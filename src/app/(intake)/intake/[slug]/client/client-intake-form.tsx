@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { useForm } from "react-hook-form";
+import { useMemo, useState, useTransition } from "react";
+import { useForm, type UseFormReturn } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { Loader2, CheckCircle2 } from "lucide-react";
+import { Loader2, CheckCircle2, Info } from "lucide-react";
 import Turnstile from "react-turnstile";
 
 import { Button } from "@/components/ui/button";
@@ -20,43 +19,32 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { submitPublicClientIntake } from "@/lib/actions/clients";
-import { DIAGNOSIS_OPTIONS, INSURANCE_OPTIONS } from "@/lib/validations/onboarding";
-import { PARENT_RELATIONSHIP_OPTIONS, PUBLIC_REFERRAL_SOURCE_OPTIONS } from "@/lib/validations/clients";
-
-const clientIntakeSchema = z.object({
-  // Parent info
-  parent_first_name: z.string().min(1, "First name is required"),
-  parent_last_name: z.string().min(1, "Last name is required"),
-  parent_phone: z.string().min(1, "Phone number is required"),
-  parent_email: z.string().email("Valid email is required"),
-  parent_relationship: z.string().optional(),
-  // Child info
-  child_first_name: z.string().min(1, "Child's first name is required"),
-  child_last_name: z.string().optional(),
-  child_date_of_birth: z.string().optional(),
-  child_diagnosis: z.array(z.string()).optional(),
-  child_primary_concerns: z.string().optional(),
-  // Insurance
-  insurance_name: z.string().optional(),
-  insurance_member_id: z.string().optional(),
-  // Location
-  preferred_city: z.string().optional(),
-  preferred_state: z.string().optional(),
-  // Referral
-  referral_source: z.string().optional(),
-  referral_source_other: z.string().optional(),
-  // Notes
-  notes: z.string().optional(),
-});
-
-type ClientIntakeFormValues = z.infer<typeof clientIntakeSchema>;
+import { markIntakeTokenUsed, type PrefillData } from "@/lib/actions/intake";
+import {
+  type IntakeFieldsConfig,
+  type IntakeFieldDef,
+  getEnabledSections,
+  getEnabledFields,
+} from "@/lib/intake/field-registry";
+import { buildIntakeSchema } from "@/lib/intake/build-intake-schema";
+import { HomeAddressSection } from "@/components/intake/home-address-section";
+import {
+  ServiceLocationSection,
+  type AgencyLocationOption,
+} from "@/components/intake/service-location-section";
 
 interface ClientIntakeFormProps {
   listingId: string;
   profileId: string;
   providerName: string;
   brandColor: string;
+  fieldsConfig: IntakeFieldsConfig;
+  agencyLocations: AgencyLocationOption[];
   initialReferralSource?: string;
+  /** Pre-populated data from an intake token link */
+  prefillData?: PrefillData;
+  /** The intake token (passed to mark as used on submit) */
+  intakeToken?: string;
 }
 
 export function ClientIntakeForm({
@@ -64,36 +52,92 @@ export function ClientIntakeForm({
   profileId,
   providerName,
   brandColor,
+  fieldsConfig,
+  agencyLocations,
   initialReferralSource,
+  prefillData,
+  intakeToken,
 }: ClientIntakeFormProps) {
   const [isPending, startTransition] = useTransition();
   const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
-  const [selectedDiagnoses, setSelectedDiagnoses] = useState<string[]>([]);
 
-  const form = useForm<ClientIntakeFormValues>({
-    resolver: zodResolver(clientIntakeSchema),
-    defaultValues: {
-      parent_first_name: "",
-      parent_last_name: "",
-      parent_phone: "",
-      parent_email: "",
-      child_first_name: "",
-      child_diagnosis: [],
-      referral_source: initialReferralSource || "",
-    },
+  // Build the Zod schema dynamically from the provider's field config
+  const schema = useMemo(() => buildIntakeSchema(fieldsConfig), [fieldsConfig]);
+
+  // Build default values for react-hook-form (with prefill when available)
+  const { defaults: defaultValues, initialMultiSelect } = useMemo(() => {
+    const defaults: Record<string, unknown> = { turnstileToken: "" };
+    const multiSelects: Record<string, string[]> = {};
+    const sections = getEnabledSections(fieldsConfig);
+    for (const section of sections) {
+      for (const field of getEnabledFields(section, fieldsConfig)) {
+        // Check for pre-fill value first
+        const prefillValue = prefillData?.fields[field.key];
+        if (prefillValue !== undefined && prefillValue !== null && prefillValue !== "") {
+          defaults[field.key] = prefillValue;
+          // Track multi-select prefill values
+          if (field.type === "multi-select" && Array.isArray(prefillValue)) {
+            multiSelects[field.key] = prefillValue as string[];
+          }
+        } else if (field.type === "multi-select") {
+          defaults[field.key] = [];
+        } else if (field.type === "number") {
+          defaults[field.key] = undefined;
+        } else if (field.type === "address") {
+          defaults[field.key] = {
+            street_address: "",
+            city: "",
+            state: "",
+            postal_code: "",
+            formatted_address: "",
+            place_id: "",
+          };
+        } else if (field.type === "service-location") {
+          defaults[field.key] = {
+            location_type: "",
+            same_as_home: false,
+            agency_location_id: "",
+            street_address: "",
+            city: "",
+            state: "",
+            postal_code: "",
+            formatted_address: "",
+            place_id: "",
+            notes: "",
+          };
+        } else {
+          defaults[field.key] = field.key === "referral_source" && initialReferralSource
+            ? initialReferralSource
+            : "";
+        }
+      }
+    }
+    return { defaults, initialMultiSelect: multiSelects };
+  }, [fieldsConfig, initialReferralSource, prefillData]);
+
+  // Track multi-select values separately (not easily handled by react-hook-form register)
+  const [multiSelectValues, setMultiSelectValues] = useState<Record<string, string[]>>(initialMultiSelect);
+
+  const form = useForm({
+    resolver: zodResolver(schema),
+    defaultValues,
   });
 
-  const toggleDiagnosis = (diagnosis: string) => {
-    setSelectedDiagnoses((prev) =>
-      prev.includes(diagnosis)
-        ? prev.filter((d) => d !== diagnosis)
-        : [...prev, diagnosis]
-    );
+  const toggleMultiSelect = (fieldKey: string, value: string) => {
+    setMultiSelectValues((prev) => {
+      const current = prev[fieldKey] || [];
+      const updated = current.includes(value)
+        ? current.filter((v) => v !== value)
+        : [...current, value];
+      // Sync with react-hook-form
+      form.setValue(fieldKey, updated, { shouldValidate: true });
+      return { ...prev, [fieldKey]: updated };
+    });
   };
 
-  const onSubmit = async (data: ClientIntakeFormValues) => {
+  const onSubmit = async (values: Record<string, unknown>) => {
     setError(null);
 
     if (!turnstileToken) {
@@ -105,27 +149,15 @@ export function ClientIntakeForm({
       const result = await submitPublicClientIntake({
         profileId,
         listingId,
-        parent_first_name: data.parent_first_name,
-        parent_last_name: data.parent_last_name,
-        parent_phone: data.parent_phone,
-        parent_email: data.parent_email,
-        parent_relationship: data.parent_relationship,
-        child_first_name: data.child_first_name,
-        child_last_name: data.child_last_name,
-        child_date_of_birth: data.child_date_of_birth,
-        child_diagnosis: selectedDiagnoses,
-        child_primary_concerns: data.child_primary_concerns,
-        insurance_name: data.insurance_name,
-        insurance_member_id: data.insurance_member_id,
-        preferred_city: data.preferred_city,
-        preferred_state: data.preferred_state,
-        referral_source: data.referral_source,
-        referral_source_other: data.referral_source === "other" ? data.referral_source_other : undefined,
-        notes: data.notes,
         turnstileToken,
+        fields: values as Record<string, unknown>,
       });
 
       if (result.success) {
+        // Mark the token as used if this was a pre-fill submission
+        if (intakeToken) {
+          await markIntakeTokenUsed(intakeToken);
+        }
         setIsSuccess(true);
       } else {
         setError(result.error || "Failed to submit form");
@@ -146,6 +178,9 @@ export function ClientIntakeForm({
     );
   }
 
+  // Get only sections that have enabled fields
+  const enabledSections = getEnabledSections(fieldsConfig);
+
   return (
     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
       {error && (
@@ -154,281 +189,109 @@ export function ClientIntakeForm({
         </div>
       )}
 
-      {/* Parent/Guardian Information */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-semibold">Parent/Guardian Information</h3>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="parent_first_name">
-              First Name <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              id="parent_first_name"
-              {...form.register("parent_first_name")}
-              placeholder="First name"
-            />
-            {form.formState.errors.parent_first_name && (
-              <p className="text-xs text-destructive">
-                {form.formState.errors.parent_first_name.message}
-              </p>
-            )}
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="parent_last_name">
-              Last Name <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              id="parent_last_name"
-              {...form.register("parent_last_name")}
-              placeholder="Last name"
-            />
-            {form.formState.errors.parent_last_name && (
-              <p className="text-xs text-destructive">
-                {form.formState.errors.parent_last_name.message}
-              </p>
-            )}
-          </div>
+      {prefillData && (
+        <div
+          className="flex items-start gap-3 rounded-lg border p-4 text-sm"
+          style={{
+            borderColor: `${brandColor}40`,
+            backgroundColor: `${brandColor}08`,
+          }}
+        >
+          <Info className="mt-0.5 h-4 w-4 shrink-0" style={{ color: brandColor }} />
+          <p className="text-muted-foreground">
+            Some information has been pre-filled by{" "}
+            <span className="font-medium text-foreground">{providerName}</span>.
+            Please review and complete the remaining fields.
+          </p>
         </div>
+      )}
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="parent_phone">
-              Phone <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              id="parent_phone"
-              {...form.register("parent_phone")}
-              placeholder="(555) 555-5555"
-            />
-            {form.formState.errors.parent_phone && (
-              <p className="text-xs text-destructive">
-                {form.formState.errors.parent_phone.message}
-              </p>
-            )}
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="parent_email">
-              Email <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              id="parent_email"
-              type="email"
-              {...form.register("parent_email")}
-              placeholder="email@example.com"
-            />
-            {form.formState.errors.parent_email && (
-              <p className="text-xs text-destructive">
-                {form.formState.errors.parent_email.message}
-              </p>
-            )}
-          </div>
-        </div>
+      {enabledSections.map((section) => {
+        const fields = getEnabledFields(section, fieldsConfig);
+        if (fields.length === 0) return null;
 
-        <div className="space-y-2">
-          <Label>Relationship to Child</Label>
-          <Select
-            value={form.watch("parent_relationship") || ""}
-            onValueChange={(value) => form.setValue("parent_relationship", value)}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select relationship" />
-            </SelectTrigger>
-            <SelectContent>
-              {PARENT_RELATIONSHIP_OPTIONS.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+        // Special handling: referral_source_other only shows when referral_source == "other"
+        const visibleFields = fields.filter((f) => {
+          if (f.key === "referral_source_other") {
+            return form.watch("referral_source") === "other";
+          }
+          return true;
+        });
 
-      {/* Child Information */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-semibold">Child Information</h3>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="child_first_name">
-              Child&apos;s First Name <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              id="child_first_name"
-              {...form.register("child_first_name")}
-              placeholder="First name"
-            />
-            {form.formState.errors.child_first_name && (
-              <p className="text-xs text-destructive">
-                {form.formState.errors.child_first_name.message}
-              </p>
-            )}
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="child_last_name">Child&apos;s Last Name</Label>
-            <Input
-              id="child_last_name"
-              {...form.register("child_last_name")}
-              placeholder="Last name"
-            />
-          </div>
-        </div>
+        if (visibleFields.length === 0) return null;
 
-        <div className="space-y-2">
-          <Label htmlFor="child_date_of_birth">Child&apos;s Date of Birth</Label>
-          <Input
-            id="child_date_of_birth"
-            type="date"
-            {...form.register("child_date_of_birth")}
-          />
-        </div>
+        return (
+          <div key={section.id} className="space-y-4">
+            <h3 className="text-lg font-semibold">{section.title}</h3>
 
-        <div className="space-y-2">
-          <Label>Diagnosis</Label>
-          <div className="flex flex-wrap gap-2">
-            {DIAGNOSIS_OPTIONS.map((diagnosis) => (
-              <button
-                key={diagnosis}
-                type="button"
-                onClick={() => toggleDiagnosis(diagnosis)}
-                className={cn(
-                  "rounded-full px-3 py-1.5 text-sm border transition-colors",
-                  selectedDiagnoses.includes(diagnosis)
-                    ? "text-white border-transparent"
-                    : "bg-background hover:bg-muted border-border"
-                )}
-                style={
-                  selectedDiagnoses.includes(diagnosis)
-                    ? { backgroundColor: brandColor }
-                    : {}
+            {/* Render fields in a responsive grid */}
+            <div className="grid gap-4 sm:grid-cols-2">
+              {visibleFields.map((field) => {
+                const isRequired = fieldsConfig[field.key]?.required ?? false;
+
+                // Custom rendering for composite fields
+                if (field.type === "address") {
+                  return (
+                    <HomeAddressSection
+                      key={field.key}
+                      form={form as UseFormReturn<Record<string, unknown>>}
+                      required={isRequired}
+                      brandColor={brandColor}
+                    />
+                  );
                 }
-              >
-                {diagnosis}
-              </button>
-            ))}
-          </div>
-        </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="child_primary_concerns">Primary Concerns</Label>
-          <Textarea
-            id="child_primary_concerns"
-            {...form.register("child_primary_concerns")}
-            placeholder="Please describe any concerns or areas you'd like addressed..."
-            rows={3}
-          />
-        </div>
-      </div>
+                if (field.type === "service-location") {
+                  return (
+                    <ServiceLocationSection
+                      key={field.key}
+                      form={form as UseFormReturn<Record<string, unknown>>}
+                      required={isRequired}
+                      brandColor={brandColor}
+                      agencyLocations={agencyLocations}
+                    />
+                  );
+                }
 
-      {/* Insurance Information */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-semibold">Insurance Information</h3>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label>Insurance Provider</Label>
-            <Select
-              value={form.watch("insurance_name") || ""}
-              onValueChange={(value) => form.setValue("insurance_name", value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select insurance" />
-              </SelectTrigger>
-              <SelectContent>
-                {INSURANCE_OPTIONS.map((insurance) => (
-                  <SelectItem key={insurance} value={insurance}>
-                    {insurance}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="insurance_member_id">Member ID</Label>
-            <Input
-              id="insurance_member_id"
-              {...form.register("insurance_member_id")}
-              placeholder="Member ID"
-            />
-          </div>
-        </div>
-      </div>
+                // Textarea and multi-select get full width
+                const isFullWidth =
+                  field.type === "textarea" || field.type === "multi-select";
 
-      {/* Preferred Location */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-semibold">Preferred Location</h3>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="preferred_city">City</Label>
-            <Input
-              id="preferred_city"
-              {...form.register("preferred_city")}
-              placeholder="City"
-            />
+                return (
+                  <div
+                    key={field.key}
+                    className={cn("space-y-2", isFullWidth && "sm:col-span-2")}
+                  >
+                    <DynamicField
+                      field={field}
+                      required={isRequired}
+                      brandColor={brandColor}
+                      form={form}
+                      multiSelectValues={multiSelectValues[field.key] || []}
+                      onToggleMultiSelect={(value) =>
+                        toggleMultiSelect(field.key, value)
+                      }
+                    />
+                  </div>
+                );
+              })}
+            </div>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="preferred_state">State</Label>
-            <Input
-              id="preferred_state"
-              {...form.register("preferred_state")}
-              placeholder="State"
-              maxLength={2}
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Referral Source */}
-      <div className="space-y-4">
-        <div className="space-y-2">
-          <Label>
-            How did you hear about us?{" "}
-            <span className="text-muted-foreground">(optional)</span>
-          </Label>
-          <Select
-            value={form.watch("referral_source") || ""}
-            onValueChange={(value) => form.setValue("referral_source", value)}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select an option" />
-            </SelectTrigger>
-            <SelectContent>
-              {PUBLIC_REFERRAL_SOURCE_OPTIONS.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {form.watch("referral_source") === "other" && (
-          <div className="space-y-2">
-            <Label htmlFor="referral_source_other">Please specify</Label>
-            <Input
-              id="referral_source_other"
-              {...form.register("referral_source_other")}
-              placeholder="How did you find us?"
-            />
-          </div>
-        )}
-      </div>
-
-      {/* Additional Notes */}
-      <div className="space-y-2">
-        <Label htmlFor="notes">Additional Notes</Label>
-        <Textarea
-          id="notes"
-          {...form.register("notes")}
-          placeholder="Any additional information you'd like to share..."
-          rows={3}
-        />
-      </div>
+        );
+      })}
 
       {/* Turnstile */}
       <div className="flex justify-center">
         <Turnstile
           sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || ""}
-          onVerify={setTurnstileToken}
-          onExpire={() => setTurnstileToken(null)}
+          onVerify={(token) => {
+            setTurnstileToken(token);
+            form.setValue("turnstileToken", token);
+          }}
+          onExpire={() => {
+            setTurnstileToken(null);
+            form.setValue("turnstileToken", "");
+          }}
           theme="light"
         />
       </div>
@@ -456,4 +319,221 @@ export function ClientIntakeForm({
       </p>
     </form>
   );
+}
+
+// =============================================================================
+// Dynamic Field Renderer
+// =============================================================================
+
+interface DynamicFieldProps {
+  field: IntakeFieldDef;
+  required: boolean;
+  brandColor: string;
+  form: ReturnType<typeof useForm>;
+  multiSelectValues: string[];
+  onToggleMultiSelect: (value: string) => void;
+}
+
+function DynamicField({
+  field,
+  required,
+  brandColor,
+  form,
+  multiSelectValues,
+  onToggleMultiSelect,
+}: DynamicFieldProps) {
+  const fieldError = form.formState.errors[field.key];
+  const errorMessage = fieldError?.message as string | undefined;
+
+  const requiredMark = required ? (
+    <span className="text-destructive"> *</span>
+  ) : null;
+
+  switch (field.type) {
+    case "multi-select": {
+      // Render as toggleable chips (like diagnosis selector)
+      const options = field.stringOptions || field.options?.map((o) => o.value) || [];
+      return (
+        <>
+          <Label>
+            {field.label}
+            {requiredMark}
+          </Label>
+          <div className="flex flex-wrap gap-2">
+            {options.map((opt) => {
+              const value = typeof opt === "string" ? opt : opt;
+              const label = typeof opt === "string" ? opt : opt;
+              const isSelected = multiSelectValues.includes(value);
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => onToggleMultiSelect(value)}
+                  className={cn(
+                    "rounded-full px-3 py-1.5 text-sm border transition-colors",
+                    isSelected
+                      ? "text-white border-transparent"
+                      : "bg-background hover:bg-muted border-border",
+                  )}
+                  style={isSelected ? { backgroundColor: brandColor } : {}}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+          {errorMessage && (
+            <p className="text-xs text-destructive">{errorMessage}</p>
+          )}
+        </>
+      );
+    }
+
+    case "select": {
+      const options = field.options || [];
+      return (
+        <>
+          <Label>
+            {field.label}
+            {requiredMark}
+          </Label>
+          <Select
+            value={form.watch(field.key) as string || ""}
+            onValueChange={(value) =>
+              form.setValue(field.key, value, { shouldValidate: true })
+            }
+          >
+            <SelectTrigger>
+              <SelectValue placeholder={`Select ${field.label.toLowerCase()}`} />
+            </SelectTrigger>
+            <SelectContent>
+              {options.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {errorMessage && (
+            <p className="text-xs text-destructive">{errorMessage}</p>
+          )}
+        </>
+      );
+    }
+
+    case "textarea":
+      return (
+        <>
+          <Label htmlFor={field.key}>
+            {field.label}
+            {requiredMark}
+          </Label>
+          <Textarea
+            id={field.key}
+            {...form.register(field.key)}
+            placeholder={field.placeholder}
+            rows={3}
+          />
+          {errorMessage && (
+            <p className="text-xs text-destructive">{errorMessage}</p>
+          )}
+        </>
+      );
+
+    case "date":
+      return (
+        <>
+          <Label htmlFor={field.key}>
+            {field.label}
+            {requiredMark}
+          </Label>
+          <Input
+            id={field.key}
+            type="date"
+            {...form.register(field.key)}
+          />
+          {errorMessage && (
+            <p className="text-xs text-destructive">{errorMessage}</p>
+          )}
+        </>
+      );
+
+    case "email":
+      return (
+        <>
+          <Label htmlFor={field.key}>
+            {field.label}
+            {requiredMark}
+          </Label>
+          <Input
+            id={field.key}
+            type="email"
+            {...form.register(field.key)}
+            placeholder={field.placeholder || "email@example.com"}
+          />
+          {errorMessage && (
+            <p className="text-xs text-destructive">{errorMessage}</p>
+          )}
+        </>
+      );
+
+    case "phone":
+      return (
+        <>
+          <Label htmlFor={field.key}>
+            {field.label}
+            {requiredMark}
+          </Label>
+          <Input
+            id={field.key}
+            type="tel"
+            {...form.register(field.key)}
+            placeholder={field.placeholder || "(555) 555-5555"}
+          />
+          {errorMessage && (
+            <p className="text-xs text-destructive">{errorMessage}</p>
+          )}
+        </>
+      );
+
+    case "number":
+      return (
+        <>
+          <Label htmlFor={field.key}>
+            {field.label}
+            {requiredMark}
+          </Label>
+          <Input
+            id={field.key}
+            type="number"
+            step="0.01"
+            min="0"
+            {...form.register(field.key, { valueAsNumber: true })}
+            placeholder={field.placeholder}
+          />
+          {errorMessage && (
+            <p className="text-xs text-destructive">{errorMessage}</p>
+          )}
+        </>
+      );
+
+    // "text" and fallback
+    default:
+      return (
+        <>
+          <Label htmlFor={field.key}>
+            {field.label}
+            {requiredMark}
+          </Label>
+          <Input
+            id={field.key}
+            {...form.register(field.key)}
+            placeholder={field.placeholder}
+          />
+          {errorMessage && (
+            <p className="text-xs text-destructive">{errorMessage}</p>
+          )}
+        </>
+      );
+  }
 }

@@ -12,6 +12,7 @@ export interface PlacePrediction {
 export interface PlaceDetails {
   placeId: string;
   formattedAddress: string;
+  streetAddress?: string;
   city?: string;
   state?: string;
   postalCode?: string;

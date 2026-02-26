@@ -46,7 +46,9 @@ export async function POST(request: NextRequest) {
 
     const data = await response.json();
 
-    // Extract city, state, and postal code from address components
+    // Extract address components
+    let streetNumber: string | undefined;
+    let route: string | undefined;
     let city: string | undefined;
     let state: string | undefined;
     let postalCode: string | undefined;
@@ -54,6 +56,12 @@ export async function POST(request: NextRequest) {
     if (data.addressComponents) {
       for (const component of data.addressComponents) {
         const types = component.types || [];
+        if (types.includes("street_number")) {
+          streetNumber = component.longText;
+        }
+        if (types.includes("route")) {
+          route = component.longText;
+        }
         if (types.includes("locality")) {
           city = component.longText;
         }
@@ -66,9 +74,13 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Build street address from components (handle missing parts)
+    const streetAddress = [streetNumber, route].filter(Boolean).join(" ") || undefined;
+
     return NextResponse.json({
       placeId: data.id,
       formattedAddress: data.formattedAddress || "",
+      streetAddress,
       city,
       state,
       postalCode,

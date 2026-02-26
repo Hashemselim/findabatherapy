@@ -15,6 +15,8 @@ interface BrandedPageCardProps {
   relativePath: string;
   iconName: BrandedPageIconName;
   howItWorks: string[];
+  /** When true, "How it works" renders as a static list instead of an accordion */
+  defaultExpanded?: boolean;
 }
 
 const variantMap = {
@@ -66,6 +68,7 @@ export function BrandedPageCard({
   relativePath,
   iconName,
   howItWorks,
+  defaultExpanded,
 }: BrandedPageCardProps) {
   const variant = variantMap[iconName];
   const Icon = variant.Icon;
@@ -127,23 +130,37 @@ export function BrandedPageCard({
             </div>
           </div>
 
-          <Accordion type="single" collapsible className="rounded-md border border-border/70 bg-white px-3">
-            <AccordionItem value="how-it-works" className="border-b-0">
-              <AccordionTrigger className="py-3 text-sm font-semibold text-foreground hover:no-underline">
-                How it works
-              </AccordionTrigger>
-              <AccordionContent>
-                <ul className="space-y-1.5 pb-1 text-sm leading-relaxed text-muted-foreground">
-                  {howItWorks.map((step) => (
-                    <li key={step} className="flex items-start gap-2">
-                      <span className={`mt-[6px] h-1.5 w-1.5 rounded-full ${variant.iconBg}`} aria-hidden />
-                      <span>{step}</span>
-                    </li>
-                  ))}
-                </ul>
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
+          {defaultExpanded ? (
+            <div className="rounded-md border border-border/70 bg-white px-3 py-3">
+              <p className="text-sm font-semibold text-foreground">How it works</p>
+              <ul className="mt-2 space-y-1.5 text-sm leading-relaxed text-muted-foreground">
+                {howItWorks.map((step) => (
+                  <li key={step} className="flex items-start gap-2">
+                    <span className={`mt-[6px] h-1.5 w-1.5 rounded-full ${variant.iconBg}`} aria-hidden />
+                    <span>{step}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : (
+            <Accordion type="single" collapsible className="rounded-md border border-border/70 bg-white px-3">
+              <AccordionItem value="how-it-works" className="border-b-0">
+                <AccordionTrigger className="py-3 text-sm font-semibold text-foreground hover:no-underline">
+                  How it works
+                </AccordionTrigger>
+                <AccordionContent>
+                  <ul className="space-y-1.5 pb-1 text-sm leading-relaxed text-muted-foreground">
+                    {howItWorks.map((step) => (
+                      <li key={step} className="flex items-start gap-2">
+                        <span className={`mt-[6px] h-1.5 w-1.5 rounded-full ${variant.iconBg}`} aria-hidden />
+                        <span>{step}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+          )}
         </CardContent>
       </div>
     </Card>

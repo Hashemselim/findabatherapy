@@ -5,7 +5,7 @@ import { Globe } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { getClientIntakePageData } from "@/lib/actions/intake";
+import { getClientIntakePageData, getIntakeFieldsConfig, getIntakeTokenData, getPublicAgencyLocations, type PrefillData } from "@/lib/actions/intake";
 
 import { ClientIntakeForm } from "./client-intake-form";
 
@@ -15,7 +15,7 @@ type ClientIntakePageParams = {
 
 type ClientIntakePageProps = {
   params: Promise<ClientIntakePageParams>;
-  searchParams: Promise<{ ref?: string }>;
+  searchParams: Promise<{ ref?: string; token?: string }>;
 };
 
 // Revalidate every 5 minutes (ISR)
@@ -57,7 +57,7 @@ function getContrastColor(hexColor: string) {
 
 export default async function ClientIntakePage({ params, searchParams }: ClientIntakePageProps) {
   const { slug } = await params;
-  const { ref } = await searchParams;
+  const { ref, token } = await searchParams;
   const result = await getClientIntakePageData(slug);
 
   if (!result.success || !result.data) {
@@ -67,6 +67,21 @@ export default async function ClientIntakePage({ params, searchParams }: ClientI
   const { listing, profile } = result.data;
   const { background_color, show_powered_by } = profile.intakeFormSettings;
   const contrastColor = getContrastColor(background_color);
+
+  // Load dynamic field configuration and agency locations in parallel
+  const [fieldsConfig, agencyLocations] = await Promise.all([
+    getIntakeFieldsConfig(listing.profileId),
+    getPublicAgencyLocations(listing.id),
+  ]);
+
+  // If a pre-fill token is provided, load existing client data
+  let prefillData: PrefillData | undefined;
+  if (token) {
+    const tokenResult = await getIntakeTokenData(token);
+    if (tokenResult.success && tokenResult.data) {
+      prefillData = tokenResult.data;
+    }
+  }
 
   // Generate initials for avatar fallback
   const initials = profile.agencyName
@@ -162,7 +177,11 @@ export default async function ClientIntakePage({ params, searchParams }: ClientI
               profileId={listing.profileId}
               providerName={profile.agencyName}
               brandColor={background_color}
+              fieldsConfig={fieldsConfig}
+              agencyLocations={agencyLocations}
               initialReferralSource={ref === "findabatherapy" ? "findabatherapy" : undefined}
+              prefillData={prefillData}
+              intakeToken={token}
             />
           </div>
 
