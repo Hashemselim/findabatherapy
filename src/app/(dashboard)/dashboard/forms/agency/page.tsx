@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { BubbleBackground } from "@/components/ui/bubble-background";
 import { BrandedPageCard } from "@/components/dashboard/branded-page-card";
+import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
 import { getProfile, createClient } from "@/lib/supabase/server";
 
 export default async function AgencyBrochurePage() {
@@ -28,13 +29,8 @@ export default async function AgencyBrochurePage() {
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">Agency Brochure</h1>
-        <p className="mt-1 text-sm text-muted-foreground sm:mt-2">
-          Your shareable agency page for referral partners, doctors, and families.
-        </p>
-      </div>
+    <div className="space-y-3">
+      <DashboardPageHeader title="Agency Brochure" description="Your shareable agency page for referral partners, doctors, and families." />
 
       <BrandedPageCard
         title="Branded Agency Page"
@@ -54,13 +50,8 @@ export default async function AgencyBrochurePage() {
 
 function OnboardingGate() {
   return (
-    <div className="space-y-4 sm:space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">Agency Brochure</h1>
-        <p className="mt-1 text-sm text-muted-foreground sm:mt-2">
-          Your shareable agency page for referral partners, doctors, and families.
-        </p>
-      </div>
+    <div className="space-y-3">
+      <DashboardPageHeader title="Agency Brochure" description="Your shareable agency page for referral partners, doctors, and families." />
       <Card className="overflow-hidden border-slate-200">
         <BubbleBackground
           interactive={false}
@@ -79,7 +70,7 @@ function OnboardingGate() {
             <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#5788FF] shadow-lg shadow-[#5788FF]/25">
               <ClipboardList className="h-8 w-8 text-white" />
             </div>
-            <h3 className="text-xl font-semibold text-slate-900">Complete Onboarding First</h3>
+            <p className="text-xl font-semibold text-slate-900">Complete Onboarding First</p>
             <p className="mt-3 max-w-md text-sm text-slate-600">
               Finish setting up your practice profile to access your branded forms.
             </p>
@@ -106,13 +97,8 @@ function OnboardingGate() {
 
 function NoListingState() {
   return (
-    <div className="space-y-4 sm:space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">Agency Brochure</h1>
-        <p className="mt-1 text-sm text-muted-foreground sm:mt-2">
-          Your shareable agency page for referral partners, doctors, and families.
-        </p>
-      </div>
+    <div className="space-y-3">
+      <DashboardPageHeader title="Agency Brochure" description="Your shareable agency page for referral partners, doctors, and families." />
       <Card className="border-dashed">
         <CardContent className="flex flex-col items-center py-12 text-center">
           <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-muted">

@@ -178,23 +178,15 @@ function PageHeader({
   onLocationChange,
 }: PageHeaderProps) {
   return (
-    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">Performance Analytics</h1>
-        <p className="mt-1 text-sm text-muted-foreground sm:mt-2">
-          Track how potential clients discover and interact with your listing.
-        </p>
-      </div>
-      <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-        <AnalyticsTimeFilter value={period} onChange={onPeriodChange} />
-        {locationOptions.length > 1 && (
-          <AnalyticsLocationFilter
-            locations={locationOptions}
-            selectedIds={selectedLocationIds}
-            onChange={onLocationChange}
-          />
-        )}
-      </div>
+    <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+      <AnalyticsTimeFilter value={period} onChange={onPeriodChange} />
+      {locationOptions.length > 1 && (
+        <AnalyticsLocationFilter
+          locations={locationOptions}
+          selectedIds={selectedLocationIds}
+          onChange={onLocationChange}
+        />
+      )}
     </div>
   );
 }

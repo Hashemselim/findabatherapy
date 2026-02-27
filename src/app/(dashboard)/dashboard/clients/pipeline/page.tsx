@@ -24,6 +24,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { BubbleBackground } from "@/components/ui/bubble-background";
 import { DashboardTracker } from "@/components/analytics/dashboard-tracker";
+import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
 import { getProfile } from "@/lib/supabase/server";
 import { getPipelineData } from "@/lib/actions/pipeline";
 import { runTaskAutomation } from "@/lib/actions/task-automation";
@@ -72,16 +73,12 @@ export default async function PipelinePage() {
 
   if (!profile?.onboarding_completed_at) {
     return (
-      <div className="space-y-6 sm:space-y-8">
+      <div className="space-y-3">
         <DashboardTracker section="pipeline" />
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">
-            Client Pipeline
-          </h1>
-          <p className="mt-1 max-w-2xl text-sm text-muted-foreground sm:mt-2">
-            Complete your onboarding to start managing your client pipeline.
-          </p>
-        </div>
+        <DashboardPageHeader
+          title="Client Pipeline"
+          description="Complete your onboarding to start managing your client pipeline."
+        />
 
         <Card className="overflow-hidden border-slate-200">
           <BubbleBackground
@@ -101,9 +98,9 @@ export default async function PipelinePage() {
               <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#5788FF] shadow-lg shadow-[#5788FF]/25">
                 <ClipboardList className="h-8 w-8 text-white" />
               </div>
-              <h3 className="text-xl font-semibold text-slate-900">
+              <p className="text-xl font-semibold text-slate-900">
                 Complete Your Onboarding
-              </h3>
+              </p>
               <p className="mt-3 max-w-md text-sm text-slate-600">
                 Set up your practice profile to start tracking your client
                 pipeline.
@@ -144,23 +141,19 @@ export default async function PipelinePage() {
   // Empty state for agencies with no clients
   if (totalClients === 0) {
     return (
-      <div className="space-y-6 sm:space-y-8">
+      <div className="space-y-3">
         <DashboardTracker section="pipeline" />
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">
-            Client Pipeline
-          </h1>
-          <p className="mt-1 max-w-2xl text-sm text-muted-foreground sm:mt-2">
-            Your daily command center for managing clients.
-          </p>
-        </div>
+        <DashboardPageHeader
+          title="Client Pipeline"
+          description="Your daily command center for managing clients."
+        />
 
         <Card>
           <CardContent className="flex flex-col items-center py-16 text-center">
             <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10">
               <Users className="h-7 w-7 text-primary" />
             </div>
-            <h3 className="text-lg font-semibold">Welcome to Your Pipeline</h3>
+            <p className="text-lg font-semibold">Welcome to Your Pipeline</p>
             <p className="mt-2 max-w-sm text-sm text-muted-foreground">
               Start by adding your first client or sharing your intake form to
               begin receiving inquiries.
@@ -186,20 +179,14 @@ export default async function PipelinePage() {
   }
 
   return (
-    <div className="space-y-6 sm:space-y-8">
+    <div className="space-y-3">
       <DashboardTracker section="pipeline" />
 
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">
-            Client Pipeline
-          </h1>
-          <p className="mt-1 max-w-2xl text-sm text-muted-foreground sm:mt-2">
-            {totalActive} active client{totalActive !== 1 ? "s" : ""} across
-            your pipeline
-          </p>
-        </div>
+      <DashboardPageHeader
+        title="Client Pipeline"
+        description={`${totalActive} active client${totalActive !== 1 ? "s" : ""} across your pipeline`}
+      >
         <Button
           asChild
           variant="outline"
@@ -211,28 +198,30 @@ export default async function PipelinePage() {
             All Clients
           </Link>
         </Button>
-      </div>
+      </DashboardPageHeader>
 
       {/* Stage Cards — Horizontal Row */}
-      <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-7">
-        {STAGES.map((stage) => {
-          const count = counts[stage.key] || 0;
-          return (
-            <Link
-              key={stage.key}
-              href={`/dashboard/clients?status=${stage.key}`}
-              className={`flex-shrink-0 w-[120px] sm:w-auto rounded-lg border ${stage.borderColor} p-3 hover:shadow-sm transition-shadow cursor-pointer`}
-            >
-              <div className={`h-1 w-8 rounded-full ${stage.color} mb-2`} />
-              <p className={`text-2xl font-bold ${stage.textColor}`}>
-                {count}
-              </p>
-              <p className="text-xs text-muted-foreground mt-0.5 whitespace-nowrap">
-                {stage.label}
-              </p>
-            </Link>
-          );
-        })}
+      <div className="rounded-2xl border border-border/50 bg-white shadow-sm dark:bg-zinc-950 p-5 sm:p-6">
+        <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-7">
+          {STAGES.map((stage) => {
+            const count = counts[stage.key] || 0;
+            return (
+              <Link
+                key={stage.key}
+                href={`/dashboard/clients?status=${stage.key}`}
+                className={`flex-shrink-0 w-[120px] sm:w-auto rounded-lg border ${stage.borderColor} p-3 hover:shadow-sm transition-shadow cursor-pointer`}
+              >
+                <div className={`h-1 w-8 rounded-full ${stage.color} mb-2`} />
+                <p className={`text-2xl font-bold ${stage.textColor}`}>
+                  {count}
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5 whitespace-nowrap">
+                  {stage.label}
+                </p>
+              </Link>
+            );
+          })}
+        </div>
       </div>
 
       {/* Attention Items */}

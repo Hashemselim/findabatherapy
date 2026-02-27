@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 
+import { BehaviorWorkLogo } from "@/components/brand/behaviorwork-logo";
+
 const productLinks = [
   { href: "/behaviorwork#lifecycle", label: "Platform" },
   { href: "/behaviorwork/get-started", label: "Pricing" },
@@ -26,10 +28,7 @@ export function BehaviorWorkFooter() {
           {/* Brand */}
           <div className="sm:col-span-2 lg:col-span-1">
             <div className="flex items-center">
-              <span className="relative inline-block text-2xl tracking-[-0.08em] text-[#5788FF]">
-                <span className="relative z-10"><span className="font-light">Behavior</span><span className="font-extrabold">Work</span></span>
-                <span className="absolute bottom-[3px] left-0 -right-3 z-0 h-[4px] rounded-full bg-[#FFDC33]/50" />
-              </span>
+              <BehaviorWorkLogo size="md" />
             </div>
             <p className="mt-3 max-w-xs text-sm leading-relaxed text-slate-400">
               The growth engine for ABA agencies. From first inquiry to active

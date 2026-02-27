@@ -82,11 +82,9 @@ export function DashboardShell({
         </div>
 
         {/* Scrolling main content */}
-        <main className="min-w-0 flex-1 px-4 py-6 sm:px-8 sm:py-8">
+        <main className="min-w-0 flex-1 px-4 py-3 sm:px-6 sm:py-4">
           <div className="mx-auto max-w-6xl">
-            <div className="rounded-2xl border border-border/50 bg-white p-5 shadow-sm dark:bg-zinc-950 sm:p-7">
-              {children}
-            </div>
+            {children}
           </div>
         </main>
       </div>

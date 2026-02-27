@@ -9,6 +9,7 @@ import { ListingStatusCard } from "@/components/dashboard/listing-status-card";
 import { CompanyContactCard } from "@/components/dashboard/company-contact-card";
 import { ServicesAttributesCard } from "@/components/dashboard/services-attributes-card";
 import { ContactFormCard } from "@/components/dashboard/contact-form-card";
+import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { BubbleBackground } from "@/components/ui/bubble-background";
 import { Button } from "@/components/ui/button";
@@ -28,13 +29,11 @@ export default async function DashboardListingPage() {
   // If onboarding is not complete, show the gate message
   if (!profile?.onboarding_completed_at) {
     return (
-      <div className="space-y-4 sm:space-y-6">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">Company Details</h1>
-          <p className="mt-1 text-sm text-muted-foreground sm:mt-2">
-            Update your company information, service offerings, and locations.
-          </p>
-        </div>
+      <div className="space-y-3">
+        <DashboardPageHeader
+          title="Company Details"
+          description="Update your company information, service offerings, and locations."
+        />
 
         <Card className="overflow-hidden border-slate-200">
           <BubbleBackground
@@ -55,9 +54,9 @@ export default async function DashboardListingPage() {
                 <ClipboardList className="h-8 w-8 text-white" />
               </div>
 
-              <h3 className="text-xl font-semibold text-slate-900">
+              <p className="text-xl font-semibold text-slate-900">
                 Complete Onboarding to Access Company Details
-              </h3>
+              </p>
 
               <p className="mt-3 max-w-md text-sm text-slate-600">
                 Finish setting up your practice profile to unlock all dashboard features.
@@ -124,49 +123,44 @@ export default async function DashboardListingPage() {
   const allServiceTypes = [...new Set(locations.flatMap(l => l.serviceTypes || []))];
 
   return (
-    <div className="space-y-4 sm:space-y-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">Company Details</h1>
-            <p className="mt-1 text-sm text-muted-foreground sm:mt-2">
-              Update your company information and manage your service locations.
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Badge
-              variant={isPublished ? "default" : "secondary"}
-              className="px-3 py-1"
-            >
-              {isPublished ? (
-                <>
-                  <Eye className="mr-1 h-3 w-3" />
-                  Published
-                </>
-              ) : (
-                <>
-                  <EyeOff className="mr-1 h-3 w-3" />
-                  Draft
-                </>
-              )}
-            </Badge>
-            {isPublished && (
+    <div className="space-y-3">
+        <DashboardPageHeader
+          title="Company Details"
+          description="Update your company information and manage your service locations."
+        >
+          <Badge
+            variant={isPublished ? "default" : "secondary"}
+            className="px-3 py-1"
+          >
+            {isPublished ? (
               <>
-                <Button variant="outline" size="sm" className="hidden sm:inline-flex" asChild>
-                  <a href={`/provider/${listing.slug}`} target="_blank" rel="noopener noreferrer">
-                    <ExternalLink className="mr-2 h-4 w-4" />
-                    Therapy Profile
-                  </a>
-                </Button>
-                <Button variant="outline" size="sm" className="hidden sm:inline-flex" asChild>
-                  <a href={`/employers/${listing.slug}`} target="_blank" rel="noopener noreferrer">
-                    <ExternalLink className="mr-2 h-4 w-4" />
-                    Jobs Profile
-                  </a>
-                </Button>
+                <Eye className="mr-1 h-3 w-3" />
+                Published
+              </>
+            ) : (
+              <>
+                <EyeOff className="mr-1 h-3 w-3" />
+                Draft
               </>
             )}
-          </div>
-        </div>
+          </Badge>
+          {isPublished && (
+            <>
+              <Button variant="outline" size="sm" className="hidden sm:inline-flex" asChild>
+                <a href={`/provider/${listing.slug}`} target="_blank" rel="noopener noreferrer">
+                  <ExternalLink className="mr-2 h-4 w-4" />
+                  Therapy Profile
+                </a>
+              </Button>
+              <Button variant="outline" size="sm" className="hidden sm:inline-flex" asChild>
+                <a href={`/employers/${listing.slug}`} target="_blank" rel="noopener noreferrer">
+                  <ExternalLink className="mr-2 h-4 w-4" />
+                  Jobs Profile
+                </a>
+              </Button>
+            </>
+          )}
+        </DashboardPageHeader>
         {/* Mobile Profile Links */}
         {isPublished && (
           <div className="flex gap-2 sm:hidden">

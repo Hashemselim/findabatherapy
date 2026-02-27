@@ -4,6 +4,7 @@ import { ArrowRight, ClipboardList, CheckCircle2, Briefcase } from "lucide-react
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { BubbleBackground } from "@/components/ui/bubble-background";
+import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
 import { CareersPageShareCard } from "@/components/dashboard/jobs/careers-page-share-card";
 import { getProfile } from "@/lib/supabase/server";
 import { getListingSlug } from "@/lib/actions/listings";
@@ -18,13 +19,8 @@ export default async function CareersPageDashboard() {
   // If onboarding is not complete, show the gate message
   if (!profile?.onboarding_completed_at) {
     return (
-      <div className="space-y-4 sm:space-y-6">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">Careers Page</h1>
-          <p className="mt-1 text-sm text-muted-foreground sm:mt-2">
-            Share a branded careers page with job seekers.
-          </p>
-        </div>
+      <div className="space-y-3">
+        <DashboardPageHeader title="Careers Page" description="Share a branded careers page with job seekers." />
 
         <Card className="overflow-hidden border-slate-200">
           <BubbleBackground
@@ -45,9 +41,9 @@ export default async function CareersPageDashboard() {
                 <ClipboardList className="h-8 w-8 text-white" />
               </div>
 
-              <h3 className="text-xl font-semibold text-slate-900">
+              <p className="text-xl font-semibold text-slate-900">
                 Complete Onboarding First
-              </h3>
+              </p>
 
               <p className="mt-3 max-w-md text-sm text-slate-600">
                 Finish setting up your practice profile to access your branded careers page.
@@ -81,13 +77,8 @@ export default async function CareersPageDashboard() {
   // If no listing slug, something went wrong
   if (!listingSlug) {
     return (
-      <div className="space-y-4 sm:space-y-6">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">Careers Page</h1>
-          <p className="mt-1 text-sm text-muted-foreground sm:mt-2">
-            Share a branded careers page with job seekers.
-          </p>
-        </div>
+      <div className="space-y-3">
+        <DashboardPageHeader title="Careers Page" description="Share a branded careers page with job seekers." />
 
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center py-12 text-center">
@@ -112,13 +103,8 @@ export default async function CareersPageDashboard() {
   const jobs = await getJobsByProvider(listingSlug);
 
   return (
-    <div className="space-y-4 sm:space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">Careers Page</h1>
-        <p className="mt-1 text-sm text-muted-foreground sm:mt-2">
-          Share a branded careers page that showcases all your open positions.
-        </p>
-      </div>
+    <div className="space-y-3">
+      <DashboardPageHeader title="Careers Page" description="Share a branded careers page that showcases all your open positions." />
 
       <Card className="border-border/60 bg-muted/20">
         <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">

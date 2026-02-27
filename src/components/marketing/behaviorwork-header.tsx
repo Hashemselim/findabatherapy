@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Menu } from "lucide-react";
 
+import { BehaviorWorkLogo } from "@/components/brand/behaviorwork-logo";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -57,13 +58,7 @@ export function BehaviorWorkHeader() {
           className="group flex items-center"
           aria-label="BehaviorWork home"
         >
-          <span className="relative inline-block text-3xl tracking-[-0.08em] text-[#5788FF]">
-            <span className="relative z-10">
-              <span className="font-light">Behavior</span>
-              <span className="font-extrabold">Work</span>
-            </span>
-            <span className="absolute bottom-[3px] left-0 -right-3 z-0 h-[4px] rounded-full bg-[#FFDC33]/50" />
-          </span>
+          <BehaviorWorkLogo size="lg" />
         </Link>
 
         {/* Desktop nav */}
@@ -113,14 +108,8 @@ export function BehaviorWorkHeader() {
             className="w-72 border-amber-100 bg-[#FFFBF0] sm:w-80"
           >
             <SheetHeader>
-              <SheetTitle className="tracking-[-0.08em] text-[#5788FF]">
-                <span className="relative inline-block">
-                  <span className="relative z-10">
-                    <span className="font-light">Behavior</span>
-                    <span className="font-extrabold">Work</span>
-                  </span>
-                  <span className="absolute bottom-[3px] left-0 -right-3 z-0 h-[4px] rounded-full bg-[#FFDC33]/50" />
-                </span>
+              <SheetTitle>
+                <BehaviorWorkLogo size="md" />
               </SheetTitle>
               <SheetDescription>
                 The growth engine for ABA agencies.

@@ -3,6 +3,7 @@ import { Mail, User, Shield, KeyRound } from "lucide-react";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
 import { getUser, getProfile } from "@/lib/supabase/server";
 
 // Provider icons as separate components for cleaner code
@@ -85,14 +86,12 @@ export default async function DashboardSettingsPage() {
     : null;
 
   return (
-    <div className="space-y-6 sm:space-y-8">
+    <div className="space-y-3">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">Account Settings</h1>
-        <p className="mt-1 text-sm text-muted-foreground sm:mt-2">
-          View your account information and sign-in details.
-        </p>
-      </div>
+      <DashboardPageHeader
+        title="Account Settings"
+        description="View your account information and sign-in details."
+      />
 
       {/* Account Information Card */}
       <Card className="border-slate-200 bg-white">

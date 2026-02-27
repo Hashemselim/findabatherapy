@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { BubbleBackground } from "@/components/ui/bubble-background";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
 import { getProfile } from "@/lib/supabase/server";
 import { getApplications } from "@/lib/actions/applications";
 import { getJobPostings } from "@/lib/actions/jobs";
@@ -20,13 +21,8 @@ export default async function EmployeesPage() {
   // If onboarding is not complete, show the gate message
   if (!profile?.onboarding_completed_at) {
     return (
-      <div className="space-y-4 sm:space-y-6">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">Employees</h1>
-          <p className="mt-1 text-sm text-muted-foreground sm:mt-2">
-            Manage job applicants and team members.
-          </p>
-        </div>
+      <div className="space-y-3">
+        <DashboardPageHeader title="Employees" description="Manage job applicants and team members." />
 
         <Card className="overflow-hidden border-slate-200">
           <BubbleBackground
@@ -47,9 +43,9 @@ export default async function EmployeesPage() {
                 <ClipboardList className="h-8 w-8 text-white" />
               </div>
 
-              <h3 className="text-xl font-semibold text-slate-900">
+              <p className="text-xl font-semibold text-slate-900">
                 Complete Onboarding to Access Employees
-              </h3>
+              </p>
 
               <p className="mt-3 max-w-md text-sm text-slate-600">
                 Finish setting up your practice profile to unlock all dashboard features.
@@ -94,21 +90,15 @@ export default async function EmployeesPage() {
   const teamGated = !teamResult.success; // guard returned error = feature not available
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-4 sm:gap-6">
+    <div className="space-y-3">
       {/* Page Header */}
-      <div className="flex shrink-0 flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">Employees</h1>
-          <p className="mt-1 text-sm text-muted-foreground sm:mt-2">
-            Manage job applicants and team members.
-          </p>
-        </div>
+      <DashboardPageHeader title="Employees" description="Manage job applicants and team members.">
         <Button asChild variant="outline" className="w-full rounded-full sm:w-auto">
           <Link href="/dashboard/jobs">
             View Job Postings
           </Link>
         </Button>
-      </div>
+      </DashboardPageHeader>
 
       {/* Tabs for Applicants and Team */}
       <Tabs defaultValue="applicants" className="flex min-h-0 flex-1 flex-col">
@@ -192,9 +182,9 @@ export default async function EmployeesPage() {
                     <Lock className="h-8 w-8 text-white" />
                   </div>
 
-                  <h3 className="text-xl font-semibold text-slate-900">
+                  <p className="text-xl font-semibold text-slate-900">
                     Team Management
-                  </h3>
+                  </p>
 
                   <p className="mt-3 max-w-md text-sm text-slate-600">
                     Upgrade to Pro to manage your team, track employee certifications and

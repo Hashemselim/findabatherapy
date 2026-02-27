@@ -157,6 +157,8 @@ interface LocationsManagerProps {
   planTier: string;
   featuredPricing: FeaturedPricing;
   companyDefaults: CompanyDefaults;
+  /** Render prop for placing the "Add Location" button in a parent container (e.g. page header) */
+  renderHeaderAction?: (openDialog: () => void, canAddMore: boolean, isPending: boolean) => React.ReactNode;
 }
 
 export function LocationsManager({
@@ -165,6 +167,7 @@ export function LocationsManager({
   planTier,
   featuredPricing,
   companyDefaults,
+  renderHeaderAction,
 }: LocationsManagerProps) {
   const [locations, setLocations] = useState<LocationData[]>(initialLocations);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -578,8 +581,16 @@ export function LocationsManager({
     setTimeout(() => setSuccess(null), 5000);
   };
 
+  const openAddDialog = () => {
+    resetForm();
+    setIsDialogOpen(true);
+  };
+
   return (
     <>
+    {/* Render header action (e.g. "Add Location" button) via parent slot */}
+    {renderHeaderAction?.(openAddDialog, canAddMore, isPending)}
+
     <div className="space-y-4">
       {/* Success/Error Messages */}
       {success && (
@@ -593,22 +604,6 @@ export function LocationsManager({
         <div className="flex items-center gap-2 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
           <AlertCircle className="h-4 w-4" />
           {error}
-        </div>
-      )}
-
-      {/* Add Location Button */}
-      {canAddMore && (
-        <div className="flex justify-end">
-          <Button
-            onClick={() => {
-              resetForm();
-              setIsDialogOpen(true);
-            }}
-            disabled={isPending}
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Add Location
-          </Button>
         </div>
       )}
 

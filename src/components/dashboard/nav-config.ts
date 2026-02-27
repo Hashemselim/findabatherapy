@@ -24,7 +24,6 @@ import {
   MapPin,
   MessageSquare,
   Palette,
-  Settings,
   User,
   UserCheck,
   UserCircle,
@@ -151,7 +150,6 @@ export const sectionNav: NavSectionConfig[] = [
         icon: MessageSquare,
         aliases: [
           "/dashboard/branded-pages",
-          "/dashboard/forms",
           "/dashboard/intake-pages/contact-form",
           "/dashboard/operations/forms",
         ],
@@ -244,12 +242,6 @@ export const sectionNav: NavSectionConfig[] = [
         icon: BarChart3,
         quickLink: true,
         aliases: ["/dashboard/client-growth/analytics", "/dashboard/analytics"],
-      },
-      {
-        href: "/dashboard/settings",
-        label: "Settings",
-        icon: Settings,
-        exactMatch: true,
       },
     ],
   },

@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 
 import { getUser } from "@/lib/supabase/server";
 import { getTasks, getClientsList } from "@/lib/actions/clients";
+import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
 
 import { TasksList } from "./tasks-list";
 
@@ -25,15 +26,12 @@ export default async function TasksPage() {
   const clients = clientsResult.success ? clientsResult.data || [] : [];
 
   return (
-    <div className="flex h-full flex-col p-4 md:p-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold">Tasks</h1>
-        <p className="text-sm text-muted-foreground">
-          Manage tasks across all your clients
-        </p>
-      </div>
+    <div className="space-y-3">
+      <DashboardPageHeader title="Tasks" description="Manage tasks across all your clients" />
 
-      <TasksList initialTasks={tasks} clients={clients} />
+      <div className="rounded-2xl border border-border/50 bg-white p-5 shadow-sm dark:bg-zinc-950 sm:p-6">
+        <TasksList initialTasks={tasks} clients={clients} />
+      </div>
     </div>
   );
 }

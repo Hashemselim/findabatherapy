@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DashboardTracker } from "@/components/analytics/dashboard-tracker";
+import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
 import { getUser } from "@/lib/supabase/server";
 import { getCurrentPlanFeatures } from "@/lib/plans/guards";
 import { getAllCommunications } from "@/lib/actions/communications";
@@ -46,25 +47,21 @@ export default async function CommunicationsPage() {
   // If user doesn't have communications feature, show upgrade prompt
   if (!features.hasCommunications) {
     return (
-      <div className="space-y-6 sm:space-y-8">
+      <div className="space-y-3">
         <DashboardTracker section="communications" />
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">
-            Communications
-          </h1>
-          <p className="mt-1 max-w-2xl text-sm text-muted-foreground sm:mt-2">
-            Send templated emails and track client communications.
-          </p>
-        </div>
+        <DashboardPageHeader
+          title="Communications"
+          description="Send templated emails and track client communications."
+        />
 
         <Card className="overflow-hidden">
           <CardHeader className="text-center">
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10">
               <Mail className="h-7 w-7 text-primary" />
             </div>
-            <CardTitle className="text-xl">
+            <p className="text-xl font-semibold">
               Upgrade to Pro for Client Communications
-            </CardTitle>
+            </p>
             <CardDescription className="mx-auto max-w-md">
               Send professional, templated emails to clients at every stage of
               their journey — from initial inquiry response to discharge summaries.
@@ -120,25 +117,20 @@ export default async function CommunicationsPage() {
   const failedCount = communications.filter((c) => c.status === "failed").length;
 
   return (
-    <div className="space-y-6 sm:space-y-8">
+    <div className="space-y-3">
       <DashboardTracker section="communications" />
 
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">
-            Communications
-          </h1>
-          <p className="mt-1 max-w-2xl text-sm text-muted-foreground sm:mt-2">
-            View all client email communications sent from your agency.
-          </p>
-        </div>
+      <DashboardPageHeader
+        title="Communications"
+        description="View all client email communications sent from your agency."
+      >
         <Button asChild variant="outline" size="sm">
           <Link href="/dashboard/clients">
             View Clients
           </Link>
         </Button>
-      </div>
+      </DashboardPageHeader>
 
       {/* Summary Cards */}
       <div className="grid gap-4 sm:grid-cols-3">

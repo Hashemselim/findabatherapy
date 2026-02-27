@@ -4,6 +4,7 @@ import { Plus, ClipboardList, ArrowRight, CheckCircle2, Briefcase, Sparkles } fr
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { BubbleBackground } from "@/components/ui/bubble-background";
+import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
 import { JobList } from "@/components/jobs/job-list";
 import { getProfile } from "@/lib/supabase/server";
 import { getJobPostings, getJobCountAndLimit } from "@/lib/actions/jobs";
@@ -14,13 +15,8 @@ export default async function JobsPage() {
   // If onboarding is not complete, show the gate message
   if (!profile?.onboarding_completed_at) {
     return (
-      <div className="space-y-4 sm:space-y-6">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">Job Postings</h1>
-          <p className="mt-1 text-sm text-muted-foreground sm:mt-2">
-            Create and manage job listings to attract qualified ABA professionals.
-          </p>
-        </div>
+      <div className="space-y-3">
+        <DashboardPageHeader title="Job Postings" description="Create and manage job listings to attract qualified ABA professionals." />
 
         <Card className="overflow-hidden border-slate-200">
           <BubbleBackground
@@ -41,9 +37,9 @@ export default async function JobsPage() {
                 <ClipboardList className="h-8 w-8 text-white" />
               </div>
 
-              <h3 className="text-xl font-semibold text-slate-900">
+              <p className="text-xl font-semibold text-slate-900">
                 Complete Onboarding to Post Jobs
-              </h3>
+              </p>
 
               <p className="mt-3 max-w-md text-sm text-slate-600">
                 Finish setting up your practice profile to start posting jobs.
@@ -92,15 +88,9 @@ export default async function JobsPage() {
     : "free";
 
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <div className="space-y-3">
       {/* Page Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">Job Postings</h1>
-          <p className="mt-1 text-sm text-muted-foreground sm:mt-2">
-            Create and manage job listings on findabajobs.org.
-          </p>
-        </div>
+      <DashboardPageHeader title="Job Postings" description="Create and manage job listings on findabajobs.org.">
         {limits?.canCreate && (
           <Button asChild className="w-full rounded-full sm:w-auto">
             <Link href="/dashboard/jobs/new">
@@ -109,7 +99,7 @@ export default async function JobsPage() {
             </Link>
           </Button>
         )}
-      </div>
+      </DashboardPageHeader>
 
       {/* Job Limit Info Card */}
       <Card className="border-[#5788FF]/30 bg-[#5788FF]/5">

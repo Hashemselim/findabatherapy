@@ -17,6 +17,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { BubbleBackground } from "@/components/ui/bubble-background";
 import { AnalyticsClient } from "@/components/dashboard/analytics-client";
+import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
 import { getProfile } from "@/lib/supabase/server";
 import { getReferralAnalytics } from "@/lib/actions/referral-analytics";
 
@@ -26,13 +27,11 @@ export default async function AnalyticsPage() {
   // If onboarding is not complete, show the gate message
   if (!profile?.onboarding_completed_at) {
     return (
-      <div className="space-y-4 sm:space-y-6">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">Performance Analytics</h1>
-          <p className="mt-1 text-sm text-muted-foreground sm:mt-2">
-            Track how potential clients discover and interact with your listing.
-          </p>
-        </div>
+      <div className="space-y-3">
+        <DashboardPageHeader
+          title="Performance Analytics"
+          description="Track how potential clients discover and interact with your listing."
+        />
 
         <Card className="overflow-hidden border-slate-200">
           <BubbleBackground
@@ -53,9 +52,9 @@ export default async function AnalyticsPage() {
                 <ClipboardList className="h-8 w-8 text-white" />
               </div>
 
-              <h3 className="text-xl font-semibold text-slate-900">
+              <p className="text-xl font-semibold text-slate-900">
                 Complete Onboarding to Access Analytics
-              </h3>
+              </p>
 
               <p className="mt-3 max-w-md text-sm text-slate-600">
                 Finish setting up your practice profile to unlock all dashboard features.
@@ -95,13 +94,11 @@ export default async function AnalyticsPage() {
 
   if (isFreePlan) {
     return (
-      <div className="space-y-4 sm:space-y-6">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">Performance Analytics</h1>
-          <p className="mt-1 text-sm text-muted-foreground sm:mt-2">
-            Track how potential clients discover and interact with your listing.
-          </p>
-        </div>
+      <div className="space-y-3">
+        <DashboardPageHeader
+          title="Performance Analytics"
+          description="Track how potential clients discover and interact with your listing."
+        />
 
         <div className="relative overflow-hidden rounded-xl border border-blue-100 bg-gradient-to-br from-blue-50/80 via-white to-slate-50 shadow-sm">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(59,130,246,0.08),transparent_50%)]" />
@@ -115,7 +112,7 @@ export default async function AnalyticsPage() {
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="text-lg font-semibold text-slate-900">Performance Analytics</h3>
+                    <p className="text-lg font-semibold text-slate-900">Unlock Detailed Insights</p>
                     <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-700">
                       <Sparkles className="h-3 w-3" />
                       Pro
@@ -197,7 +194,12 @@ export default async function AnalyticsPage() {
   const referralData = referralResult.success ? referralResult.data : null;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-3">
+      <DashboardPageHeader
+        title="Performance Analytics"
+        description="Track how potential clients discover and interact with your listing."
+      />
+
       <AnalyticsClient />
 
       {/* Referral Source Analytics */}

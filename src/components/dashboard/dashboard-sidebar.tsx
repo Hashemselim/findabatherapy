@@ -2,11 +2,14 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import NextImage from "next/image";
 import { usePathname } from "next/navigation";
+import NextImage from "next/image";
 import {
+  Briefcase,
   ChevronDown,
   CreditCard,
+  ExternalLink,
+  Heart,
   HelpCircle,
   LogOut,
   MessageSquare,
@@ -26,6 +29,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { BehaviorWorkLogo } from "@/components/brand/behaviorwork-logo";
 import { SupportContactDialog } from "@/components/support-contact-dialog";
 import { getNewApplicationCount } from "@/lib/actions/applications";
 import { getActionableTaskCount } from "@/lib/actions/clients";
@@ -61,7 +65,6 @@ function getDefaultOpenState(): Record<SectionId, boolean> {
 }
 
 function loadSectionState(): Record<SectionId, boolean> {
-  if (typeof window === "undefined") return getDefaultOpenState();
   try {
     const saved = window.localStorage.getItem(SECTION_STORAGE_KEY);
     if (saved) return JSON.parse(saved) as Record<SectionId, boolean>;
@@ -135,7 +138,13 @@ export function DashboardSidebar({
   const [notificationCount, setNotificationCount] = useState(staticUnreadCount ?? 0);
   const [applicantCount, setApplicantCount] = useState(0);
   const [taskCount, setTaskCount] = useState(0);
-  const [sectionOpen, setSectionOpen] = useState<Record<SectionId, boolean>>(loadSectionState);
+  const [sectionOpen, setSectionOpen] = useState<Record<SectionId, boolean>>(getDefaultOpenState);
+
+  // Hydrate from localStorage after mount (avoids SSR/client mismatch)
+  useEffect(() => {
+    const stored = loadSectionState();
+    setSectionOpen(stored);
+  }, []);
 
   // Auto-expand section containing current route
   useEffect(() => {
@@ -226,17 +235,8 @@ export function DashboardSidebar({
     >
       {/* Top: Logo */}
       <div className="flex flex-col">
-        <div className="flex items-center gap-2.5 px-6 pb-2 pt-6">
-          <NextImage
-            src="/logo-icon.png"
-            alt="BehaviorWork"
-            width={32}
-            height={32}
-            className="shrink-0"
-          />
-          <span className="text-lg font-bold tracking-tight text-foreground">
-            BehaviorWork
-          </span>
+        <div className="px-6 pb-2 pt-6">
+          <BehaviorWorkLogo size="lg" />
         </div>
 
         {/* Divider */}
@@ -314,30 +314,38 @@ export function DashboardSidebar({
           })}
         </div>
 
-        {/* General section label */}
-        <div className="mx-5 my-3 h-px bg-border/50" />
-        <div className="px-6 pb-2">
-          <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/60">
-            General
-          </span>
-        </div>
-
-        {/* Settings link */}
-        <nav className="space-y-0.5 px-3">
-          {renderNavLink(
-            {
-              href: "/dashboard/settings",
-              label: "Settings",
-              icon: Settings,
-              exactMatch: true,
-            },
-            pathname,
-            isOnboardingComplete,
-            isDemo,
-            getBadgeCount
-          )}
-        </nav>
       </div>
+
+      {/* Sub-brand profile links */}
+      {providerSlug && (
+        <div className="mx-5 mt-4 border-t border-border/50 pt-4">
+          <p className="mb-2 px-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+            Your Profiles
+          </p>
+          <div className="space-y-1">
+            <a
+              href={`https://www.findabatherapy.org/provider/${providerSlug}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group flex items-center gap-2.5 rounded-lg px-2 py-2 text-xs text-zinc-600 transition-colors hover:bg-accent/50 hover:text-foreground dark:text-zinc-400"
+            >
+              <Heart className="h-3.5 w-3.5 shrink-0 text-[#5788FF]" aria-hidden />
+              <span className="flex-1 truncate">findabatherapy.org</span>
+              <ExternalLink className="h-3 w-3 shrink-0 text-muted-foreground/40 transition-colors group-hover:text-muted-foreground" aria-hidden />
+            </a>
+            <a
+              href={`https://www.findabajobs.org/employers/${providerSlug}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group flex items-center gap-2.5 rounded-lg px-2 py-2 text-xs text-zinc-600 transition-colors hover:bg-accent/50 hover:text-foreground dark:text-zinc-400"
+            >
+              <Briefcase className="h-3.5 w-3.5 shrink-0 text-[#10B981]" aria-hidden />
+              <span className="flex-1 truncate">findabajobs.org</span>
+              <ExternalLink className="h-3 w-3 shrink-0 text-muted-foreground/40 transition-colors group-hover:text-muted-foreground" aria-hidden />
+            </a>
+          </div>
+        </div>
+      )}
 
       {/* Bottom: Company account dropdown */}
       <div className="mt-auto px-3 pb-4 pt-4">
@@ -388,6 +396,12 @@ export function DashboardSidebar({
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" side="top" className="w-56">
+            <DropdownMenuItem asChild>
+              <Link href="/dashboard/settings" className="cursor-pointer">
+                <Settings className="mr-2 h-4 w-4" />
+                Settings
+              </Link>
+            </DropdownMenuItem>
             <DropdownMenuItem asChild>
               <Link href="/dashboard/account" className="cursor-pointer">
                 <User className="mr-2 h-4 w-4" />

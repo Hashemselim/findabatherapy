@@ -1,10 +1,12 @@
 import Link from "next/link";
-import { ClipboardList, ArrowRight, CheckCircle2, MapPin, Star } from "lucide-react";
+import { ClipboardList, ArrowRight, CheckCircle2, Star } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { BubbleBackground } from "@/components/ui/bubble-background";
-import { LocationsManager, type CompanyDefaults } from "@/components/dashboard/locations-manager";
+import { type CompanyDefaults } from "@/components/dashboard/locations-manager";
+import { LocationsPageContent } from "@/components/dashboard/locations-header-wrapper";
+import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
 import { getProfile } from "@/lib/supabase/server";
 import { getLocations } from "@/lib/actions/locations";
 import { getListing } from "@/lib/actions/listings";
@@ -18,25 +20,17 @@ const LOCATION_LIMITS: Record<string, number> = {
   enterprise: Infinity,
 };
 
-const PLAN_NAMES: Record<string, string> = {
-  free: "Free",
-  pro: "Pro",
-  enterprise: "Enterprise",
-};
-
 export default async function LocationsPage() {
   const profile = await getProfile();
 
   // If onboarding is not complete, show the gate message
   if (!profile?.onboarding_completed_at) {
     return (
-      <div className="space-y-4 sm:space-y-6">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">Service Locations</h1>
-          <p className="mt-1 text-sm text-muted-foreground sm:mt-2">
-            Manage where families can find your services. Your primary location appears prominently in search results.
-          </p>
-        </div>
+      <div className="space-y-3">
+        <DashboardPageHeader
+          title="Service Locations"
+          description="Manage where families can find your services. Your primary location appears prominently in search results."
+        />
 
         <Card className="overflow-hidden border-slate-200">
           <BubbleBackground
@@ -57,9 +51,9 @@ export default async function LocationsPage() {
                 <ClipboardList className="h-8 w-8 text-white" />
               </div>
 
-              <h3 className="text-xl font-semibold text-slate-900">
+              <p className="text-xl font-semibold text-slate-900">
                 Complete Onboarding to Access Locations
-              </h3>
+              </p>
 
               <p className="mt-3 max-w-md text-sm text-slate-600">
                 Finish setting up your practice profile to unlock all dashboard features.
@@ -130,45 +124,12 @@ export default async function LocationsPage() {
   const featuredCount = locations.filter(loc => loc.isFeatured).length;
 
   return (
-    <div className="space-y-4 sm:space-y-6">
-      {/* Page Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">Service Locations</h1>
-          <p className="mt-1 text-sm text-muted-foreground sm:mt-2">
-            Manage your service locations and coverage areas.
-          </p>
-        </div>
-      </div>
-
-      {/* Location Limit Info Card */}
-      <Card className="border-[#5788FF]/30 bg-[#5788FF]/5">
-        <CardContent className="flex items-center justify-between py-4">
-          <div className="flex items-center gap-3">
-            <MapPin className="h-5 w-5 text-[#5788FF]" />
-            <div>
-              <p className="font-medium text-foreground">
-                {locationLimit === Infinity
-                  ? `${locations.length} location${locations.length !== 1 ? "s" : ""}`
-                  : `${locations.length} of ${locationLimit} location${locationLimit !== 1 ? "s" : ""} used`}
-              </p>
-              <p className="text-sm text-muted-foreground">
-                {effectivePlanTier === "enterprise"
-                  ? "Enterprise plan includes unlimited locations"
-                  : effectivePlanTier === "pro"
-                    ? "Pro plan includes up to 5 locations"
-                    : "Free plan includes 1 location"}
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Locations Manager */}
-      <LocationsManager
-        initialLocations={locations}
+    <div className="space-y-3">
+      {/* Client wrapper handles: header with Add button + limit card + locations manager */}
+      <LocationsPageContent
+        locations={locations}
         locationLimit={locationLimit}
-        planTier={effectivePlanTier}
+        effectivePlanTier={effectivePlanTier}
         featuredPricing={featuredPricing}
         companyDefaults={companyDefaults}
       />

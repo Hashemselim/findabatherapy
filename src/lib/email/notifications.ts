@@ -14,6 +14,7 @@ import {
   domains,
   getSiteUrl as getSafeUrl,
 } from "@/lib/utils/domains";
+import { behaviorWorkLogoHtml } from "@/components/brand/behaviorwork-logo";
 
 // Lazy initialization - only create client when needed
 let resend: Resend | null = null;
@@ -84,12 +85,12 @@ const BRAND = {
 
 /**
  * Branded email wrapper template
+ * Primary: BehaviorWork logo on blue header
+ * Sub-brand: "via findabatherapy.org" context line
  */
 function emailWrapper(content: string, options?: { preheader?: string }): string {
   const siteUrl = getSiteUrl();
-  // Use Supabase storage for logo (publicly accessible, works in email clients)
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://ltihdvlduohufwcfwops.supabase.co";
-  const logoUrl = `${supabaseUrl}/storage/v1/object/public/listing-logos/brand/logo-full-background-70.png`;
+  const logoHtml = behaviorWorkLogoHtml({ fontSize: 28, color: "#ffffff" });
 
   return `
 <!DOCTYPE html>
@@ -98,7 +99,7 @@ function emailWrapper(content: string, options?: { preheader?: string }): string
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <title>Find ABA Therapy</title>
+  <title>BehaviorWork</title>
   <!--[if mso]>
   <noscript>
     <xml>
@@ -120,10 +121,11 @@ function emailWrapper(content: string, options?: { preheader?: string }): string
         <!-- Email container -->
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="max-width: 600px; width: 100%;">
 
-          <!-- Header with logo - brand blue background -->
+          <!-- Header: BehaviorWork logo + via findabatherapy.org -->
           <tr>
             <td style="background-color: ${BRAND.primary}; border-radius: 12px 12px 0 0; padding: 20px 32px; text-align: center;">
-              <img src="${logoUrl}" alt="Find ABA Therapy" width="300" style="display: block; margin: 0 auto; max-width: 300px; height: auto; border-radius: 6px;">
+              ${logoHtml}
+              <p style="margin: 8px 0 0 0; font-size: 12px; color: rgba(255,255,255,0.75);">via <a href="${siteUrl}" style="color: rgba(255,255,255,0.9); text-decoration: none;">findabatherapy.org</a></p>
             </td>
           </tr>
 
@@ -145,7 +147,7 @@ function emailWrapper(content: string, options?: { preheader?: string }): string
                 </tr>
                 <tr>
                   <td align="center" style="color: ${BRAND.textLight}; font-size: 12px; line-height: 1.5;">
-                    <p style="margin: 0 0 8px 0;">Find ABA Therapy helps families connect with trusted ABA therapy providers.</p>
+                    <p style="margin: 0 0 8px 0;">BehaviorWork helps families connect with trusted ABA therapy providers.</p>
                     <p style="margin: 0;">Questions? Contact us at <a href="mailto:support@findabatherapy.org" style="color: ${BRAND.primary}; text-decoration: none;">support@findabatherapy.org</a></p>
                   </td>
                 </tr>
@@ -159,10 +161,10 @@ function emailWrapper(content: string, options?: { preheader?: string }): string
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="max-width: 600px; width: 100%;">
           <tr>
             <td align="center" style="padding: 24px 20px; color: ${BRAND.textLight}; font-size: 11px; line-height: 1.5;">
-              <p style="margin: 0;">© ${new Date().getFullYear()} Find ABA Therapy. All rights reserved.</p>
+              <p style="margin: 0;">&copy; ${new Date().getFullYear()} BehaviorWork. All rights reserved.</p>
               <p style="margin: 8px 0 0 0;">
                 <a href="${siteUrl}/legal/privacy" style="color: ${BRAND.textLight}; text-decoration: underline;">Privacy Policy</a>
-                &nbsp;•&nbsp;
+                &nbsp;&bull;&nbsp;
                 <a href="${siteUrl}/legal/terms" style="color: ${BRAND.textLight}; text-decoration: underline;">Terms of Service</a>
               </p>
             </td>
@@ -1018,12 +1020,12 @@ const JOBS_BRAND = {
 
 /**
  * Jobs-specific email wrapper with emerald branding
+ * Primary: BehaviorWork logo on emerald header
+ * Sub-brand: "via findabajobs.org" context line
  */
 function jobsEmailWrapper(content: string, options?: { preheader?: string }): string {
   const jobsSiteUrl = getJobsSiteUrl();
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://ltihdvlduohufwcfwops.supabase.co";
-  // TODO: Add jobs site logo when available
-  const logoUrl = `${supabaseUrl}/storage/v1/object/public/listing-logos/brand/logo-full-background-70.png`;
+  const logoHtml = behaviorWorkLogoHtml({ fontSize: 28, color: "#ffffff" });
 
   return `
 <!DOCTYPE html>
@@ -1032,7 +1034,7 @@ function jobsEmailWrapper(content: string, options?: { preheader?: string }): st
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <title>Find ABA Jobs</title>
+  <title>BehaviorWork</title>
   <!--[if mso]>
   <noscript>
     <xml>
@@ -1054,11 +1056,11 @@ function jobsEmailWrapper(content: string, options?: { preheader?: string }): st
         <!-- Email container -->
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="max-width: 600px; width: 100%;">
 
-          <!-- Header with logo - emerald background -->
+          <!-- Header: BehaviorWork logo + via findabajobs.org -->
           <tr>
             <td style="background-color: ${JOBS_BRAND.primary}; border-radius: 12px 12px 0 0; padding: 20px 32px; text-align: center;">
-              <h1 style="color: white; font-size: 24px; font-weight: 700; margin: 0;">Find ABA Jobs</h1>
-              <p style="color: rgba(255,255,255,0.9); font-size: 14px; margin: 8px 0 0 0;">BCBA, RBT & Behavior Analyst Careers</p>
+              ${logoHtml}
+              <p style="margin: 8px 0 0 0; font-size: 12px; color: rgba(255,255,255,0.75);">via <a href="${jobsSiteUrl}" style="color: rgba(255,255,255,0.9); text-decoration: none;">findabajobs.org</a></p>
             </td>
           </tr>
 
@@ -1080,7 +1082,7 @@ function jobsEmailWrapper(content: string, options?: { preheader?: string }): st
                 </tr>
                 <tr>
                   <td align="center" style="color: ${BRAND.textLight}; font-size: 12px; line-height: 1.5;">
-                    <p style="margin: 0 0 8px 0;">Find ABA Jobs connects behavior analysts with top ABA therapy employers.</p>
+                    <p style="margin: 0 0 8px 0;">BehaviorWork connects behavior analysts with top ABA therapy employers.</p>
                     <p style="margin: 0;">Questions? Contact us at <a href="mailto:support@findabajobs.org" style="color: ${JOBS_BRAND.primary}; text-decoration: none;">support@findabajobs.org</a></p>
                   </td>
                 </tr>
@@ -1094,7 +1096,7 @@ function jobsEmailWrapper(content: string, options?: { preheader?: string }): st
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="max-width: 600px; width: 100%;">
           <tr>
             <td align="center" style="padding: 24px 20px; color: ${BRAND.textLight}; font-size: 11px; line-height: 1.5;">
-              <p style="margin: 0;">&copy; ${new Date().getFullYear()} Find ABA Jobs. All rights reserved.</p>
+              <p style="margin: 0;">&copy; ${new Date().getFullYear()} BehaviorWork. All rights reserved.</p>
               <p style="margin: 8px 0 0 0;">
                 <a href="${jobsSiteUrl}/legal/privacy" style="color: ${BRAND.textLight}; text-decoration: underline;">Privacy Policy</a>
                 &nbsp;&bull;&nbsp;

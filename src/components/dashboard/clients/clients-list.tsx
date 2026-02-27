@@ -1,11 +1,7 @@
 "use client";
 
-import { Plus } from "lucide-react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-
-import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -102,22 +98,6 @@ export function ClientsList({ initialClients, initialCounts }: ClientsListProps)
 
   return (
     <div className="flex flex-col gap-5 h-full">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-4 shrink-0">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Clients</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            {counts.total} {counts.total === 1 ? "client" : "clients"} total
-          </p>
-        </div>
-        <Button asChild size="sm" className="gap-1.5">
-          <Link href="/dashboard/clients/new">
-            <Plus className="h-4 w-4" />
-            Add Client
-          </Link>
-        </Button>
-      </div>
-
       {/* Filters */}
       <ClientsFilters
         filter={filter}

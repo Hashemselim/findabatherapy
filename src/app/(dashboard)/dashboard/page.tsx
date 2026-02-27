@@ -27,6 +27,7 @@ import {
   UpgradeSection,
 } from "@/components/dashboard/overview";
 import { DashboardTracker } from "@/components/analytics/dashboard-tracker";
+import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
 import { getListing } from "@/lib/actions/listings";
 import { getAnalyticsSummary } from "@/lib/actions/analytics";
 import { getUnreadInquiryCount } from "@/lib/actions/inquiries";
@@ -52,14 +53,12 @@ export default async function DashboardOverviewPage() {
   // If no profile or onboarding not complete, show onboarding prompt
   if (!profile?.onboarding_completed_at || !listingResult.success || !listingResult.data) {
     return (
-      <div className="space-y-6 sm:space-y-8">
+      <div className="space-y-3">
         <DashboardTracker section="overview" />
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">Overview</h1>
-          <p className="mt-1 max-w-2xl text-sm text-muted-foreground sm:mt-2">
-            Complete your onboarding to set up your practice profile and start connecting with families.
-          </p>
-        </div>
+        <DashboardPageHeader
+          title="Overview"
+          description="Complete your onboarding to set up your practice profile and start connecting with families."
+        />
 
         <Card className="overflow-hidden border-slate-200">
           <BubbleBackground
@@ -80,9 +79,9 @@ export default async function DashboardOverviewPage() {
                 <ClipboardList className="h-8 w-8 text-white" />
               </div>
 
-              <h3 className="text-xl font-semibold text-slate-900">
+              <p className="text-xl font-semibold text-slate-900">
                 Complete Your Onboarding
-              </h3>
+              </p>
 
               <p className="mt-3 max-w-md text-sm text-slate-600">
                 Set up your practice profile, add your services, and start appearing in search results.
@@ -135,32 +134,28 @@ export default async function DashboardOverviewPage() {
   const applicationCount = applicationCountResult.success ? applicationCountResult.data : 0;
 
   return (
-    <div className="space-y-6 sm:space-y-8">
+    <div className="space-y-3">
       <DashboardTracker section="overview" />
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">Overview</h1>
-          <p className="mt-1 max-w-2xl text-sm text-muted-foreground sm:mt-2">
-            Manage your listing, track performance, and connect with families.
-          </p>
-        </div>
+      <DashboardPageHeader
+        title="Overview"
+        description="Manage your listing, track performance, and connect with families."
+      >
         {isPublished ? (
-          <Button variant="outline" className="w-full rounded-full sm:w-auto" asChild>
+          <Button variant="outline" className="rounded-full" size="sm" asChild>
             <Link href={`/provider/${listing.slug}`} target="_blank">
               View live listing
               <ExternalLink className="ml-2 h-4 w-4" aria-hidden />
             </Link>
           </Button>
         ) : (
-          <Button className="w-full rounded-full sm:w-auto" asChild>
+          <Button size="sm" asChild>
             <Link href="/dashboard/intake-pages/directory">
               Complete your listing
               <ArrowRight className="ml-2 h-4 w-4" aria-hidden />
             </Link>
           </Button>
         )}
-      </div>
+      </DashboardPageHeader>
 
       {/* Find ABA Jobs Section */}
       <BrandSection

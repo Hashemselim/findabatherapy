@@ -5,6 +5,7 @@
  * and the agency communication emails (communications server actions).
  */
 
+import { behaviorWorkLogoHtml } from "@/components/brand/behaviorwork-logo";
 import {
   getSiteUrl as getSafeUrl,
 } from "@/lib/utils/domains";
@@ -30,8 +31,7 @@ const BRAND = {
  */
 export function emailWrapper(content: string, options?: { preheader?: string }): string {
   const siteUrl = getSafeUrl();
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://ltihdvlduohufwcfwops.supabase.co";
-  const logoUrl = `${supabaseUrl}/storage/v1/object/public/listing-logos/brand/logo-full-background-70.png`;
+  const logoHtml = behaviorWorkLogoHtml({ fontSize: 28, color: "#ffffff" });
 
   return `
 <!DOCTYPE html>
@@ -40,7 +40,7 @@ export function emailWrapper(content: string, options?: { preheader?: string }):
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <title>Find ABA Therapy</title>
+  <title>BehaviorWork</title>
   <!--[if mso]>
   <noscript>
     <xml>
@@ -62,10 +62,11 @@ export function emailWrapper(content: string, options?: { preheader?: string }):
         <!-- Email container -->
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="max-width: 600px; width: 100%;">
 
-          <!-- Header with logo - brand blue background -->
+          <!-- Header: BehaviorWork logo + via findabatherapy.org -->
           <tr>
             <td style="background-color: ${BRAND.primary}; border-radius: 12px 12px 0 0; padding: 20px 32px; text-align: center;">
-              <img src="${logoUrl}" alt="Find ABA Therapy" width="300" style="display: block; margin: 0 auto; max-width: 300px; height: auto; border-radius: 6px;">
+              ${logoHtml}
+              <p style="margin: 8px 0 0 0; font-size: 12px; color: rgba(255,255,255,0.75);">via <a href="${siteUrl}" style="color: rgba(255,255,255,0.9); text-decoration: none;">findabatherapy.org</a></p>
             </td>
           </tr>
 
@@ -87,7 +88,7 @@ export function emailWrapper(content: string, options?: { preheader?: string }):
                 </tr>
                 <tr>
                   <td align="center" style="color: ${BRAND.textLight}; font-size: 12px; line-height: 1.5;">
-                    <p style="margin: 0 0 8px 0;">Find ABA Therapy helps families connect with trusted ABA therapy providers.</p>
+                    <p style="margin: 0 0 8px 0;">BehaviorWork helps families connect with trusted ABA therapy providers.</p>
                     <p style="margin: 0;">Questions? Contact us at <a href="mailto:support@findabatherapy.org" style="color: ${BRAND.primary}; text-decoration: none;">support@findabatherapy.org</a></p>
                   </td>
                 </tr>
@@ -101,7 +102,7 @@ export function emailWrapper(content: string, options?: { preheader?: string }):
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="max-width: 600px; width: 100%;">
           <tr>
             <td align="center" style="padding: 24px 20px; color: ${BRAND.textLight}; font-size: 11px; line-height: 1.5;">
-              <p style="margin: 0;">&copy; ${new Date().getFullYear()} Find ABA Therapy. All rights reserved.</p>
+              <p style="margin: 0;">&copy; ${new Date().getFullYear()} BehaviorWork. All rights reserved.</p>
               <p style="margin: 8px 0 0 0;">
                 <a href="${siteUrl}/legal/privacy" style="color: ${BRAND.textLight}; text-decoration: underline;">Privacy Policy</a>
                 &nbsp;&bull;&nbsp;
@@ -249,7 +250,7 @@ export function agencyEmailWrapper(
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="max-width: 600px; width: 100%;">
           <tr>
             <td align="center" style="padding: 24px 20px; color: ${BRAND.textLight}; font-size: 11px; line-height: 1.5;">
-              <p style="margin: 0;">Powered by <a href="${siteUrl}" style="color: ${BRAND.textLight}; text-decoration: underline;">Find ABA Therapy</a></p>
+              <p style="margin: 0;">Powered by <a href="${siteUrl}" style="color: ${BRAND.textLight}; text-decoration: underline;">BehaviorWork</a></p>
               <p style="margin: 8px 0 0 0;">
                 <a href="${siteUrl}/legal/privacy" style="color: ${BRAND.textLight}; text-decoration: underline;">Privacy Policy</a>
                 &nbsp;&bull;&nbsp;

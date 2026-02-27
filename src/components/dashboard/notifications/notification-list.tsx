@@ -114,16 +114,13 @@ export function NotificationList({
 
   return (
     <div className="space-y-4">
-      {/* Header */}
+      {/* Actions row */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">Notifications</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {unreadCount > 0
-              ? `${unreadCount} unread notification${unreadCount !== 1 ? "s" : ""}`
-              : "You're all caught up"}
-          </p>
-        </div>
+        <p className="text-sm text-muted-foreground">
+          {unreadCount > 0
+            ? `${unreadCount} unread notification${unreadCount !== 1 ? "s" : ""}`
+            : "You're all caught up"}
+        </p>
         {unreadCount > 0 && (
           <Button
             variant="outline"
