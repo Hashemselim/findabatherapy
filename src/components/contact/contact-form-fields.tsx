@@ -32,6 +32,13 @@ import { PUBLIC_REFERRAL_SOURCE_OPTIONS } from "@/lib/validations/clients";
 
 export type InquirySource = "listing_page" | "intake_standalone";
 
+function hexToRgba(hex: string, alpha: number): string {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
 interface ContactFormFieldsProps {
   listingId: string;
   providerName: string;
@@ -42,6 +49,7 @@ interface ContactFormFieldsProps {
   onError?: (error: string) => void;
   submitButtonText?: string;
   className?: string;
+  brandColor?: string;
 }
 
 export function ContactFormFields({
@@ -54,6 +62,7 @@ export function ContactFormFields({
   onError,
   submitButtonText = "Send Message",
   className,
+  brandColor,
 }: ContactFormFieldsProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -139,8 +148,26 @@ export function ContactFormFields({
     setIsSubmitting(false);
   };
 
+  const formId = brandColor ? "branded-contact-form" : undefined;
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className={className}>
+    <form onSubmit={handleSubmit(onSubmit)} className={className} id={formId}>
+      {brandColor && (
+        <style>{`
+          #branded-contact-form input:focus,
+          #branded-contact-form textarea:focus,
+          #branded-contact-form [role="combobox"]:focus {
+            border-color: ${brandColor} !important;
+            box-shadow: 0 0 0 3px ${hexToRgba(brandColor, 0.1)} !important;
+          }
+          #branded-contact-form button[type="submit"]:not(:disabled):hover {
+            box-shadow: 0 4px 20px ${hexToRgba(brandColor, 0.35)} !important;
+          }
+          #branded-contact-form button[type="submit"]:not(:disabled):active {
+            box-shadow: 0 2px 8px ${hexToRgba(brandColor, 0.2)} !important;
+          }
+        `}</style>
+      )}
       <div className="space-y-5">
         <div className="grid gap-5 sm:grid-cols-2">
           <div className="space-y-2">
@@ -308,8 +335,9 @@ export function ContactFormFields({
 
         <Button
           type="submit"
-          className="group w-full rounded-full py-6 text-base font-medium transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-[2px] hover:shadow-[0_4px_20px_rgba(254,231,32,0.35)] active:translate-y-0 active:shadow-[0_2px_8px_rgba(254,231,32,0.2)] disabled:hover:translate-y-0 disabled:hover:shadow-none"
+          className="group w-full rounded-full py-6 text-base font-medium transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-[2px] active:translate-y-0 disabled:hover:translate-y-0 disabled:hover:shadow-none"
           disabled={isSubmitting || !turnstileToken}
+          style={brandColor ? { backgroundColor: brandColor, color: "#FFFFFF" } : undefined}
         >
           {isSubmitting ? (
             <>

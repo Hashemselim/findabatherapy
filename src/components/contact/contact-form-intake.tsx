@@ -11,6 +11,7 @@ interface ContactFormIntakeProps {
   providerName: string;
   websiteUrl?: string | null;
   initialReferralSource?: string;
+  brandColor?: string;
 }
 
 export function ContactFormIntake({
@@ -18,6 +19,7 @@ export function ContactFormIntake({
   providerName,
   websiteUrl,
   initialReferralSource,
+  brandColor,
 }: ContactFormIntakeProps) {
   const [isSubmitted, setIsSubmitted] = useState(false);
 
@@ -42,6 +44,7 @@ export function ContactFormIntake({
             initialReferralSource={initialReferralSource}
             onSuccess={() => setIsSubmitted(true)}
             submitButtonText="Submit Inquiry"
+            brandColor={brandColor}
           />
         </motion.div>
       )}

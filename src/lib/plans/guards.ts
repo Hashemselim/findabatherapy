@@ -359,6 +359,42 @@ export async function guardDocuments(): Promise<GuardResult> {
 }
 
 /**
+ * Guard: Check if user can remove website watermark
+ */
+export async function guardWebsiteWatermarkRemoval(): Promise<GuardResult> {
+  const tier = await getCurrentPlanTier();
+  const features = getPlanFeatures(tier);
+
+  if (!features.hasWebsiteWatermarkRemoval) {
+    return {
+      allowed: false,
+      reason: "Watermark removal requires a Pro or Enterprise plan",
+      requiredPlan: "pro",
+    };
+  }
+
+  return { allowed: true };
+}
+
+/**
+ * Guard: Check if user can use custom domain
+ */
+export async function guardCustomDomain(): Promise<GuardResult> {
+  const tier = await getCurrentPlanTier();
+  const features = getPlanFeatures(tier);
+
+  if (!features.hasCustomDomain) {
+    return {
+      allowed: false,
+      reason: "Custom domains require a Pro or Enterprise plan",
+      requiredPlan: "pro",
+    };
+  }
+
+  return { allowed: true };
+}
+
+/**
  * Guard: Check if user can use referral tracking analytics
  */
 export async function guardReferralTracking(): Promise<GuardResult> {

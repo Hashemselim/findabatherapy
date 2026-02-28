@@ -20,6 +20,7 @@ import {
   FileInput,
   Globe,
   LayoutDashboard,
+  LayoutTemplate,
   Mail,
   MapPin,
   MessageSquare,
@@ -144,6 +145,11 @@ export const sectionNav: NavSectionConfig[] = [
     icon: FileInput,
     defaultOpen: false,
     items: [
+      {
+        href: "/dashboard/forms/website",
+        label: "Website",
+        icon: LayoutTemplate,
+      },
       {
         href: "/dashboard/forms/contact",
         label: "Contact Form",

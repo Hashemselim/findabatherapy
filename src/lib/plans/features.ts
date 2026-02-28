@@ -42,6 +42,10 @@ export interface PlanFeatures {
   hasTaskAutomation: boolean;
   hasCredentialTracking: boolean;
 
+  // Provider Website
+  hasWebsiteWatermarkRemoval: boolean;
+  hasCustomDomain: boolean;
+
   // Search
   searchPriority: "standard" | "priority";
 }
@@ -105,6 +109,8 @@ export const PLAN_CONFIGS: Record<PlanTier, PlanConfig> = {
       hasReferralTracking: false,
       hasTaskAutomation: false,
       hasCredentialTracking: false,
+      hasWebsiteWatermarkRemoval: false,
+      hasCustomDomain: false,
       searchPriority: "standard",
     },
     highlights: [
@@ -151,6 +157,8 @@ export const PLAN_CONFIGS: Record<PlanTier, PlanConfig> = {
       hasReferralTracking: true,
       hasTaskAutomation: true,
       hasCredentialTracking: true,
+      hasWebsiteWatermarkRemoval: true,
+      hasCustomDomain: true,
       searchPriority: "priority",
     },
     highlights: [
@@ -201,6 +209,8 @@ export const PLAN_CONFIGS: Record<PlanTier, PlanConfig> = {
       hasReferralTracking: true,
       hasTaskAutomation: true,
       hasCredentialTracking: true,
+      hasWebsiteWatermarkRemoval: true,
+      hasCustomDomain: true,
       searchPriority: "priority",
     },
     highlights: [
@@ -349,6 +359,16 @@ export const FEATURE_METADATA: Record<
     name: "Credential Tracking",
     description: "Track employee credentials and expiration dates",
     upgradeMessage: "Upgrade to Pro to track employee credentials",
+  },
+  hasWebsiteWatermarkRemoval: {
+    name: "Website Watermark Removal",
+    description: "Remove the 'Powered by FindABATherapy' watermark from your provider website",
+    upgradeMessage: "Upgrade to Pro to remove the watermark from your website",
+  },
+  hasCustomDomain: {
+    name: "Custom Domain",
+    description: "Connect your own domain to your provider website",
+    upgradeMessage: "Upgrade to Pro to use a custom domain for your website",
   },
 };
 

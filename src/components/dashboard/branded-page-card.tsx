@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BookOpen, Briefcase, Check, ClipboardList, Copy, ExternalLink, Globe, MessageSquare } from "lucide-react";
+import { BookOpen, Briefcase, Check, ClipboardList, Copy, ExternalLink, Globe, LayoutTemplate, MessageSquare } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
-type BrandedPageIconName = "contact" | "intake" | "resources" | "careers" | "agency";
+type BrandedPageIconName = "contact" | "intake" | "resources" | "careers" | "agency" | "website";
 
 interface BrandedPageCardProps {
   title: string;
@@ -59,6 +59,14 @@ const variantMap = {
     iconBg: "bg-[#E85D2B]",
     iconFg: "text-white",
     accentText: "text-[#B84A22]",
+  },
+  website: {
+    Icon: LayoutTemplate,
+    border: "border-l-[#0891B2]",
+    tint: "bg-[#0891B2]/8",
+    iconBg: "bg-[#0891B2]",
+    iconFg: "text-white",
+    accentText: "text-[#0E7490]",
   },
 } as const;
 
