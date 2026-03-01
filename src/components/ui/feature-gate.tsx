@@ -116,14 +116,7 @@ function LockedFeatureCard({
 /**
  * Get the required plan for a feature
  */
-function getRequiredPlan(feature: keyof PlanFeatures): PlanTier {
-  // Most features require Pro
-  const enterpriseFeatures: (keyof PlanFeatures)[] = ["hasHomepagePlacement"];
-
-  if (enterpriseFeatures.includes(feature)) {
-    return "enterprise";
-  }
-
+function getRequiredPlan(_feature: keyof PlanFeatures): PlanTier {
   return "pro";
 }
 
@@ -131,6 +124,6 @@ function getRequiredPlan(feature: keyof PlanFeatures): PlanTier {
  * Compare two plan tiers
  */
 function compareTiers(a: PlanTier, b: PlanTier): number {
-  const order: Record<PlanTier, number> = { free: 0, pro: 1, enterprise: 2 };
+  const order: Record<PlanTier, number> = { free: 0, pro: 1 };
   return order[a] - order[b];
 }

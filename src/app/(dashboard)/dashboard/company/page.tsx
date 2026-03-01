@@ -423,7 +423,7 @@ export default async function DashboardListingPage() {
               <div>
                 <CardTitle>Upgrade to unlock more features</CardTitle>
                 <CardDescription>
-                  Pro and Enterprise plans include photo galleries, video embeds, multiple locations, and priority placement in search results.
+                  Pro plans include photo galleries, video embeds, multiple locations, and priority placement in search results.
                 </CardDescription>
               </div>
             </CardHeader>

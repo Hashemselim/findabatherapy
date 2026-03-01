@@ -8,7 +8,7 @@ type ActionResult<T = void> =
 
 export interface PaymentStatus {
   isPaid: boolean;
-  planTier: "free" | "pro" | "enterprise";
+  planTier: "free" | "pro";
   hasSubscription: boolean;
 }
 
@@ -16,7 +16,7 @@ export interface PaymentStatus {
  * Get payment status for the current user
  *
  * "Paid" means:
- * - plan_tier is 'pro' or 'enterprise' AND
+ * - plan_tier is 'pro' AND
  * - subscription_status is 'active' or 'trialing'
  *
  * This is used to determine if premium features should be unlocked
@@ -38,8 +38,8 @@ export async function getPaymentStatus(): Promise<ActionResult<PaymentStatus>> {
     return { success: false, error: "Profile not found" };
   }
 
-  const planTier = profile.plan_tier as "free" | "pro" | "enterprise";
-  const isPaidPlan = planTier === "pro" || planTier === "enterprise";
+  const planTier = profile.plan_tier as "free" | "pro";
+  const isPaidPlan = planTier === "pro";
   const hasSubscription = !!profile.stripe_subscription_id;
   const isActiveSubscription =
     profile.subscription_status === "active" ||
@@ -62,7 +62,7 @@ export async function getPaymentStatus(): Promise<ActionResult<PaymentStatus>> {
  * Check if the user has selected a paid plan (regardless of payment completion)
  * Used to determine intent during onboarding
  */
-export async function getSelectedPlanTier(): Promise<ActionResult<{ planTier: "free" | "pro" | "enterprise" }>> {
+export async function getSelectedPlanTier(): Promise<ActionResult<{ planTier: "free" | "pro" }>> {
   const user = await getUser();
   if (!user) {
     return { success: false, error: "Not authenticated" };
@@ -82,7 +82,7 @@ export async function getSelectedPlanTier(): Promise<ActionResult<{ planTier: "f
   return {
     success: true,
     data: {
-      planTier: profile.plan_tier as "free" | "pro" | "enterprise",
+      planTier: profile.plan_tier as "free" | "pro",
     },
   };
 }

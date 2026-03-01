@@ -34,11 +34,10 @@ export function BwFeatureMatrix() {
           {isOpen && (
             <div className="mt-4 overflow-hidden rounded-xl border border-amber-200/40 bg-white">
               {/* Header row - desktop only */}
-              <div className="hidden grid-cols-4 border-b border-amber-100/60 bg-[#FFF7E1]/60 px-5 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 md:grid">
+              <div className="hidden grid-cols-3 border-b border-amber-100/60 bg-[#FFF7E1]/60 px-5 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 md:grid">
                 <p>Feature</p>
                 <p className="text-center">Free</p>
                 <p className="text-center">Pro</p>
-                <p className="text-center">Enterprise</p>
               </div>
 
               {behaviorWorkFeatureMatrix.map((group, groupIndex) => (
@@ -59,9 +58,9 @@ export function BwFeatureMatrix() {
                           <p className="text-sm font-medium text-slate-700">
                             {row.label}
                           </p>
-                          <div className="grid grid-cols-3 gap-2">
+                          <div className="grid grid-cols-2 gap-2">
                             {(
-                              ["free", "pro", "enterprise"] as const
+                              ["free", "pro"] as const
                             ).map((tier) => (
                               <div
                                 key={tier}
@@ -91,7 +90,7 @@ export function BwFeatureMatrix() {
                         </div>
 
                         {/* Desktop layout */}
-                        <div className="hidden grid-cols-4 items-center px-5 py-3 text-sm md:grid">
+                        <div className="hidden grid-cols-3 items-center px-5 py-3 text-sm md:grid">
                           <p className="font-medium text-slate-700">
                             {row.label}
                           </p>
@@ -100,9 +99,6 @@ export function BwFeatureMatrix() {
                           </p>
                           <p className="text-center font-medium text-slate-700">
                             {row.values.pro}
-                          </p>
-                          <p className="text-center text-slate-500">
-                            {row.values.enterprise}
                           </p>
                         </div>
                       </div>

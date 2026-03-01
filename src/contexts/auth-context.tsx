@@ -18,7 +18,7 @@ type Profile = {
   id: string;
   agency_name: string;
   contact_email: string;
-  plan_tier: "free" | "pro" | "enterprise";
+  plan_tier: "free" | "pro";
   has_featured_addon: boolean;
   stripe_customer_id: string | null;
   stripe_subscription_id: string | null;

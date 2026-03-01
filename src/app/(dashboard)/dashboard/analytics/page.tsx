@@ -189,7 +189,7 @@ export default async function AnalyticsPage() {
     );
   }
 
-  // User has Pro/Enterprise with active subscription - show analytics
+  // User has Pro with active subscription - show analytics
   const referralResult = await getReferralAnalytics();
   const referralData = referralResult.success ? referralResult.data : null;
 

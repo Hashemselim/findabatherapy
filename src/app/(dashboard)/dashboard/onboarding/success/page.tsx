@@ -33,7 +33,7 @@ export default async function OnboardingSuccessPage() {
 
   const listing = listingResult.data;
   const planTier = listing.profile.planTier;
-  const isPro = planTier === "pro" || planTier === "enterprise";
+  const isPro = planTier === "pro";
 
   return (
     <div className="flex flex-col items-center justify-center py-12 text-center">

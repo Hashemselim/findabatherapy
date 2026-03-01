@@ -2,7 +2,7 @@ import { z } from "zod";
 
 // Plan selection step
 export const planSelectionSchema = z.object({
-  plan: z.enum(["free", "pro", "enterprise"]),
+  plan: z.enum(["free", "pro"]),
 });
 
 // Company basics step

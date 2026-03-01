@@ -49,11 +49,8 @@ export interface LocationData {
 
 // Plan-based location limits
 const LOCATION_LIMITS: Record<string, number> = {
-  free: 1,
-  premium: 5, // "pro" in UI
-  featured: 999, // "enterprise" in UI - essentially unlimited
-  pro: 5,
-  enterprise: 999,
+  free: 3,
+  pro: 10,
 };
 
 /**

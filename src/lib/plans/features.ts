@@ -3,7 +3,7 @@
  * This is the source of truth for all plan-based feature restrictions
  */
 
-export type PlanTier = "free" | "pro" | "enterprise";
+export type PlanTier = "free" | "pro";
 export type BillingInterval = "month" | "year";
 
 export interface PlanFeatures {
@@ -126,22 +126,22 @@ export const PLAN_CONFIGS: Record<PlanTier, PlanConfig> = {
   pro: {
     name: "pro",
     displayName: "Pro",
-    description: "Branded pages, full CRM, and growth tools",
+    description: "Full platform, live — everything included",
     pricing: {
       monthly: { price: 79 },
       annual: { price: 47, totalPrice: 564, savings: 384, savingsPercent: 40 },
     },
     features: {
-      maxLocations: 5,
+      maxLocations: 10,
       maxPhotos: 10,
-      maxJobPostings: 5,
-      maxClients: 250,
+      maxJobPostings: 10,
+      maxClients: -1, // Unlimited
       hasContactForm: true,
       hasPhotoGallery: true,
       hasVideoEmbed: true,
       hasVerifiedBadge: true,
       hasAnalytics: true,
-      hasHomepagePlacement: false,
+      hasHomepagePlacement: false, // Now an add-on
       hasFeaturedAddonEligibility: true,
       hasGoogleRating: true,
       hasAgeRange: true,
@@ -162,63 +162,15 @@ export const PLAN_CONFIGS: Record<PlanTier, PlanConfig> = {
       searchPriority: "priority",
     },
     highlights: [
-      "Branded agency page & intake forms",
-      "Up to 250 CRM contacts",
-      "Communication templates",
-      "Up to 5 locations",
-      "Photo gallery (up to 10)",
-      "Video embed",
-      "Verified badge & Google rating",
+      "All branded pages & forms go live",
+      "Unlimited CRM clients",
+      "Communication templates & automation",
+      "Up to 10 locations",
+      "Up to 10 job postings on FindABAJobs.org",
+      "Full task management & reminders",
       "Analytics dashboard",
       "Priority search placement",
-      "Up to 5 job postings",
-      "Insurance & authorization tracking",
-    ],
-  },
-  enterprise: {
-    name: "enterprise",
-    displayName: "Enterprise",
-    description: "Maximum visibility for large agencies",
-    pricing: {
-      monthly: { price: 199 },
-      annual: { price: 119, totalPrice: 1428, savings: 960, savingsPercent: 40 },
-    },
-    features: {
-      maxLocations: 999, // Essentially unlimited
-      maxPhotos: 10,
-      maxJobPostings: -1, // Unlimited
-      maxClients: 999, // Essentially unlimited
-      hasContactForm: true,
-      hasPhotoGallery: true,
-      hasVideoEmbed: true,
-      hasVerifiedBadge: true,
-      hasAnalytics: true,
-      hasHomepagePlacement: true,
-      hasFeaturedAddonEligibility: true,
-      hasGoogleRating: true,
-      hasAgeRange: true,
-      hasLanguages: true,
-      hasDiagnoses: true,
-      hasSpecialties: true,
-      hasBrandedPages: true,
-      hasCommunications: true,
-      hasInsuranceTracking: true,
-      hasAuthTracking: true,
-      hasDocuments: true,
-      hasAutoTasks: true,
-      hasReferralTracking: true,
-      hasTaskAutomation: true,
-      hasCredentialTracking: true,
-      hasWebsiteWatermarkRemoval: true,
-      hasCustomDomain: true,
-      searchPriority: "priority",
-    },
-    highlights: [
-      "Everything in Pro",
-      "Unlimited locations & CRM contacts",
-      "Homepage placement",
-      "Unlimited job postings",
-      "Dedicated support",
+      "Verified badge & Google rating",
     ],
   },
 };
@@ -278,7 +230,7 @@ export const FEATURE_METADATA: Record<
   hasHomepagePlacement: {
     name: "Homepage Placement",
     description: "Featured placement on the homepage",
-    upgradeMessage: "Upgrade to Enterprise for homepage placement",
+    upgradeMessage: "Available as a Pro add-on",
   },
   hasFeaturedAddonEligibility: {
     name: "Featured Add-on",
@@ -401,8 +353,6 @@ export function getNextUpgradeTier(currentTier: PlanTier): PlanTier | null {
     case "free":
       return "pro";
     case "pro":
-      return "enterprise";
-    case "enterprise":
       return null;
   }
 }
@@ -412,7 +362,7 @@ export function getNextUpgradeTier(currentTier: PlanTier): PlanTier | null {
  * Returns: -1 if a < b, 0 if a == b, 1 if a > b
  */
 export function comparePlanTiers(a: PlanTier, b: PlanTier): number {
-  const order: Record<PlanTier, number> = { free: 0, pro: 1, enterprise: 2 };
+  const order: Record<PlanTier, number> = { free: 0, pro: 1 };
   return order[a] - order[b];
 }
 

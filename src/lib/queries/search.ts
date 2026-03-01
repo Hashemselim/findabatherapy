@@ -251,9 +251,8 @@ export async function searchListings(
     };
   });
 
-  // Sort by plan tier priority (Enterprise > Pro > Free)
+  // Sort by plan tier priority (Pro > Free)
   const tierPriority: Record<PlanTier, number> = {
-    enterprise: 3,
     pro: 2,
     free: 1,
   };
@@ -316,7 +315,8 @@ export async function getListingsByState(
 }
 
 /**
- * Get featured listings for homepage (Enterprise and Pro)
+ * Get featured listings for homepage (Pro)
+ * // TODO: migrate to profile_addons table query
  */
 export async function getFeaturedListings(limit: number = 6): Promise<SearchResultListing[]> {
   const supabase = await createClient();
@@ -345,7 +345,7 @@ export async function getFeaturedListings(limit: number = 6): Promise<SearchResu
     `
     )
     .eq("status", "published")
-    .in("profiles.plan_tier", ["enterprise", "pro"])
+    .eq("profiles.plan_tier", "pro")
     .in("profiles.subscription_status", ["active", "trialing"])
     .limit(limit);
 
@@ -389,8 +389,9 @@ export async function getFeaturedListings(limit: number = 6): Promise<SearchResu
 }
 
 /**
- * Get Enterprise-only listings for homepage featured section
+ * Get featured listings for homepage featured section
  * Returns one card per company (not per location)
+ * // TODO: migrate to profile_addons table query
  */
 export async function getHomepageFeaturedListings(limit: number = 3): Promise<SearchResultListing[]> {
   const supabase = await createClient();
@@ -419,7 +420,7 @@ export async function getHomepageFeaturedListings(limit: number = 3): Promise<Se
     `
     )
     .eq("status", "published")
-    .eq("profiles.plan_tier", "enterprise")
+    .eq("profiles.plan_tier", "pro")
     .in("profiles.subscription_status", ["active", "trialing"])
     .limit(limit);
 
@@ -686,7 +687,7 @@ export async function searchLocations(
     });
   }
 
-  // Sort results by: Featured → Paid (Enterprise/Pro equal) → Free → Distance
+  // Sort results by: Featured → Paid (Pro) → Free → Distance
   // Uses shared utility for consistent sorting across therapy and job search
   sortSearchResultsByRelevance(filteredByRadius);
 

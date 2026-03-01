@@ -357,7 +357,7 @@ test.describe("CAR-006, CAR-007: Powered By Footer", () => {
     );
     const hasPoweredBy = await poweredByFooter.isVisible().catch(() => false);
 
-    // This is tier-dependent - Free/Pro should show it, Enterprise should not
+    // This is tier-dependent - Free should show it, Pro can toggle it off
     // For now, just note if it exists
     console.log(`Powered by footer visible: ${hasPoweredBy}`);
 

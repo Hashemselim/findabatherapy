@@ -252,7 +252,7 @@ test.describe("Dashboard - Onboarding Flow", () => {
       return;
     }
 
-    // Plan cards (Free, Pro, Enterprise) - look within main content area
+    // Plan cards (Free, Pro) - look within main content area
     await expect(
       page.getByRole("main").locator("text=/choose your plan/i").first()
     ).toBeVisible();

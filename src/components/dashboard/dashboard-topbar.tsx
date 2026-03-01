@@ -97,7 +97,7 @@ function getPageTitle(pathname: string, isDemo: boolean): string {
 export interface CompanyProfile {
   name: string;
   logoUrl?: string | null;
-  planTier: "free" | "pro" | "enterprise";
+  planTier: "free" | "pro";
   subscriptionStatus?: string | null;
 }
 

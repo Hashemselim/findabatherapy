@@ -2,7 +2,6 @@ import Link from "next/link";
 import {
   ArrowRight,
   Check,
-  Crown,
   Globe,
   ImagePlus,
   MapPin,
@@ -120,25 +119,6 @@ const plans = [
     cta: "Get Started",
     ctaVariant: "default" as const,
   },
-  {
-    name: PLAN_CONFIGS.enterprise.displayName,
-    tier: "enterprise" as const,
-    pricing: PLAN_CONFIGS.enterprise.pricing,
-    description: PLAN_CONFIGS.enterprise.description,
-    subtext: "Cancel anytime. No long-term contract.",
-    features: [
-      { text: "Everything in Pro", highlightWord: "Everything in Pro", highlightType: "yellow" as const },
-      { text: "Unlimited locations", highlightWord: "Unlimited", highlightType: "yellow" as const },
-      { text: "Unlimited CRM contacts", highlightWord: "Unlimited CRM", highlightType: "yellow" as const },
-      { text: "Unlimited job postings", highlightWord: "Unlimited job", highlightType: "yellow" as const },
-      { text: "Featured homepage placement", highlightWord: "Featured homepage", highlightType: "yellow" as const },
-      "Dedicated support",
-    ],
-    notIncluded: [],
-    cta: "Get Started",
-    ctaVariant: "outline" as const,
-    showEmailLink: true,
-  },
 ];
 
 const testimonials = [
@@ -169,7 +149,7 @@ const faqs = [
   {
     question: "Can I start on Free and upgrade later?",
     answer:
-      "Absolutely! You can start with a free listing and upgrade to Pro or Enterprise at any time. Your listing data transfers seamlessly when you upgrade.",
+      "Absolutely! You can start with a free listing and upgrade to Pro at any time. Your listing data transfers seamlessly when you upgrade.",
   },
   {
     question: "Is there a contract?",
@@ -179,12 +159,12 @@ const faqs = [
   {
     question: "How quickly does my listing go live?",
     answer:
-      "Your listing goes live within minutes of completing your profile. Pro and Enterprise listings appear higher in search results immediately.",
+      "Your listing goes live within minutes of completing your profile. Pro listings appear higher in search results immediately.",
   },
   {
     question: "How do families contact me?",
     answer:
-      "With Pro or Enterprise, families can submit inquiries directly through your profile's contact form. You'll receive email notifications for each inquiry so you can respond quickly.",
+      "With Pro, families can submit inquiries directly through your profile's contact form. You'll receive email notifications for each inquiry so you can respond quickly.",
   },
   {
     question: "What's included in the free plan?",
@@ -336,11 +316,6 @@ export default function GetListedPage() {
                 )}
                 <CardHeader className="pb-4">
                   <div className="flex items-center gap-2">
-                    {plan.name === "Enterprise" && (
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-violet-500/10">
-                        <Crown className="h-4 w-4 text-violet-600" />
-                      </div>
-                    )}
                     {plan.name === "Pro" && (
                       <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#FFF5C2]">
                         <Star className="h-4 w-4 fill-[#5788FF] text-[#5788FF]" />
@@ -580,7 +555,7 @@ export default function GetListedPage() {
                 Boost Your Visibility
               </p>
               <h3 className="mt-2 text-xl font-semibold sm:text-2xl">
-                Optional add-ons for Pro & Enterprise
+                Optional add-ons for Pro
               </h3>
             </header>
             <div className="mt-8 grid gap-4 sm:grid-cols-2">

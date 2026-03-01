@@ -23,7 +23,7 @@ export default async function DashboardLayout({ children }: PropsWithChildren) {
       companyProfile = {
         name: listingResult.data.profile.agencyName,
         logoUrl: listingResult.data.logoUrl,
-        planTier: listingResult.data.profile.planTier as "free" | "pro" | "enterprise",
+        planTier: listingResult.data.profile.planTier as "free" | "pro",
         subscriptionStatus: listingResult.data.profile.subscriptionStatus,
       };
     }

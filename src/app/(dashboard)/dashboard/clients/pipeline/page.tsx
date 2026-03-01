@@ -125,7 +125,7 @@ export default async function PipelinePage() {
   ]);
   const pipeline = result.success ? result.data : null;
 
-  // Run task automation in background for Pro/Enterprise users (non-blocking)
+  // Run task automation in background for Pro users (non-blocking)
   if (planFeatures.hasTaskAutomation) {
     runTaskAutomation().catch((err) =>
       console.error("[PIPELINE] Task automation failed:", err)

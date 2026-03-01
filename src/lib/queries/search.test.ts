@@ -131,18 +131,18 @@ describe("Search Sorting Logic", () => {
       expect(listings[2].agencyName).toBe("Far");
     });
 
-    it("should treat enterprise and pro as equal priority", () => {
+    it("should prioritize pro over free regardless of distance", () => {
       const listings: MockRealListing[] = [
-        { locationId: "1", agencyName: "Enterprise Far", planTier: "enterprise", isFeatured: false, distanceMiles: 50 },
+        { locationId: "1", agencyName: "Pro Far", planTier: "pro", isFeatured: false, distanceMiles: 50 },
         { locationId: "2", agencyName: "Pro Near", planTier: "pro", isFeatured: false, distanceMiles: 5 },
         { locationId: "3", agencyName: "Free", planTier: "free", isFeatured: false, distanceMiles: 1 },
       ];
 
       listings.sort(sortByTierAndDistance);
 
-      // Pro should come first due to distance (both pro and enterprise are "paid")
+      // Pro should come first, sorted by distance among themselves
       expect(listings[0].agencyName).toBe("Pro Near");
-      expect(listings[1].agencyName).toBe("Enterprise Far");
+      expect(listings[1].agencyName).toBe("Pro Far");
       // Free always last, even if closer
       expect(listings[2].agencyName).toBe("Free");
     });
@@ -252,7 +252,7 @@ describe("Search Sectioning Logic", () => {
 
     it("should handle the full sort order: Featured -> Nearby Paid -> Nearby Free -> Nearby GP -> Other Paid -> Other Free -> Other GP", () => {
       const realListings: MockRealListing[] = [
-        { locationId: "1", agencyName: "Featured", planTier: "enterprise", isFeatured: true, distanceMiles: 100 },
+        { locationId: "1", agencyName: "Featured", planTier: "pro", isFeatured: true, distanceMiles: 100 },
         { locationId: "2", agencyName: "Nearby Paid", planTier: "pro", isFeatured: false, distanceMiles: 10 },
         { locationId: "3", agencyName: "Nearby Free", planTier: "free", isFeatured: false, distanceMiles: 15 },
         { locationId: "4", agencyName: "Other Paid", planTier: "pro", isFeatured: false, distanceMiles: 50 },
@@ -373,7 +373,7 @@ describe("Combined Search Flow", () => {
     // 20 real listings, 1000 Google Places
     const realListings: MockRealListing[] = [
       // 1 featured
-      { locationId: "f1", agencyName: "Featured Provider", planTier: "enterprise", isFeatured: true, distanceMiles: 45 },
+      { locationId: "f1", agencyName: "Featured Provider", planTier: "pro", isFeatured: true, distanceMiles: 45 },
       // 5 nearby paid
       ...Array.from({ length: 5 }, (_, i) => ({
         locationId: `np${i}`,

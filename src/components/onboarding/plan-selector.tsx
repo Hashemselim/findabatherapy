@@ -1,11 +1,11 @@
 "use client";
 
-import { Check, Sparkles, Crown } from "lucide-react";
+import { Check, Sparkles } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { PLAN_CONFIGS, type PlanTier } from "@/lib/plans/features";
 
-type Plan = "free" | "pro" | "enterprise";
+type Plan = "free" | "pro";
 
 type PlanOption = {
   id: Plan;
@@ -50,21 +50,6 @@ const PLANS: PlanOption[] = [
     highlight: true,
     icon: <Sparkles className="h-5 w-5 text-primary" />,
   },
-  {
-    id: "enterprise",
-    name: PLAN_CONFIGS.enterprise.displayName,
-    price: `$${PLAN_CONFIGS.enterprise.pricing.monthly.price}`,
-    period: "/month",
-    description: PLAN_CONFIGS.enterprise.description,
-    features: [
-      "Unlimited locations",
-      "Priority search placement",
-      "All Pro features",
-      "Homepage placement",
-      "Unlimited job postings",
-    ],
-    icon: <Crown className="h-5 w-5 text-amber-500" />,
-  },
 ];
 
 type PlanSelectorProps = {
@@ -79,7 +64,7 @@ export function PlanSelector({
   disabled = false,
 }: PlanSelectorProps) {
   return (
-    <div className="grid gap-4 md:grid-cols-3">
+    <div className="grid gap-4 md:grid-cols-2">
       {PLANS.map((plan) => {
         const isSelected = selectedPlan === plan.id;
 

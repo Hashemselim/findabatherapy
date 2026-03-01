@@ -90,7 +90,7 @@ function saveSectionState(state: Record<SectionId, boolean>) {
 export interface CompanyProfile {
   name: string;
   logoUrl?: string | null;
-  planTier: "free" | "pro" | "enterprise";
+  planTier: "free" | "pro";
   subscriptionStatus?: string | null;
 }
 
@@ -384,11 +384,9 @@ export function DashboardSidebar({
                   {companyProfile?.name || "My Company"}
                 </p>
                 <p className="truncate text-xs text-muted-foreground">
-                  {(companyProfile?.planTier === "pro" || companyProfile?.planTier === "enterprise") &&
+                  {companyProfile?.planTier === "pro" &&
                   (companyProfile?.subscriptionStatus === "active" || companyProfile?.subscriptionStatus === "trialing")
-                    ? companyProfile.planTier === "enterprise"
-                      ? "Enterprise"
-                      : "Pro Plan"
+                    ? "Pro Plan"
                     : "Free Plan"}
                 </p>
               </div>

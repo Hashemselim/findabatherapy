@@ -123,12 +123,10 @@ test.describe("Integration - Listing Visibility", () => {
       return;
     }
 
-    // Check if user is on Pro or Enterprise plan
+    // Check if user is on Pro plan
     const proPlan = page.locator("text=/pro.*active|active.*pro/i").first();
-    const enterprisePlan = page.locator("text=/enterprise.*active|active.*enterprise/i").first();
 
-    const isPremium = (await proPlan.isVisible().catch(() => false)) ||
-                      (await enterprisePlan.isVisible().catch(() => false));
+    const isPremium = await proPlan.isVisible().catch(() => false);
 
     if (!isPremium) {
       console.log("User not on premium plan - skipping verified badge test");

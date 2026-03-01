@@ -30,7 +30,7 @@ export async function GET(request: Request) {
 
   // Validate plan tier and billing interval
   // Normalize to "month"/"year" to match Stripe's convention
-  const validPlans = ["free", "pro", "enterprise"];
+  const validPlans = ["free", "pro"];
   const planTier = selectedPlan && validPlans.includes(selectedPlan) ? selectedPlan : "free";
   const billingInterval = selectedInterval === "annual" || selectedInterval === "year" ? "year" : "month";
 
@@ -102,7 +102,7 @@ export async function GET(request: Request) {
         });
 
         // For paid plans selected from pricing page, redirect to payment first
-        if (userPlan === "pro" || userPlan === "enterprise") {
+        if (userPlan === "pro") {
           return NextResponse.redirect(
             `${origin}/dashboard/billing/checkout?plan=${userPlan}&interval=${userInterval}&return_to=onboarding`
           );

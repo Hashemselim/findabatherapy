@@ -125,7 +125,7 @@ export async function signUpWithEmail(formData: FormData): Promise<AuthResult> {
 
   // Validate plan tier and billing interval
   // Normalize to "month"/"year" to match Stripe's convention
-  const validPlans = ["free", "pro", "enterprise"];
+  const validPlans = ["free", "pro"];
   const planTier = validPlans.includes(selectedPlan) ? selectedPlan : "free";
   const interval = billingInterval === "annual" || billingInterval === "year" ? "year" : "month";
 
@@ -219,7 +219,7 @@ export async function signInWithOAuth(
 
   // Validate plan tier and billing interval
   // Normalize to "month"/"year" to match Stripe's convention
-  const validPlans = ["free", "pro", "enterprise"];
+  const validPlans = ["free", "pro"];
   const planTier = selectedPlan && validPlans.includes(selectedPlan) ? selectedPlan : "free";
   const interval = billingInterval === "annual" || billingInterval === "year" ? "year" : "month";
   const intent = normalizeSignupIntent(selectedIntent);

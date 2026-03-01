@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState, type ComponentType } from "react";
-import { Check, Sparkles, Crown } from "lucide-react";
+import { Check, Sparkles } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,12 +22,11 @@ import { cn } from "@/lib/utils";
 
 type BillingInterval = "annual" | "monthly";
 
-const planOrder: BehaviorWorkPlanTier[] = ["free", "pro", "enterprise"];
+const planOrder: BehaviorWorkPlanTier[] = ["free", "pro"];
 
 const planIcons: Record<BehaviorWorkPlanTier, ComponentType<{ className?: string }>> = {
   free: Check,
   pro: Sparkles,
-  enterprise: Crown,
 };
 
 const planCta: Record<BehaviorWorkPlanTier, (interval: BillingInterval) => string> = {
@@ -36,10 +35,6 @@ const planCta: Record<BehaviorWorkPlanTier, (interval: BillingInterval) => strin
     interval === "annual"
       ? "/auth/sign-up?plan=pro&interval=annual&intent=both"
       : "/auth/sign-up?plan=pro&interval=monthly&intent=both",
-  enterprise: (interval) =>
-    interval === "annual"
-      ? "/auth/sign-up?plan=enterprise&interval=annual&intent=both"
-      : "/auth/sign-up?plan=enterprise&interval=monthly&intent=both",
 };
 
 interface UnifiedPricingTableProps {
@@ -105,7 +100,7 @@ export function UnifiedPricingTable({ defaultInterval = "annual" }: UnifiedPrici
         )}
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-3">
+      <div className="grid gap-5 lg:grid-cols-2 lg:max-w-3xl lg:mx-auto">
         {planOrder.map((plan) => {
           const config = PLAN_CONFIGS[plan];
           const Icon = planIcons[plan];
@@ -166,11 +161,6 @@ export function UnifiedPricingTable({ defaultInterval = "annual" }: UnifiedPrici
                   </Button>
                 </div>
 
-                {plan === "enterprise" && (
-                  <p className="text-center text-xs text-muted-foreground">
-                    Need procurement help? <Link href="mailto:sales@behaviorwork.com" className="font-medium text-foreground hover:underline">Contact sales</Link>
-                  </p>
-                )}
               </CardContent>
             </Card>
           );
@@ -178,11 +168,10 @@ export function UnifiedPricingTable({ defaultInterval = "annual" }: UnifiedPrici
       </div>
 
       <div className="overflow-hidden rounded-xl border border-border/70 bg-white">
-        <div className="hidden grid-cols-4 border-b border-border/70 bg-muted/20 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground md:grid">
+        <div className="hidden grid-cols-3 border-b border-border/70 bg-muted/20 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground md:grid">
           <p>Feature</p>
           <p className="text-center">Free</p>
           <p className="text-center">Pro</p>
-          <p className="text-center">Enterprise</p>
         </div>
 
         {behaviorWorkFeatureMatrix.map((group, groupIndex) => (
@@ -195,7 +184,7 @@ export function UnifiedPricingTable({ defaultInterval = "annual" }: UnifiedPrici
                 <div key={row.label}>
                   <div className="space-y-3 px-4 py-3 md:hidden">
                     <p className="text-sm font-medium text-foreground">{row.label}</p>
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="grid grid-cols-2 gap-2">
                       <div className="rounded-md border border-border/60 bg-muted/20 p-2 text-center">
                         <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Free</p>
                         <p className="mt-1 text-xs text-foreground">{row.values.free}</p>
@@ -204,18 +193,13 @@ export function UnifiedPricingTable({ defaultInterval = "annual" }: UnifiedPrici
                         <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Pro</p>
                         <p className="mt-1 text-xs font-medium text-foreground">{row.values.pro}</p>
                       </div>
-                      <div className="rounded-md border border-border/60 bg-muted/20 p-2 text-center">
-                        <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Enterprise</p>
-                        <p className="mt-1 text-xs text-foreground">{row.values.enterprise}</p>
-                      </div>
                     </div>
                   </div>
 
-                  <div className="hidden grid-cols-4 items-center px-4 py-3 text-sm md:grid">
+                  <div className="hidden grid-cols-3 items-center px-4 py-3 text-sm md:grid">
                     <p className="font-medium text-foreground">{row.label}</p>
                     <p className="text-center text-muted-foreground">{row.values.free}</p>
                     <p className="text-center font-medium text-foreground">{row.values.pro}</p>
-                    <p className="text-center text-muted-foreground">{row.values.enterprise}</p>
                   </div>
                 </div>
               ))}

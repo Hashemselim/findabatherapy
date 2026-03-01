@@ -6,7 +6,7 @@ import { brandColors } from "@/config/brands";
 
 type Props = {
   otherBrand: "therapy" | "jobs";
-  planTier: "free" | "pro" | "enterprise";
+  planTier: "free" | "pro";
 };
 
 const brandData = {
@@ -20,7 +20,6 @@ const brandData = {
     featuresByPlan: {
       free: ["Basic practice listing", "1 service location", "SEO backlink"],
       pro: ["Priority search placement", "Up to 5 locations", "Direct family inquiries"],
-      enterprise: ["Unlimited locations", "Homepage placement", "All Pro features"],
     },
   },
   jobs: {
@@ -33,7 +32,6 @@ const brandData = {
     featuresByPlan: {
       free: ["1 active job posting", "View applications", "Email notifications"],
       pro: ["Up to 5 active jobs", "Priority placement", "Hiring analytics"],
-      enterprise: ["Unlimited job postings", "Homepage featured", "All Pro features"],
     },
   },
 };

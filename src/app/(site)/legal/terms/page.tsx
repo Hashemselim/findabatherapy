@@ -116,8 +116,7 @@ export default function TermsOfServicePage() {
       <p>We offer the following subscription plans for providers:</p>
       <ul>
         <li><strong>Free:</strong> Basic listing with limited features (no contact form access)</li>
-        <li><strong>Pro:</strong> Enhanced listing with contact forms, analytics, and more</li>
-        <li><strong>Enterprise:</strong> Premium features including multiple locations and priority support</li>
+        <li><strong>Pro:</strong> Enhanced listing with contact forms, analytics, multiple locations, and priority support</li>
         <li><strong>Featured Placement:</strong> Add-on for premium search result positioning</li>
       </ul>
       <p>

@@ -14,7 +14,7 @@ export default async function BrandedPageManagement() {
     getCurrentPlanTier(),
   ]);
 
-  const isPremium = planTier === "pro" || planTier === "enterprise";
+  const isPremium = planTier === "pro";
   const brandedPageUrl = slug ? `https://www.findabatherapy.org/p/${slug}` : null;
 
   return (

@@ -113,15 +113,13 @@ export default async function JobsPage() {
                   : `${limits?.count || 0} of ${limits?.limit || 1} job posting${(limits?.limit || 1) !== 1 ? "s" : ""} used`}
               </p>
               <p className="text-sm text-muted-foreground">
-                {effectivePlanTier === "enterprise"
-                  ? "Enterprise plan includes unlimited job postings"
-                  : effectivePlanTier === "pro"
-                    ? "Pro plan includes up to 5 job postings"
-                    : "Free plan includes 1 job posting"}
+                {effectivePlanTier === "pro"
+                  ? "Pro plan includes up to 5 job postings"
+                  : "Free plan includes 1 job posting"}
               </p>
             </div>
           </div>
-          {!limits?.canCreate && effectivePlanTier !== "enterprise" && (
+          {!limits?.canCreate && effectivePlanTier !== "pro" && (
             <Button asChild variant="outline" size="sm" className="rounded-full">
               <Link href="/dashboard/billing">
                 <Sparkles className="mr-2 h-4 w-4" />
@@ -166,7 +164,7 @@ export default async function JobsPage() {
               <CardTitle className="text-lg">Need to post more jobs?</CardTitle>
             </div>
             <CardDescription>
-              Upgrade to Pro to post up to 5 jobs, or Enterprise for unlimited postings.
+              Upgrade to Pro to post up to 5 jobs.
             </CardDescription>
           </CardHeader>
           <CardContent>

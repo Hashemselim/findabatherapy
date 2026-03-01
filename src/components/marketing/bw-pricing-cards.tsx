@@ -46,28 +46,13 @@ const plans = [
     ctaLabel: "Start Growing Your Caseload",
     ctaStyle: "primary" as const,
   },
-  {
-    tier: "enterprise" as const,
-    tagline: "For multi-location agencies.",
-    features: [
-      "Everything in Pro, plus:",
-      "Unlimited locations",
-      "Unlimited job postings",
-      "Unlimited client records",
-      "Advanced analytics & reporting",
-      "Dedicated account manager",
-    ],
-    ctaLabel: "Contact Us",
-    ctaStyle: "outline" as const,
-  },
 ] as const;
 
 function getSignupUrl(
-  tier: "free" | "pro" | "enterprise",
+  tier: "free" | "pro",
   interval: BillingInterval
 ) {
   if (tier === "free") return "/auth/sign-up?plan=free&intent=behaviorwork";
-  if (tier === "enterprise") return "mailto:sales@behaviorwork.com";
   return interval === "annual"
     ? "/auth/sign-up?plan=pro&interval=annual&intent=behaviorwork"
     : "/auth/sign-up?plan=pro&interval=monthly&intent=behaviorwork";
@@ -123,7 +108,7 @@ export function BwPricingCards({
       </BwFadeUp>
 
       {/* Cards */}
-      <div className="mt-12 grid gap-6 lg:grid-cols-3">
+      <div className="mt-12 grid gap-6 lg:grid-cols-2 lg:max-w-3xl lg:mx-auto">
         {plans.map((plan, i) => {
           const config = PLAN_CONFIGS[plan.tier];
           const price =
@@ -209,17 +194,6 @@ export function BwPricingCards({
                   </Link>
                 </div>
 
-                {plan.tier === "enterprise" && (
-                  <p className="mt-3 text-center text-xs text-slate-400">
-                    Need procurement help?{" "}
-                    <Link
-                      href="mailto:sales@behaviorwork.com"
-                      className="font-medium text-slate-600 hover:underline"
-                    >
-                      Contact sales
-                    </Link>
-                  </p>
-                )}
               </div>
             </BwFadeUp>
           );

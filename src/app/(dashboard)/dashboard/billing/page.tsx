@@ -6,7 +6,6 @@ import {
   Clock,
   ExternalLink,
   Star,
-  Crown,
   Shield,
   AlertCircle,
   ArrowRight,
@@ -45,7 +44,6 @@ import {
 import { BubbleBackground } from "@/components/ui/bubble-background";
 import { BillingPortalButton } from "@/components/billing/billing-portal-button";
 import { CancelDowngradeButton } from "@/components/billing/cancel-downgrade-button";
-import { EnterpriseUpgradeCard } from "@/components/billing/enterprise-upgrade-card";
 import { FeaturedManageButton } from "@/components/dashboard/featured-manage-button";
 import { getSubscription, getPendingDowngrade, getFeaturedAddonPrices, getFeaturedLocations } from "@/lib/stripe/actions";
 import { STRIPE_PLANS } from "@/lib/stripe/config";
@@ -109,7 +107,6 @@ export default async function DashboardBillingPage() {
   const effectivePlanTier = (planTier !== "free" && isActiveSubscription) ? planTier : "free";
   const isFreePlan = effectivePlanTier === "free";
   const isPro = effectivePlanTier === "pro";
-  const isEnterprise = effectivePlanTier === "enterprise";
 
   // Format the renewal date
   const renewalDate = subscription?.currentPeriodEnd
@@ -123,11 +120,11 @@ export default async function DashboardBillingPage() {
   // Get plan price based on billing interval
   const getPlanPrice = () => {
     if (isFreePlan) return 0;
-    const plan = isPro ? STRIPE_PLANS.pro : STRIPE_PLANS.enterprise;
+    const plan = STRIPE_PLANS.pro;
     return isAnnual ? plan.annual.price : plan.monthly.price;
   };
   const planPrice = getPlanPrice();
-  const annualSavings = isPro ? STRIPE_PLANS.pro.annual.savings : isEnterprise ? STRIPE_PLANS.enterprise.annual.savings : 0;
+  const annualSavings = isPro ? STRIPE_PLANS.pro.annual.savings : 0;
 
   // Get featured pricing from Stripe - fallback to defaults if fetch fails
   const featuredPricing = featuredPricingResult.success && featuredPricingResult.data
@@ -224,9 +221,7 @@ export default async function DashboardBillingPage() {
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
               <div className="rounded-xl bg-slate-100 p-2.5">
-                {isEnterprise ? (
-                  <Crown className="h-6 w-6 text-slate-600" />
-                ) : isPro ? (
+                {isPro ? (
                   <Sparkles className="h-6 w-6 text-slate-600" />
                 ) : (
                   <Shield className="h-6 w-6 text-slate-500" />
@@ -383,7 +378,7 @@ export default async function DashboardBillingPage() {
             Your plan includes:
           </h3>
           <ul className="grid gap-2 sm:grid-cols-2">
-            {(isPro ? STRIPE_PLANS.pro.features : isEnterprise ? STRIPE_PLANS.enterprise.features : [
+            {(isPro ? STRIPE_PLANS.pro.features : [
               "Standard search placement",
               "Up to 3 locations",
               "Up to 3 photos",
@@ -412,8 +407,8 @@ export default async function DashboardBillingPage() {
               <div>
                 <h3 className="font-semibold text-slate-900">Switch to Annual Billing</h3>
                 <p className="mt-1 text-sm text-slate-600">
-                  Save <span className="font-semibold text-green-600">40% (${isPro ? STRIPE_PLANS.pro.annual.savings : STRIPE_PLANS.enterprise.annual.savings}/year)</span> by switching to annual billing.
-                  Pay ${isPro ? STRIPE_PLANS.pro.annual.price : STRIPE_PLANS.enterprise.annual.price}/mo instead of ${isPro ? STRIPE_PLANS.pro.monthly.price : STRIPE_PLANS.enterprise.monthly.price}/mo.
+                  Save <span className="font-semibold text-green-600">40% (${STRIPE_PLANS.pro.annual.savings}/year)</span> by switching to annual billing.
+                  Pay ${STRIPE_PLANS.pro.annual.price}/mo instead of ${STRIPE_PLANS.pro.monthly.price}/mo.
                 </p>
               </div>
             </div>
@@ -431,7 +426,7 @@ export default async function DashboardBillingPage() {
       {isFreePlan && (
         <div className="space-y-4">
           <h2 className="text-lg font-semibold text-slate-900">Upgrade Your Plan</h2>
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4">
             {/* Pro Plan */}
             <Card className="relative overflow-hidden border-slate-200 bg-white shadow-sm">
               <div className="absolute right-0 top-0 rounded-bl-lg bg-primary px-3 py-1">
@@ -483,59 +478,9 @@ export default async function DashboardBillingPage() {
               </CardContent>
             </Card>
 
-            {/* Enterprise Plan */}
-            <Card className="relative overflow-hidden border-slate-200 bg-white shadow-sm">
-              <CardHeader>
-                <div className="flex items-center gap-3">
-                  <div className="rounded-xl bg-slate-100 p-2.5">
-                    <Crown className="h-6 w-6 text-slate-600" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-slate-900">Enterprise</CardTitle>
-                    <CardDescription className="text-slate-500">For large organizations</CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-1">
-                  <div>
-                    <span className="text-3xl font-bold text-slate-900">${STRIPE_PLANS.enterprise.annual.price}</span>
-                    <span className="text-slate-500">/mo</span>
-                  </div>
-                  <p className="text-sm text-slate-500">billed annually (${STRIPE_PLANS.enterprise.annual.totalPrice}/yr)</p>
-                  <p className="text-sm text-slate-500">or ${STRIPE_PLANS.enterprise.monthly.price}/mo monthly</p>
-                  <Badge className="mt-1 border-green-200 bg-green-50 text-green-700">
-                    Save 40% (${STRIPE_PLANS.enterprise.annual.savings}/year)
-                  </Badge>
-                </div>
-                <ul className="space-y-2">
-                  {STRIPE_PLANS.enterprise.features.map((feature, idx) => (
-                    <li key={idx} className="flex items-start gap-2 text-sm">
-                      <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-emerald-500" />
-                      <span className="text-slate-600">{renderFeature(feature)}</span>
-                    </li>
-                  ))}
-                </ul>
-                <div className="flex flex-col gap-2">
-                  <Button asChild className="w-full rounded-full">
-                    <Link href="/dashboard/billing/checkout?plan=enterprise&interval=annual">
-                      Upgrade to Enterprise (Annual)
-                    </Link>
-                  </Button>
-                  <Button asChild variant="outline" className="w-full rounded-full border-slate-200">
-                    <Link href="/dashboard/billing/checkout?plan=enterprise&interval=monthly">
-                      Start Monthly
-                    </Link>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
           </div>
         </div>
       )}
-
-      {/* Upgrade to Enterprise for Pro users */}
-      {isPro && <EnterpriseUpgradeCard isAnnual={isAnnual} />}
 
       {/* Featured Add-on */}
       {!isFreePlan && (

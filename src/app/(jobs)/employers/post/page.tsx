@@ -3,7 +3,6 @@ import Link from "next/link";
 import {
   ArrowRight,
   Check,
-  Crown,
   Briefcase,
   Building2,
   MapPin,
@@ -157,34 +156,6 @@ const plans = [
     cta: "Start Hiring",
     ctaVariant: "default" as const,
   },
-  {
-    name: "Enterprise",
-    tier: "enterprise" as const,
-    pricing: {
-      monthly: { price: STRIPE_PLANS.enterprise.monthly.price },
-      annual: {
-        price: STRIPE_PLANS.enterprise.annual.price,
-        totalPrice: STRIPE_PLANS.enterprise.annual.totalPrice!,
-        savings: STRIPE_PLANS.enterprise.annual.savings!,
-        savingsPercent: 40
-      },
-    },
-    description: "For high-volume hiring",
-    subtext: "Cancel anytime. No long-term contract.",
-    features: [
-      { text: "Unlimited active jobs", highlightWord: "Unlimited", highlightType: "emerald" as const },
-      { text: "Homepage featured employer", highlightWord: "Homepage featured", highlightType: "emerald" as const },
-      { text: "Priority search placement", highlightWord: "Priority", highlightType: "emerald" as const },
-      { text: "Hiring analytics", highlightWord: "analytics", highlightType: "emerald" as const },
-      { text: "Company profile page", highlightWord: "Company profile", highlightType: "emerald" as const },
-      "View & manage applications",
-      "Email notifications",
-    ],
-    notIncluded: [],
-    cta: "Start Hiring",
-    ctaVariant: "outline" as const,
-    showEmailLink: true,
-  },
 ];
 
 const testimonials = [
@@ -220,17 +191,17 @@ const faqs = [
   {
     question: "Can I start on Free and upgrade later?",
     answer:
-      "Absolutely! You can start with a free job posting and upgrade to Pro or Enterprise at any time. Your existing applications and data transfer seamlessly.",
+      "Absolutely! You can start with a free job posting and upgrade to Pro at any time. Your existing applications and data transfer seamlessly.",
   },
   {
     question: "How long do job postings stay active?",
     answer:
-      "Free jobs are active for 30 days. Pro jobs stay active for 60 days, and Enterprise jobs for 90 days. You can renew or extend listings at any time.",
+      "Free jobs are active for 30 days. Pro jobs stay active for 60 days. You can renew or extend listings at any time.",
   },
   {
     question: "How do I receive applications?",
     answer:
-      "Applications come directly to your dashboard and email. With Pro and Enterprise, you get a full applicant management dashboard with resume downloads and candidate tracking.",
+      "Applications come directly to your dashboard and email. With Pro, you get a full applicant management dashboard with resume downloads and candidate tracking.",
   },
   {
     question: "What types of positions can I post?",
@@ -379,11 +350,6 @@ export default function PostJobPage() {
                 )}
                 <CardHeader className="pb-4">
                   <div className="flex items-center gap-2">
-                    {plan.name === "Enterprise" && (
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-teal-500/10">
-                        <Crown className="h-4 w-4 text-teal-600" />
-                      </div>
-                    )}
                     {plan.name === "Pro" && (
                       <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/10">
                         <Star className="h-4 w-4 fill-emerald-600 text-emerald-600" />

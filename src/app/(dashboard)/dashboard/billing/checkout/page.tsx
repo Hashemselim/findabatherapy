@@ -22,7 +22,7 @@ function CheckoutContent() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const planTier = searchParams.get("plan") as "pro" | "enterprise" | null;
+  const planTier = searchParams.get("plan") as "pro" | null;
   const intervalParam = searchParams.get("interval");
   // Accept both "annual" and "year" as annual billing (normalize to "year" for Stripe)
   const billingInterval: BillingInterval = intervalParam === "annual" || intervalParam === "year" ? "year" : "month";
@@ -30,7 +30,7 @@ function CheckoutContent() {
 
   useEffect(() => {
     async function initiateCheckout() {
-      if (!planTier || (planTier !== "pro" && planTier !== "enterprise")) {
+      if (!planTier || planTier !== "pro") {
         setError("Invalid plan selected");
         setIsLoading(false);
         return;

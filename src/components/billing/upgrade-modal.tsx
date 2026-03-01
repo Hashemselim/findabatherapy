@@ -37,7 +37,7 @@ export function UpgradeModal({
 }: UpgradeModalProps) {
   const { tier: currentTier } = usePlanFeatures();
   const [selectedPlan, setSelectedPlan] = useState<PlanTier>(
-    defaultPlan || (currentTier === "free" ? "pro" : "enterprise")
+    defaultPlan || "pro"
   );
 
   // Only show plans that are upgrades from current
@@ -181,6 +181,6 @@ export function useUpgradeModal() {
  * Compare two plan tiers
  */
 function compareTiers(a: PlanTier, b: PlanTier): number {
-  const order: Record<PlanTier, number> = { free: 0, pro: 1, enterprise: 2 };
+  const order: Record<PlanTier, number> = { free: 0, pro: 1 };
   return order[a] - order[b];
 }

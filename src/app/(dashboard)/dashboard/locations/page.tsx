@@ -13,11 +13,10 @@ import { getListing } from "@/lib/actions/listings";
 import { getFeaturedAddonPrices } from "@/lib/stripe/actions";
 
 // PRD 4.5.2: Locations section
-// Free: 1 location, Pro: up to 5, Enterprise: unlimited
+// Free: 3 locations, Pro: up to 10
 const LOCATION_LIMITS: Record<string, number> = {
-  free: 1,
-  pro: 5,
-  enterprise: Infinity,
+  free: 3,
+  pro: 10,
 };
 
 export default async function LocationsPage() {

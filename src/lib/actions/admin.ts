@@ -685,7 +685,7 @@ export async function getCustomerMetrics(): Promise<ActionResult<CustomerMetrics
   const allProfiles = profiles || [];
 
   // Count by tier
-  const tierCounts: Record<string, number> = { free: 0, pro: 0, enterprise: 0 };
+  const tierCounts: Record<string, number> = { free: 0, pro: 0 };
   for (const p of allProfiles) {
     const tier = p.plan_tier || "free";
     tierCounts[tier] = (tierCounts[tier] || 0) + 1;

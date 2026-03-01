@@ -502,11 +502,7 @@ function SearchResultCard({ listing, position, searchQuery }: SearchResultCardPr
           </div>
 
           {/* Plan Badge */}
-          {listing.profile.planTier === "enterprise" && (
-            <div className="hidden flex-shrink-0 sm:block">
-              <FeaturedBadge withHover />
-            </div>
-          )}
+          {/* TODO: migrate featured badge to profile_addons table query */}
         </CardContent>
       </Card>
     </Link>

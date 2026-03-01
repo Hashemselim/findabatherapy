@@ -64,11 +64,9 @@ export function LocationsPageContent({
                   : `${locations.length} of ${locationLimit} location${locationLimit !== 1 ? "s" : ""} used`}
               </p>
               <p className="text-sm text-muted-foreground">
-                {effectivePlanTier === "enterprise"
-                  ? "Enterprise plan includes unlimited locations"
-                  : effectivePlanTier === "pro"
-                    ? "Pro plan includes up to 5 locations"
-                    : "Free plan includes 1 location"}
+                {effectivePlanTier === "pro"
+                  ? "Pro plan includes up to 10 locations"
+                  : "Free plan includes up to 3 locations"}
               </p>
             </div>
           </div>

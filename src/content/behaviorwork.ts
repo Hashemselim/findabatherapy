@@ -1,4 +1,4 @@
-export type BehaviorWorkPlanTier = "free" | "pro" | "enterprise";
+export type BehaviorWorkPlanTier = "free" | "pro";
 
 export interface BehaviorWorkMetric {
   value: string;
@@ -212,7 +212,7 @@ export const behaviorWorkFaqs: BehaviorWorkFaq[] = [
   {
     question: "Can I start free and upgrade later?",
     answer:
-      "Yes. You can launch on the Free tier and upgrade to Pro or Enterprise when you want more visibility, forms, locations, jobs, and analytics.",
+      "Yes. You can launch on the Free tier and upgrade to Pro when you want more visibility, forms, locations, jobs, and analytics.",
   },
   {
     question: "How fast can I launch branded pages?",
@@ -244,18 +244,11 @@ export const behaviorWorkPlanHighlights: Record<BehaviorWorkPlanTier, string[]> 
     "Communication templates & analytics",
     "Priority placement + 5 job postings",
   ],
-  enterprise: [
-    "Everything in Pro",
-    "Unlimited locations, jobs & CRM contacts",
-    "Homepage-level visibility",
-    "Dedicated support",
-  ],
 };
 
 export const behaviorWorkPlanFit: Record<BehaviorWorkPlanTier, string> = {
   free: "Professional listing with all the details families need",
   pro: "Branded pages, full CRM, and growth tools for scaling agencies",
-  enterprise: "Maximum visibility and volume for large agencies",
 };
 
 export const behaviorWorkFeatureMatrix = [
@@ -267,7 +260,6 @@ export const behaviorWorkFeatureMatrix = [
         values: {
           free: "Standard",
           pro: "Priority",
-          enterprise: "Priority",
         },
       },
       {
@@ -275,15 +267,13 @@ export const behaviorWorkFeatureMatrix = [
         values: {
           free: "Yes",
           pro: "Yes",
-          enterprise: "Yes",
         },
       },
       {
         label: "Locations",
         values: {
           free: "Up to 3",
-          pro: "Up to 5",
-          enterprise: "Unlimited",
+          pro: "Up to 10",
         },
       },
       {
@@ -291,7 +281,6 @@ export const behaviorWorkFeatureMatrix = [
         values: {
           free: "Up to 3",
           pro: "Up to 10",
-          enterprise: "Up to 10",
         },
       },
       {
@@ -299,7 +288,6 @@ export const behaviorWorkFeatureMatrix = [
         values: {
           free: "—",
           pro: "Yes",
-          enterprise: "Yes",
         },
       },
       {
@@ -307,7 +295,6 @@ export const behaviorWorkFeatureMatrix = [
         values: {
           free: "—",
           pro: "Yes",
-          enterprise: "Yes",
         },
       },
     ],
@@ -320,7 +307,6 @@ export const behaviorWorkFeatureMatrix = [
         values: {
           free: "—",
           pro: "Yes",
-          enterprise: "Yes",
         },
       },
       {
@@ -328,7 +314,6 @@ export const behaviorWorkFeatureMatrix = [
         values: {
           free: "—",
           pro: "Yes",
-          enterprise: "Yes",
         },
       },
       {
@@ -336,7 +321,6 @@ export const behaviorWorkFeatureMatrix = [
         values: {
           free: "—",
           pro: "Yes",
-          enterprise: "Yes",
         },
       },
       {
@@ -344,7 +328,6 @@ export const behaviorWorkFeatureMatrix = [
         values: {
           free: "Up to 10",
           pro: "Up to 250",
-          enterprise: "Unlimited",
         },
       },
       {
@@ -352,7 +335,6 @@ export const behaviorWorkFeatureMatrix = [
         values: {
           free: "—",
           pro: "Yes",
-          enterprise: "Yes",
         },
       },
       {
@@ -360,7 +342,6 @@ export const behaviorWorkFeatureMatrix = [
         values: {
           free: "—",
           pro: "Yes",
-          enterprise: "Yes",
         },
       },
       {
@@ -368,7 +349,6 @@ export const behaviorWorkFeatureMatrix = [
         values: {
           free: "—",
           pro: "Yes",
-          enterprise: "Advanced",
         },
       },
     ],
@@ -381,7 +361,6 @@ export const behaviorWorkFeatureMatrix = [
         values: {
           free: "1",
           pro: "Up to 5",
-          enterprise: "Unlimited",
         },
       },
       {
@@ -389,7 +368,6 @@ export const behaviorWorkFeatureMatrix = [
         values: {
           free: "Basic",
           pro: "Customizable",
-          enterprise: "Customizable",
         },
       },
       {
@@ -397,7 +375,6 @@ export const behaviorWorkFeatureMatrix = [
         values: {
           free: "Yes",
           pro: "Yes",
-          enterprise: "Yes",
         },
       },
     ],

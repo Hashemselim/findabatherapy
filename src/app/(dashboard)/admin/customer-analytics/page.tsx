@@ -212,18 +212,14 @@ export default function CustomerAnalyticsPage() {
                 icon={
                   tier.tier === "free" ? (
                     <Users className="h-4 w-4 text-gray-500" />
-                  ) : tier.tier === "pro" ? (
-                    <CreditCard className="h-4 w-4 text-blue-600" />
                   ) : (
-                    <CreditCard className="h-4 w-4 text-purple-600" />
+                    <CreditCard className="h-4 w-4 text-blue-600" />
                   )
                 }
                 valueClassName={
-                  tier.tier === "enterprise"
-                    ? "text-purple-600"
-                    : tier.tier === "pro"
-                      ? "text-blue-600"
-                      : undefined
+                  tier.tier === "pro"
+                    ? "text-blue-600"
+                    : undefined
                 }
               />
             ))}

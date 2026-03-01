@@ -22,7 +22,6 @@ const emailTypes: { type: TestEmailType; brand: "therapy" | "jobs"; description:
   { type: "family_inquiry", brand: "therapy", description: "Family confirmation after inquiry" },
   { type: "payment_failure", brand: "therapy", description: "Payment failed notification" },
   { type: "subscription", brand: "therapy", description: "Pro subscription welcome" },
-  { type: "subscription_enterprise", brand: "therapy", description: "Enterprise subscription welcome" },
   { type: "feedback", brand: "therapy", description: "Admin receives feedback" },
   { type: "admin_signup", brand: "therapy", description: "Admin: new provider signup" },
   { type: "admin_first_payment", brand: "therapy", description: "Admin: first payment received" },

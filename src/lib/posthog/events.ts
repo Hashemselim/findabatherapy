@@ -281,7 +281,7 @@ export function trackGetListedPricingViewed() {
 }
 
 export function trackGetListedPlanCtaClicked(params: {
-  planTier: "free" | "pro" | "enterprise";
+  planTier: "free" | "pro";
   billingInterval?: "monthly" | "annual";
   ctaText: string;
   ctaPosition: "hero" | "pricing" | "footer";
@@ -363,7 +363,7 @@ export function trackBehaviorWorkGetStartedViewed(params?: {
 }
 
 export function trackBehaviorWorkPlanSelect(params: {
-  plan: "free" | "pro" | "enterprise";
+  plan: "free" | "pro";
   billingInterval: "monthly" | "annual";
   source?: string;
 }) {
@@ -375,7 +375,7 @@ export function trackBehaviorWorkPlanSelect(params: {
 }
 
 export function trackBehaviorWorkPlanCtaClick(params: {
-  plan: "free" | "pro" | "enterprise";
+  plan: "free" | "pro";
   billingInterval: "monthly" | "annual";
   destination?: string;
   source?: string;

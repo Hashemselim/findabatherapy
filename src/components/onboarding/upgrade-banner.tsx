@@ -8,19 +8,16 @@ import { PLAN_CONFIGS } from "@/lib/plans/features";
 interface UpgradeBannerProps {
   /** Called when "Upgrade to Pro" is clicked */
   onUpgradePro: () => void;
-  /** Called when "Upgrade to Enterprise" is clicked */
-  onUpgradeEnterprise: () => void;
   /** Whether buttons should be disabled */
   disabled?: boolean;
 }
 
 /**
  * Banner shown to unpaid users on the Enhanced Details step.
- * Encourages upgrade to Pro or Enterprise plan.
+ * Encourages upgrade to Pro plan.
  */
 export function UpgradeBanner({
   onUpgradePro,
-  onUpgradeEnterprise,
   disabled = false,
 }: UpgradeBannerProps) {
   return (
@@ -32,7 +29,7 @@ export function UpgradeBanner({
             Unlock Premium Features
           </h3>
           <p className="text-sm text-muted-foreground">
-            Upgrade to Pro or Enterprise for premium placement in search results, a premium profile, and convert more leads to clients.
+            Upgrade to Pro for premium placement in search results, a premium profile, and convert more leads to clients.
           </p>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -42,14 +39,6 @@ export function UpgradeBanner({
             className="rounded-full border border-[#FEE720] bg-[#FEE720] text-[#333333] hover:bg-[#FFF5C2]"
           >
             Upgrade to Pro (${PLAN_CONFIGS.pro.pricing.monthly.price}/mo)
-          </Button>
-          <Button
-            onClick={onUpgradeEnterprise}
-            disabled={disabled}
-            variant="outline"
-            className="rounded-full"
-          >
-            Upgrade to Enterprise (${PLAN_CONFIGS.enterprise.pricing.monthly.price}/mo)
           </Button>
         </div>
       </div>

@@ -84,9 +84,9 @@ test.describe("Dashboard - Overview", () => {
       return;
     }
 
-    // Free, Pro, or Enterprise
+    // Free or Pro
     await expect(
-      page.locator("text=/free|pro|enterprise|plan/i").first()
+      page.locator("text=/free|pro|plan/i").first()
     ).toBeVisible();
   });
 

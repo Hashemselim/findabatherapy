@@ -117,7 +117,7 @@ test.describe("DASH-033, DASH-034: Team Management", () => {
     );
     const hasInvite = await inviteButton.first().isVisible().catch(() => false);
 
-    // Invite may require Enterprise plan
+    // Invite may require Pro plan
     if (hasInvite) {
       expect(hasInvite).toBeTruthy();
     }
@@ -459,7 +459,7 @@ test.describe("DASH-041: Upgrade Page", () => {
     const planCards = page.locator(
       '[data-testid="plan-card"], .plan-card, .pricing-card'
     );
-    const planNames = page.locator('text=/free|pro|enterprise/i');
+    const planNames = page.locator('text=/free|pro/i');
 
     const hasCards = await planCards.first().isVisible().catch(() => false);
     const hasPlans = await planNames.first().isVisible().catch(() => false);

@@ -198,13 +198,12 @@ test.describe("Find ABA Therapy - Get Listed Page", () => {
     // Plan cards
     await expect(page.locator("text=/free/i").first()).toBeVisible();
     await expect(page.locator("text=/pro/i").first()).toBeVisible();
-    await expect(page.locator("text=/enterprise/i").first()).toBeVisible();
   });
 
   test("Get Listed has pricing amounts", async ({ page }) => {
     await page.goto("/get-listed");
 
-    // Pricing (Pro: $79/mo or $47/mo annual, Enterprise: $199/mo or $119/mo annual)
+    // Pricing (Pro: $79/mo or $47/mo annual)
     await expect(page.locator("text=/\\$0|free/i").first()).toBeVisible();
     await expect(page.locator("text=/\\$\\d+/i").first()).toBeVisible();
   });

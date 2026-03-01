@@ -94,7 +94,7 @@ export async function guardAddLocation(
     return {
       allowed: false,
       reason: `Your ${tier} plan allows up to ${features.maxLocations} location${features.maxLocations === 1 ? "" : "s"}`,
-      requiredPlan: tier === "free" ? "pro" : "enterprise",
+      requiredPlan: "pro",
     };
   }
 
@@ -114,7 +114,7 @@ export async function guardUploadPhoto(
     return {
       allowed: false,
       reason: `Your ${tier} plan allows up to ${features.maxPhotos} photo${features.maxPhotos === 1 ? "" : "s"}`,
-      requiredPlan: tier === "free" ? "pro" : "enterprise",
+      requiredPlan: "pro",
     };
   }
 
@@ -222,7 +222,7 @@ export async function guardFeaturedAddon(): Promise<GuardResult> {
   if (!features.hasFeaturedAddonEligibility) {
     return {
       allowed: false,
-      reason: "Featured add-on requires a Pro or Enterprise plan",
+      reason: "Featured add-on requires a Pro plan",
       requiredPlan: "pro",
     };
   }
@@ -279,7 +279,7 @@ export async function guardAddClient(
     return {
       allowed: false,
       reason: `Your ${tier} plan allows up to ${features.maxClients} client${features.maxClients === 1 ? "" : "s"}`,
-      requiredPlan: tier === "free" ? "pro" : "enterprise",
+      requiredPlan: "pro",
     };
   }
 
@@ -368,7 +368,7 @@ export async function guardWebsiteWatermarkRemoval(): Promise<GuardResult> {
   if (!features.hasWebsiteWatermarkRemoval) {
     return {
       allowed: false,
-      reason: "Watermark removal requires a Pro or Enterprise plan",
+      reason: "Watermark removal requires a Pro plan",
       requiredPlan: "pro",
     };
   }
@@ -386,7 +386,7 @@ export async function guardCustomDomain(): Promise<GuardResult> {
   if (!features.hasCustomDomain) {
     return {
       allowed: false,
-      reason: "Custom domains require a Pro or Enterprise plan",
+      reason: "Custom domains require a Pro plan",
       requiredPlan: "pro",
     };
   }

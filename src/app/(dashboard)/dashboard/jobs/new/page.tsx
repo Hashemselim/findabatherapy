@@ -63,12 +63,10 @@ export default async function NewJobPage() {
           <CardContent className="space-y-4">
             <p className="text-sm text-amber-800">
               {effectivePlanTier === "free"
-                ? "Free accounts can post 1 job. Upgrade to Pro for up to 5 jobs, or Enterprise for unlimited."
-                : effectivePlanTier === "pro"
-                  ? "Pro accounts can post up to 5 jobs. Upgrade to Enterprise for unlimited job postings."
-                  : "Please contact support if you need more job postings."}
+                ? "Free accounts can post 1 job. Upgrade to Pro for up to 5 jobs."
+                : "Please contact support if you need more job postings."}
             </p>
-            {effectivePlanTier !== "enterprise" && (
+            {effectivePlanTier === "free" && (
               <Button asChild>
                 <Link href="/dashboard/billing">
                   Upgrade Plan

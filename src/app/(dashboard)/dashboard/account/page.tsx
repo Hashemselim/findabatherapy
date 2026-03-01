@@ -51,11 +51,7 @@ export default async function AccountPage() {
             <p className="text-sm text-muted-foreground">{user.email}</p>
           </div>
           <Badge variant={isPaidPlan ? "default" : "secondary"}>
-            {isPaidPlan
-              ? planTier === "enterprise"
-                ? "Enterprise"
-                : "Pro"
-              : "Free Plan"}
+            {isPaidPlan ? "Pro" : "Free Plan"}
           </Badge>
         </CardContent>
       </Card>

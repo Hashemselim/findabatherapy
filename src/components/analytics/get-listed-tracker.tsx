@@ -62,7 +62,7 @@ export function GetListedPageTracker() {
 export function useGetListedTracking() {
   const trackPlanCta = useCallback(
     (params: {
-      planTier: "free" | "pro" | "enterprise";
+      planTier: "free" | "pro";
       billingInterval?: "monthly" | "annual";
       ctaText: string;
       ctaPosition: "hero" | "pricing" | "footer";

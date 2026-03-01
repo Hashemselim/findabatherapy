@@ -79,7 +79,7 @@ export { expect } from "@playwright/test";
 // ---------------------------------------------------------------------------
 
 interface CreateOptions {
-  planTier: "free" | "pro" | "enterprise";
+  planTier: "free" | "pro";
   onboarded: boolean;
 }
 

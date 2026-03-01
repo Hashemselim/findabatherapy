@@ -73,7 +73,7 @@ export async function updateProfileBasics(
  * Update profile plan tier
  */
 export async function updateProfilePlan(
-  plan: "free" | "pro" | "enterprise"
+  plan: "free" | "pro"
 ): Promise<ActionResult> {
   const user = await getUser();
   if (!user) {
@@ -591,7 +591,7 @@ export async function completeOnboarding(
   // Free plan: Go to dashboard
   // Paid plan: Go to checkout to complete payment
   let redirectTo = "/dashboard";
-  if (profile?.plan_tier === "pro" || profile?.plan_tier === "enterprise") {
+  if (profile?.plan_tier === "pro") {
     // Normalize billing interval: convert "monthly"/"annual" to "month"/"year" for Stripe
     const interval = profile.billing_interval === "annual" || profile.billing_interval === "year" ? "year" : "month";
     redirectTo = `/dashboard/billing/checkout?plan=${profile.plan_tier}&interval=${interval}`;

@@ -53,9 +53,9 @@ test.describe("Dashboard - Billing", () => {
       return;
     }
 
-    // Current plan (Free, Pro, or Enterprise)
+    // Current plan (Free or Pro)
     await expect(
-      page.locator("text=/free|pro|enterprise|current.*plan/i").first()
+      page.locator("text=/free|pro|current.*plan/i").first()
     ).toBeVisible();
   });
 
@@ -119,21 +119,6 @@ test.describe("Dashboard - Billing", () => {
     // Pro plan card/section
     await expect(
       page.locator("text=/pro/i").first()
-    ).toBeVisible();
-  });
-
-  test("Billing page shows Enterprise plan details", async ({ page }) => {
-    await page.goto("/dashboard/billing");
-
-    const url = page.url();
-    if (url.includes("/auth/")) {
-      test.skip(true, "Authentication required");
-      return;
-    }
-
-    // Enterprise plan card/section
-    await expect(
-      page.locator("text=/enterprise/i").first()
     ).toBeVisible();
   });
 
@@ -205,7 +190,7 @@ test.describe("Dashboard - Featured Locations Add-on", () => {
       return;
     }
 
-    // Featured locations section (Pro/Enterprise only)
+    // Featured locations section (Pro only)
     const featuredSection = page.locator("text=/featured.*location|spotlight|promoted/i").first();
     const hasFeatured = await featuredSection.isVisible().catch(() => false);
     console.log(`Featured locations section visible: ${hasFeatured}`);

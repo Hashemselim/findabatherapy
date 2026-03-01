@@ -120,8 +120,6 @@ export function AdminCustomerList() {
 
   const getTierBadge = (tier: string) => {
     switch (tier) {
-      case "enterprise":
-        return <Badge className="bg-purple-600">Enterprise</Badge>;
       case "pro":
         return <Badge className="bg-blue-600">Pro</Badge>;
       default:
@@ -169,7 +167,6 @@ export function AdminCustomerList() {
               <SelectItem value="all">All Tiers</SelectItem>
               <SelectItem value="free">Free</SelectItem>
               <SelectItem value="pro">Pro</SelectItem>
-              <SelectItem value="enterprise">Enterprise</SelectItem>
             </SelectContent>
           </Select>
           <div className="text-sm text-muted-foreground">

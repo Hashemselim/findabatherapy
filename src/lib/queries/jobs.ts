@@ -784,7 +784,7 @@ export async function searchJobs(
       // 1. Featured jobs first
       if (a.isFeatured && !b.isFeatured) return -1;
       if (!a.isFeatured && b.isFeatured) return 1;
-      // 2. Paid tiers (Enterprise OR Pro) have equal priority over free
+      // 2. Paid tiers (Pro) have priority over free
       const aIsPaid = a.provider.planTier !== "free";
       const bIsPaid = b.provider.planTier !== "free";
       if (aIsPaid && !bIsPaid) return -1;
@@ -1312,7 +1312,7 @@ export async function getFeaturedJobs(limit = 6): Promise<JobSearchResult[]> {
     // 1. Featured jobs first
     if (a.isFeatured && !b.isFeatured) return -1;
     if (!a.isFeatured && b.isFeatured) return 1;
-    // 2. Paid tiers (Enterprise OR Pro) have equal priority over free
+    // 2. Paid tiers (Pro) have priority over free
     const aIsPaid = a.provider.planTier !== "free";
     const bIsPaid = b.provider.planTier !== "free";
     if (aIsPaid && !bIsPaid) return -1;
@@ -1535,7 +1535,7 @@ export async function getAllEmployers(options?: {
 
   // Sort: paid tiers first (equal priority), then by job count, then alphabetically
   employers.sort((a, b) => {
-    // Paid tiers (Enterprise OR Pro) have equal priority over free
+    // Paid tiers (Pro) have priority over free
     const aIsPaid = a.planTier !== "free";
     const bIsPaid = b.planTier !== "free";
     if (aIsPaid && !bIsPaid) return -1;

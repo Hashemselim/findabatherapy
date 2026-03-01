@@ -198,7 +198,7 @@ export { formatDistance } from "@/lib/geo/distance";
 // SEARCH RESULT SORTING
 // =============================================================================
 
-export type PlanTier = "free" | "pro" | "enterprise";
+export type PlanTier = "free" | "pro";
 
 /**
  * Sortable search result interface
@@ -207,17 +207,17 @@ export type PlanTier = "free" | "pro" | "enterprise";
 export interface SortableSearchResult {
   /** Whether this result is featured (optional - only therapy has this currently) */
   isFeatured?: boolean;
-  /** Plan tier: free, pro, or enterprise */
+  /** Plan tier: free or pro */
   planTier: PlanTier;
   /** Distance in miles (undefined if no proximity search) */
   distanceMiles?: number;
 }
 
 /**
- * Sort search results by: Featured → Paid (equal priority) → Free → Distance
+ * Sort search results by: Featured → Pro → Free → Distance
  *
  * This is the canonical sorting logic used by both therapy and job search.
- * Paid tiers (Enterprise and Pro) have EQUAL priority over free.
+ * Pro has priority over free.
  * Within each tier, results are sorted by distance (closest first).
  *
  * @param results - Array of results to sort (mutates in place)
@@ -231,8 +231,7 @@ export function sortSearchResultsByRelevance<T extends SortableSearchResult>(
     if (a.isFeatured && !b.isFeatured) return -1;
     if (!a.isFeatured && b.isFeatured) return 1;
 
-    // 2. Paid tiers (Enterprise OR Pro) vs Free
-    // Enterprise and Pro have EQUAL priority
+    // 2. Pro vs Free
     const aIsPaid = a.planTier !== "free";
     const bIsPaid = b.planTier !== "free";
     if (aIsPaid && !bIsPaid) return -1;

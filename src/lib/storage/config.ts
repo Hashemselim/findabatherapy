@@ -41,7 +41,6 @@ export type AllowedImageType = (typeof ALLOWED_IMAGE_TYPES)[number];
 export const PHOTO_LIMITS = {
   free: 0,
   pro: 10,
-  enterprise: 10,
 } as const;
 
 /**

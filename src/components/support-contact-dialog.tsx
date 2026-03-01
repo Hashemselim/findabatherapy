@@ -19,8 +19,8 @@ export function SupportContactDialog({ children }: { children: React.ReactNode }
   const [copied, setCopied] = useState(false);
 
   const handleEmailClient = (client: "gmail" | "outlook" | "yahoo") => {
-    const subject = encodeURIComponent("Enterprise Plan Inquiry");
-    const body = encodeURIComponent("Hi,\n\nI have a question about the Enterprise plan.\n\n");
+    const subject = encodeURIComponent("Plan Inquiry");
+    const body = encodeURIComponent("Hi,\n\nI have a question about your plans.\n\n");
 
     const urls = {
       gmail: `https://mail.google.com/mail/?view=cm&fs=1&to=${SUPPORT_EMAIL}&su=${subject}&body=${body}`,
@@ -44,7 +44,7 @@ export function SupportContactDialog({ children }: { children: React.ReactNode }
         <DialogHeader>
           <DialogTitle>Contact Support</DialogTitle>
           <DialogDescription>
-            Have questions about Enterprise pricing or features? We&apos;re here to help.
+            Have questions about pricing or features? We&apos;re here to help.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">

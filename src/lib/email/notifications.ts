@@ -596,8 +596,8 @@ export async function sendSubscriptionConfirmation(
   try {
     const siteUrl = getSiteUrl();
 
-    // Get plan details from config - dynamically shows correct features for Pro vs Enterprise
-    const planKey = params.planTier.toLowerCase() as "pro" | "enterprise";
+    // Get plan details from config - dynamically shows correct features for Pro
+    const planKey = params.planTier.toLowerCase() as "pro";
     const plan = STRIPE_PLANS[planKey];
     const planName = plan?.name || params.planTier.charAt(0).toUpperCase() + params.planTier.slice(1);
     const featureList = plan?.features || [];
@@ -1315,7 +1315,6 @@ export type TestEmailType =
   | "family_inquiry"
   | "payment_failure"
   | "subscription"
-  | "subscription_enterprise"
   | "feedback"
   | "admin_signup"
   | "admin_first_payment"
@@ -1370,12 +1369,6 @@ export async function sendTestEmail(
         to,
         providerName: "Test Provider",
         planTier: "pro",
-      }),
-    subscription_enterprise: () =>
-      sendSubscriptionConfirmation({
-        to,
-        providerName: "Test Provider",
-        planTier: "enterprise",
       }),
     feedback: () =>
       sendFeedbackNotification({

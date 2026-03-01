@@ -50,9 +50,8 @@ test.describe("Integration - Plan Limits", () => {
       console.log(`Location limit: ${limitText}`);
 
       // Plan limits:
-      // Free: 1 location
-      // Pro: 5 locations
-      // Enterprise: Unlimited
+      // Free: 3 locations
+      // Pro: 10 locations
     }
   });
 
@@ -76,7 +75,6 @@ test.describe("Integration - Plan Limits", () => {
       // Plan limits:
       // Free: 1 job
       // Pro: 5 jobs
-      // Enterprise: Unlimited
     }
   });
 
@@ -166,7 +164,7 @@ test.describe("Integration - Plan Limits", () => {
     }
 
     // Check current plan
-    const currentPlan = page.locator("text=/free|pro|enterprise/i").first();
+    const currentPlan = page.locator("text=/free|pro/i").first();
     const planText = await currentPlan.textContent().catch(() => "");
 
     console.log(`Current plan: ${planText}`);
@@ -223,8 +221,8 @@ test.describe("Integration - Premium Features", () => {
     console.log("$99/mo per location for homepage placement in state search");
   });
 
-  test("Homepage placement for Enterprise", async ({ page }) => {
-    // Homepage placement is Enterprise only
+  test("Homepage placement for Pro (featured add-on)", async ({ page }) => {
+    // Homepage placement is a Pro add-on
     await page.goto("/dashboard/billing");
 
     const url = page.url();
@@ -233,7 +231,7 @@ test.describe("Integration - Premium Features", () => {
       return;
     }
 
-    // Check Enterprise features mention
+    // Check featured add-on mention
     const homepagePlacement = page.locator("text=/homepage.*placement|featured.*home/i").first();
     const hasHomepagePlacement = await homepagePlacement.isVisible().catch(() => false);
 

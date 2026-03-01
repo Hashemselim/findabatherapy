@@ -20,7 +20,7 @@ type ActionResult<T = void> =
  * @param returnTo - Optional return destination after successful payment (e.g., "onboarding")
  */
 export async function createCheckoutSession(
-  planTier: "pro" | "enterprise",
+  planTier: "pro",
   billingInterval: BillingInterval = "month",
   returnTo?: string
 ): Promise<ActionResult<{ url: string }>> {
@@ -137,13 +137,11 @@ export async function createCheckoutSession(
 }
 
 /**
- * Upgrade an existing subscription to a higher plan or change billing interval
- * - Upgrades (pro -> enterprise): Immediate change with proration
- * - Downgrades (enterprise -> pro): Change at end of billing period, no credit
+ * Upgrade an existing subscription or change billing interval
  * - Interval changes: Immediate with proration
  */
 export async function upgradeSubscription(
-  planTier: "pro" | "enterprise",
+  planTier: "pro",
   billingInterval: BillingInterval = "month",
   returnTo?: string
 ): Promise<ActionResult<{ url: string }>> {
@@ -173,9 +171,8 @@ export async function upgradeSubscription(
     return { success: false, error: "Invalid plan" };
   }
 
-  // Determine if this is an upgrade, downgrade, or interval change
-  const isUpgrade = profile.plan_tier === "pro" && planTier === "enterprise";
   // Treat interval change (monthly -> annual) as an upgrade behavior (immediate with proration)
+  const isUpgrade = false;
 
   // Get listing ID for metadata
   const { data: listing } = await supabase
@@ -305,24 +302,6 @@ export async function upgradeSubscription(
       error: error instanceof Error ? error.message : "Failed to change subscription",
     };
   }
-}
-
-/**
- * Upgrade from Pro to Enterprise - used by the billing page upgrade card
- * This is a wrapper around upgradeSubscription that doesn't redirect
- */
-export async function upgradeToEnterprise(
-  billingInterval: BillingInterval = "month"
-): Promise<ActionResult<void>> {
-  const result = await upgradeSubscription("enterprise", billingInterval);
-
-  if (!result.success) {
-    return { success: false, error: result.error };
-  }
-
-  // The upgradeSubscription already updates the DB and revalidates paths
-  // We just need to return success (the URL it returns is for redirect, which we don't need)
-  return { success: true };
 }
 
 /**
@@ -583,7 +562,7 @@ export async function cancelPendingDowngrade(): Promise<ActionResult> {
 /**
  * Redirect to checkout for a plan (convenience action)
  */
-export async function redirectToCheckout(planTier: "pro" | "enterprise") {
+export async function redirectToCheckout(planTier: "pro") {
   const result = await createCheckoutSession(planTier);
 
   if (result.success && result.data?.url) {
@@ -764,10 +743,10 @@ export async function createFeaturedLocationCheckout(
     return { success: false, error: "Not authorized" };
   }
 
-  // Verify Pro or Enterprise plan
+  // Verify Pro plan
   const planTier = listing.profiles.plan_tier;
   if (planTier === "free") {
-    return { success: false, error: "Featured upgrade requires Pro or Enterprise plan" };
+    return { success: false, error: "Featured upgrade requires Pro plan" };
   }
 
   // Check if already featured

@@ -7,8 +7,7 @@
  * Plans:
  * - Free: $0/mo (no Stripe subscription needed)
  * - Pro: $79/mo or $564/yr ($47/mo equivalent - 40% off)
- * - Enterprise: $199/mo or $1,428/yr ($119/mo equivalent - 40% off)
- * - Featured Add-on: $99/mo (requires Pro or Enterprise)
+ * - Featured Add-on: $99/mo (requires Pro)
  */
 
 export type BillingInterval = "month" | "year";
@@ -27,7 +26,7 @@ export interface StripePlan {
   features: string[];
 }
 
-export const STRIPE_PLANS: Record<"pro" | "enterprise", StripePlan> = {
+export const STRIPE_PLANS: Record<"pro", StripePlan> = {
   pro: {
     name: "Pro",
     monthly: {
@@ -54,26 +53,14 @@ export const STRIPE_PLANS: Record<"pro" | "enterprise", StripePlan> = {
       "Insurance & authorization tracking",
     ],
   },
-  enterprise: {
-    name: "Enterprise",
-    monthly: {
-      priceId: process.env.STRIPE_ENTERPRISE_MONTHLY_PRICE_ID || "price_enterprise_monthly",
-      price: 199,
-    },
-    annual: {
-      priceId: process.env.STRIPE_ENTERPRISE_ANNUAL_PRICE_ID || "price_enterprise_annual",
-      price: 119, // Per month equivalent
-      totalPrice: 1428, // Total per year
-      savings: 960, // Savings vs monthly ($2388 - $1428)
-    },
-    features: [
-      "Everything in Pro",
-      "Unlimited locations & CRM contacts",
-      "Homepage placement",
-      "Unlimited job postings",
-      "Dedicated support",
-    ],
-  },
+};
+
+export const ADDON_PRICE_IDS = {
+  extra_users: process.env.STRIPE_ADDON_EXTRA_USERS_PRICE_ID,
+  location_pack: process.env.STRIPE_ADDON_LOCATION_PACK_PRICE_ID,
+  job_pack: process.env.STRIPE_ADDON_JOB_PACK_PRICE_ID,
+  storage_pack: process.env.STRIPE_ADDON_STORAGE_PACK_PRICE_ID,
+  homepage_placement: process.env.STRIPE_ADDON_HOMEPAGE_PLACEMENT_PRICE_ID,
 };
 
 /**
@@ -90,7 +77,7 @@ export type PlanId = keyof typeof STRIPE_PLANS;
  * Get plan details by plan tier name
  */
 export function getPlanByTier(tier: string): StripePlan | null {
-  if (tier === "pro" || tier === "enterprise") {
+  if (tier === "pro") {
     return STRIPE_PLANS[tier];
   }
   return null;
@@ -118,7 +105,7 @@ export function getPlanPricing(tier: string, interval: BillingInterval = "month"
  * Check if a plan tier requires payment
  */
 export function isPaidPlan(tier: string): boolean {
-  return tier === "pro" || tier === "enterprise";
+  return tier === "pro";
 }
 
 /**
