@@ -12,6 +12,7 @@ import {
   Sparkles,
   MapPin,
   TrendingUp,
+  Package,
 } from "lucide-react";
 
 // Helper to render feature with Google star rating styling
@@ -45,7 +46,9 @@ import { BubbleBackground } from "@/components/ui/bubble-background";
 import { BillingPortalButton } from "@/components/billing/billing-portal-button";
 import { CancelDowngradeButton } from "@/components/billing/cancel-downgrade-button";
 import { FeaturedManageButton } from "@/components/dashboard/featured-manage-button";
+import { AddonCard } from "@/components/billing/addon-card";
 import { getSubscription, getPendingDowngrade, getFeaturedAddonPrices, getFeaturedLocations } from "@/lib/stripe/actions";
+import { getActiveAddons } from "@/lib/actions/addons";
 import { STRIPE_PLANS } from "@/lib/stripe/config";
 import { createClient, getUser } from "@/lib/supabase/server";
 
@@ -66,11 +69,12 @@ export default async function DashboardBillingPage() {
     .eq("id", user.id)
     .single();
 
-  const [subscriptionResult, pendingDowngradeResult, featuredPricingResult, featuredLocationsResult] = await Promise.all([
+  const [subscriptionResult, pendingDowngradeResult, featuredPricingResult, featuredLocationsResult, addonsResult] = await Promise.all([
     getSubscription(),
     getPendingDowngrade(),
     getFeaturedAddonPrices(),
     getFeaturedLocations(),
+    getActiveAddons(user.id),
   ]);
 
   const subscription = subscriptionResult.success ? subscriptionResult.data : null;
@@ -78,6 +82,7 @@ export default async function DashboardBillingPage() {
   const featuredLocations = featuredLocationsResult.success && featuredLocationsResult.data
     ? featuredLocationsResult.data.locations
     : [];
+  const activeAddons = addonsResult.success && addonsResult.data ? addonsResult.data : [];
 
   const planTier = profile?.plan_tier || "free";
 
@@ -603,17 +608,24 @@ export default async function DashboardBillingPage() {
         </Card>
       )}
 
-      {/* Add-on Management Placeholder — Session 5b */}
+      {/* Add-on Packs */}
       {isPro && (
-        <Card className="border-dashed border-slate-300 bg-slate-50/50">
-          <CardContent className="flex flex-col items-center justify-center py-10 text-center">
-            <div className="rounded-xl bg-slate-100 p-3">
-              <Sparkles className="h-6 w-6 text-slate-400" />
+        <Card className="border-slate-200 bg-white">
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <div className="rounded-xl bg-slate-100 p-2.5">
+                <Package className="h-6 w-6 text-slate-600" />
+              </div>
+              <div>
+                <CardTitle className="text-slate-900">Add-on Packs</CardTitle>
+                <CardDescription className="text-slate-500">
+                  Expand your limits with additional capacity packs
+                </CardDescription>
+              </div>
             </div>
-            <h3 className="mt-3 font-semibold text-slate-700">Add-on Management</h3>
-            <p className="mt-1 max-w-sm text-sm text-slate-500">
-              Extra users, location packs, job packs, and storage upgrades will be available here soon.
-            </p>
+          </CardHeader>
+          <CardContent>
+            <AddonCard addons={activeAddons} />
           </CardContent>
         </Card>
       )}

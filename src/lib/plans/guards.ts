@@ -7,10 +7,11 @@ import {
   getPlanFeatures,
   hasMinimumTier,
 } from "./features";
+import { getEffectiveLimits, type AddonType } from "@/lib/actions/addons";
 
-type GuardResult<T = void> =
+export type GuardResult<T = void> =
   | { allowed: true; data?: T }
-  | { allowed: false; reason: string; requiredPlan: PlanTier };
+  | { allowed: false; reason: string; requiredPlan: PlanTier; addonType?: AddonType; currentCount?: number; maxCount?: number };
 
 /**
  * Get the current user's plan tier from the database
@@ -83,17 +84,79 @@ export async function canAccessFeature(
 
 /**
  * Guard: Check if user can add more locations
+ * For Pro users, checks effective limits (base + add-on packs)
  */
 export async function guardAddLocation(
   currentCount: number
 ): Promise<GuardResult> {
+  const user = await getUser();
   const tier = await getCurrentPlanTier();
   const features = getPlanFeatures(tier);
+
+  // For Pro users, check effective limits (base + add-ons)
+  if (tier === "pro" && user) {
+    const limitsResult = await getEffectiveLimits(user.id);
+    if (limitsResult.success && limitsResult.data) {
+      const effectiveMax = limitsResult.data.maxLocations;
+      if (currentCount >= effectiveMax) {
+        return {
+          allowed: false,
+          reason: `You've used ${currentCount} of ${effectiveMax} locations`,
+          requiredPlan: "pro",
+          addonType: "location_pack",
+          currentCount,
+          maxCount: effectiveMax,
+        };
+      }
+      return { allowed: true };
+    }
+  }
 
   if (currentCount >= features.maxLocations) {
     return {
       allowed: false,
       reason: `Your ${tier} plan allows up to ${features.maxLocations} location${features.maxLocations === 1 ? "" : "s"}`,
+      requiredPlan: "pro",
+    };
+  }
+
+  return { allowed: true };
+}
+
+/**
+ * Guard: Check if user can add more job postings
+ * For Pro users, checks effective limits (base + add-on packs)
+ */
+export async function guardAddJob(
+  currentCount: number
+): Promise<GuardResult> {
+  const user = await getUser();
+  const tier = await getCurrentPlanTier();
+  const features = getPlanFeatures(tier);
+
+  // For Pro users, check effective limits (base + add-ons)
+  if (tier === "pro" && user) {
+    const limitsResult = await getEffectiveLimits(user.id);
+    if (limitsResult.success && limitsResult.data) {
+      const effectiveMax = limitsResult.data.maxJobPostings;
+      if (currentCount >= effectiveMax) {
+        return {
+          allowed: false,
+          reason: `You've used ${currentCount} of ${effectiveMax} job postings`,
+          requiredPlan: "pro",
+          addonType: "job_pack",
+          currentCount,
+          maxCount: effectiveMax,
+        };
+      }
+      return { allowed: true };
+    }
+  }
+
+  if (currentCount >= features.maxJobPostings) {
+    return {
+      allowed: false,
+      reason: `Your ${tier} plan allows up to ${features.maxJobPostings} job posting${features.maxJobPostings === 1 ? "" : "s"}`,
       requiredPlan: "pro",
     };
   }

@@ -55,6 +55,8 @@ export async function POST(request: Request) {
         // Route to appropriate handler based on checkout type
         if (session.metadata?.type === "featured_location") {
           await handleFeaturedLocationCheckoutCompleted(supabase, session);
+        } else if (session.metadata?.type === "addon") {
+          await handleAddonCheckoutCompleted(supabase, session);
         } else {
           await handleCheckoutCompleted(supabase, session);
         }
@@ -76,6 +78,8 @@ export async function POST(request: Request) {
         // Route to appropriate handler based on subscription type
         if (subscription.metadata?.type === "featured_location") {
           await handleFeaturedLocationSubscriptionUpdated(supabase, subscription);
+        } else if (subscription.metadata?.type === "addon") {
+          await handleAddonSubscriptionUpdated(supabase, subscription);
         } else {
           await handleSubscriptionUpdated(supabase, subscription);
         }
@@ -87,6 +91,8 @@ export async function POST(request: Request) {
         // Route to appropriate handler based on subscription type
         if (subscription.metadata?.type === "featured_location") {
           await handleFeaturedLocationSubscriptionDeleted(supabase, subscription);
+        } else if (subscription.metadata?.type === "addon") {
+          await handleAddonSubscriptionDeleted(supabase, subscription);
         } else {
           await handleSubscriptionDeleted(supabase, subscription);
         }
@@ -756,4 +762,146 @@ async function handleFeaturedLocationSubscriptionDeleted(
   revalidatePath("/dashboard/locations");
 
   console.log(`Featured location subscription cancelled: ${locationId}`);
+}
+
+// ============================================================================
+// Add-on Subscription Handlers
+// ============================================================================
+
+/**
+ * Handle checkout.session.completed for add-on purchase
+ */
+async function handleAddonCheckoutCompleted(
+  supabase: Awaited<ReturnType<typeof createAdminClient>>,
+  session: Stripe.Checkout.Session
+) {
+  const profileId = session.metadata?.profile_id;
+  const addonType = session.metadata?.addon_type;
+  const quantity = parseInt(session.metadata?.quantity || "1", 10);
+  const subscriptionId = session.subscription as string;
+
+  if (!profileId || !addonType) {
+    console.error("Missing metadata in addon checkout:", { profileId, addonType });
+    return;
+  }
+
+  // Get subscription details from Stripe
+  const subscription = await stripe.subscriptions.retrieve(subscriptionId, {
+    expand: ["items.data"],
+  });
+
+  const subscriptionItem = subscription.items.data[0];
+  const currentPeriodEnd = subscriptionItem?.current_period_end
+    ? new Date(subscriptionItem.current_period_end * 1000).toISOString()
+    : new Date().toISOString();
+
+  // Insert addon record
+  const { error: insertError } = await supabase
+    .from("profile_addons")
+    .insert({
+      profile_id: profileId,
+      addon_type: addonType,
+      quantity,
+      stripe_subscription_id: subscriptionId,
+      status: "active",
+      current_period_end: currentPeriodEnd,
+      cancel_at_period_end: false,
+    });
+
+  if (insertError) {
+    console.error("Error inserting addon:", insertError);
+    return;
+  }
+
+  // Log audit event
+  await supabase.from("audit_events").insert({
+    profile_id: profileId,
+    event_type: "addon_purchased",
+    payload: {
+      addon_type: addonType,
+      quantity,
+      subscription_id: subscriptionId,
+    },
+  });
+
+  revalidatePath("/dashboard/billing");
+  console.log(`Addon purchased: ${addonType} x${quantity} for profile ${profileId}`);
+}
+
+/**
+ * Handle customer.subscription.updated for add-on
+ */
+async function handleAddonSubscriptionUpdated(
+  supabase: Awaited<ReturnType<typeof createAdminClient>>,
+  subscription: Stripe.Subscription
+) {
+  const isActive = subscription.status === "active" || subscription.status === "trialing";
+  const isPastDue = subscription.status === "past_due";
+
+  let status: string;
+  if (isActive) {
+    status = "active";
+  } else if (isPastDue) {
+    status = "past_due";
+  } else {
+    status = "canceled";
+  }
+
+  const subscriptionItem = subscription.items.data[0];
+  const currentPeriodEnd = subscriptionItem?.current_period_end
+    ? new Date(subscriptionItem.current_period_end * 1000).toISOString()
+    : new Date().toISOString();
+
+  const { error } = await supabase
+    .from("profile_addons")
+    .update({
+      status,
+      current_period_end: currentPeriodEnd,
+      cancel_at_period_end: subscription.cancel_at_period_end,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("stripe_subscription_id", subscription.id);
+
+  if (error) {
+    console.error("Error updating addon subscription:", error);
+  }
+
+  revalidatePath("/dashboard/billing");
+  console.log(`Addon subscription updated: ${subscription.id}, status: ${status}`);
+}
+
+/**
+ * Handle customer.subscription.deleted for add-on
+ */
+async function handleAddonSubscriptionDeleted(
+  supabase: Awaited<ReturnType<typeof createAdminClient>>,
+  subscription: Stripe.Subscription
+) {
+  const profileId = subscription.metadata?.profile_id;
+
+  const { error } = await supabase
+    .from("profile_addons")
+    .update({
+      status: "canceled",
+      updated_at: new Date().toISOString(),
+    })
+    .eq("stripe_subscription_id", subscription.id);
+
+  if (error) {
+    console.error("Error canceling addon subscription:", error);
+  }
+
+  if (profileId) {
+    await supabase.from("audit_events").insert({
+      profile_id: profileId,
+      event_type: "addon_cancelled",
+      payload: {
+        subscription_id: subscription.id,
+        addon_type: subscription.metadata?.addon_type,
+      },
+    });
+  }
+
+  revalidatePath("/dashboard/billing");
+  console.log(`Addon subscription cancelled: ${subscription.id}`);
 }
