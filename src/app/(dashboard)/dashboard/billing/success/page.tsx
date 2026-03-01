@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import Link from "next/link";
-import { CheckCircle2, ArrowRight, ExternalLink } from "lucide-react";
+import { CheckCircle2, ArrowRight, ExternalLink, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,6 +33,9 @@ export default async function BillingSuccessPage({ searchParams }: BillingSucces
     await verifyAndSyncCheckoutSession(params.session_id);
   }
 
+  // Flush cached demo data so dashboard shows real data after upgrade
+  revalidatePath("/dashboard");
+
   // If user came from onboarding, redirect to the Go Live step
   if (params.return_to === "onboarding") {
     redirect("/dashboard/onboarding/review?payment=success");
@@ -42,8 +46,8 @@ export default async function BillingSuccessPage({ searchParams }: BillingSucces
   const isDowngrade = params.downgraded === "true";
 
   // Determine title and description based on action type
-  let title = "Payment Successful!";
-  let description = "Thank you for subscribing. Your listing is now live and visible to families.";
+  let title = "You're Live!";
+  let description = "Your practice is now live on FindABATherapy. Families can discover and contact you directly.";
 
   if (isUpgrade) {
     title = "Plan Upgraded!";
@@ -64,14 +68,20 @@ export default async function BillingSuccessPage({ searchParams }: BillingSucces
       <Card className="w-full max-w-lg">
         <CardHeader className="text-center">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/10">
-            <CheckCircle2 className="h-8 w-8 text-emerald-500" />
+            {isDowngrade ? (
+              <CheckCircle2 className="h-8 w-8 text-emerald-500" />
+            ) : (
+              <Sparkles className="h-8 w-8 text-emerald-500" />
+            )}
           </div>
           <CardTitle className="text-2xl">{title}</CardTitle>
           <CardDescription className="text-base">{description}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-4">
-            <h3 className="font-medium text-emerald-900 dark:text-emerald-100">What happens next?</h3>
+            <h3 className="font-medium text-emerald-900 dark:text-emerald-100">
+              {isDowngrade ? "What happens next?" : "Next steps"}
+            </h3>
             <ul className="mt-2 space-y-2 text-sm text-emerald-800 dark:text-emerald-200">
               <li className="flex items-start gap-2">
                 <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0" />
@@ -79,7 +89,7 @@ export default async function BillingSuccessPage({ searchParams }: BillingSucces
               </li>
               <li className="flex items-start gap-2">
                 <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0" />
-                Premium features are now unlocked
+                All Pro features are unlocked — branded pages, CRM, communications
               </li>
               <li className="flex items-start gap-2">
                 <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0" />

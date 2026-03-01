@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Sparkles, X } from "lucide-react";
+import { Check, Sparkles, Zap } from "lucide-react";
 
-import { type PlanTier, PLAN_CONFIGS, getPlanConfig } from "@/lib/plans/features";
-import { usePlanFeatures } from "@/hooks/use-plan-features";
+import { type PlanTier } from "@/lib/plans/features";
+import { STRIPE_PLANS, type BillingInterval } from "@/lib/stripe/config";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -13,6 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 interface UpgradeModalProps {
@@ -27,120 +28,121 @@ interface UpgradeModalProps {
 }
 
 /**
- * Upgrade flow modal with plan comparison
+ * Go Live upgrade modal — single focused Pro plan flow
  */
 export function UpgradeModal({
   open,
   onOpenChange,
-  defaultPlan,
   triggerFeature,
 }: UpgradeModalProps) {
-  const { tier: currentTier } = usePlanFeatures();
-  const [selectedPlan, setSelectedPlan] = useState<PlanTier>(
-    defaultPlan || "pro"
-  );
-
-  // Only show plans that are upgrades from current
-  const availablePlans = (Object.keys(PLAN_CONFIGS) as PlanTier[]).filter(
-    (plan) => compareTiers(plan, currentTier) > 0
-  );
-
-  if (availablePlans.length === 0) {
-    return null; // Already on highest plan
-  }
+  const [interval, setInterval] = useState<BillingInterval>("year");
+  const plan = STRIPE_PLANS.pro;
+  const price = interval === "year" ? plan.annual.price : plan.monthly.price;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-xl">
-            <Sparkles className="h-5 w-5 text-primary" />
-            Upgrade Your Plan
-          </DialogTitle>
-          <DialogDescription>
-            {triggerFeature
-              ? `Upgrade to access ${triggerFeature} and more premium features.`
-              : "Unlock premium features and grow your business."}
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="mt-4 grid gap-4 md:grid-cols-2">
-          {availablePlans.map((plan) => {
-            const config = getPlanConfig(plan);
-            const isSelected = selectedPlan === plan;
-
-            return (
-              <div
-                key={plan}
-                className={cn(
-                  "relative cursor-pointer rounded-xl border-2 p-4 transition-all",
-                  isSelected
-                    ? "border-primary bg-primary/5"
-                    : "border-border hover:border-primary/50"
-                )}
-                onClick={() => setSelectedPlan(plan)}
-              >
-                {plan === "pro" && (
-                  <div className="absolute -top-3 left-4 rounded-full bg-primary px-2 py-0.5 text-xs font-semibold text-primary-foreground">
-                    Most Popular
-                  </div>
-                )}
-
-                <div className="mb-4">
-                  <h3 className="text-lg font-semibold text-foreground">
-                    {config.displayName}
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    {config.description}
-                  </p>
-                </div>
-
-                <div className="mb-4">
-                  <span className="text-3xl font-bold text-foreground">
-                    ${config.pricing.monthly.price}
-                  </span>
-                  <span className="text-muted-foreground">/month</span>
-                </div>
-
-                <ul className="space-y-2">
-                  {config.highlights.map((highlight) => (
-                    <li
-                      key={highlight}
-                      className="flex items-center gap-2 text-sm text-muted-foreground"
-                    >
-                      <Check className="h-4 w-4 text-primary" />
-                      {highlight}
-                    </li>
-                  ))}
-                </ul>
-
-                {/* Selection indicator */}
-                <div
-                  className={cn(
-                    "absolute right-3 top-3 flex h-5 w-5 items-center justify-center rounded-full border-2",
-                    isSelected
-                      ? "border-primary bg-primary"
-                      : "border-muted-foreground/30"
-                  )}
-                >
-                  {isSelected && <Check className="h-3 w-3 text-primary-foreground" />}
-                </div>
-              </div>
-            );
-          })}
+      <DialogContent className="max-w-md gap-0 overflow-hidden p-0">
+        {/* Header */}
+        <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent px-6 pb-4 pt-6">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-xl">
+              <Sparkles className="h-5 w-5 text-primary" />
+              Go Live with Pro
+            </DialogTitle>
+            <DialogDescription>
+              {triggerFeature
+                ? `Unlock ${triggerFeature} and take your practice live.`
+                : "Take your practice live — everything you need to grow."}
+            </DialogDescription>
+          </DialogHeader>
         </div>
 
-        <div className="mt-6 flex items-center justify-between border-t pt-4">
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>
-            <X className="mr-2 h-4 w-4" />
-            Cancel
-          </Button>
-          <Button asChild>
-            <a href={`/dashboard/billing/checkout?plan=${selectedPlan}`}>
-              <Sparkles className="mr-2 h-4 w-4" />
-              Upgrade to {getPlanConfig(selectedPlan).displayName}
-            </a>
-          </Button>
+        <div className="space-y-5 px-6 pb-6">
+          {/* Billing toggle */}
+          <div className="flex items-center justify-center gap-1 rounded-lg bg-muted p-1">
+            <button
+              type="button"
+              onClick={() => setInterval("month")}
+              className={cn(
+                "flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                interval === "month"
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              Monthly
+            </button>
+            <button
+              type="button"
+              onClick={() => setInterval("year")}
+              className={cn(
+                "flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                interval === "year"
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              Annual
+              <Badge
+                variant="secondary"
+                className="ml-1.5 border-green-200 bg-green-100 px-1.5 py-0 text-[10px] text-green-700"
+              >
+                Save 40%
+              </Badge>
+            </button>
+          </div>
+
+          {/* Pricing */}
+          <div className="text-center">
+            <div className="flex items-baseline justify-center gap-1">
+              <span className="text-4xl font-bold text-foreground">
+                ${price}
+              </span>
+              <span className="text-muted-foreground">/mo</span>
+            </div>
+            {interval === "year" ? (
+              <p className="mt-1 text-sm text-muted-foreground">
+                ${plan.annual.totalPrice}/yr — save ${plan.annual.savings}/year
+              </p>
+            ) : (
+              <p className="mt-1 text-sm text-muted-foreground">
+                Switch to annual to pay ${plan.annual.price}/mo
+              </p>
+            )}
+          </div>
+
+          {/* Features */}
+          <ul className="space-y-2">
+            {plan.features.map((feature) => (
+              <li
+                key={feature}
+                className="flex items-center gap-2.5 text-sm text-foreground"
+              >
+                <Check className="h-4 w-4 flex-shrink-0 text-emerald-500" />
+                {feature}
+              </li>
+            ))}
+          </ul>
+
+          {/* CTAs */}
+          <div className="space-y-2 pt-1">
+            <Button asChild size="lg" className="w-full">
+              <a
+                href={`/dashboard/billing/checkout?plan=pro&interval=${interval}`}
+              >
+                <Zap className="mr-2 h-4 w-4" />
+                Go Live — ${price}/mo
+              </a>
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full text-muted-foreground"
+              onClick={() => onOpenChange(false)}
+            >
+              Continue in Preview Mode
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
@@ -155,7 +157,10 @@ export function useUpgradeModal() {
   const [triggerFeature, setTriggerFeature] = useState<string | undefined>();
   const [defaultPlan, setDefaultPlan] = useState<PlanTier | undefined>();
 
-  const openUpgradeModal = (options?: { feature?: string; plan?: PlanTier }) => {
+  const openUpgradeModal = (options?: {
+    feature?: string;
+    plan?: PlanTier;
+  }) => {
     setTriggerFeature(options?.feature);
     setDefaultPlan(options?.plan);
     setIsOpen(true);
@@ -175,12 +180,4 @@ export function useUpgradeModal() {
     closeUpgradeModal,
     setIsOpen,
   };
-}
-
-/**
- * Compare two plan tiers
- */
-function compareTiers(a: PlanTier, b: PlanTier): number {
-  const order: Record<PlanTier, number> = { free: 0, pro: 1 };
-  return order[a] - order[b];
 }

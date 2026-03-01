@@ -425,7 +425,7 @@ export default async function DashboardBillingPage() {
       {/* Plan Comparison / Upgrade Section */}
       {isFreePlan && (
         <div className="space-y-4">
-          <h2 className="text-lg font-semibold text-slate-900">Upgrade Your Plan</h2>
+          <h2 className="text-lg font-semibold text-slate-900">Go Live with Pro</h2>
           <div className="grid gap-4">
             {/* Pro Plan */}
             <Card className="relative overflow-hidden border-slate-200 bg-white shadow-sm">
@@ -466,12 +466,13 @@ export default async function DashboardBillingPage() {
                 <div className="flex flex-col gap-2">
                   <Button asChild className="w-full rounded-full">
                     <Link href="/dashboard/billing/checkout?plan=pro&interval=annual">
-                      Upgrade to Pro (Annual)
+                      <Sparkles className="mr-2 h-4 w-4" />
+                      Go Live — ${STRIPE_PLANS.pro.annual.price}/mo
                     </Link>
                   </Button>
                   <Button asChild variant="outline" className="w-full rounded-full border-slate-200">
                     <Link href="/dashboard/billing/checkout?plan=pro&interval=monthly">
-                      Start Monthly
+                      Start Monthly (${STRIPE_PLANS.pro.monthly.price}/mo)
                     </Link>
                   </Button>
                 </div>
@@ -598,6 +599,21 @@ export default async function DashboardBillingPage() {
                 </div>
               </div>
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Add-on Management Placeholder — Session 5b */}
+      {isPro && (
+        <Card className="border-dashed border-slate-300 bg-slate-50/50">
+          <CardContent className="flex flex-col items-center justify-center py-10 text-center">
+            <div className="rounded-xl bg-slate-100 p-3">
+              <Sparkles className="h-6 w-6 text-slate-400" />
+            </div>
+            <h3 className="mt-3 font-semibold text-slate-700">Add-on Management</h3>
+            <p className="mt-1 max-w-sm text-sm text-slate-500">
+              Extra users, location packs, job packs, and storage upgrades will be available here soon.
+            </p>
           </CardContent>
         </Card>
       )}
