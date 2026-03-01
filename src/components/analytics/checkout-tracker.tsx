@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import {
   trackCheckoutCompleted,
   trackSubscriptionChange,
+  trackUpgradeCompleted,
   setUserProperties,
 } from "@/lib/posthog/events";
 
@@ -29,10 +30,18 @@ export function CheckoutTracker({ type, planTier, billingInterval }: CheckoutTra
         planTier: planTier || "pro",
         billingInterval: billingInterval || "month",
       });
+      trackUpgradeCompleted({
+        planTier: planTier || "pro",
+        billingInterval: billingInterval || "month",
+      });
     } else if (type === "upgrade") {
       trackSubscriptionChange({
         type: "upgraded",
         toPlan: planTier,
+      });
+      trackUpgradeCompleted({
+        planTier: planTier || "pro",
+        billingInterval: billingInterval || "month",
       });
     } else if (type === "downgrade") {
       trackSubscriptionChange({

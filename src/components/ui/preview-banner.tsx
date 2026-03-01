@@ -9,6 +9,7 @@ import {
   useUpgradeModal,
   UpgradeModal,
 } from "@/components/billing/upgrade-modal";
+import { trackUpgradeModalOpened } from "@/lib/posthog/events";
 
 interface PreviewBannerProps {
   message: string;
@@ -29,7 +30,8 @@ export function PreviewBanner({
     useUpgradeModal();
 
   const handleClick = () => {
-    openUpgradeModal({ feature: triggerFeature });
+    openUpgradeModal({ feature: triggerFeature, source: "preview_banner" });
+    trackUpgradeModalOpened({ source: "preview_banner", triggerFeature });
   };
 
   if (variant === "public") {
@@ -116,7 +118,10 @@ export function LockedButton({ label, className }: LockedButtonProps) {
           "cursor-pointer text-muted-foreground opacity-70 hover:opacity-100",
           className
         )}
-        onClick={() => openUpgradeModal({ feature: label })}
+        onClick={() => {
+          openUpgradeModal({ feature: label, source: "locked_button" });
+          trackUpgradeModalOpened({ source: "locked_button", triggerFeature: label });
+        }}
       >
         <Lock className="mr-1.5 h-3.5 w-3.5" />
         {label}

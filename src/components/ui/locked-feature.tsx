@@ -1,12 +1,13 @@
 "use client";
 
-import { type ReactNode } from "react";
+import { type ReactNode, useEffect } from "react";
 import Link from "next/link";
 import { Lock, Sparkles } from "lucide-react";
 
 import { type PlanTier, getPlanConfig } from "@/lib/plans/features";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { trackLimitReachedPromptShown } from "@/lib/posthog/events";
 
 interface LockedFeatureProps {
   /** Content to show with the overlay */
@@ -33,6 +34,14 @@ export function LockedFeature({
   className,
 }: LockedFeatureProps) {
   const planConfig = getPlanConfig(requiredPlan);
+
+  useEffect(() => {
+    trackLimitReachedPromptShown({
+      feature: "locked_feature_overlay",
+      currentPlan: "free",
+      source: "locked_feature",
+    });
+  }, []);
 
   const blurClasses = {
     light: "blur-[2px]",
@@ -136,6 +145,14 @@ export function LockedSection({
   className,
 }: LockedSectionProps) {
   const planConfig = getPlanConfig(requiredPlan);
+
+  useEffect(() => {
+    trackLimitReachedPromptShown({
+      feature: title,
+      currentPlan: "free",
+      source: "locked_section",
+    });
+  }, [title]);
 
   return (
     <div

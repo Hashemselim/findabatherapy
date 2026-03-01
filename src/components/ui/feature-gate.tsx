@@ -1,12 +1,13 @@
 "use client";
 
-import { type ReactNode } from "react";
+import { type ReactNode, useEffect } from "react";
 import { Lock, Sparkles } from "lucide-react";
 
 import { type PlanFeatures, type PlanTier, FEATURE_METADATA, getPlanConfig } from "@/lib/plans/features";
 import { usePlanFeatures } from "@/hooks/use-plan-features";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { trackLimitReachedPromptShown } from "@/lib/posthog/events";
 
 interface FeatureGateProps {
   /** The feature to check access for */
@@ -70,6 +71,8 @@ export function FeatureGate({
       upgradeMessage={metadata.upgradeMessage}
       requiredPlan={requiredPlan}
       className={className}
+      trackFeature={String(feature)}
+      trackPlan={tier}
     />
   );
 }
@@ -79,6 +82,8 @@ interface LockedFeatureCardProps {
   upgradeMessage: string;
   requiredPlan: PlanTier;
   className?: string;
+  trackFeature?: string;
+  trackPlan?: string;
 }
 
 function LockedFeatureCard({
@@ -86,8 +91,20 @@ function LockedFeatureCard({
   upgradeMessage,
   requiredPlan,
   className,
+  trackFeature,
+  trackPlan,
 }: LockedFeatureCardProps) {
   const planConfig = getPlanConfig(requiredPlan);
+
+  useEffect(() => {
+    if (trackFeature) {
+      trackLimitReachedPromptShown({
+        feature: trackFeature,
+        currentPlan: trackPlan || "free",
+        source: "feature_gate",
+      });
+    }
+  }, [trackFeature, trackPlan]);
 
   return (
     <div

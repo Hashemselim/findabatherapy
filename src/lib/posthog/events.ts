@@ -105,6 +105,14 @@ export const POSTHOG_EVENTS = {
   API_ERROR: "api_error",
   FORM_VALIDATION_ERROR: "form_validation_error",
 
+  // Conversion Funnel (Free → Pro)
+  PREVIEW_PAGE_VIEWED: "preview_page_viewed",
+  UPGRADE_MODAL_OPENED: "upgrade_modal_opened",
+  UPGRADE_CHECKOUT_STARTED: "upgrade_checkout_started",
+  UPGRADE_COMPLETED: "upgrade_completed",
+  ADDON_PURCHASED: "addon_purchased",
+  LIMIT_REACHED_PROMPT_SHOWN: "limit_reached_prompt_shown",
+
   // Engagement
   CTA_CLICKED: "cta_clicked",
   EXTERNAL_LINK_CLICKED: "external_link_clicked",
@@ -890,6 +898,75 @@ export function trackFeedbackSubmitted(params: {
   hasComment: boolean;
 }) {
   capture(POSTHOG_EVENTS.FEEDBACK_SUBMITTED, params);
+}
+
+// ============================================================================
+// Conversion Funnel Events (Free → Pro)
+// ============================================================================
+
+export function trackPreviewPageViewed(params: {
+  pageType: "agency" | "listing" | "dashboard";
+  source?: string;
+}) {
+  capture(POSTHOG_EVENTS.PREVIEW_PAGE_VIEWED, {
+    page_type: params.pageType,
+    source: params.source,
+  });
+}
+
+export function trackUpgradeModalOpened(params: {
+  source: string;
+  triggerFeature?: string;
+}) {
+  capture(POSTHOG_EVENTS.UPGRADE_MODAL_OPENED, {
+    source: params.source,
+    trigger_feature: params.triggerFeature,
+  });
+}
+
+export function trackUpgradeCheckoutStarted(params: {
+  planTier: string;
+  billingInterval: "month" | "year";
+  source?: string;
+}) {
+  capture(POSTHOG_EVENTS.UPGRADE_CHECKOUT_STARTED, {
+    plan_tier: params.planTier,
+    billing_interval: params.billingInterval,
+    source: params.source,
+  });
+}
+
+export function trackUpgradeCompleted(params: {
+  planTier: string;
+  billingInterval: "month" | "year";
+}) {
+  capture(POSTHOG_EVENTS.UPGRADE_COMPLETED, {
+    plan_tier: params.planTier,
+    billing_interval: params.billingInterval,
+    $set: { plan_tier: params.planTier },
+  });
+}
+
+export function trackAddonPurchased(params: {
+  addonType: string;
+  quantity?: number;
+}) {
+  capture(POSTHOG_EVENTS.ADDON_PURCHASED, {
+    addon_type: params.addonType,
+    quantity: params.quantity,
+  });
+}
+
+export function trackLimitReachedPromptShown(params: {
+  feature: string;
+  currentPlan: string;
+  source?: string;
+}) {
+  capture(POSTHOG_EVENTS.LIMIT_REACHED_PROMPT_SHOWN, {
+    feature: params.feature,
+    current_plan: params.currentPlan,
+    source: params.source,
+  });
 }
 
 // ============================================================================

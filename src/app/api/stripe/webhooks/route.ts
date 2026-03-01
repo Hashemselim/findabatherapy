@@ -7,6 +7,7 @@ import { stripe } from "@/lib/stripe";
 import { createAdminClient } from "@/lib/supabase/server";
 import { env } from "@/env";
 import { sendPaymentFailureNotification, sendAdminFirstPaymentNotification } from "@/lib/email/notifications";
+import { stopDripForUser } from "@/lib/actions/drip-emails";
 
 /**
  * Stripe webhook handler
@@ -198,6 +199,9 @@ async function handleCheckoutCompleted(
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/company");
   revalidatePath("/dashboard/locations");
+
+  // Stop drip emails now that the user has upgraded
+  await stopDripForUser(profileId);
 
   console.log(`Checkout completed for profile ${profileId}, plan: ${planTier}, interval: ${billingInterval}`);
 }

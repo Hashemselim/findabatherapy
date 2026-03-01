@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { trackUpgradeModalOpened, trackUpgradeCheckoutStarted } from "@/lib/posthog/events";
 
 interface UpgradeModalProps {
   /** Whether the modal is open */
@@ -129,6 +130,13 @@ export function UpgradeModal({
             <Button asChild size="lg" className="w-full">
               <a
                 href={`/dashboard/billing/checkout?plan=pro&interval=${interval}`}
+                onClick={() =>
+                  trackUpgradeCheckoutStarted({
+                    planTier: "pro",
+                    billingInterval: interval === "year" ? "year" : "month",
+                    source: "upgrade_modal",
+                  })
+                }
               >
                 <Zap className="mr-2 h-4 w-4" />
                 Go Live — ${price}/mo
@@ -160,10 +168,15 @@ export function useUpgradeModal() {
   const openUpgradeModal = (options?: {
     feature?: string;
     plan?: PlanTier;
+    source?: string;
   }) => {
     setTriggerFeature(options?.feature);
     setDefaultPlan(options?.plan);
     setIsOpen(true);
+    trackUpgradeModalOpened({
+      source: options?.source || "unknown",
+      triggerFeature: options?.feature,
+    });
   };
 
   const closeUpgradeModal = () => {
