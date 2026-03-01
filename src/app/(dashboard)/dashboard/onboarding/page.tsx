@@ -89,7 +89,7 @@ export default function OnboardingWelcomePage() {
           )}
         </Button>
         <p className="text-xs text-muted-foreground">
-          Free to start. Upgrade anytime for branded pages and advanced tools.
+          Free to start. Preview everything. Go Live when ready.
         </p>
       </div>
     </div>

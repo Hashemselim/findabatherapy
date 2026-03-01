@@ -44,7 +44,7 @@ function SignUpForm() {
   const selectedPlan = searchParams.get("plan");
   const billingInterval = searchParams.get("interval") || "monthly";
   const urlIntent = searchParams.get("intent") || searchParams.get("context");
-  const [selectedIntent, setSelectedIntent] = useState<SignupIntent>(normalizeIntent(urlIntent));
+  const selectedIntent = normalizeIntent(urlIntent);
 
   // PostHog tracking
   const tracking = useSignupTracking(selectedPlan);
@@ -172,39 +172,6 @@ function SignUpForm() {
           </div>
         )}
 
-        <div className="space-y-2">
-          <p className="text-sm font-medium text-foreground">What are you focused on first?</p>
-          <div className="grid grid-cols-3 gap-2">
-            <Button
-              type="button"
-              variant={selectedIntent === "therapy" ? "default" : "outline"}
-              className="rounded-full text-xs"
-              onClick={() => setSelectedIntent("therapy")}
-              disabled={isLoading}
-            >
-              Get Found
-            </Button>
-            <Button
-              type="button"
-              variant={selectedIntent === "jobs" ? "default" : "outline"}
-              className="rounded-full text-xs"
-              onClick={() => setSelectedIntent("jobs")}
-              disabled={isLoading}
-            >
-              Hire Staff
-            </Button>
-            <Button
-              type="button"
-              variant={selectedIntent === "both" ? "default" : "outline"}
-              className="rounded-full text-xs"
-              onClick={() => setSelectedIntent("both")}
-              disabled={isLoading}
-            >
-              Both
-            </Button>
-          </div>
-        </div>
-
         {/* PRD 3.2.1: OAuth buttons first */}
         <div className="grid gap-2">
           <Button
@@ -300,6 +267,16 @@ function SignUpForm() {
               onBlur={(e) => {
                 if (e.target.value) tracking.trackFieldCompleted("password");
               }}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="agencyName">Practice Name</Label>
+            <Input
+              id="agencyName"
+              name="agencyName"
+              placeholder="ABC ABA Therapy"
+              required
+              disabled={isLoading}
             />
           </div>
 

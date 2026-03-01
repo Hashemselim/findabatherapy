@@ -247,8 +247,8 @@ export const behaviorWorkPlanHighlights: Record<BehaviorWorkPlanTier, string[]> 
 };
 
 export const behaviorWorkPlanFit: Record<BehaviorWorkPlanTier, string> = {
-  free: "Professional listing with all the details families need",
-  pro: "Branded pages, full CRM, and growth tools for scaling agencies",
+  free: "Set up in 10 minutes. Preview everything. Go Live when ready.",
+  pro: "One plan. $79/month. Everything included.",
 };
 
 export const behaviorWorkFeatureMatrix = [

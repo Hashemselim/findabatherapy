@@ -7,7 +7,8 @@ import {
   getPlanFeatures,
   hasMinimumTier,
 } from "./features";
-import { getEffectiveLimits, type AddonType } from "@/lib/actions/addons";
+import { type AddonType } from "@/lib/plans/addon-config";
+import { getEffectiveLimits } from "@/lib/actions/addons";
 
 export type GuardResult<T = void> =
   | { allowed: true; data?: T }

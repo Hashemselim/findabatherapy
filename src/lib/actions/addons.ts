@@ -7,63 +7,37 @@ import { stripe } from "@/lib/stripe";
 import { createClient, createAdminClient, getUser } from "@/lib/supabase/server";
 import { ADDON_PRICE_IDS, CHECKOUT_URLS } from "@/lib/stripe/config";
 import { getValidatedOrigin } from "@/lib/utils/domains";
-import { getPlanFeatures } from "@/lib/plans/features";
-import { getCurrentPlanTier } from "@/lib/plans/guards";
+import { type PlanTier, getPlanFeatures } from "@/lib/plans/features";
+import { type AddonType, type ActiveAddon, type EffectiveLimits, ADDON_INFO } from "@/lib/plans/addon-config";
+
+// Note: types are NOT re-exported from "use server" files.
+// Import AddonType, ActiveAddon, ADDON_INFO from "@/lib/plans/addon-config" instead.
 
 type ActionResult<T = void> =
   | { success: true; data?: T }
   | { success: false; error: string };
 
-export type AddonType = keyof typeof ADDON_PRICE_IDS;
+/** Resolve plan tier for the current user (avoids circular import with guards.ts) */
+async function resolveCurrentPlanTier(): Promise<PlanTier> {
+  const user = await getUser();
+  if (!user) return "free";
 
-export interface ActiveAddon {
-  id: string;
-  addonType: AddonType;
-  quantity: number;
-  status: string;
-  stripeSubscriptionId: string | null;
-  cancelAtPeriodEnd: boolean;
-  currentPeriodEnd: string | null;
-  grandfatheredUntil: string | null;
-  createdAt: string;
+  const supabase = await createClient();
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("plan_tier, subscription_status, onboarding_completed_at")
+    .eq("id", user.id)
+    .single();
+
+  const planTier = (profile?.plan_tier as PlanTier) || "free";
+  if (!profile?.onboarding_completed_at) return planTier;
+
+  const isActive =
+    profile?.subscription_status === "active" ||
+    profile?.subscription_status === "trialing";
+
+  return planTier !== "free" && !isActive ? "free" : planTier;
 }
-
-/** Human-readable labels and unit info for each addon type */
-export const ADDON_INFO: Record<
-  AddonType,
-  { label: string; unitLabel: string; unitsPerPack: number; priceLabel: string }
-> = {
-  extra_users: {
-    label: "Extra Users",
-    unitLabel: "user",
-    unitsPerPack: 1,
-    priceLabel: "$20/user/mo",
-  },
-  location_pack: {
-    label: "Location Pack",
-    unitLabel: "location",
-    unitsPerPack: 5,
-    priceLabel: "$10/mo for 5 locations",
-  },
-  job_pack: {
-    label: "Job Pack",
-    unitLabel: "job posting",
-    unitsPerPack: 5,
-    priceLabel: "$5/mo for 5 jobs",
-  },
-  storage_pack: {
-    label: "Storage Pack",
-    unitLabel: "GB",
-    unitsPerPack: 10,
-    priceLabel: "$5/mo for 10GB",
-  },
-  homepage_placement: {
-    label: "Homepage Placement",
-    unitLabel: "placement",
-    unitsPerPack: 1,
-    priceLabel: "Contact for pricing",
-  },
-};
 
 /**
  * Fetch active add-ons for a profile
@@ -113,7 +87,7 @@ export async function createAddonCheckout(
   }
 
   // Only Pro users can buy add-ons
-  const tier = await getCurrentPlanTier();
+  const tier = await resolveCurrentPlanTier();
   if (tier !== "pro") {
     return { success: false, error: "Add-ons require a Pro plan" };
   }
@@ -278,18 +252,10 @@ export async function cancelAddon(
 /**
  * Compute effective limits for a profile: Pro base limits + active add-on quantities
  */
-export interface EffectiveLimits {
-  maxLocations: number;
-  maxJobPostings: number;
-  maxUsers: number;
-  maxStorageGB: number;
-  hasHomepagePlacement: boolean;
-}
-
 export async function getEffectiveLimits(
   profileId: string
 ): Promise<ActionResult<EffectiveLimits>> {
-  const tier = await getCurrentPlanTier();
+  const tier = await resolveCurrentPlanTier();
   const base = getPlanFeatures(tier);
 
   // Start with base limits

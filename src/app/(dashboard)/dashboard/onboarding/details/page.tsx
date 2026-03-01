@@ -154,7 +154,7 @@ export default function OnboardingDetailsPage() {
   return (
     <div className="space-y-4 sm:space-y-6">
       {/* PostHog onboarding tracking */}
-      <OnboardingTracker step="details" stepNumber={2} totalSteps={5} />
+      <OnboardingTracker step="brand" stepNumber={2} totalSteps={4} />
 
       <div>
         <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">

@@ -10,20 +10,17 @@ export type OnboardingStep = {
   path: string;
 };
 
-// Onboarding flow:
-// Step 0: Welcome (quick intro, no intent selection)
-// Step 1: Company Details (agency info, headline, description, logo)
-// Step 2: Location (location, service mode, insurances, accepting clients)
-// Step 3: Details (ages, languages, diagnoses, specialties — ALL FREE)
-// Step 4: Branded Preview (shows branded page preview + upgrade CTA)
-// Step 5: Go Live (preview and publish)
+// Streamlined 4-step onboarding:
+// Step 0: Welcome (quick intro — "set up in 10 minutes")
+// Step 1: Your Brand (agency info, headline, description)
+// Step 2: Location (address, service types, insurances)
+// Step 3: Preview & Go Live (listing preview + "Go Live $79/mo" vs "Continue in preview mode")
+// Note: Enhanced details (ages, languages, diagnoses) can be added later from dashboard
 export const ONBOARDING_STEPS: OnboardingStep[] = [
   { id: "welcome", label: "Welcome", path: "/dashboard/onboarding" },
-  { id: "details", label: "Company Details", path: "/dashboard/onboarding/details" },
+  { id: "brand", label: "Your Brand", path: "/dashboard/onboarding/details" },
   { id: "location", label: "Location", path: "/dashboard/onboarding/location" },
-  { id: "enhanced", label: "Details", path: "/dashboard/onboarding/enhanced" },
-  { id: "branded-preview", label: "Preview", path: "/dashboard/onboarding/branded-preview" },
-  { id: "review", label: "Go Live", path: "/dashboard/onboarding/review" },
+  { id: "preview", label: "Preview", path: "/dashboard/onboarding/branded-preview" },
 ];
 
 type OnboardingProgressProps = {

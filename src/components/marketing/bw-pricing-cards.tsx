@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { ArrowRight, Check } from "lucide-react";
+import { ArrowRight, Check, Plus } from "lucide-react";
 
 import { BwFadeUp } from "@/components/marketing/bw-fade-up";
 import { PLAN_CONFIGS } from "@/lib/plans/features";
@@ -17,33 +17,33 @@ type BillingInterval = "annual" | "monthly";
 const plans = [
   {
     tier: "free" as const,
-    tagline: "Get listed. Get started.",
+    tagline: "Set up in 10 minutes. Preview everything. Go Live when ready.",
     features: [
       "FindABATherapy directory listing",
       "Basic provider profile",
+      "Up to 3 locations & 3 photos",
       "Up to 10 client records",
       "1 job posting",
-      "Email support",
     ],
-    ctaLabel: "Get Started",
+    ctaLabel: "Start Free Preview",
     ctaStyle: "outline" as const,
   },
   {
     tier: "pro" as const,
-    tagline: "The full growth engine.",
+    tagline: "One plan. $79/month. Everything included.",
     badge: "Most Popular",
     features: [
       "Everything in Free, plus:",
-      "Branded agency intake page",
-      "Unlimited client records (250)",
-      "Pipeline dashboard",
+      "Branded agency page & intake forms",
+      "Up to 250 CRM contacts",
       "Communication templates & automation",
-      "Authorization & credential tracking",
+      "Insurance & authorization tracking",
       "Referral source analytics",
+      "Up to 10 locations & 10 photos",
       "Up to 5 job postings on FindABAJobs",
-      "Priority support",
+      "Priority search placement",
     ],
-    ctaLabel: "Start Growing Your Caseload",
+    ctaLabel: "Go Live Now",
     ctaStyle: "primary" as const,
   },
 ] as const;
@@ -199,6 +199,35 @@ export function BwPricingCards({
           );
         })}
       </div>
+
+      {/* Add-ons */}
+      <BwFadeUp delay={0.2}>
+        <div className="mt-10 mx-auto max-w-3xl rounded-2xl border border-amber-200/40 bg-white p-6">
+          <div className="mb-4 flex items-center gap-2">
+            <Plus className="h-5 w-5 text-slate-400" />
+            <p className="text-base font-bold text-[#1A2744]">Optional Add-ons</p>
+            <span className="rounded-full border border-amber-200 bg-[#FFDC33]/10 px-2.5 py-0.5 text-xs font-semibold text-amber-700">
+              Pro only
+            </span>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {[
+              { name: "Extra users", price: "$20/mo", desc: "Add team members to your account" },
+              { name: "Location pack", price: "$10/mo", desc: "5 additional service locations" },
+              { name: "Job pack", price: "$5/mo", desc: "5 additional job postings" },
+              { name: "Storage pack", price: "$5/mo", desc: "10 GB additional file storage" },
+            ].map((addon) => (
+              <div key={addon.name} className="flex items-start justify-between rounded-xl border border-amber-200/40 px-4 py-3">
+                <div>
+                  <p className="text-sm font-medium text-[#1A2744]">{addon.name}</p>
+                  <p className="text-xs text-slate-500">{addon.desc}</p>
+                </div>
+                <p className="shrink-0 text-sm font-semibold text-[#1A2744]">{addon.price}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </BwFadeUp>
     </div>
   );
 }

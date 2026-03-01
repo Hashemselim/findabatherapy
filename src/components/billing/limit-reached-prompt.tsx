@@ -4,11 +4,8 @@ import { useState } from "react";
 import { Plus, Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import {
-  type AddonType,
-  ADDON_INFO,
-  createAddonCheckout,
-} from "@/lib/actions/addons";
+import { type AddonType, ADDON_INFO } from "@/lib/plans/addon-config";
+import { createAddonCheckout } from "@/lib/actions/addons";
 
 interface LimitReachedPromptProps {
   addonType: AddonType;

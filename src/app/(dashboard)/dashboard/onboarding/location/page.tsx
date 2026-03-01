@@ -159,8 +159,8 @@ export default function OnboardingLocationPage() {
         return;
       }
 
-      // Skip old services step - go directly to enhanced (premium features)
-      router.push("/dashboard/onboarding/enhanced");
+      // Skip enhanced details — go directly to preview
+      router.push("/dashboard/onboarding/branded-preview");
     });
   }
 

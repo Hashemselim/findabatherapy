@@ -6,13 +6,8 @@ import { Package, Plus, X, Clock, ShieldCheck } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  type ActiveAddon,
-  type AddonType,
-  ADDON_INFO,
-  createAddonCheckout,
-  cancelAddon,
-} from "@/lib/actions/addons";
+import { type ActiveAddon, type AddonType, ADDON_INFO } from "@/lib/plans/addon-config";
+import { createAddonCheckout, cancelAddon } from "@/lib/actions/addons";
 
 interface AddonCardProps {
   addons: ActiveAddon[];

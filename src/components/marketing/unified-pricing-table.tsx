@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState, type ComponentType } from "react";
-import { Check, Sparkles } from "lucide-react";
+import { Check, Plus, Sparkles } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -156,7 +156,7 @@ export function UnifiedPricingTable({ defaultInterval = "annual" }: UnifiedPrici
                     onClick={() => handleClickPlanCta(plan, href)}
                   >
                     <Link href={href}>
-                      Start with {config.displayName}
+                      {plan === "free" ? "Start Free Preview" : "Go Live Now"}
                     </Link>
                   </Button>
                 </div>
@@ -206,6 +206,31 @@ export function UnifiedPricingTable({ defaultInterval = "annual" }: UnifiedPrici
             </div>
           </div>
         ))}
+      </div>
+
+      {/* Add-ons */}
+      <div className="rounded-xl border border-border/70 bg-white p-5">
+        <div className="mb-4 flex items-center gap-2">
+          <Plus className="h-5 w-5 text-muted-foreground" />
+          <p className="text-base font-semibold text-foreground">Optional Add-ons</p>
+          <Badge variant="outline" className="text-xs">Pro only</Badge>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {[
+            { name: "Extra users", price: "$20/mo", desc: "Add team members to your account" },
+            { name: "Location pack", price: "$10/mo", desc: "5 additional service locations" },
+            { name: "Job pack", price: "$5/mo", desc: "5 additional job postings" },
+            { name: "Storage pack", price: "$5/mo", desc: "10 GB additional file storage" },
+          ].map((addon) => (
+            <div key={addon.name} className="flex items-start justify-between rounded-lg border border-border/60 px-4 py-3">
+              <div>
+                <p className="text-sm font-medium text-foreground">{addon.name}</p>
+                <p className="text-xs text-muted-foreground">{addon.desc}</p>
+              </div>
+              <p className="shrink-0 text-sm font-semibold text-foreground">{addon.price}</p>
+            </div>
+          ))}
+        </div>
       </div>
 
       <div className="rounded-xl border border-border/70 bg-gradient-to-r from-white via-emerald-50/40 to-blue-50/40 p-5">

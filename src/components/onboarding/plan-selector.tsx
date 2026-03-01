@@ -3,7 +3,7 @@
 import { Check, Sparkles } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { PLAN_CONFIGS, type PlanTier } from "@/lib/plans/features";
+import { PLAN_CONFIGS } from "@/lib/plans/features";
 
 type Plan = "free" | "pro";
 
@@ -21,31 +21,32 @@ type PlanOption = {
 const PLANS: PlanOption[] = [
   {
     id: "free",
-    name: PLAN_CONFIGS.free.displayName,
+    name: "Start with Preview",
     price: `$${PLAN_CONFIGS.free.pricing.monthly.price}`,
     period: "forever",
-    description: PLAN_CONFIGS.free.description,
+    description: "Set up in 10 minutes. Preview everything. Go Live when ready.",
     features: [
-      "1 service location",
-      "Basic search placement",
-      "Phone, email & website display",
-      "Insurance list",
+      "Up to 3 locations & 3 photos",
+      "Professional listing on FindABATherapy.org",
+      "Ages, languages, diagnoses & specialties",
+      "10 client records",
+      "1 job posting on FindABAJobs.org",
     ],
   },
   {
     id: "pro",
-    name: PLAN_CONFIGS.pro.displayName,
+    name: "Go Live Now",
     price: `$${PLAN_CONFIGS.pro.pricing.monthly.price}`,
     period: "/month",
-    description: PLAN_CONFIGS.pro.description,
+    description: "One plan. $79/month. Everything included.",
     features: [
-      `Up to ${PLAN_CONFIGS.pro.features.maxLocations} locations`,
-      "Priority search placement",
-      "Direct contact form",
-      "Photo gallery (up to 10)",
-      "YouTube video embed",
-      "Verified badge",
-      "Up to 5 job postings",
+      "All branded pages & forms go live",
+      "Unlimited CRM clients",
+      "Communication templates & automation",
+      "Up to 10 locations & 10 photos",
+      "Priority search placement & verified badge",
+      "Analytics dashboard",
+      "Up to 10 job postings",
     ],
     highlight: true,
     icon: <Sparkles className="h-5 w-5 text-primary" />,

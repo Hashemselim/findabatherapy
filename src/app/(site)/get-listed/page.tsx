@@ -73,7 +73,7 @@ const plans = [
     name: PLAN_CONFIGS.free.displayName,
     tier: "free" as const,
     pricing: PLAN_CONFIGS.free.pricing,
-    description: PLAN_CONFIGS.free.description,
+    description: "Set up in 10 minutes. Preview everything. Go Live when ready.",
     subtext: "No credit card required.",
     features: [
       { text: "Standard search placement", highlightWord: "Standard", highlightType: "blue" as const },
@@ -92,14 +92,14 @@ const plans = [
       "Video embed",
       "Analytics dashboard",
     ],
-    cta: "Get Found Free",
+    cta: "Start Free Preview",
     ctaVariant: "outline" as const,
   },
   {
     name: PLAN_CONFIGS.pro.displayName,
     tier: "pro" as const,
     pricing: PLAN_CONFIGS.pro.pricing,
-    description: PLAN_CONFIGS.pro.description,
+    description: "One plan. $79/month. Everything included.",
     subtext: "Cancel anytime. No long-term contract.",
     popular: true,
     features: [
@@ -116,7 +116,7 @@ const plans = [
       "Insurance & authorization tracking",
     ],
     notIncluded: [],
-    cta: "Get Started",
+    cta: "Go Live Now",
     ctaVariant: "default" as const,
   },
 ];
@@ -223,7 +223,7 @@ export default function GetListedPage() {
                   className="rounded-full border border-[#FEE720] bg-[#FEE720] px-8 text-base font-semibold text-[#333333] shadow-[0_4px_14px_rgba(254,231,32,0.4)] transition-all duration-300 ease-premium hover:-translate-y-[2px] hover:bg-[#FFF5C2] hover:shadow-[0_8px_20px_rgba(254,231,32,0.5)] active:translate-y-0 active:shadow-[0_2px_8px_rgba(254,231,32,0.3)]"
                 >
                   <Link href="/auth/sign-up?plan=free&intent=therapy">
-                    Get listed free
+                    Start free preview
                     <ArrowRight className="ml-2 h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
                   </Link>
                 </Button>
@@ -294,7 +294,7 @@ export default function GetListedPage() {
             </p>
           </header>
 
-          <div className="mt-12 grid gap-6 lg:grid-cols-3">
+          <div className="mt-12 grid gap-6 lg:grid-cols-2 lg:max-w-3xl lg:mx-auto">
             {plans.map((plan, index) => (
               <Card
                 key={plan.name}
@@ -552,39 +552,33 @@ export default function GetListedPage() {
                 <Star className="h-6 w-6 fill-[#5788FF] text-[#5788FF]" />
               </div>
               <p className="text-sm font-semibold uppercase tracking-wide text-[#5788FF]">
-                Boost Your Visibility
+                Scale When Ready
               </p>
               <h3 className="mt-2 text-xl font-semibold sm:text-2xl">
                 Optional add-ons for Pro
               </h3>
             </header>
             <div className="mt-8 grid gap-4 sm:grid-cols-2">
-              <div className="group flex items-start gap-4 rounded-xl border border-border/60 bg-white p-5 transition-all duration-300 ease-premium hover:-translate-y-[2px] hover:border-[#FEE720]/50 hover:shadow-[0_8px_30px_rgba(254,231,32,0.15)]">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-[#FEE720] bg-[#FFF5C2] transition-all duration-300 group-hover:scale-[1.05]">
-                  <Star className="h-6 w-6 fill-[#5788FF] text-[#5788FF]" aria-hidden />
+              {[
+                { name: "Extra users", price: "$20/mo", desc: "Add team members to your account", icon: Users },
+                { name: "Location pack", price: "$10/mo", desc: "5 additional service locations", icon: MapPin },
+                { name: "Job pack", price: "$5/mo", desc: "5 additional job postings", icon: Star },
+                { name: "Storage pack", price: "$5/mo", desc: "10 GB additional file storage", icon: ImagePlus },
+              ].map((addon) => (
+                <div key={addon.name} className="group flex items-start gap-4 rounded-xl border border-border/60 bg-white p-5 transition-all duration-300 ease-premium hover:-translate-y-[2px] hover:border-[#5788FF]/30 hover:shadow-[0_8px_30px_rgba(87,136,255,0.1)]">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#5788FF]/10 transition-all duration-300 group-hover:scale-[1.05]">
+                    <addon.icon className="h-6 w-6 text-[#5788FF]" aria-hidden />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between">
+                      <p className="font-semibold text-foreground">{addon.name}</p>
+                      <p className="text-sm font-bold text-[#5788FF]">{addon.price}</p>
+                    </div>
+                    <p className="mt-1 text-sm text-muted-foreground">{addon.desc}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="font-semibold text-foreground">Featured Listing</p>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Stand out with a highlighted badge and premium placement in search results.
-                  </p>
-                </div>
-              </div>
-              <div className="group flex items-start gap-4 rounded-xl border border-border/60 bg-white p-5 transition-all duration-300 ease-premium hover:-translate-y-[2px] hover:border-[#5788FF]/30 hover:shadow-[0_8px_30px_rgba(87,136,255,0.1)]">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#5788FF]/10 transition-all duration-300 group-hover:scale-[1.05]">
-                  <TrendingUp className="h-6 w-6 text-[#5788FF]" aria-hidden />
-                </div>
-                <div>
-                  <p className="font-semibold text-foreground">Homepage Advertising</p>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Get featured on our homepage and reach families browsing for providers.
-                  </p>
-                </div>
-              </div>
+              ))}
             </div>
-            <p className="mt-4 text-center text-sm text-muted-foreground">
-              Contact us for add-on pricing and availability.
-            </p>
           </div>
         </div>
       </section>
@@ -797,8 +791,7 @@ export default function GetListedPage() {
                 Ready to fill your caseload?
               </h2>
               <p className="mx-auto mt-4 max-w-xl text-lg text-muted-foreground">
-                Join hundreds of providers already capturing families. Start with a free listing
-                and upgrade for branded pages, intake forms, and full CRM.
+                Set up in 10 minutes. Preview everything. Go live when you&apos;re ready — one plan, $79/month, everything included.
               </p>
               <div className="mt-8">
                 <Button
@@ -807,13 +800,13 @@ export default function GetListedPage() {
                   className="rounded-full border border-[#FEE720] bg-[#FEE720] px-8 text-base font-semibold text-[#333333] shadow-[0_4px_14px_rgba(254,231,32,0.4)] transition-all duration-300 ease-premium hover:-translate-y-[2px] hover:bg-[#FFF5C2] hover:shadow-[0_8px_20px_rgba(254,231,32,0.5)] active:translate-y-0"
                 >
                   <Link href="/auth/sign-up?plan=free&intent=therapy">
-                    Get started free
+                    Start free preview
                     <ArrowRight className="ml-2 h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
                   </Link>
                 </Button>
               </div>
               <p className="mt-6 text-sm text-muted-foreground">
-                Free plan available. No credit card required to start.
+                No credit card required. Preview everything before going live.
               </p>
             </div>
           </div>
