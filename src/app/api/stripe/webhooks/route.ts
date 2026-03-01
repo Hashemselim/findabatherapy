@@ -856,10 +856,14 @@ async function handleAddonSubscriptionUpdated(
     ? new Date(subscriptionItem.current_period_end * 1000).toISOString()
     : new Date().toISOString();
 
+  // Sync quantity from Stripe subscription
+  const quantity = subscriptionItem?.quantity ?? 1;
+
   const { error } = await supabase
     .from("profile_addons")
     .update({
       status,
+      quantity,
       current_period_end: currentPeriodEnd,
       cancel_at_period_end: subscription.cancel_at_period_end,
       updated_at: new Date().toISOString(),
@@ -871,7 +875,7 @@ async function handleAddonSubscriptionUpdated(
   }
 
   revalidatePath("/dashboard/billing");
-  console.log(`Addon subscription updated: ${subscription.id}, status: ${status}`);
+  console.log(`Addon subscription updated: ${subscription.id}, status: ${status}, quantity: ${quantity}`);
 }
 
 /**
