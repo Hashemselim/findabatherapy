@@ -69,6 +69,8 @@ export async function POST(request: Request) {
         const subscription = event.data.object as Stripe.Subscription;
         if (subscription.metadata?.type === "featured_location") {
           await handleFeaturedLocationSubscriptionCreated(supabase, subscription);
+        } else if (subscription.metadata?.type === "addon") {
+          await handleAddonSubscriptionCreated(supabase, subscription);
         }
         // Note: Main plan subscriptions go through checkout, so we don't need to handle them here
         break;
@@ -771,6 +773,66 @@ async function handleFeaturedLocationSubscriptionDeleted(
 // ============================================================================
 // Add-on Subscription Handlers
 // ============================================================================
+
+/**
+ * Handle customer.subscription.created for add-on (inline charge path)
+ * Called when subscription is created directly via API with a saved payment method.
+ */
+async function handleAddonSubscriptionCreated(
+  supabase: Awaited<ReturnType<typeof createAdminClient>>,
+  subscription: Stripe.Subscription
+) {
+  const profileId = subscription.metadata?.profile_id;
+  const addonType = subscription.metadata?.addon_type;
+  const quantity = parseInt(subscription.metadata?.quantity || "1", 10);
+
+  if (!profileId || !addonType) {
+    console.error("Missing metadata in addon subscription.created:", {
+      profileId,
+      addonType,
+      subscriptionId: subscription.id,
+    });
+    return;
+  }
+
+  const subscriptionItem = subscription.items.data[0];
+  const currentPeriodEnd = subscriptionItem?.current_period_end
+    ? new Date(subscriptionItem.current_period_end * 1000).toISOString()
+    : new Date().toISOString();
+
+  // Insert addon record
+  const { error: insertError } = await supabase
+    .from("profile_addons")
+    .insert({
+      profile_id: profileId,
+      addon_type: addonType,
+      quantity,
+      stripe_subscription_id: subscription.id,
+      status: "active",
+      current_period_end: currentPeriodEnd,
+      cancel_at_period_end: false,
+    });
+
+  if (insertError) {
+    console.error("Error inserting addon from subscription.created:", insertError);
+    return;
+  }
+
+  // Log audit event
+  await supabase.from("audit_events").insert({
+    profile_id: profileId,
+    event_type: "addon_purchased",
+    payload: {
+      addon_type: addonType,
+      quantity,
+      subscription_id: subscription.id,
+      source: "inline_charge",
+    },
+  });
+
+  revalidatePath("/dashboard/billing");
+  console.log(`Addon purchased (inline): ${addonType} x${quantity} for profile ${profileId}`);
+}
 
 /**
  * Handle checkout.session.completed for add-on purchase

@@ -1,5 +1,4 @@
 import { redirect } from "next/navigation";
-import { revalidatePath } from "next/cache";
 import Link from "next/link";
 import { CheckCircle2, ArrowRight, ExternalLink, Sparkles } from "lucide-react";
 
@@ -30,12 +29,12 @@ export default async function BillingSuccessPage({ searchParams }: BillingSucces
   // If we have a session_id, verify and sync the subscription status FIRST
   // This handles the race condition where webhook hasn't processed yet
   // Must happen before any redirects to ensure subscription is synced
-  if (params.session_id) {
+  // IMPORTANT: Only sync for main plan checkouts — addon and featured_location
+  // sessions have their own webhook handlers and must NOT overwrite the
+  // profile's stripe_subscription_id with their subscription ID.
+  if (params.session_id && !params.addon) {
     await verifyAndSyncCheckoutSession(params.session_id);
   }
-
-  // Flush cached demo data so dashboard shows real data after upgrade
-  revalidatePath("/dashboard");
 
   // If user came from onboarding, redirect to the Go Live step
   if (params.return_to === "onboarding") {
