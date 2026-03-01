@@ -26,12 +26,10 @@ CREATE INDEX idx_profile_addons_type ON profile_addons(addon_type);
 -- RLS
 ALTER TABLE profile_addons ENABLE ROW LEVEL SECURITY;
 
--- Users can read their own add-ons
+-- Users can read their own add-ons (profiles.id = auth.uid())
 CREATE POLICY "Users can view own addons"
   ON profile_addons FOR SELECT
-  USING (profile_id IN (
-    SELECT id FROM profiles WHERE user_id = auth.uid()
-  ));
+  USING (profile_id = auth.uid());
 
 -- Service role can manage all add-ons (for webhook handler)
 CREATE POLICY "Service role manages addons"

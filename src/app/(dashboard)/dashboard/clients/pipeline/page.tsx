@@ -220,20 +220,20 @@ export default async function PipelinePage() {
       {/* Stage Cards — Horizontal Row */}
       <PreviewOverlay isPreview={isPreview}>
         <div className="rounded-2xl border border-border/50 bg-white shadow-sm dark:bg-zinc-950 p-5 sm:p-6">
-          <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-7">
+          <div className="grid grid-cols-4 gap-2 sm:gap-3 lg:grid-cols-8">
             {STAGES.map((stage) => {
               const count = counts[stage.key] || 0;
               return (
                 <Link
                   key={stage.key}
                   href={`/dashboard/clients?status=${stage.key}`}
-                  className={`flex-shrink-0 w-[120px] sm:w-auto rounded-lg border ${stage.borderColor} p-3 hover:shadow-sm transition-shadow cursor-pointer`}
+                  className={`rounded-lg border ${stage.borderColor} p-2 sm:p-3 hover:shadow-sm transition-shadow cursor-pointer min-w-0`}
                 >
                   <div className={`h-1 w-8 rounded-full ${stage.color} mb-2`} />
-                  <p className={`text-2xl font-bold ${stage.textColor}`}>
+                  <p className={`text-xl sm:text-2xl font-bold ${stage.textColor}`}>
                     {count}
                   </p>
-                  <p className="text-xs text-muted-foreground mt-0.5 whitespace-nowrap">
+                  <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 leading-tight truncate">
                     {stage.label}
                   </p>
                 </Link>

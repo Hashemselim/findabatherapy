@@ -25,36 +25,41 @@ export interface EffectiveLimits {
 /** Human-readable labels and unit info for each addon type */
 export const ADDON_INFO: Record<
   AddonType,
-  { label: string; unitLabel: string; unitsPerPack: number; priceLabel: string }
+  { label: string; unitLabel: string; unitsPerPack: number; pricePerPack: number; priceLabel: string }
 > = {
   extra_users: {
     label: "Extra Users",
     unitLabel: "user",
     unitsPerPack: 1,
+    pricePerPack: 20,
     priceLabel: "$20/user/mo",
   },
   location_pack: {
     label: "Location Pack",
     unitLabel: "location",
     unitsPerPack: 5,
-    priceLabel: "$10/mo for 5 locations",
+    pricePerPack: 15,
+    priceLabel: "$15/mo for 5 locations",
   },
   job_pack: {
     label: "Job Pack",
     unitLabel: "job posting",
     unitsPerPack: 5,
-    priceLabel: "$5/mo for 5 jobs",
+    pricePerPack: 15,
+    priceLabel: "$15/mo for 5 jobs",
   },
   storage_pack: {
     label: "Storage Pack",
     unitLabel: "GB",
     unitsPerPack: 10,
+    pricePerPack: 5,
     priceLabel: "$5/mo for 10GB",
   },
   homepage_placement: {
     label: "Homepage Placement",
     unitLabel: "placement",
     unitsPerPack: 1,
-    priceLabel: "Contact for pricing",
+    pricePerPack: 149,
+    priceLabel: "$149/mo",
   },
 };
