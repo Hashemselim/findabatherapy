@@ -24,6 +24,29 @@ npm run build 2>&1 | tail -100
 ```
 Don't truncate build output - type errors appear at the end after "Linting and checking validity of types".
 
+## Test Accounts
+
+Two seeded test accounts exist for local/preview testing. Use the preview tools to log in when verifying dashboard changes.
+
+| Account | Email | Password | Plan | Use for |
+|---------|-------|----------|------|---------|
+| Pro | `e2e-test@test.findabatherapy.com` | `E2eTestPass123!` | Pro (onboarded) | Testing full features |
+| Free | `e2e-free@test.findabatherapy.com` | `E2eFreePass123!` | Free (onboarded) | Testing preview mode / upgrade flows |
+
+### Seed commands
+```bash
+npm run seed:test-user          # Create Pro test user (idempotent)
+npm run seed:test-user:free     # Create Free test user (idempotent)
+npm run seed:reset              # Delete + recreate Pro user
+npm run seed:reset:free         # Delete + recreate Free user
+```
+
+### How to log in during preview verification
+1. Start the dev server with `preview_start`
+2. Navigate to `/auth/sign-in`
+3. Fill email + password fields and click Continue
+4. Verify the dashboard renders correctly for that plan tier
+
 ## Deployment
 
 - When user says "push", push directly to main: `git push origin <branch>:main`

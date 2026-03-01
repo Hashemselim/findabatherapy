@@ -1,9 +1,11 @@
 /**
- * Seed / Reset Test User
+ * Seed / Reset Test Users
  *
  * Usage:
- *   npm run seed:test-user          # Create persistent test user (idempotent)
- *   npm run seed:reset              # Delete + recreate (wipes all data via CASCADE)
+ *   npm run seed:test-user          # Create Pro test user (idempotent)
+ *   npm run seed:test-user:free     # Create Free test user (idempotent)
+ *   npm run seed:reset              # Delete + recreate Pro user (wipes all data via CASCADE)
+ *   npm run seed:reset:free         # Delete + recreate Free user
  *
  * Reads E2E_USER_EMAIL and E2E_USER_PASSWORD from .env.local.
  * Uses SUPABASE_SERVICE_ROLE_KEY for admin operations.
@@ -16,19 +18,34 @@ dotenv.config({ path: path.resolve(__dirname, "../.env.local") });
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-const E2E_EMAIL = process.env.E2E_USER_EMAIL || "e2e-test@test.findabatherapy.com";
-const E2E_PASSWORD = process.env.E2E_USER_PASSWORD || "E2eTestPass123!";
 
 const isReset = process.argv.includes("--reset");
+const isFree = process.argv.includes("--free");
 
-async function main() {
+// Account config based on plan tier
+const config = isFree
+  ? {
+      email: "e2e-free@test.findabatherapy.com",
+      password: "E2eFreePass123!",
+      agencyName: "E2E Free Agency",
+      planTier: "free" as const,
+    }
+  : {
+      email: process.env.E2E_USER_EMAIL || "e2e-test@test.findabatherapy.com",
+      password: process.env.E2E_USER_PASSWORD || "E2eTestPass123!",
+      agencyName: "E2E Test Agency",
+      planTier: "pro" as const,
+    };
+
+async function seedUser() {
   if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
     console.error("Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in .env.local");
     process.exit(1);
   }
 
   console.log(`Target: ${SUPABASE_URL}`);
-  console.log(`Email:  ${E2E_EMAIL}`);
+  console.log(`Email:  ${config.email}`);
+  console.log(`Plan:   ${config.planTier}`);
   console.log(`Mode:   ${isReset ? "RESET (delete + recreate)" : "CREATE (idempotent)"}\n`);
 
   const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
@@ -37,7 +54,7 @@ async function main() {
 
   // Check if user already exists
   const { data: existingUsers } = await supabase.auth.admin.listUsers();
-  const existingUser = existingUsers?.users?.find((u) => u.email === E2E_EMAIL);
+  const existingUser = existingUsers?.users?.find((u) => u.email === config.email);
 
   if (isReset && existingUser) {
     console.log(`Deleting user ${existingUser.id}...`);
@@ -56,12 +73,12 @@ async function main() {
   // Create auth user
   console.log("Creating auth user...");
   const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
-    email: E2E_EMAIL,
-    password: E2E_PASSWORD,
+    email: config.email,
+    password: config.password,
     email_confirm: true,
     user_metadata: {
-      agency_name: "E2E Test Agency",
-      selected_plan: "pro",
+      agency_name: config.agencyName,
+      selected_plan: config.planTier,
       billing_interval: "month",
       selected_intent: "both",
     },
@@ -78,9 +95,9 @@ async function main() {
   console.log("Creating profile...");
   const { error: profileError } = await supabase.from("profiles").insert({
     id: newUser.user.id,
-    agency_name: "E2E Test Agency",
-    contact_email: E2E_EMAIL,
-    plan_tier: "pro",
+    agency_name: config.agencyName,
+    contact_email: config.email,
+    plan_tier: config.planTier,
     billing_interval: "month",
     primary_intent: "both",
     onboarding_completed_at: isReset ? null : new Date().toISOString(),
@@ -93,12 +110,12 @@ async function main() {
     process.exit(1);
   }
 
-  const state = isReset ? "fresh (no onboarding)" : "onboarded, pro plan";
+  const state = isReset ? "fresh (no onboarding)" : `onboarded, ${config.planTier} plan`;
   console.log(`  Profile created (${state})`);
   console.log("\nDone! Test user ready.");
 }
 
-main().catch((err) => {
+seedUser().catch((err) => {
   console.error("Unexpected error:", err);
   process.exit(1);
 });
