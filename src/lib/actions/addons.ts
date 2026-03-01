@@ -101,6 +101,23 @@ export async function createAddonCheckout(
   }
 
   const supabase = await createClient();
+
+  // Check for existing active addon of this type
+  const { data: existing } = await supabase
+    .from("profile_addons")
+    .select("id, quantity, stripe_subscription_id")
+    .eq("profile_id", user.id)
+    .eq("addon_type", addonType)
+    .eq("status", "active")
+    .maybeSingle();
+
+  if (existing) {
+    return {
+      success: false,
+      error: "ALREADY_EXISTS",
+    };
+  }
+
   const { data: profile } = await supabase
     .from("profiles")
     .select("id, stripe_customer_id")
@@ -173,6 +190,93 @@ export async function createAddonCheckout(
           : "Failed to create checkout session",
     };
   }
+}
+
+/**
+ * Update the quantity of an existing add-on subscription
+ */
+export async function updateAddonQuantity(
+  addonId: string,
+  newQuantity: number
+): Promise<ActionResult> {
+  const user = await getUser();
+  if (!user) {
+    return { success: false, error: "Not authenticated" };
+  }
+
+  if (newQuantity < 1 || !Number.isInteger(newQuantity)) {
+    return { success: false, error: "Quantity must be a positive integer" };
+  }
+
+  const supabase = await createClient();
+
+  const { data: addon, error: fetchError } = await supabase
+    .from("profile_addons")
+    .select("id, profile_id, addon_type, stripe_subscription_id, status, quantity")
+    .eq("id", addonId)
+    .single();
+
+  if (fetchError || !addon) {
+    return { success: false, error: "Add-on not found" };
+  }
+
+  if (addon.profile_id !== user.id) {
+    return { success: false, error: "Not authorized" };
+  }
+
+  if (addon.status !== "active") {
+    return { success: false, error: "Add-on is not active" };
+  }
+
+  if (addon.quantity === newQuantity) {
+    return { success: true };
+  }
+
+  // If add-on has a Stripe subscription, update it there first
+  if (addon.stripe_subscription_id) {
+    try {
+      const subscription = await stripe.subscriptions.retrieve(
+        addon.stripe_subscription_id
+      );
+      const itemId = subscription.items.data[0]?.id;
+
+      if (!itemId) {
+        return { success: false, error: "Subscription item not found" };
+      }
+
+      await stripe.subscriptions.update(addon.stripe_subscription_id, {
+        items: [{ id: itemId, quantity: newQuantity }],
+        proration_behavior: "create_prorations",
+      });
+    } catch (error) {
+      console.error("Stripe quantity update error:", error);
+      return {
+        success: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to update quantity in Stripe",
+      };
+    }
+  }
+
+  // Update locally
+  const adminClient = await createAdminClient();
+  const { error: updateError } = await adminClient
+    .from("profile_addons")
+    .update({
+      quantity: newQuantity,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", addonId);
+
+  if (updateError) {
+    console.error("Error updating addon quantity:", updateError);
+    return { success: false, error: "Failed to update quantity" };
+  }
+
+  revalidatePath("/dashboard/billing");
+  return { success: true };
 }
 
 /**
