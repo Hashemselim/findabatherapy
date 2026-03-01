@@ -75,12 +75,21 @@ export async function getActiveAddons(
 }
 
 /**
- * Create a Stripe checkout session for an add-on purchase
+ * Create an add-on subscription — charges saved payment method inline,
+ * falls back to Stripe Checkout if no payment method on file.
  */
-export async function createAddonCheckout(
+export async function createAddonSubscription(
   addonType: AddonType,
   quantity: number = 1
-): Promise<ActionResult<{ url: string }>> {
+): Promise<
+  ActionResult<{
+    directCharge: boolean;
+    url?: string;
+    subscriptionId?: string;
+    addonType?: AddonType;
+    quantity?: number;
+  }>
+> {
   const user = await getUser();
   if (!user) {
     return { success: false, error: "Not authenticated" };
@@ -120,7 +129,7 @@ export async function createAddonCheckout(
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, stripe_customer_id")
+    .select("id, stripe_customer_id, stripe_subscription_id")
     .eq("id", user.id)
     .single();
 
@@ -130,6 +139,7 @@ export async function createAddonCheckout(
 
   const headersList = await headers();
   const origin = getValidatedOrigin(headersList.get("origin"));
+  const info = ADDON_INFO[addonType];
 
   try {
     // Create or retrieve Stripe customer
@@ -149,14 +159,80 @@ export async function createAddonCheckout(
         .eq("id", profile.id);
     }
 
-    const info = ADDON_INFO[addonType];
+    // --- Payment method lookup (same pattern as Featured Location) ---
+    let paymentMethodId: string | null = null;
 
+    // 1. Check customer's default payment method
+    const customer = await stripe.customers.retrieve(customerId);
+    if (customer.deleted) {
+      return { success: false, error: "Customer not found" };
+    }
+
+    if (customer.invoice_settings?.default_payment_method) {
+      paymentMethodId = customer.invoice_settings.default_payment_method as string;
+    }
+
+    // 2. Check existing Pro subscription's payment method
+    if (!paymentMethodId && profile.stripe_subscription_id) {
+      try {
+        const existingSubscription = await stripe.subscriptions.retrieve(
+          profile.stripe_subscription_id
+        );
+        if (existingSubscription.default_payment_method) {
+          paymentMethodId = existingSubscription.default_payment_method as string;
+        }
+      } catch {
+        // Subscription might not exist, continue
+      }
+    }
+
+    // 3. Check customer's payment methods list
+    if (!paymentMethodId) {
+      const paymentMethods = await stripe.paymentMethods.list({
+        customer: customerId,
+        type: "card",
+        limit: 1,
+      });
+      if (paymentMethods.data.length > 0) {
+        paymentMethodId = paymentMethods.data[0].id;
+      }
+    }
+
+    // --- Charge inline or fall back to Checkout ---
+    if (paymentMethodId) {
+      const subscription = await stripe.subscriptions.create({
+        customer: customerId,
+        items: [{ price: priceId, quantity }],
+        default_payment_method: paymentMethodId,
+        metadata: {
+          type: "addon",
+          addon_type: addonType,
+          profile_id: profile.id,
+          quantity: String(quantity),
+        },
+        description: `${info.label} (x${quantity})`,
+      });
+
+      // Webhook will create the profile_addons row
+      revalidatePath("/dashboard/billing");
+      return {
+        success: true,
+        data: {
+          directCharge: true,
+          subscriptionId: subscription.id,
+          addonType,
+          quantity,
+        },
+      };
+    }
+
+    // No payment method — fall back to Stripe Checkout
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       mode: "subscription",
       payment_method_types: ["card"],
       line_items: [{ price: priceId, quantity }],
-      success_url: `${origin}${CHECKOUT_URLS.success}?addon=${addonType}&session_id={CHECKOUT_SESSION_ID}`,
+      success_url: `${origin}${CHECKOUT_URLS.success}?addon=${addonType}&quantity=${quantity}&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/dashboard/billing`,
       metadata: {
         type: "addon",
@@ -179,176 +255,15 @@ export async function createAddonCheckout(
       return { success: false, error: "Failed to create checkout session" };
     }
 
-    return { success: true, data: { url: session.url } };
+    return { success: true, data: { directCharge: false, url: session.url } };
   } catch (error) {
-    console.error("Addon checkout error:", error);
+    console.error("Addon subscription error:", error);
     return {
       success: false,
       error:
         error instanceof Error
           ? error.message
-          : "Failed to create checkout session",
-    };
-  }
-}
-
-/**
- * Update the quantity of an existing add-on subscription
- */
-export async function updateAddonQuantity(
-  addonId: string,
-  newQuantity: number
-): Promise<ActionResult> {
-  const user = await getUser();
-  if (!user) {
-    return { success: false, error: "Not authenticated" };
-  }
-
-  if (newQuantity < 1 || !Number.isInteger(newQuantity)) {
-    return { success: false, error: "Quantity must be a positive integer" };
-  }
-
-  const supabase = await createClient();
-
-  const { data: addon, error: fetchError } = await supabase
-    .from("profile_addons")
-    .select("id, profile_id, addon_type, stripe_subscription_id, status, quantity")
-    .eq("id", addonId)
-    .single();
-
-  if (fetchError || !addon) {
-    return { success: false, error: "Add-on not found" };
-  }
-
-  if (addon.profile_id !== user.id) {
-    return { success: false, error: "Not authorized" };
-  }
-
-  if (addon.status !== "active") {
-    return { success: false, error: "Add-on is not active" };
-  }
-
-  if (addon.quantity === newQuantity) {
-    return { success: true };
-  }
-
-  // If add-on has a Stripe subscription, update it there first
-  if (addon.stripe_subscription_id) {
-    try {
-      const subscription = await stripe.subscriptions.retrieve(
-        addon.stripe_subscription_id
-      );
-      const itemId = subscription.items.data[0]?.id;
-
-      if (!itemId) {
-        return { success: false, error: "Subscription item not found" };
-      }
-
-      await stripe.subscriptions.update(addon.stripe_subscription_id, {
-        items: [{ id: itemId, quantity: newQuantity }],
-        proration_behavior: "create_prorations",
-      });
-    } catch (error) {
-      console.error("Stripe quantity update error:", error);
-      return {
-        success: false,
-        error:
-          error instanceof Error
-            ? error.message
-            : "Failed to update quantity in Stripe",
-      };
-    }
-  }
-
-  // Update locally
-  const adminClient = await createAdminClient();
-  const { error: updateError } = await adminClient
-    .from("profile_addons")
-    .update({
-      quantity: newQuantity,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", addonId);
-
-  if (updateError) {
-    console.error("Error updating addon quantity:", updateError);
-    return { success: false, error: "Failed to update quantity" };
-  }
-
-  revalidatePath("/dashboard/billing");
-  return { success: true };
-}
-
-/**
- * Cancel an add-on subscription at period end
- */
-export async function cancelAddon(
-  addonId: string
-): Promise<ActionResult> {
-  const user = await getUser();
-  if (!user) {
-    return { success: false, error: "Not authenticated" };
-  }
-
-  const supabase = await createClient();
-
-  const { data: addon, error: fetchError } = await supabase
-    .from("profile_addons")
-    .select("id, profile_id, stripe_subscription_id, status, grandfathered_until")
-    .eq("id", addonId)
-    .single();
-
-  if (fetchError || !addon) {
-    return { success: false, error: "Add-on not found" };
-  }
-
-  if (addon.profile_id !== user.id) {
-    return { success: false, error: "Not authorized" };
-  }
-
-  if (addon.status !== "active") {
-    return { success: false, error: "Add-on is not active" };
-  }
-
-  // Grandfathered add-ons have no Stripe subscription — just deactivate locally
-  if (!addon.stripe_subscription_id) {
-    const adminClient = await createAdminClient();
-    await adminClient
-      .from("profile_addons")
-      .update({
-        status: "canceled",
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", addonId);
-
-    revalidatePath("/dashboard/billing");
-    return { success: true };
-  }
-
-  try {
-    await stripe.subscriptions.update(addon.stripe_subscription_id, {
-      cancel_at_period_end: true,
-    });
-
-    const adminClient = await createAdminClient();
-    await adminClient
-      .from("profile_addons")
-      .update({
-        cancel_at_period_end: true,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", addonId);
-
-    revalidatePath("/dashboard/billing");
-    return { success: true };
-  } catch (error) {
-    console.error("Cancel addon error:", error);
-    return {
-      success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : "Failed to cancel add-on",
+          : "Failed to create add-on subscription",
     };
   }
 }
