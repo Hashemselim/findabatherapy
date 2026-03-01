@@ -25,10 +25,13 @@ import { Badge } from "@/components/ui/badge";
 import { BubbleBackground } from "@/components/ui/bubble-background";
 import { DashboardTracker } from "@/components/analytics/dashboard-tracker";
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
+import { PreviewBanner } from "@/components/ui/preview-banner";
+import { PreviewOverlay } from "@/components/ui/preview-overlay";
 import { getProfile } from "@/lib/supabase/server";
 import { getPipelineData } from "@/lib/actions/pipeline";
 import { runTaskAutomation } from "@/lib/actions/task-automation";
-import { getCurrentPlanFeatures } from "@/lib/plans/guards";
+import { getCurrentPlanFeatures, getCurrentPlanTier } from "@/lib/plans/guards";
+import { DEMO_PIPELINE_STATS } from "@/lib/demo/data";
 
 // Stage configuration matching client-status-badge.tsx colors
 const STAGES = [
@@ -118,11 +121,14 @@ export default async function PipelinePage() {
     );
   }
 
-  // Fetch pipeline data and plan features in parallel
-  const [result, planFeatures] = await Promise.all([
+  // Fetch pipeline data, plan features, and plan tier in parallel
+  const [result, planFeatures, planTier] = await Promise.all([
     getPipelineData(),
     getCurrentPlanFeatures(),
+    getCurrentPlanTier(),
   ]);
+
+  const isPreview = planTier === "free";
   const pipeline = result.success ? result.data : null;
 
   // Run task automation in background for Pro users (non-blocking)
@@ -131,15 +137,18 @@ export default async function PipelinePage() {
       console.error("[PIPELINE] Task automation failed:", err)
     );
   }
-  const counts = pipeline?.counts ?? {};
-  const attentionItems = pipeline?.attentionItems ?? [];
-  const recentActivity = pipeline?.recentActivity ?? [];
+
+  // Use demo data for free users, real data for pro
+  const pipelineData = isPreview ? DEMO_PIPELINE_STATS : pipeline;
+  const counts = pipelineData?.counts ?? {};
+  const attentionItems = pipelineData?.attentionItems ?? [];
+  const recentActivity = pipelineData?.recentActivity ?? [];
 
   const totalClients = Object.values(counts).reduce((sum, n) => sum + n, 0);
   const totalActive = totalClients - (counts.discharged || 0);
 
-  // Empty state for agencies with no clients
-  if (totalClients === 0) {
+  // Empty state for Pro users with no clients (not for preview)
+  if (!isPreview && totalClients === 0) {
     return (
       <div className="space-y-3">
         <DashboardTracker section="pipeline" />
@@ -182,6 +191,14 @@ export default async function PipelinePage() {
     <div className="space-y-3">
       <DashboardTracker section="pipeline" />
 
+      {isPreview && (
+        <PreviewBanner
+          message="This is a preview of your client pipeline. Go Live to manage real clients."
+          variant="inline"
+          triggerFeature="pipeline"
+        />
+      )}
+
       {/* Header */}
       <DashboardPageHeader
         title="Client Pipeline"
@@ -201,31 +218,34 @@ export default async function PipelinePage() {
       </DashboardPageHeader>
 
       {/* Stage Cards — Horizontal Row */}
-      <div className="rounded-2xl border border-border/50 bg-white shadow-sm dark:bg-zinc-950 p-5 sm:p-6">
-        <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-7">
-          {STAGES.map((stage) => {
-            const count = counts[stage.key] || 0;
-            return (
-              <Link
-                key={stage.key}
-                href={`/dashboard/clients?status=${stage.key}`}
-                className={`flex-shrink-0 w-[120px] sm:w-auto rounded-lg border ${stage.borderColor} p-3 hover:shadow-sm transition-shadow cursor-pointer`}
-              >
-                <div className={`h-1 w-8 rounded-full ${stage.color} mb-2`} />
-                <p className={`text-2xl font-bold ${stage.textColor}`}>
-                  {count}
-                </p>
-                <p className="text-xs text-muted-foreground mt-0.5 whitespace-nowrap">
-                  {stage.label}
-                </p>
-              </Link>
-            );
-          })}
+      <PreviewOverlay isPreview={isPreview}>
+        <div className="rounded-2xl border border-border/50 bg-white shadow-sm dark:bg-zinc-950 p-5 sm:p-6">
+          <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-7">
+            {STAGES.map((stage) => {
+              const count = counts[stage.key] || 0;
+              return (
+                <Link
+                  key={stage.key}
+                  href={`/dashboard/clients?status=${stage.key}`}
+                  className={`flex-shrink-0 w-[120px] sm:w-auto rounded-lg border ${stage.borderColor} p-3 hover:shadow-sm transition-shadow cursor-pointer`}
+                >
+                  <div className={`h-1 w-8 rounded-full ${stage.color} mb-2`} />
+                  <p className={`text-2xl font-bold ${stage.textColor}`}>
+                    {count}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5 whitespace-nowrap">
+                    {stage.label}
+                  </p>
+                </Link>
+              );
+            })}
+          </div>
         </div>
-      </div>
+      </PreviewOverlay>
 
       {/* Attention Items */}
       {attentionItems.length > 0 && (
+        <PreviewOverlay isPreview={isPreview} showLabel={false}>
         <Card className="border-l-4 border-l-amber-400">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-base">
@@ -281,9 +301,11 @@ export default async function PipelinePage() {
             </div>
           </CardContent>
         </Card>
+        </PreviewOverlay>
       )}
 
       {/* Recent Activity */}
+      <PreviewOverlay isPreview={isPreview} showLabel={false}>
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base">Recent Activity</CardTitle>
@@ -339,6 +361,7 @@ export default async function PipelinePage() {
           )}
         </CardContent>
       </Card>
+      </PreviewOverlay>
     </div>
   );
 }

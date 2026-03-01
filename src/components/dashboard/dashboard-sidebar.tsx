@@ -389,6 +389,12 @@ export function DashboardSidebar({
                     ? "Pro Plan"
                     : "Free Plan"}
                 </p>
+                {!(companyProfile?.planTier === "pro" &&
+                  (companyProfile?.subscriptionStatus === "active" || companyProfile?.subscriptionStatus === "trialing")) && (
+                  <span className="mt-0.5 inline-flex w-fit items-center rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+                    Preview Mode
+                  </span>
+                )}
               </div>
               <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground/50" />
             </button>

@@ -1,14 +1,9 @@
 import Link from "next/link";
 import {
   ArrowRight,
-  BarChart3,
   CheckCircle2,
   ClipboardList,
-  Eye,
-  MousePointer,
-  Search,
   Sparkles,
-  TrendingUp,
   Users,
 } from "lucide-react";
 
@@ -18,8 +13,11 @@ import { Badge } from "@/components/ui/badge";
 import { BubbleBackground } from "@/components/ui/bubble-background";
 import { AnalyticsClient } from "@/components/dashboard/analytics-client";
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
+import { PreviewBanner } from "@/components/ui/preview-banner";
+import { PreviewOverlay } from "@/components/ui/preview-overlay";
 import { getProfile } from "@/lib/supabase/server";
 import { getReferralAnalytics } from "@/lib/actions/referral-analytics";
+import { DEMO_REFERRAL_SOURCES } from "@/lib/demo/data";
 
 export default async function AnalyticsPage() {
   const profile = await getProfile();
@@ -85,125 +83,41 @@ export default async function AnalyticsPage() {
     );
   }
 
-  // Check if user is on free plan - Analytics is a premium feature
-  // Must have paid plan AND active subscription
+  // Check plan tier for preview mode
   const isActiveSubscription =
     profile.subscription_status === "active" ||
     profile.subscription_status === "trialing";
-  const isFreePlan = profile.plan_tier === "free" || !isActiveSubscription;
+  const isPreview = profile.plan_tier === "free" || !isActiveSubscription;
 
-  if (isFreePlan) {
-    return (
-      <div className="space-y-3">
-        <DashboardPageHeader
-          title="Performance Analytics"
-          description="Track how potential clients discover and interact with your listing."
-        />
-
-        <div className="relative overflow-hidden rounded-xl border border-blue-100 bg-gradient-to-br from-blue-50/80 via-white to-slate-50 shadow-sm">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(59,130,246,0.08),transparent_50%)]" />
-
-          <div className="relative p-6">
-            {/* Header with strong value prop */}
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex items-start gap-4">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-100 text-blue-600">
-                  <BarChart3 className="h-6 w-6" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <p className="text-lg font-semibold text-slate-900">Unlock Detailed Insights</p>
-                    <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-700">
-                      <Sparkles className="h-3 w-3" />
-                      Pro
-                    </span>
-                  </div>
-                  <p className="mt-1 text-sm text-slate-600">
-                    Understand how families find and interact with your listing
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Feature highlights */}
-            <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {[
-                {
-                  icon: Eye,
-                  title: "Page Views",
-                  description: "Track how many families view your listing",
-                },
-                {
-                  icon: Search,
-                  title: "Search Impressions",
-                  description: "See how often you appear in search results",
-                },
-                {
-                  icon: MousePointer,
-                  title: "Click-through Rate",
-                  description: "Measure engagement with your listing",
-                },
-                {
-                  icon: TrendingUp,
-                  title: "Trend Analysis",
-                  description: "Compare performance over time periods",
-                },
-              ].map((feature) => {
-                const Icon = feature.icon;
-                return (
-                  <Card key={feature.title} className="border-slate-200/80 bg-white/50">
-                    <CardHeader className="pb-2">
-                      <div className="flex items-center gap-2">
-                        <Icon className="h-4 w-4 text-blue-600" />
-                        <CardTitle className="text-sm font-medium text-slate-900">
-                          {feature.title}
-                        </CardTitle>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-xs text-slate-500">{feature.description}</p>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-
-            {/* CTA */}
-            <div className="mt-6 flex flex-col items-center gap-3 rounded-lg border border-blue-200/60 bg-blue-50/50 p-4 sm:flex-row sm:justify-between">
-              <div>
-                <p className="font-medium text-slate-900">Unlock detailed analytics with Pro</p>
-                <p className="text-sm text-slate-600">
-                  Track views, clicks, and traffic sources to optimize your listing
-                </p>
-              </div>
-              <Button asChild className="w-full shrink-0 sm:w-auto">
-                <Link href="/dashboard/billing">
-                  Upgrade to Pro
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+  // Use demo referral data for free users, real data for pro
+  let referralData = DEMO_REFERRAL_SOURCES;
+  if (!isPreview) {
+    const referralResult = await getReferralAnalytics();
+    referralData = referralResult.success && referralResult.data ? referralResult.data : DEMO_REFERRAL_SOURCES;
   }
-
-  // User has Pro with active subscription - show analytics
-  const referralResult = await getReferralAnalytics();
-  const referralData = referralResult.success ? referralResult.data : null;
 
   return (
     <div className="space-y-3">
+      {isPreview && (
+        <PreviewBanner
+          message="This is a preview with example analytics. Go Live to track real views, clicks, and inquiries."
+          variant="inline"
+          triggerFeature="analytics"
+        />
+      )}
+
       <DashboardPageHeader
         title="Performance Analytics"
         description="Track how potential clients discover and interact with your listing."
       />
 
-      <AnalyticsClient />
+      <PreviewOverlay isPreview={isPreview}>
+        <AnalyticsClient />
+      </PreviewOverlay>
 
       {/* Referral Source Analytics */}
       {referralData && referralData.totalClients > 0 && (
+        <PreviewOverlay isPreview={isPreview}>
         <div className="space-y-4">
           <div>
             <h2 className="text-lg font-semibold text-foreground">Client Sources</h2>
@@ -275,6 +189,7 @@ export default async function AnalyticsPage() {
             </CardContent>
           </Card>
         </div>
+        </PreviewOverlay>
       )}
     </div>
   );

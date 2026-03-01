@@ -107,7 +107,6 @@ export const mainNavItems: NavItemConfig[] = [
     href: "/dashboard/clients/communications",
     label: "Communications",
     icon: Mail,
-    proBadge: true,
   },
 ];
 

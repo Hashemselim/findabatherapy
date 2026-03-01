@@ -5,9 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { BubbleBackground } from "@/components/ui/bubble-background";
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
+import { PreviewBanner } from "@/components/ui/preview-banner";
+import { PreviewOverlay } from "@/components/ui/preview-overlay";
+import { LockedButton } from "@/components/ui/preview-banner";
 import { JobList } from "@/components/jobs/job-list";
 import { getProfile } from "@/lib/supabase/server";
 import { getJobPostings, getJobCountAndLimit } from "@/lib/actions/jobs";
+import { DEMO_JOBS } from "@/lib/demo/data";
 
 export default async function JobsPage() {
   const profile = await getProfile();
@@ -70,15 +74,6 @@ export default async function JobsPage() {
     );
   }
 
-  // Fetch jobs and limits
-  const [jobsResult, limitsResult] = await Promise.all([
-    getJobPostings(),
-    getJobCountAndLimit(),
-  ]);
-
-  const jobs = jobsResult.success ? jobsResult.data || [] : [];
-  const limits = limitsResult.success ? limitsResult.data : { count: 0, limit: 1, canCreate: true };
-
   // Determine effective plan tier
   const isActiveSubscription =
     profile.subscription_status === "active" ||
@@ -86,21 +81,46 @@ export default async function JobsPage() {
   const effectivePlanTier = (profile.plan_tier !== "free" && isActiveSubscription)
     ? profile.plan_tier
     : "free";
+  const isPreview = effectivePlanTier === "free";
+
+  // Fetch jobs and limits (skip for free users)
+  let jobs = isPreview ? DEMO_JOBS : [];
+  let limits = { count: isPreview ? DEMO_JOBS.length : 0, limit: isPreview ? 5 : 1, canCreate: !isPreview };
+
+  if (!isPreview) {
+    const [jobsResult, limitsResult] = await Promise.all([
+      getJobPostings(),
+      getJobCountAndLimit(),
+    ]);
+    jobs = jobsResult.success ? jobsResult.data || [] : [];
+    limits = limitsResult.success && limitsResult.data ? limitsResult.data : { count: 0, limit: 1, canCreate: true };
+  }
 
   return (
     <div className="space-y-3">
+      {isPreview && (
+        <PreviewBanner
+          message="FindABAJobs.org is included with Pro. Go Live to post real jobs and recruit BCBAs and RBTs."
+          variant="inline"
+          triggerFeature="jobs"
+        />
+      )}
+
       {/* Page Header */}
       <DashboardPageHeader title="Job Postings" description="Create and manage job listings on findabajobs.org.">
-        {limits?.canCreate && (
+        {isPreview ? (
+          <LockedButton label="New Job" />
+        ) : limits?.canCreate ? (
           <Button asChild className="w-full rounded-full sm:w-auto">
             <Link href="/dashboard/jobs/new">
               <Plus className="mr-2 h-4 w-4" />
               New Job
             </Link>
           </Button>
-        )}
+        ) : null}
       </DashboardPageHeader>
 
+      <PreviewOverlay isPreview={isPreview}>
       {/* Job Limit Info Card */}
       <Card className="border-[#5788FF]/30 bg-[#5788FF]/5">
         <CardContent className="flex items-center justify-between py-4">
@@ -129,9 +149,11 @@ export default async function JobsPage() {
           )}
         </CardContent>
       </Card>
+      </PreviewOverlay>
 
       {/* Jobs List */}
-      {jobs.length === 0 ? (
+      <PreviewOverlay isPreview={isPreview} showLabel={false}>
+      {!isPreview && jobs.length === 0 ? (
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center py-12 text-center">
             <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
@@ -154,29 +176,7 @@ export default async function JobsPage() {
       ) : (
         <JobList jobs={jobs} />
       )}
-
-      {/* Upgrade CTA for Free Users */}
-      {effectivePlanTier === "free" && jobs.length > 0 && (
-        <Card className="border-[#FEE720] bg-gradient-to-r from-[#FFF5C2]/50 to-[#FFF5C2]/30">
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5 fill-[#5788FF] text-[#5788FF]" />
-              <CardTitle className="text-lg">Need to post more jobs?</CardTitle>
-            </div>
-            <CardDescription>
-              Upgrade to Pro to post up to 5 jobs.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button asChild size="sm" className="rounded-full">
-              <Link href="/dashboard/billing">
-                View Plans
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
-      )}
+      </PreviewOverlay>
     </div>
   );
 }

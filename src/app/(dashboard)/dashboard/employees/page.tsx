@@ -1,16 +1,20 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { ArrowRight, CheckCircle2, ClipboardList, Lock } from "lucide-react";
+import { ArrowRight, CheckCircle2, ClipboardList } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { BubbleBackground } from "@/components/ui/bubble-background";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
+import { PreviewBanner } from "@/components/ui/preview-banner";
+import { PreviewOverlay } from "@/components/ui/preview-overlay";
 import { getProfile } from "@/lib/supabase/server";
-import { getApplications } from "@/lib/actions/applications";
-import { getJobPostings } from "@/lib/actions/jobs";
+import { getApplications, type ApplicationSummary } from "@/lib/actions/applications";
+import { getJobPostings, type JobPostingSummary } from "@/lib/actions/jobs";
 import { getTeamMembers } from "@/lib/actions/team";
+import { getCurrentPlanTier } from "@/lib/plans/guards";
+import { DEMO_EMPLOYEES } from "@/lib/demo/data";
 import { ApplicationsInbox } from "@/components/dashboard/jobs";
 import { TeamMembersList } from "@/components/dashboard/team/team-members-list";
 
@@ -76,21 +80,39 @@ export default async function EmployeesPage() {
     );
   }
 
-  // Fetch applications, jobs, and team members in parallel
-  const [applicationsResult, jobsResult, teamResult] = await Promise.all([
-    getApplications(),
-    getJobPostings(),
-    getTeamMembers(),
-  ]);
+  const planTier = await getCurrentPlanTier();
+  const isPreview = planTier === "free";
 
-  const applications = applicationsResult.success ? applicationsResult.data?.applications || [] : [];
-  const newCount = applicationsResult.success ? applicationsResult.data?.newCount || 0 : 0;
-  const jobs = jobsResult.success ? jobsResult.data || [] : [];
-  const teamMembers = teamResult.success ? teamResult.data || [] : [];
-  const teamGated = !teamResult.success; // guard returned error = feature not available
+  // Fetch applications, jobs, and team members in parallel (skip for free users)
+  let applications: ApplicationSummary[] = [];
+  let newCount = 0;
+  let jobs: JobPostingSummary[] = [];
+  let teamMembers = isPreview ? DEMO_EMPLOYEES : [];
+  let teamGated = false;
+
+  if (!isPreview) {
+    const [applicationsResult, jobsResult, teamResult] = await Promise.all([
+      getApplications(),
+      getJobPostings(),
+      getTeamMembers(),
+    ]);
+    applications = applicationsResult.success ? applicationsResult.data?.applications || [] : [];
+    newCount = applicationsResult.success ? applicationsResult.data?.newCount || 0 : 0;
+    jobs = jobsResult.success ? jobsResult.data || [] : [];
+    teamMembers = teamResult.success ? teamResult.data || [] : [];
+    teamGated = !teamResult.success;
+  }
 
   return (
     <div className="space-y-3">
+      {isPreview && (
+        <PreviewBanner
+          message="This is a preview of team management with example employees. Go Live to manage your real team."
+          variant="inline"
+          triggerFeature="employees"
+        />
+      )}
+
       {/* Page Header */}
       <DashboardPageHeader title="Employees" description="Manage job applicants and team members.">
         <Button asChild variant="outline" className="w-full rounded-full sm:w-auto">
@@ -101,7 +123,8 @@ export default async function EmployeesPage() {
       </DashboardPageHeader>
 
       {/* Tabs for Applicants and Team */}
-      <Tabs defaultValue="applicants" className="flex min-h-0 flex-1 flex-col">
+      <PreviewOverlay isPreview={isPreview}>
+      <Tabs defaultValue={isPreview ? "team" : "applicants"} className="flex min-h-0 flex-1 flex-col">
         <TabsList className="w-fit">
           <TabsTrigger value="applicants" className="gap-2">
             Applicants
@@ -113,7 +136,7 @@ export default async function EmployeesPage() {
           </TabsTrigger>
           <TabsTrigger value="team" className="gap-2">
             Team
-            {!teamGated && teamMembers.length > 0 && (
+            {teamMembers.length > 0 && (
               <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-purple-600 px-1.5 text-xs font-semibold text-white">
                 {teamMembers.length}
               </span>
@@ -162,66 +185,18 @@ export default async function EmployeesPage() {
         </TabsContent>
 
         <TabsContent value="team" className="mt-4">
-          {teamGated ? (
-            <Card className="overflow-hidden border-purple-200/60">
-              <BubbleBackground
-                interactive={false}
-                size="default"
-                className="bg-gradient-to-br from-white via-purple-50/50 to-slate-50"
-                colors={{
-                  first: "255,255,255",
-                  second: "233,213,255",
-                  third: "139,92,246",
-                  fourth: "245,238,255",
-                  fifth: "196,181,253",
-                  sixth: "250,245,255",
-                }}
-              >
-                <CardContent className="flex flex-col items-center px-6 py-12 text-center">
-                  <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-purple-600 shadow-lg shadow-purple-600/25">
-                    <Lock className="h-8 w-8 text-white" />
-                  </div>
-
-                  <p className="text-xl font-semibold text-slate-900">
-                    Team Management
-                  </p>
-
-                  <p className="mt-3 max-w-md text-sm text-slate-600">
-                    Upgrade to Pro to manage your team, track employee certifications and
-                    renewal dates, assign tasks, and store documents.
-                  </p>
-
-                  <div className="mt-6 flex flex-wrap justify-center gap-3">
-                    {[
-                      "Employee Profiles",
-                      "Credential Tracking",
-                      "Task Assignment",
-                      "Document Storage",
-                    ].map((feature) => (
-                      <span
-                        key={feature}
-                        className="inline-flex items-center gap-1.5 rounded-full bg-white/80 px-3 py-1.5 text-xs font-medium text-slate-600 shadow-sm"
-                      >
-                        <CheckCircle2 className="h-3.5 w-3.5 text-purple-600" />
-                        {feature}
-                      </span>
-                    ))}
-                  </div>
-
-                  <Button asChild size="lg" className="mt-8 bg-purple-600 hover:bg-purple-700">
-                    <Link href="/dashboard/settings/billing" className="gap-2">
-                      Upgrade to Pro
-                      <ArrowRight className="h-4 w-4" />
-                    </Link>
-                  </Button>
-                </CardContent>
-              </BubbleBackground>
+          {!isPreview && teamGated ? (
+            <Card className="py-12 text-center">
+              <CardContent>
+                <p className="text-muted-foreground">Team management is not available.</p>
+              </CardContent>
             </Card>
           ) : (
             <TeamMembersList initialMembers={teamMembers} />
           )}
         </TabsContent>
       </Tabs>
+      </PreviewOverlay>
     </div>
   );
 }
