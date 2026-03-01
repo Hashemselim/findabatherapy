@@ -1,5 +1,15 @@
 import type { ListingWithRelations } from "@/lib/actions/listings";
 import type { Inquiry } from "@/lib/actions/inquiries";
+import type { ClientListItem } from "@/lib/actions/clients";
+import type {
+  PipelineSummary,
+  AttentionItem,
+  ActivityItem,
+} from "@/lib/actions/pipeline";
+import type { TeamMember } from "@/lib/actions/team";
+import type { JobPostingSummary } from "@/lib/actions/jobs";
+import type { ClientCommunication } from "@/lib/actions/communications";
+import type { ReferralAnalytics } from "@/lib/actions/referral-analytics";
 
 // Helper to generate dates relative to now
 const daysAgo = (days: number) => {
@@ -580,4 +590,653 @@ export const DEMO_ONBOARDING_CHECKLIST = {
   hasPhotos: true,
   hasVideo: true,
   isPublished: true,
+};
+
+// =============================================================================
+// DEMO CLIENTS
+// =============================================================================
+
+export const DEMO_CLIENTS: ClientListItem[] = [
+  {
+    id: "demo-client-1",
+    status: "inquiry",
+    child_first_name: "Liam",
+    child_last_name: "Nguyen",
+    child_date_of_birth: "2021-06-15",
+    created_at: daysAgo(3),
+    updated_at: daysAgo(3),
+    primary_parent_name: "Trang Nguyen",
+    primary_parent_phone: "(555) 201-3344",
+    primary_parent_email: "trang.nguyen@example.com",
+    primary_insurance_name: "Blue Cross Blue Shield",
+    primary_insurance_member_id: "BCBS-884712",
+  },
+  {
+    id: "demo-client-2",
+    status: "inquiry",
+    child_first_name: "Ava",
+    child_last_name: "Patel",
+    child_date_of_birth: "2020-11-02",
+    created_at: daysAgo(5),
+    updated_at: daysAgo(4),
+    primary_parent_name: "Priya Patel",
+    primary_parent_phone: "(555) 302-5567",
+    primary_parent_email: "priya.patel@example.com",
+    primary_insurance_name: "Aetna",
+    primary_insurance_member_id: "AET-221098",
+  },
+  {
+    id: "demo-client-3",
+    status: "assessment",
+    child_first_name: "Noah",
+    child_last_name: "Rivera",
+    child_date_of_birth: "2019-03-22",
+    created_at: daysAgo(21),
+    updated_at: daysAgo(2),
+    primary_parent_name: "Maria Rivera",
+    primary_parent_phone: "(555) 403-7789",
+    primary_parent_email: "maria.r@example.com",
+    primary_insurance_name: "UnitedHealthcare",
+    primary_insurance_member_id: "UHC-556234",
+  },
+  {
+    id: "demo-client-4",
+    status: "authorization",
+    child_first_name: "Sophia",
+    child_last_name: "Kim",
+    child_date_of_birth: "2020-08-10",
+    created_at: daysAgo(30),
+    updated_at: daysAgo(1),
+    primary_parent_name: "Jisoo Kim",
+    primary_parent_phone: "(555) 504-2211",
+    primary_parent_email: "jisoo.kim@example.com",
+    primary_insurance_name: "Cigna",
+    primary_insurance_member_id: "CGN-778345",
+  },
+  {
+    id: "demo-client-5",
+    status: "active",
+    child_first_name: "Ethan",
+    child_last_name: "Williams",
+    child_date_of_birth: "2018-01-30",
+    created_at: daysAgo(75),
+    updated_at: daysAgo(1),
+    primary_parent_name: "Jessica Williams",
+    primary_parent_phone: "(555) 605-8834",
+    primary_parent_email: "j.williams@example.com",
+    primary_insurance_name: "Blue Cross Blue Shield",
+    primary_insurance_member_id: "BCBS-112978",
+  },
+  {
+    id: "demo-client-6",
+    status: "active",
+    child_first_name: "Mia",
+    child_last_name: "Garcia",
+    child_date_of_birth: "2019-09-14",
+    created_at: daysAgo(60),
+    updated_at: daysAgo(3),
+    primary_parent_name: "Carlos Garcia",
+    primary_parent_phone: "(555) 706-4456",
+    primary_parent_email: "c.garcia@example.com",
+    primary_insurance_name: "Medicaid",
+    primary_insurance_member_id: "MCD-443210",
+  },
+  {
+    id: "demo-client-7",
+    status: "active",
+    child_first_name: "Oliver",
+    child_last_name: "Thompson",
+    child_date_of_birth: "2017-12-05",
+    created_at: daysAgo(90),
+    updated_at: daysAgo(5),
+    primary_parent_name: "Rachel Thompson",
+    primary_parent_phone: "(555) 807-9912",
+    primary_parent_email: "rachel.t@example.com",
+    primary_insurance_name: "TRICARE",
+    primary_insurance_member_id: "TRI-667891",
+  },
+  {
+    id: "demo-client-8",
+    status: "discharged",
+    child_first_name: "Emma",
+    child_last_name: "Johnson",
+    child_date_of_birth: "2016-04-18",
+    created_at: daysAgo(180),
+    updated_at: daysAgo(14),
+    primary_parent_name: "David Johnson",
+    primary_parent_phone: "(555) 908-3345",
+    primary_parent_email: "d.johnson@example.com",
+    primary_insurance_name: "Aetna",
+    primary_insurance_member_id: "AET-998456",
+  },
+];
+
+// Counts derived from DEMO_CLIENTS
+export const DEMO_CLIENT_COUNTS = {
+  total: DEMO_CLIENTS.length,
+  inquiry: DEMO_CLIENTS.filter((c) => c.status === "inquiry").length,
+  intake_pending: 0,
+  waitlist: 0,
+  assessment: DEMO_CLIENTS.filter((c) => c.status === "assessment").length,
+  authorization: DEMO_CLIENTS.filter((c) => c.status === "authorization")
+    .length,
+  active: DEMO_CLIENTS.filter((c) => c.status === "active").length,
+  on_hold: 0,
+  discharged: DEMO_CLIENTS.filter((c) => c.status === "discharged").length,
+};
+
+// =============================================================================
+// DEMO LEADS (inquiry-stage clients presented as leads)
+// =============================================================================
+
+export const DEMO_LEADS: ClientListItem[] = [
+  {
+    id: "demo-lead-1",
+    status: "inquiry",
+    child_first_name: "Harper",
+    child_last_name: "Davis",
+    child_date_of_birth: "2022-02-11",
+    created_at: daysAgo(1),
+    updated_at: daysAgo(1),
+    primary_parent_name: "Samantha Davis",
+    primary_parent_phone: "(555) 110-2233",
+    primary_parent_email: "sam.davis@example.com",
+    primary_insurance_name: "Blue Cross Blue Shield",
+    primary_insurance_member_id: "BCBS-332147",
+  },
+  {
+    id: "demo-lead-2",
+    status: "inquiry",
+    child_first_name: "Lucas",
+    child_last_name: "Martinez",
+    child_date_of_birth: "2021-07-25",
+    created_at: daysAgo(3),
+    updated_at: daysAgo(2),
+    primary_parent_name: "Ana Martinez",
+    primary_parent_phone: "(555) 220-4455",
+    primary_parent_email: "ana.m@example.com",
+    primary_insurance_name: "Cigna",
+    primary_insurance_member_id: "CGN-558901",
+  },
+  {
+    id: "demo-lead-3",
+    status: "inquiry",
+    child_first_name: "Charlotte",
+    child_last_name: "Brown",
+    child_date_of_birth: "2020-12-08",
+    created_at: daysAgo(6),
+    updated_at: daysAgo(5),
+    primary_parent_name: "Michael Brown",
+    primary_parent_phone: "(555) 330-6677",
+    primary_parent_email: "m.brown@example.com",
+    primary_insurance_name: "UnitedHealthcare",
+    primary_insurance_member_id: "UHC-774523",
+  },
+  {
+    id: "demo-lead-4",
+    status: "intake_pending",
+    child_first_name: "James",
+    child_last_name: "Wilson",
+    child_date_of_birth: "2019-05-19",
+    created_at: daysAgo(10),
+    updated_at: daysAgo(7),
+    primary_parent_name: "Laura Wilson",
+    primary_parent_phone: "(555) 440-8899",
+    primary_parent_email: "laura.w@example.com",
+    primary_insurance_name: "Aetna",
+    primary_insurance_member_id: "AET-119873",
+  },
+  {
+    id: "demo-lead-5",
+    status: "intake_pending",
+    child_first_name: "Benjamin",
+    child_last_name: "Taylor",
+    child_date_of_birth: "2021-01-03",
+    created_at: daysAgo(12),
+    updated_at: daysAgo(8),
+    primary_parent_name: "Christine Taylor",
+    primary_parent_phone: "(555) 550-1122",
+    primary_parent_email: "c.taylor@example.com",
+    primary_insurance_name: "Kaiser Permanente",
+    primary_insurance_member_id: "KP-665432",
+  },
+];
+
+// =============================================================================
+// DEMO PIPELINE STATS
+// =============================================================================
+
+export const DEMO_PIPELINE_STATS: PipelineSummary = {
+  counts: {
+    inquiry: 2,
+    intake_pending: 2,
+    waitlist: 1,
+    assessment: 1,
+    authorization: 1,
+    active: 3,
+    on_hold: 0,
+    discharged: 1,
+  },
+  attentionItems: [
+    {
+      type: "expiring_auth",
+      clientId: "demo-client-4",
+      clientName: "Sophia Kim",
+      description: "Insurance authorization expiring in 3 days",
+      dueDate: new Date(
+        Date.now() + 3 * 24 * 60 * 60 * 1000
+      ).toISOString(),
+    },
+    {
+      type: "stale_inquiry",
+      clientId: "demo-lead-3",
+      clientName: "Charlotte Brown",
+      description: "No response to inquiry for 6 days",
+      daysSince: 6,
+    },
+    {
+      type: "overdue_task",
+      clientId: "demo-client-5",
+      clientName: "Ethan Williams",
+      description: "Overdue: Submit treatment plan update",
+      dueDate: daysAgo(2),
+    },
+    {
+      type: "stale_waitlist",
+      clientId: "demo-lead-5",
+      clientName: "Benjamin Taylor",
+      description: "On waitlist for 12 days without follow-up",
+      daysSince: 12,
+    },
+  ] satisfies AttentionItem[],
+  recentActivity: [
+    {
+      type: "new_client",
+      clientId: "demo-lead-1",
+      clientName: "Harper Davis",
+      description: "New inquiry submitted via website",
+      timestamp: daysAgo(1),
+    },
+    {
+      type: "status_change",
+      clientId: "demo-client-3",
+      clientName: "Noah Rivera",
+      description: "Moved to Assessment stage",
+      timestamp: daysAgo(2),
+    },
+    {
+      type: "communication_sent",
+      clientId: "demo-client-5",
+      clientName: "Ethan Williams",
+      description: "Session reminder email sent",
+      timestamp: daysAgo(2),
+    },
+    {
+      type: "task_completed",
+      clientId: "demo-client-6",
+      clientName: "Mia Garcia",
+      description: "Completed: Initial assessment report",
+      timestamp: daysAgo(3),
+    },
+    {
+      type: "status_change",
+      clientId: "demo-client-4",
+      clientName: "Sophia Kim",
+      description: "Insurance verification completed",
+      timestamp: daysAgo(4),
+    },
+    {
+      type: "new_client",
+      clientId: "demo-lead-2",
+      clientName: "Lucas Martinez",
+      description: "New inquiry via pediatrician referral",
+      timestamp: daysAgo(3),
+    },
+  ] satisfies ActivityItem[],
+};
+
+// =============================================================================
+// DEMO TASKS
+// =============================================================================
+
+export const DEMO_TASKS = [
+  {
+    id: "demo-task-1",
+    client_id: "demo-client-5",
+    profile_id: "demo-profile-id",
+    title: "Submit treatment plan update",
+    content: "Quarterly treatment plan update due for Ethan Williams. Review goals and update progress notes.",
+    status: "pending" as const,
+    due_date: daysAgo(2),
+    reminder_at: null,
+    created_at: daysAgo(10),
+    updated_at: daysAgo(2),
+    completed_at: null,
+    deleted_at: null,
+    client_name: "Ethan Williams",
+  },
+  {
+    id: "demo-task-2",
+    client_id: "demo-client-4",
+    profile_id: "demo-profile-id",
+    title: "Follow up on insurance authorization",
+    content: "Cigna authorization for Sophia Kim expires soon. Contact representative to request extension.",
+    status: "pending" as const,
+    due_date: daysAgo(1),
+    reminder_at: null,
+    created_at: daysAgo(7),
+    updated_at: daysAgo(1),
+    completed_at: null,
+    deleted_at: null,
+    client_name: "Sophia Kim",
+  },
+  {
+    id: "demo-task-3",
+    client_id: "demo-client-3",
+    profile_id: "demo-profile-id",
+    title: "Schedule initial assessment",
+    content: "Contact Maria Rivera to schedule Noah's initial assessment at the LA office.",
+    status: "in_progress" as const,
+    due_date: new Date().toISOString().split("T")[0],
+    reminder_at: null,
+    created_at: daysAgo(5),
+    updated_at: daysAgo(1),
+    completed_at: null,
+    deleted_at: null,
+    client_name: "Noah Rivera",
+  },
+  {
+    id: "demo-task-4",
+    client_id: "demo-lead-1",
+    profile_id: "demo-profile-id",
+    title: "Follow up with guardian",
+    content: "Respond to Samantha Davis's inquiry about services for Harper. Share availability and insurance info.",
+    status: "pending" as const,
+    due_date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000)
+      .toISOString()
+      .split("T")[0],
+    reminder_at: null,
+    created_at: daysAgo(1),
+    updated_at: daysAgo(1),
+    completed_at: null,
+    deleted_at: null,
+    client_name: "Harper Davis",
+  },
+  {
+    id: "demo-task-5",
+    client_id: "demo-client-6",
+    profile_id: "demo-profile-id",
+    title: "Prepare parent training materials",
+    content: "Create take-home strategies packet for the Garcia family covering mealtime routines.",
+    status: "pending" as const,
+    due_date: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000)
+      .toISOString()
+      .split("T")[0],
+    reminder_at: null,
+    created_at: daysAgo(3),
+    updated_at: daysAgo(3),
+    completed_at: null,
+    deleted_at: null,
+    client_name: "Mia Garcia",
+  },
+  {
+    id: "demo-task-6",
+    client_id: "demo-client-7",
+    profile_id: "demo-profile-id",
+    title: "Submit TRICARE reauthorization",
+    content: "Oliver Thompson's TRICARE authorization renewal is due next week. Gather session notes and submit.",
+    status: "pending" as const,
+    due_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+      .toISOString()
+      .split("T")[0],
+    reminder_at: null,
+    created_at: daysAgo(2),
+    updated_at: daysAgo(2),
+    completed_at: null,
+    deleted_at: null,
+    client_name: "Oliver Thompson",
+  },
+];
+
+// =============================================================================
+// DEMO EMPLOYEES (Team Members)
+// =============================================================================
+
+export const DEMO_EMPLOYEES: TeamMember[] = [
+  {
+    id: "demo-emp-1",
+    profile_id: "demo-profile-id",
+    first_name: "Dr. Sarah",
+    last_name: "Mitchell",
+    email: "s.mitchell@sunriseaba.example.com",
+    phone: "(555) 100-1001",
+    address: "Los Angeles, CA",
+    role: "BCBA",
+    notes: "Clinical Director. Specializes in early intervention and feeding therapy.",
+    status: "active",
+    hired_date: daysAgo(365),
+    job_application_id: null,
+    created_at: daysAgo(365),
+    updated_at: daysAgo(10),
+    credential_count: 3,
+    expiring_credential_count: 0,
+  },
+  {
+    id: "demo-emp-2",
+    profile_id: "demo-profile-id",
+    first_name: "Marcus",
+    last_name: "Chen",
+    email: "m.chen@sunriseaba.example.com",
+    phone: "(555) 100-1002",
+    address: "Los Angeles, CA",
+    role: "RBT",
+    notes: "Experienced RBT, bilingual English/Mandarin.",
+    status: "active",
+    hired_date: daysAgo(240),
+    job_application_id: null,
+    created_at: daysAgo(240),
+    updated_at: daysAgo(5),
+    credential_count: 2,
+    expiring_credential_count: 1,
+  },
+  {
+    id: "demo-emp-3",
+    profile_id: "demo-profile-id",
+    first_name: "Jasmine",
+    last_name: "Rodriguez",
+    email: "j.rodriguez@sunriseaba.example.com",
+    phone: "(555) 100-1003",
+    address: "San Diego, CA",
+    role: "RBT",
+    notes: "Bilingual English/Spanish. Works with the San Diego center.",
+    status: "active",
+    hired_date: daysAgo(150),
+    job_application_id: null,
+    created_at: daysAgo(150),
+    updated_at: daysAgo(3),
+    credential_count: 2,
+    expiring_credential_count: 0,
+  },
+  {
+    id: "demo-emp-4",
+    profile_id: "demo-profile-id",
+    first_name: "Kelly",
+    last_name: "Park",
+    email: "k.park@sunriseaba.example.com",
+    phone: "(555) 100-1004",
+    address: "Los Angeles, CA",
+    role: "Office Manager",
+    notes: "Handles scheduling, billing, and insurance verifications.",
+    status: "active",
+    hired_date: daysAgo(300),
+    job_application_id: null,
+    created_at: daysAgo(300),
+    updated_at: daysAgo(1),
+    credential_count: 0,
+    expiring_credential_count: 0,
+  },
+];
+
+// =============================================================================
+// DEMO JOBS
+// =============================================================================
+
+export const DEMO_JOBS: JobPostingSummary[] = [
+  {
+    id: "demo-job-1",
+    title: "Board Certified Behavior Analyst (BCBA)",
+    slug: "bcba-los-angeles-sunrise-aba",
+    positionType: "bcba",
+    status: "published",
+    publishedAt: daysAgo(14),
+    createdAt: daysAgo(16),
+    applicationCount: 7,
+    location: { city: "Los Angeles", state: "CA" },
+  },
+  {
+    id: "demo-job-2",
+    title: "Registered Behavior Technician (RBT)",
+    slug: "rbt-san-diego-sunrise-aba",
+    positionType: "rbt",
+    status: "published",
+    publishedAt: daysAgo(7),
+    createdAt: daysAgo(9),
+    applicationCount: 12,
+    location: { city: "San Diego", state: "CA" },
+  },
+  {
+    id: "demo-job-3",
+    title: "Administrative Coordinator",
+    slug: "admin-coordinator-sunrise-aba",
+    positionType: "other",
+    status: "draft",
+    publishedAt: null,
+    createdAt: daysAgo(2),
+    applicationCount: 0,
+    location: { city: "Los Angeles", state: "CA" },
+  },
+];
+
+// =============================================================================
+// DEMO COMMUNICATIONS
+// =============================================================================
+
+export const DEMO_COMMUNICATIONS: ClientCommunication[] = [
+  {
+    id: "demo-comm-1",
+    client_id: "demo-client-5",
+    profile_id: "demo-profile-id",
+    template_slug: "welcome",
+    subject: "Welcome to Sunrise ABA Therapy!",
+    body: "Dear Jessica, Thank you for choosing Sunrise ABA Therapy for Ethan's care...",
+    recipient_email: "j.williams@example.com",
+    recipient_name: "Jessica Williams",
+    status: "sent",
+    sent_at: daysAgo(75),
+    sent_by: "demo-profile-id",
+    created_at: daysAgo(75),
+    client_name: "Ethan Williams",
+  },
+  {
+    id: "demo-comm-2",
+    client_id: "demo-client-6",
+    profile_id: "demo-profile-id",
+    template_slug: "session-reminder",
+    subject: "Session Reminder: Mia's ABA Therapy Tomorrow",
+    body: "Hi Carlos, This is a friendly reminder that Mia's ABA session is scheduled for tomorrow...",
+    recipient_email: "c.garcia@example.com",
+    recipient_name: "Carlos Garcia",
+    status: "sent",
+    sent_at: daysAgo(2),
+    sent_by: "demo-profile-id",
+    created_at: daysAgo(2),
+    client_name: "Mia Garcia",
+  },
+  {
+    id: "demo-comm-3",
+    client_id: "demo-client-4",
+    profile_id: "demo-profile-id",
+    template_slug: "insurance-update",
+    subject: "Insurance Authorization Update for Sophia",
+    body: "Dear Jisoo, We wanted to update you on the status of Sophia's insurance authorization with Cigna...",
+    recipient_email: "jisoo.kim@example.com",
+    recipient_name: "Jisoo Kim",
+    status: "sent",
+    sent_at: daysAgo(5),
+    sent_by: "demo-profile-id",
+    created_at: daysAgo(5),
+    client_name: "Sophia Kim",
+  },
+  {
+    id: "demo-comm-4",
+    client_id: "demo-client-3",
+    profile_id: "demo-profile-id",
+    template_slug: "assessment-scheduled",
+    subject: "Assessment Appointment Confirmation for Noah",
+    body: "Dear Maria, We are pleased to confirm Noah's initial assessment appointment...",
+    recipient_email: "maria.r@example.com",
+    recipient_name: "Maria Rivera",
+    status: "sent",
+    sent_at: daysAgo(3),
+    sent_by: "demo-profile-id",
+    created_at: daysAgo(3),
+    client_name: "Noah Rivera",
+  },
+  {
+    id: "demo-comm-5",
+    client_id: "demo-client-8",
+    profile_id: "demo-profile-id",
+    template_slug: null,
+    subject: "Final Billing Statement — Emma Johnson",
+    body: "Dear David, Please find attached Emma's final billing statement following her discharge...",
+    recipient_email: "d.johnson@example.com",
+    recipient_name: "David Johnson",
+    status: "sent",
+    sent_at: daysAgo(14),
+    sent_by: "demo-profile-id",
+    created_at: daysAgo(14),
+    client_name: "Emma Johnson",
+  },
+];
+
+// =============================================================================
+// DEMO REFERRAL SOURCES
+// =============================================================================
+
+export const DEMO_REFERRAL_SOURCES: ReferralAnalytics = {
+  totalClients: 11,
+  totalWithSource: 9,
+  findabatherapyCount: 3,
+  breakdown: [
+    {
+      source: "findabatherapy",
+      label: "FindABATherapy.org",
+      count: 3,
+      percentage: 33.3,
+    },
+    {
+      source: "google",
+      label: "Google Search",
+      count: 2,
+      percentage: 22.2,
+    },
+    {
+      source: "physician",
+      label: "Pediatrician Referral",
+      count: 2,
+      percentage: 22.2,
+    },
+    {
+      source: "word_of_mouth",
+      label: "Parent Referral",
+      count: 1,
+      percentage: 11.1,
+    },
+    {
+      source: "social_media",
+      label: "Social Media",
+      count: 1,
+      percentage: 11.1,
+    },
+  ],
 };
