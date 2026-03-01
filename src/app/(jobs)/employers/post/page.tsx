@@ -444,7 +444,7 @@ export default function PostJobPage() {
                   {/* Bottom section - pushed to bottom for alignment */}
                   <div className="mt-auto pt-4">
                     <div className="space-y-3">
-                    {"showEmailLink" in plan && plan.showEmailLink && (
+                    {"showEmailLink" in plan && Boolean(plan.showEmailLink) && (
                       <p className="text-center text-xs text-muted-foreground">
                         Questions?{" "}
                         <SupportContactDialog>
