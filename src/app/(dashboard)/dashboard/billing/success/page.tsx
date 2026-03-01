@@ -8,9 +8,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { CheckoutTracker } from "@/components/analytics/checkout-tracker";
 import { getListing, type ListingWithRelations } from "@/lib/actions/listings";
 import { verifyAndSyncCheckoutSession } from "@/lib/stripe/actions";
+import { ADDON_INFO, type AddonType } from "@/lib/plans/addon-config";
 
 interface BillingSuccessPageProps {
-  searchParams: Promise<{ return_to?: string; session_id?: string; upgraded?: string; downgraded?: string }>;
+  searchParams: Promise<{ return_to?: string; session_id?: string; upgraded?: string; downgraded?: string; addon?: string; quantity?: string }>;
 }
 
 async function getListingData(): Promise<ListingWithRelations | null> {
@@ -44,12 +45,20 @@ export default async function BillingSuccessPage({ searchParams }: BillingSucces
   const listing = await getListingData();
   const isUpgrade = params.upgraded === "true";
   const isDowngrade = params.downgraded === "true";
+  const isAddon = !!params.addon;
+  const addonType = params.addon as AddonType | undefined;
+  const addonQuantity = parseInt(params.quantity || "1", 10);
+  const addonInfo = addonType && addonType in ADDON_INFO ? ADDON_INFO[addonType] : null;
 
   // Determine title and description based on action type
   let title = "You're Live!";
   let description = "Your practice is now live on FindABATherapy. Families can discover and contact you directly.";
 
-  if (isUpgrade) {
+  if (isAddon && addonInfo) {
+    const totalUnits = addonQuantity * addonInfo.unitsPerPack;
+    title = `${addonInfo.label} Added!`;
+    description = `+${totalUnits} ${addonInfo.unitLabel}${totalUnits !== 1 ? "s" : ""} added to your plan at $${addonQuantity * addonInfo.pricePerPack}/mo.`;
+  } else if (isUpgrade) {
     title = "Plan Upgraded!";
     description = "Your plan has been upgraded. New features are now available.";
   } else if (isDowngrade) {
@@ -58,7 +67,7 @@ export default async function BillingSuccessPage({ searchParams }: BillingSucces
   }
 
   // Determine checkout type for tracking
-  const checkoutType = isUpgrade ? "upgrade" : isDowngrade ? "downgrade" : "new";
+  const checkoutType = isAddon ? "addon" : isUpgrade ? "upgrade" : isDowngrade ? "downgrade" : "new";
 
   return (
     <div className="flex min-h-[60vh] items-center justify-center">
@@ -83,29 +92,48 @@ export default async function BillingSuccessPage({ searchParams }: BillingSucces
               {isDowngrade ? "What happens next?" : "Next steps"}
             </h3>
             <ul className="mt-2 space-y-2 text-sm text-emerald-800 dark:text-emerald-200">
-              <li className="flex items-start gap-2">
-                <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0" />
-                Your listing is now published and searchable
-              </li>
-              <li className="flex items-start gap-2">
-                <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0" />
-                All Pro features are unlocked — branded pages, CRM, communications
-              </li>
-              <li className="flex items-start gap-2">
-                <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0" />
-                Families can contact you directly through your listing
-              </li>
+              {isAddon ? (
+                <>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                    Your add-on is now active
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                    Updated limits are available immediately
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                    Manage add-ons anytime from the billing page
+                  </li>
+                </>
+              ) : (
+                <>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                    Your listing is now published and searchable
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                    All Pro features are unlocked — branded pages, CRM, communications
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                    Families can contact you directly through your listing
+                  </li>
+                </>
+              )}
             </ul>
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row">
             <Button asChild className="flex-1">
-              <Link href="/dashboard">
-                Go to Dashboard
+              <Link href={isAddon ? "/dashboard/billing" : "/dashboard"}>
+                {isAddon ? "Back to Billing" : "Go to Dashboard"}
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>
-            {listing && (
+            {!isAddon && listing && (
               <Button variant="outline" asChild className="flex-1">
                 <Link href={`/provider/${listing.slug}`} target="_blank">
                   View Live Listing

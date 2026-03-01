@@ -9,7 +9,7 @@ import {
 } from "@/lib/posthog/events";
 
 interface CheckoutTrackerProps {
-  type: "new" | "upgrade" | "downgrade";
+  type: "new" | "upgrade" | "downgrade" | "addon";
   planTier?: string;
   billingInterval?: "month" | "year";
 }
