@@ -29,7 +29,7 @@ export function AddonCard({ addons }: AddonCardProps) {
         <h3 className="text-sm font-medium text-slate-700">
           {addons.length > 0 ? "Add More Capacity" : "Available Add-ons"}
         </h3>
-        <div className="grid gap-2 sm:grid-cols-2">
+        <div className="grid gap-2 sm:grid-cols-2 items-start">
           {(["location_pack", "job_pack", "extra_users", "storage_pack"] as const).map(
             (type) => {
               const existing = addons.find(
