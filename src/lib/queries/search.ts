@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { getEffectivePlanTier, type PlanTier } from "@/lib/plans/features";
 import { calculateDistance } from "@/lib/geo/distance";
 import { getStateForms, sortSearchResultsByRelevance } from "@/lib/utils/location-utils";
@@ -409,7 +409,11 @@ export async function getFeaturedListings(limit: number = 6): Promise<SearchResu
 export async function getHomepageFeaturedListings(limit: number = 3): Promise<SearchResultListing[]> {
   const supabase = await createClient();
 
-  const { data: addons, error: addonError } = await supabase
+  // Use admin client for the addons query to bypass RLS — the profile_addons
+  // table only allows users to read their own rows, but this public-facing
+  // query needs to read across all profiles with active homepage placements.
+  const adminClient = await createAdminClient();
+  const { data: addons, error: addonError } = await adminClient
     .from("profile_addons")
     .select("profile_id")
     .eq("addon_type", "homepage_placement")
