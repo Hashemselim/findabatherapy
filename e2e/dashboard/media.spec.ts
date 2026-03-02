@@ -46,52 +46,24 @@ test.describe("DASH-022, DASH-023, DASH-024, DASH-025: Media Management", () => 
     }
   });
 
-  test("should show upgrade prompt for free users", async ({ page }) => {
-    // Look for upgrade prompt
-    const upgradePrompt = page.locator(
-      '[data-testid="upgrade-prompt"], .upgrade-prompt, text=/upgrade|pro plan|premium/i'
-    );
-    const hasUpgrade = await upgradePrompt.isVisible().catch(() => false);
-
-    // This is expected for free tier
-    if (hasUpgrade) {
-      // Check for upgrade CTA
-      const upgradeButton = page.locator('a[href*="/billing"], a[href*="/upgrade"], button:has-text(/upgrade/i)');
-      const hasButton = await upgradeButton.first().isVisible().catch(() => false);
-      expect(hasButton).toBeTruthy();
-    }
+  test("should show photo gallery section", async ({ page }) => {
+    await expect(page.locator("text=/photo gallery/i").first()).toBeVisible();
   });
 
   test("should have photo upload section", async ({ page }) => {
-    // Look for photo upload area
-    const photoUpload = page.locator(
-      '[data-testid="photo-upload"], .photo-upload, input[type="file"][accept*="image"], .dropzone'
+    await page.getByRole("button", { name: "Edit" }).first().click();
+
+    await expect(page.locator('input[type="file"]').first()).toHaveAttribute(
+      "accept",
+      /image/
     );
-    const hasUpload = await photoUpload.first().isVisible().catch(() => false);
-
-    const upgradePrompt = page.locator('text=/upgrade|pro plan/i');
-    const needsUpgrade = await upgradePrompt.isVisible().catch(() => false);
-
-    if (needsUpgrade) {
-      test.skip(true, "Photo upload requires Pro+ plan");
-      return;
-    }
-
-    expect(hasUpload).toBeTruthy();
+    await expect(page.getByText(/photos used|add photo/i).first()).toBeVisible();
   });
 
   test("should show existing photos", async ({ page }) => {
-    const upgradePrompt = page.locator('text=/upgrade|pro plan/i');
-    const needsUpgrade = await upgradePrompt.isVisible().catch(() => false);
-
-    if (needsUpgrade) {
-      test.skip(true, "Media requires Pro+ plan");
-      return;
-    }
-
     // Look for photo gallery
     const photoGallery = page.locator(
-      '[data-testid="photo-gallery"], .photo-gallery, .photos-grid'
+      'text=/photo gallery|no photos|add photos/i'
     );
     const existingPhotos = page.locator(
       '[data-testid="photo-item"], .photo-item, img[src*="storage"]'
@@ -253,14 +225,6 @@ test.describe("DASH-022, DASH-023, DASH-024, DASH-025: Media Management", () => 
   });
 
   test("should indicate photo limit", async ({ page }) => {
-    const upgradePrompt = page.locator('text=/upgrade|pro plan/i');
-    const needsUpgrade = await upgradePrompt.isVisible().catch(() => false);
-
-    if (needsUpgrade) {
-      test.skip(true, "Media requires Pro+ plan");
-      return;
-    }
-
     // Look for photo count/limit indicator
     const photoCount = page.locator('text=/\\d+ of \\d+|\\d+\\/\\d+|photos.*\\d+/i');
     const hasCount = await photoCount.isVisible().catch(() => false);
@@ -302,13 +266,7 @@ test.describe("Photo Upload Validation", () => {
       return;
     }
 
-    const upgradePrompt = page.locator('text=/upgrade|pro plan/i');
-    const needsUpgrade = await upgradePrompt.isVisible().catch(() => false);
-
-    if (needsUpgrade) {
-      test.skip(true, "Media requires Pro+ plan");
-      return;
-    }
+    await page.getByRole("button", { name: "Edit" }).first().click();
   });
 
   test("should accept valid image types", async ({ page }) => {
@@ -353,13 +311,7 @@ test.describe("Photo Reordering", () => {
       return;
     }
 
-    const upgradePrompt = page.locator('text=/upgrade|pro plan/i');
-    const needsUpgrade = await upgradePrompt.isVisible().catch(() => false);
-
-    if (needsUpgrade) {
-      test.skip(true, "Media requires Pro+ plan");
-      return;
-    }
+    await page.getByRole("button", { name: "Edit" }).first().click();
   });
 
   test("should have drag and drop reorder functionality", async ({ page }) => {

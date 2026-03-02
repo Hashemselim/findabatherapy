@@ -38,3 +38,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 *.swp
+
+# local tool/IDE configs
+.codex/
+.obsidian/
+.playwright-cli/
+output/

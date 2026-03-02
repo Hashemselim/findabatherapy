@@ -5,6 +5,8 @@ import { revalidatePath } from "next/cache";
 import { createClient, createAdminClient, getUser } from "@/lib/supabase/server";
 import { geocodeAddress } from "@/lib/geo/geocode";
 import { stripe } from "@/lib/stripe";
+import { getEffectivePlanTier } from "@/lib/plans/features";
+import { getEffectiveLimits } from "@/lib/actions/addons";
 
 type ActionResult<T = void> =
   | { success: true; data?: T }
@@ -190,7 +192,7 @@ export async function addLocation(data: {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("plan_tier")
+    .select("plan_tier, subscription_status")
     .eq("id", user.id)
     .single();
 
@@ -204,11 +206,20 @@ export async function addLocation(data: {
     .select("id", { count: "exact", head: true })
     .eq("listing_id", listing.id);
 
-  const limit = LOCATION_LIMITS[profile.plan_tier] || 1;
+  const effectiveTier = getEffectivePlanTier(
+    profile.plan_tier,
+    profile.subscription_status
+  );
+  const limitsResult = await getEffectiveLimits(user.id);
+  const limit = limitsResult.success && limitsResult.data
+    ? limitsResult.data.maxLocations
+    : LOCATION_LIMITS[effectiveTier] || 1;
   if ((count || 0) >= limit) {
     return {
       success: false,
-      error: `Your plan allows a maximum of ${limit} location${limit === 1 ? "" : "s"}. Upgrade to add more.`,
+      error: effectiveTier === "free"
+        ? `Your plan allows a maximum of ${limit} location${limit === 1 ? "" : "s"}. Go Live to unlock more capacity.`
+        : `You've used ${count || 0} of ${limit} locations. Add more capacity from billing to create another location.`,
     };
   }
 

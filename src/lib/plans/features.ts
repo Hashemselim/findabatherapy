@@ -86,7 +86,7 @@ export const PLAN_CONFIGS: Record<PlanTier, PlanConfig> = {
     features: {
       maxLocations: 3,
       maxPhotos: 3,
-      maxJobPostings: 1,
+      maxJobPostings: 0,
       maxClients: 10,
       hasContactForm: false,
       hasPhotoGallery: true,
@@ -118,7 +118,6 @@ export const PLAN_CONFIGS: Record<PlanTier, PlanConfig> = {
       "Up to 3 service locations",
       "Photo gallery (up to 3)",
       "Ages, languages, diagnoses & specialties",
-      "1 job posting",
       "10 client records",
       "SEO-boosting backlink",
     ],

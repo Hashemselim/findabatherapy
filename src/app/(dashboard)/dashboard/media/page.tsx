@@ -9,7 +9,7 @@ import { VideoEmbedForm } from "@/components/dashboard/video-embed-form";
 import { getProfile } from "@/lib/supabase/server";
 
 // PRD 4.5.3: Media section
-// Free: locked, Pro: photos + video
+// Free: photos, Pro: photos + video
 export default async function MediaPage() {
   const profile = await getProfile();
 

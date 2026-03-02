@@ -236,13 +236,13 @@ export const behaviorWorkPlanHighlights: Record<BehaviorWorkPlanTier, string[]> 
     "Professional listing with all profile details",
     "Up to 3 locations and 3 photos",
     "Ages, languages, diagnoses & specialties",
-    "1 job posting + 10 client records",
+    "10 client records (demo only)",
   ],
   pro: [
     "Branded agency page & intake forms",
-    "Up to 250 CRM contacts",
+    "Unlimited CRM clients",
     "Communication templates & analytics",
-    "Priority placement + 5 job postings",
+    "Priority placement + 10 job postings",
   ],
 };
 
@@ -327,7 +327,7 @@ export const behaviorWorkFeatureMatrix = [
         label: "Client records",
         values: {
           free: "Up to 10",
-          pro: "Up to 250",
+          pro: "Unlimited",
         },
       },
       {
@@ -359,8 +359,8 @@ export const behaviorWorkFeatureMatrix = [
       {
         label: "Job postings",
         values: {
-          free: "1",
-          pro: "Up to 5",
+          free: "—",
+          pro: "Up to 10",
         },
       },
       {

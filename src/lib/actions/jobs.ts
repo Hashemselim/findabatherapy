@@ -19,6 +19,7 @@ import {
   JOB_LIMITS,
 } from "@/lib/validations/jobs";
 import { getEffectivePlanTier, type PlanTier } from "@/lib/plans/features";
+import { getEffectiveLimits } from "@/lib/actions/addons";
 
 type ActionResult<T = void> =
   | { success: true; data?: T }
@@ -348,11 +349,16 @@ export async function createJobPosting(data: CreateJobPostingData): Promise<Acti
     .select("id", { count: "exact", head: true })
     .eq("profile_id", user.id);
 
-  const limit = JOB_LIMITS[effectiveTier];
+  const limitsResult = await getEffectiveLimits(user.id);
+  const limit = limitsResult.success && limitsResult.data
+    ? limitsResult.data.maxJobPostings
+    : JOB_LIMITS[effectiveTier];
   if ((jobCount || 0) >= limit) {
     return {
       success: false,
-      error: `You've reached the maximum of ${limit} job posting${limit > 1 ? "s" : ""} for your plan. Please upgrade to post more jobs.`,
+      error: effectiveTier === "free"
+        ? "Job posting is available on Pro only. Go Live to post real jobs."
+        : `You've used ${jobCount || 0} of ${limit} job postings. Add more capacity from billing to post more jobs.`,
     };
   }
 
@@ -652,7 +658,10 @@ export async function getJobCountAndLimit(): Promise<ActionResult<{ count: numbe
   }
 
   const effectiveTier = getEffectivePlanTier(profile.plan_tier, profile.subscription_status);
-  const limit = JOB_LIMITS[effectiveTier];
+  const limitsResult = await getEffectiveLimits(user.id);
+  const limit = limitsResult.success && limitsResult.data
+    ? limitsResult.data.maxJobPostings
+    : JOB_LIMITS[effectiveTier];
 
   // Get current job count
   const { count } = await supabase

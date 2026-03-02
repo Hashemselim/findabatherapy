@@ -37,6 +37,7 @@ import {
   verifyDocumentMagicBytes,
   DOCUMENT_MAX_SIZE,
 } from "@/lib/storage/config";
+import { getCurrentPlanTier } from "@/lib/plans/guards";
 
 // =============================================================================
 // TYPES
@@ -364,6 +365,14 @@ export async function createClient(
   const user = await getUser();
   if (!user) {
     return { success: false, error: "Not authenticated" };
+  }
+
+  const currentTier = await getCurrentPlanTier();
+  if (currentTier === "free") {
+    return {
+      success: false,
+      error: "Client management is in preview mode. Go Live to add real clients.",
+    };
   }
 
   const parsed = clientSchema.partial().safeParse(data);

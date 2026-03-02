@@ -1,4 +1,5 @@
-import { test, expect } from "@playwright/test";
+/* eslint-disable react-hooks/rules-of-hooks */
+import { test } from "@playwright/test";
 import path from "path";
 
 const authFile = path.join(__dirname, "../.auth/user.json");
@@ -131,7 +132,7 @@ test.describe("Integration - Plan Limits", () => {
     console.log(`Analytics needs upgrade: ${needsUpgrade}`);
   });
 
-  test("Photo gallery requires Pro plan", async ({ page }) => {
+  test("Free plan includes photos while video remains Pro", async ({ page }) => {
     await page.goto("/dashboard/company");
 
     const url = page.url();
@@ -140,14 +141,17 @@ test.describe("Integration - Plan Limits", () => {
       return;
     }
 
-    // Check photos section
+    // Check media section
     const photosSection = page.locator("text=/photo|gallery|media/i").first();
 
     if (await photosSection.isVisible()) {
-      const upgradePrompt = page.locator("text=/upgrade|pro.*required|unlock/i");
-      const needsUpgrade = await upgradePrompt.count() > 0;
+      const freePhotosCopy = page.locator("text=/add up to 3 photos on free/i").first();
+      const hasFreePhotos = await freePhotosCopy.isVisible().catch(() => false);
+      const videoUpgradePrompt = page.locator("text=/upgrade to add video/i").first();
+      const hasVideoUpgrade = await videoUpgradePrompt.isVisible().catch(() => false);
 
-      console.log(`Photos need upgrade: ${needsUpgrade}`);
+      console.log(`Free photos copy visible: ${hasFreePhotos}`);
+      console.log(`Video upgrade copy visible: ${hasVideoUpgrade}`);
     }
   });
 

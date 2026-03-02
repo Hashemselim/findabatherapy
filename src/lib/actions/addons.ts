@@ -101,6 +101,13 @@ export async function createAddonSubscription(
     return { success: false, error: "Add-ons require a Pro plan" };
   }
 
+  if (addonType === "homepage_placement" && quantity !== 1) {
+    return {
+      success: false,
+      error: "Homepage placement is a single add-on and cannot be purchased in multiple quantities",
+    };
+  }
+
   const priceId = ADDON_PRICE_IDS[addonType];
   if (!priceId) {
     return {
@@ -114,17 +121,79 @@ export async function createAddonSubscription(
   // Check for existing active addon of this type
   const { data: existing } = await supabase
     .from("profile_addons")
-    .select("id, quantity, stripe_subscription_id")
+    .select("id, quantity, stripe_subscription_id, cancel_at_period_end")
     .eq("profile_id", user.id)
     .eq("addon_type", addonType)
     .eq("status", "active")
     .maybeSingle();
 
   if (existing) {
-    return {
-      success: false,
-      error: "ALREADY_EXISTS",
-    };
+    if (addonType === "homepage_placement") {
+      return {
+        success: false,
+        error: "ALREADY_EXISTS",
+      };
+    }
+
+    if (!existing.stripe_subscription_id) {
+      return {
+        success: false,
+        error: "ALREADY_EXISTS",
+      };
+    }
+
+    try {
+      const existingSubscription = await stripe.subscriptions.retrieve(
+        existing.stripe_subscription_id
+      );
+      const subscriptionItem = existingSubscription.items.data[0];
+
+      if (!subscriptionItem) {
+        return {
+          success: false,
+          error: "Could not update add-on quantity",
+        };
+      }
+
+      const newQuantity = existing.quantity + quantity;
+
+      await stripe.subscriptions.update(existing.stripe_subscription_id, {
+        items: [
+          {
+            id: subscriptionItem.id,
+            quantity: newQuantity,
+          },
+        ],
+        cancel_at_period_end: false,
+        proration_behavior: "create_prorations",
+        metadata: {
+          type: "addon",
+          addon_type: addonType,
+          profile_id: user.id,
+          quantity: String(newQuantity),
+        },
+      });
+
+      revalidatePath("/dashboard/billing");
+      return {
+        success: true,
+        data: {
+          directCharge: true,
+          subscriptionId: existing.stripe_subscription_id,
+          addonType,
+          quantity: newQuantity,
+        },
+      };
+    } catch (error) {
+      console.error("Addon quantity update error:", error);
+      return {
+        success: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to update add-on quantity",
+      };
+    }
   }
 
   const { data: profile } = await supabase
@@ -322,6 +391,64 @@ export async function cancelAddon(
         error instanceof Error
           ? error.message
           : "Failed to cancel add-on",
+    };
+  }
+}
+
+/**
+ * Reactivate an add-on subscription that was set to cancel at period end.
+ */
+export async function reactivateAddon(
+  addonId: string
+): Promise<ActionResult> {
+  const user = await getUser();
+  if (!user) {
+    return { success: false, error: "Not authenticated" };
+  }
+
+  const supabase = await createClient();
+
+  const { data: addon, error: fetchError } = await supabase
+    .from("profile_addons")
+    .select("id, stripe_subscription_id, status, profile_id, cancel_at_period_end")
+    .eq("id", addonId)
+    .eq("profile_id", user.id)
+    .eq("status", "active")
+    .single();
+
+  if (fetchError || !addon) {
+    return { success: false, error: "Add-on not found or already cancelled" };
+  }
+
+  if (!addon.stripe_subscription_id) {
+    return { success: false, error: "No subscription linked to this add-on" };
+  }
+
+  if (!addon.cancel_at_period_end) {
+    return { success: false, error: "Add-on is not set to cancel" };
+  }
+
+  try {
+    await stripe.subscriptions.update(addon.stripe_subscription_id, {
+      cancel_at_period_end: false,
+    });
+
+    const adminClient = await createAdminClient();
+    await adminClient
+      .from("profile_addons")
+      .update({ cancel_at_period_end: false })
+      .eq("id", addonId);
+
+    revalidatePath("/dashboard/billing");
+    return { success: true };
+  } catch (error) {
+    console.error("Reactivate addon error:", error);
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to reactivate add-on",
     };
   }
 }

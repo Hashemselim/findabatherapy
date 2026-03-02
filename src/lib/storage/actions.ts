@@ -10,6 +10,7 @@ import {
   isValidFileSize,
   generateStoragePath,
 } from "./config";
+import { getEffectivePlanTier } from "@/lib/plans/features";
 
 type ActionResult<T = void> =
   | { success: true; data?: T }
@@ -233,7 +234,7 @@ export async function uploadPhoto(
   // Get listing and profile
   const { data: profile } = await supabase
     .from("profiles")
-    .select("plan_tier")
+    .select("plan_tier, subscription_status")
     .eq("id", user.id)
     .single();
 
@@ -248,10 +249,11 @@ export async function uploadPhoto(
   }
 
   // Check plan limit
-  const photoLimit = PHOTO_LIMITS[profile.plan_tier as keyof typeof PHOTO_LIMITS] || 0;
-  if (photoLimit === 0) {
-    return { success: false, error: "Photo gallery is a premium feature. Please upgrade your plan." };
-  }
+  const effectiveTier = getEffectivePlanTier(
+    profile.plan_tier,
+    profile.subscription_status
+  );
+  const photoLimit = PHOTO_LIMITS[effectiveTier] || 0;
 
   // Count existing photos
   const { count } = await supabase
@@ -412,7 +414,7 @@ export async function updateVideoUrl(
   // Get profile plan
   const { data: profile } = await supabase
     .from("profiles")
-    .select("plan_tier")
+    .select("plan_tier, subscription_status")
     .eq("id", user.id)
     .single();
 
@@ -420,8 +422,13 @@ export async function updateVideoUrl(
     return { success: false, error: "Profile not found" };
   }
 
+  const effectiveTier = getEffectivePlanTier(
+    profile.plan_tier,
+    profile.subscription_status
+  );
+
   // Check if premium feature
-  if (profile.plan_tier === "free" && videoUrl) {
+  if (effectiveTier === "free" && videoUrl) {
     return { success: false, error: "Video embed is a premium feature. Please upgrade your plan." };
   }
 

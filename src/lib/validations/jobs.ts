@@ -537,8 +537,8 @@ export function generateResumePath(
 // =============================================================================
 
 export const JOB_LIMITS = {
-  free: 1,
-  pro: 5,
+  free: 0,
+  pro: 10,
 } as const;
 
 export type PlanTier = keyof typeof JOB_LIMITS;

@@ -13,6 +13,7 @@ import { AgencyPageInsurance } from "@/components/branded/agency-page-insurance"
 import { AgencyPageGallery } from "@/components/branded/agency-page-gallery";
 import { AgencyPageCta } from "@/components/branded/agency-page-cta";
 import { ViewTracker } from "@/components/analytics/view-tracker";
+import { PreviewBanner } from "@/components/ui/preview-banner";
 import { getListingBySlug } from "@/lib/actions/listings";
 
 // Cache the listing fetch to dedupe between generateMetadata and page component
@@ -168,6 +169,13 @@ export default async function BrandedAgencyPage({ params, searchParams }: Brande
         background: `linear-gradient(135deg, ${brandColor} 0%, ${brandColor}dd 50%, ${brandColor}bb 100%)`,
       }}
     >
+      {!isPremium && (
+        <PreviewBanner
+          variant="public"
+          message="This page is in preview mode. Activate your account to go live."
+          triggerFeature="branded_page"
+        />
+      )}
       {/* Analytics tracking */}
       <ViewTracker
         listingId={listing.id}

@@ -315,11 +315,25 @@ export async function getListingsByState(
 }
 
 /**
- * Get featured listings for homepage (Pro)
- * // TODO: migrate to profile_addons table query
+ * Get featured listings for FindABATherapy.org homepage placement.
  */
 export async function getFeaturedListings(limit: number = 6): Promise<SearchResultListing[]> {
   const supabase = await createClient();
+
+  const { data: addons, error: addonError } = await supabase
+    .from("profile_addons")
+    .select("profile_id")
+    .eq("addon_type", "homepage_placement")
+    .eq("status", "active");
+
+  if (addonError) {
+    return [];
+  }
+
+  const profileIds = Array.from(new Set((addons || []).map((addon) => addon.profile_id)));
+  if (profileIds.length === 0) {
+    return [];
+  }
 
   const { data, error } = await supabase
     .from("listings")
@@ -345,7 +359,7 @@ export async function getFeaturedListings(limit: number = 6): Promise<SearchResu
     `
     )
     .eq("status", "published")
-    .eq("profiles.plan_tier", "pro")
+    .in("profile_id", profileIds)
     .in("profiles.subscription_status", ["active", "trialing"])
     .limit(limit);
 
@@ -389,12 +403,26 @@ export async function getFeaturedListings(limit: number = 6): Promise<SearchResu
 }
 
 /**
- * Get featured listings for homepage featured section
- * Returns one card per company (not per location)
- * // TODO: migrate to profile_addons table query
+ * Get featured listings for the FindABATherapy.org homepage featured section.
+ * Returns one card per company (not per location).
  */
 export async function getHomepageFeaturedListings(limit: number = 3): Promise<SearchResultListing[]> {
   const supabase = await createClient();
+
+  const { data: addons, error: addonError } = await supabase
+    .from("profile_addons")
+    .select("profile_id")
+    .eq("addon_type", "homepage_placement")
+    .eq("status", "active");
+
+  if (addonError) {
+    return [];
+  }
+
+  const profileIds = Array.from(new Set((addons || []).map((addon) => addon.profile_id)));
+  if (profileIds.length === 0) {
+    return [];
+  }
 
   const { data, error } = await supabase
     .from("listings")
@@ -420,7 +448,7 @@ export async function getHomepageFeaturedListings(limit: number = 3): Promise<Se
     `
     )
     .eq("status", "published")
-    .eq("profiles.plan_tier", "pro")
+    .in("profile_id", profileIds)
     .in("profiles.subscription_status", ["active", "trialing"])
     .limit(limit);
 

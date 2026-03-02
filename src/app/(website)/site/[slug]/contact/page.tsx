@@ -3,7 +3,6 @@ import { notFound } from "next/navigation";
 
 import { getContactPageData } from "@/lib/actions/intake";
 import { ContactFormIntake } from "@/components/contact/contact-form-intake";
-import { PreviewBanner } from "@/components/ui/preview-banner";
 
 type ContactPageProps = {
   params: Promise<{ slug: string }>;
@@ -47,13 +46,6 @@ export default async function WebsiteContactPage({
 
   return (
     <>
-      {isPreview && (
-        <PreviewBanner
-          variant="public"
-          message="This contact form is a preview — upgrade to receive inquiries."
-          triggerFeature="contact_form"
-        />
-      )}
       <section className="py-12 sm:py-16 lg:py-20">
         <div className="mx-auto max-w-2xl px-4 sm:px-6 lg:px-8">
           <div className="mb-8 text-center">

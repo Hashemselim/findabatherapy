@@ -116,7 +116,7 @@ const plans = [
     description: "Get started with basic job posting",
     subtext: "No credit card required.",
     features: [
-      { text: "1 active job posting", highlightWord: "1", highlightType: "emerald" as const },
+      { text: "Preview job posting tools", highlightWord: "Preview", highlightType: "emerald" as const },
       "View & manage applications",
       "Email notifications",
     ],
@@ -145,7 +145,7 @@ const plans = [
     subtext: "Cancel anytime. No long-term contract.",
     popular: true,
     features: [
-      { text: "Up to 5 active jobs", highlightWord: "5", highlightType: "emerald" as const },
+      { text: "Up to 10 active jobs", highlightWord: "10", highlightType: "emerald" as const },
       { text: "Priority search placement", highlightWord: "Priority", highlightType: "emerald" as const },
       { text: "Hiring analytics", highlightWord: "analytics", highlightType: "emerald" as const },
       { text: "Company profile page", highlightWord: "Company profile", highlightType: "emerald" as const },

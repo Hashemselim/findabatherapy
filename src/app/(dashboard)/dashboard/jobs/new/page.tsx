@@ -22,7 +22,13 @@ export default async function NewJobPage() {
     getLocations(),
   ]);
 
-  const limits = limitsResult.success ? limitsResult.data : { count: 0, limit: 1, canCreate: true };
+  const effectivePlanTier = profile.plan_tier !== "free" &&
+    (profile.subscription_status === "active" || profile.subscription_status === "trialing")
+    ? profile.plan_tier
+    : "free";
+  const limits = limitsResult.success && limitsResult.data
+    ? limitsResult.data
+    : { count: 0, limit: effectivePlanTier === "free" ? 0 : 10, canCreate: effectivePlanTier !== "free" };
   const locations = locationsResult.success && locationsResult.data
     ? locationsResult.data.map((loc) => ({
         id: loc.id,
@@ -34,11 +40,6 @@ export default async function NewJobPage() {
 
   // If at limit, show upgrade prompt
   if (!limits?.canCreate) {
-    const effectivePlanTier = profile.plan_tier !== "free" &&
-      (profile.subscription_status === "active" || profile.subscription_status === "trialing")
-      ? profile.plan_tier
-      : "free";
-
     return (
       <div className="space-y-4 sm:space-y-6">
         <div className="flex items-center gap-4">
@@ -63,16 +64,14 @@ export default async function NewJobPage() {
           <CardContent className="space-y-4">
             <p className="text-sm text-amber-800">
               {effectivePlanTier === "free"
-                ? "Free accounts can post 1 job. Upgrade to Pro for up to 5 jobs."
-                : "Please contact support if you need more job postings."}
+                ? "Preview accounts cannot post real jobs. Go Live to publish jobs on FindABAJobs.org."
+                : `You&apos;ve used ${limits.count} of ${limits.limit} job postings. Add more capacity from billing to publish another one.`}
             </p>
-            {effectivePlanTier === "free" && (
-              <Button asChild>
-                <Link href="/dashboard/billing">
-                  Upgrade Plan
-                </Link>
-              </Button>
-            )}
+            <Button asChild>
+              <Link href="/dashboard/billing">
+                {effectivePlanTier === "free" ? "Go Live" : "Manage Billing"}
+              </Link>
+            </Button>
           </CardContent>
         </Card>
       </div>

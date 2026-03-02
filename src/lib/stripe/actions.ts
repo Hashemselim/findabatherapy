@@ -690,7 +690,8 @@ export async function verifyAndSyncCheckoutSession(
  */
 export async function createFeaturedLocationCheckout(
   locationId: string,
-  billingInterval: BillingInterval = "month"
+  billingInterval: BillingInterval = "month",
+  returnTo: "locations" | "billing" = "locations"
 ): Promise<ActionResult<{ url?: string; subscriptionId?: string; status?: string; directCharge?: boolean }>> {
   const user = await getUser();
   if (!user) {
@@ -862,8 +863,8 @@ export async function createFeaturedLocationCheckout(
           quantity: 1,
         },
       ],
-      success_url: `${origin}/dashboard/locations?featured_success=${locationId}`,
-      cancel_url: `${origin}/dashboard/locations?featured_cancel=${locationId}`,
+      success_url: `${origin}${CHECKOUT_URLS.success}?featured_location=true&location_id=${locationId}&location_name=${encodeURIComponent(locationLabel)}&billing_interval=${billingInterval}&return_to=${returnTo}&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${origin}${CHECKOUT_URLS.cancel}?featured_location=true&location_id=${locationId}&location_name=${encodeURIComponent(locationLabel)}&return_to=${returnTo}`,
       metadata: {
         type: "featured_location",
         profile_id: user.id,

@@ -76,7 +76,7 @@ export async function submitInquiry(
   // Verify listing exists and is published
   const { data: listing, error: listingError } = await supabase
     .from("listings")
-    .select("id, slug, profile_id, profiles!inner(plan_tier, contact_email, agency_name)")
+    .select("id, slug, profile_id, profiles!inner(plan_tier, subscription_status, contact_email, agency_name)")
     .eq("id", listingId)
     .eq("status", "published")
     .single();
@@ -87,13 +87,19 @@ export async function submitInquiry(
 
   const profile = listing.profiles as unknown as {
     plan_tier: string;
+    subscription_status: string | null;
     contact_email: string;
     agency_name: string;
   };
   const providerSlug = listing.slug;
 
   // Check if provider has premium plan (contact form is premium feature)
-  if (profile.plan_tier === "free") {
+  const isPremium =
+    profile.plan_tier !== "free" &&
+    (profile.subscription_status === "active" ||
+      profile.subscription_status === "trialing");
+
+  if (!isPremium) {
     return { success: false, error: "This provider does not accept inquiries through the platform" };
   }
 

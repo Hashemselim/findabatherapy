@@ -2,8 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
-import Link from "next/link";
-import { Upload, X, Loader2, ImageIcon, GripVertical, Sparkles, Camera, Users, Heart, CheckCircle2, Pencil } from "lucide-react";
+import { Upload, X, Loader2, ImageIcon, GripVertical, Pencil } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -57,7 +56,6 @@ export function PhotoGalleryManager({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const photoLimit = PHOTO_LIMITS[planTier as keyof typeof PHOTO_LIMITS] || 0;
-  const isPremium = planTier !== "free";
 
   // Load photos on mount (skip for demo)
   useEffect(() => {
@@ -150,98 +148,6 @@ export function PhotoGalleryManager({
     }
     setDraggedIndex(null);
   };
-
-  if (!isPremium) {
-    return (
-      <div className="relative overflow-hidden rounded-xl border border-amber-100 bg-gradient-to-br from-amber-50/80 via-white to-slate-50 shadow-sm">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(245,158,11,0.06),transparent_50%)]" />
-
-        <div className="relative p-6">
-          {/* Header with strong value prop */}
-          <div className="flex items-start gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-600">
-              <ImageIcon className="h-6 w-6" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-lg font-semibold text-slate-900">Photo Gallery</h3>
-                <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-700">
-                  <Sparkles className="h-3 w-3" />
-                  Pro
-                </span>
-              </div>
-              <p className="mt-1.5 text-sm text-slate-600 leading-relaxed">
-                <span className="font-medium text-slate-800">A picture is worth a thousand words.</span> Families want to see where their child will spend time. Show them your welcoming space, friendly team, and real therapy sessions.
-              </p>
-            </div>
-          </div>
-
-          {/* What photos to add */}
-          <div className="mt-6 grid gap-3 sm:grid-cols-3">
-            <div className="flex items-start gap-3 rounded-lg border border-slate-100 bg-white p-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
-                <Camera className="h-4 w-4" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-slate-800">Your Space</p>
-                <p className="text-xs text-slate-500">Therapy rooms, waiting area, play spaces</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3 rounded-lg border border-slate-100 bg-white p-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
-                <Users className="h-4 w-4" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-slate-800">Your Team</p>
-                <p className="text-xs text-slate-500">Therapists families will meet</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3 rounded-lg border border-slate-100 bg-white p-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-rose-50 text-rose-600">
-                <Heart className="h-4 w-4" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-slate-800">In Action</p>
-                <p className="text-xs text-slate-500">Real therapy moments (with consent)</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Benefits */}
-          <div className="mt-5 grid gap-2 sm:grid-cols-2">
-            <div className="flex items-center gap-2 text-sm text-slate-600">
-              <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-              <span>Upload up to 10 photos</span>
-            </div>
-            <div className="flex items-center gap-2 text-sm text-slate-600">
-              <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-              <span>Drag & drop to reorder</span>
-            </div>
-            <div className="flex items-center gap-2 text-sm text-slate-600">
-              <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-              <span>High-quality display</span>
-            </div>
-            <div className="flex items-center gap-2 text-sm text-slate-600">
-              <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-              <span>Build trust before the first call</span>
-            </div>
-          </div>
-
-          {/* CTA */}
-          <div className="mt-6 flex flex-col gap-3 rounded-lg bg-slate-50 p-4 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-sm text-slate-600">
-              <span className="font-medium text-slate-800">Ready to show families your practice?</span>
-            </p>
-            <Button asChild size="sm" className="w-full shrink-0 rounded-full sm:w-auto">
-              <Link href="/dashboard/billing">
-                Upgrade Now
-              </Link>
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   // Handle edit button click - demo mode shows toast, real mode enables editing
   const handleEditClick = () => {

@@ -56,10 +56,10 @@ export const ADDON_INFO: Record<
     priceLabel: "$5/mo for 10GB extra storage",
   },
   homepage_placement: {
-    label: "Homepage Placement",
+    label: "Homepage Placement on FindABATherapy.org",
     unitLabel: "placement",
     unitsPerPack: 1,
     pricePerPack: 149,
-    priceLabel: "$149/mo",
+    priceLabel: "$149/mo on FindABATherapy.org",
   },
 };

@@ -379,23 +379,23 @@ export default async function DashboardListingPage() {
                 <div>
                   <CardTitle className="text-base">Photos & Video</CardTitle>
                   <CardDescription>
-                    {!isPaidPlan
-                      ? "Upgrade to add photos and video"
-                      : photoCount === 0 && !hasVideo
+                    {photoCount === 0 && !hasVideo
+                      ? isPaidPlan
                         ? "No media added yet"
+                        : "Add up to 3 photos on Free. Upgrade to add video."
                         : `${photoCount} photo${photoCount !== 1 ? "s" : ""}${hasVideo ? " • 1 video" : ""}`}
                   </CardDescription>
                 </div>
               </div>
               <Button variant="outline" size="sm" asChild>
                 <Link href="/dashboard/media">
-                  {isPaidPlan ? "Manage" : "View"}
+                  Manage
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
               </Button>
             </div>
           </CardHeader>
-          {isPaidPlan && (photoCount > 0 || hasVideo) && (
+          {(photoCount > 0 || hasVideo) && (
             <CardContent className="pt-0">
               <div className="flex items-center gap-4 text-sm text-muted-foreground">
                 {photoCount > 0 && (
@@ -423,7 +423,7 @@ export default async function DashboardListingPage() {
               <div>
                 <CardTitle>Upgrade to unlock more features</CardTitle>
                 <CardDescription>
-                  Pro plans include photo galleries, video embeds, multiple locations, and priority placement in search results.
+                  Pro plans include video embeds, contact forms, Google ratings, and priority placement in search results.
                 </CardDescription>
               </div>
             </CardHeader>

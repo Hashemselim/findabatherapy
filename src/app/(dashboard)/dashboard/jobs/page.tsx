@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Plus, ClipboardList, ArrowRight, CheckCircle2, Briefcase, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { BubbleBackground } from "@/components/ui/bubble-background";
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
 import { PreviewBanner } from "@/components/ui/preview-banner";
@@ -85,7 +85,7 @@ export default async function JobsPage() {
 
   // Fetch jobs and limits (skip for free users)
   let jobs = isPreview ? DEMO_JOBS : [];
-  let limits = { count: isPreview ? DEMO_JOBS.length : 0, limit: isPreview ? 5 : 1, canCreate: !isPreview };
+  let limits = { count: isPreview ? DEMO_JOBS.length : 0, limit: isPreview ? 10 : 1, canCreate: !isPreview };
 
   if (!isPreview) {
     const [jobsResult, limitsResult] = await Promise.all([
@@ -134,16 +134,16 @@ export default async function JobsPage() {
               </p>
               <p className="text-sm text-muted-foreground">
                 {effectivePlanTier === "pro"
-                  ? "Pro plan includes up to 5 job postings"
-                  : "Free plan includes 1 job posting"}
+                  ? `Pro plan includes up to ${limits?.limit || 10} job postings${(limits?.limit || 10) > 10 ? " with add-ons applied" : ""}`
+                  : "Preview mode includes demo jobs only. Go Live to publish real jobs."}
               </p>
             </div>
           </div>
-          {!limits?.canCreate && effectivePlanTier !== "pro" && (
+          {!limits?.canCreate && (
             <Button asChild variant="outline" size="sm" className="rounded-full">
               <Link href="/dashboard/billing">
                 <Sparkles className="mr-2 h-4 w-4" />
-                Upgrade
+                {effectivePlanTier === "pro" ? "Add Capacity" : "Go Live"}
               </Link>
             </Button>
           )}

@@ -6,6 +6,7 @@ import { Globe } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { ContactFormIntake } from "@/components/contact/contact-form-intake";
+import { PreviewBanner } from "@/components/ui/preview-banner";
 import { getContactPageData } from "@/lib/actions/intake";
 
 type ContactPageParams = {
@@ -64,6 +65,10 @@ export default async function ContactPage({ params, searchParams }: ContactPageP
   }
 
   const { listing, profile } = result.data;
+  const isPreview =
+    profile.planTier === "free" ||
+    (profile.subscriptionStatus !== "active" &&
+      profile.subscriptionStatus !== "trialing");
   const { background_color, show_powered_by } = profile.intakeFormSettings;
   const contrastColor = getContrastColor(background_color);
 
@@ -82,6 +87,13 @@ export default async function ContactPage({ params, searchParams }: ContactPageP
         background: `linear-gradient(135deg, ${background_color} 0%, ${background_color}dd 50%, ${background_color}bb 100%)`,
       }}
     >
+      {isPreview && (
+        <PreviewBanner
+          variant="public"
+          message="This contact form is in preview mode. Activate your account to receive inquiries."
+          triggerFeature="contact_form"
+        />
+      )}
       {/* Main Content Container */}
       <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 sm:py-12">
         {/* White Card Container */}
@@ -155,7 +167,7 @@ export default async function ContactPage({ params, searchParams }: ContactPageP
           </div>
 
           {/* Form Section */}
-          <div className="px-6 py-8 sm:px-8 sm:py-10">
+          <div className={`px-6 py-8 sm:px-8 sm:py-10 ${isPreview ? "pointer-events-none select-none opacity-60" : ""}`}>
             <ContactFormIntake
               listingId={listing.id}
               providerName={profile.agencyName}

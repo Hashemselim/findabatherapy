@@ -218,8 +218,8 @@ export function UnifiedPricingTable({ defaultInterval = "annual" }: UnifiedPrici
         <div className="grid gap-3 sm:grid-cols-2">
           {[
             { name: "Extra users", price: "$20/mo", desc: "Add team members to your account" },
-            { name: "Location pack", price: "$10/mo", desc: "5 additional service locations" },
-            { name: "Job pack", price: "$5/mo", desc: "5 additional job postings" },
+            { name: "Location pack", price: "$15/mo", desc: "5 additional service locations" },
+            { name: "Job pack", price: "$15/mo", desc: "5 additional job postings" },
             { name: "Storage pack", price: "$5/mo", desc: "10 GB additional file storage" },
           ].map((addon) => (
             <div key={addon.name} className="flex items-start justify-between rounded-lg border border-border/60 px-4 py-3">

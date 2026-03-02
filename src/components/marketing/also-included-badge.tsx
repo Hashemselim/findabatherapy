@@ -30,8 +30,8 @@ const brandData = {
     href: "/employers/post",
     // Normalized to 3 features each for consistent card heights
     featuresByPlan: {
-      free: ["1 active job posting", "View applications", "Email notifications"],
-      pro: ["Up to 5 active jobs", "Priority placement", "Hiring analytics"],
+      free: ["View job listings", "View applications", "Email notifications"],
+      pro: ["Up to 10 active jobs", "Priority placement", "Hiring analytics"],
     },
   },
 };

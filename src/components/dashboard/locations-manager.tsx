@@ -8,7 +8,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import {
   Loader2,
-  Plus,
   MapPin,
   Star,
   Trash2,
@@ -74,8 +73,7 @@ import {
 } from "@/lib/validations/onboarding";
 import { GoogleBusinessLinkModal } from "@/components/dashboard/google-business-link-modal";
 import { GoogleReviewsModal } from "@/components/dashboard/google-reviews-modal";
-import { FeaturedUpgradeButton, type FeaturedPricing } from "@/components/dashboard/featured-upgrade-button";
-import { FeaturedManageButton } from "@/components/dashboard/featured-manage-button";
+import { FeaturedLocationAction, type FeaturedPricing } from "@/components/billing/featured-location-action";
 import { useFormErrorHandler, FormErrorSummary } from "@/hooks/use-form-error-handler";
 
 const locationFormSchema = z
@@ -1130,28 +1128,19 @@ export function LocationsManager({
                     <div className="flex flex-wrap items-center gap-2">
                       {!isFreePlan && (
                         <>
-                          {isFeatured && location.featuredSubscription ? (
-                            <FeaturedManageButton
-                              locationId={location.id}
-                              locationName={locationName}
-                              status={location.featuredSubscription.status}
-                              billingInterval={location.featuredSubscription.billingInterval}
-                              currentPeriodEnd={location.featuredSubscription.currentPeriodEnd}
-                              cancelAtPeriodEnd={location.featuredSubscription.cancelAtPeriodEnd}
-                              onCancel={() => handleFeaturedCancel(location.id)}
-                              onReactivate={() => handleFeaturedReactivate(location.id)}
-                            />
-                          ) : (
-                            <FeaturedUpgradeButton
-                              locationId={location.id}
-                              locationName={locationName}
-                              disabled={isPending}
-                              pricing={featuredPricing}
-                              onSuccess={({ billingInterval }) =>
-                                handleFeaturedSuccess(location.id, billingInterval)
-                              }
-                            />
-                          )}
+                          <FeaturedLocationAction
+                            locationId={location.id}
+                            locationName={locationName}
+                            disabled={isPending}
+                            pricing={featuredPricing}
+                            returnTo="locations"
+                            subscription={location.featuredSubscription}
+                            onFeature={({ billingInterval }) =>
+                              handleFeaturedSuccess(location.id, billingInterval)
+                            }
+                            onCancel={() => handleFeaturedCancel(location.id)}
+                            onReactivate={() => handleFeaturedReactivate(location.id)}
+                          />
                         </>
                       )}
                       {!location.isPrimary && (
@@ -1220,7 +1209,7 @@ export function LocationsManager({
                   </span>
                 </div>
                 <p className="text-xs text-slate-500">
-                  Free plan is limited to 1 location. Upgrade to add up to 5 locations.
+                  Free plan includes up to 3 locations. Upgrade to Pro for up to 10 locations and featured placement.
                 </p>
               </div>
             </div>

@@ -6,9 +6,9 @@ import { Plus, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
+import type { FeaturedPricing } from "@/components/billing/featured-location-action";
 import { LocationsManager, type CompanyDefaults } from "@/components/dashboard/locations-manager";
 import type { LocationData } from "@/lib/actions/locations";
-import type { FeaturedPricing } from "@/components/dashboard/featured-upgrade-button";
 
 interface LocationsPageContentProps {
   locations: LocationData[];

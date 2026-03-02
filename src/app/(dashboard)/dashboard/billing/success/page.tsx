@@ -11,7 +11,18 @@ import { verifyAndSyncCheckoutSession } from "@/lib/stripe/actions";
 import { ADDON_INFO, type AddonType } from "@/lib/plans/addon-config";
 
 interface BillingSuccessPageProps {
-  searchParams: Promise<{ return_to?: string; session_id?: string; upgraded?: string; downgraded?: string; addon?: string; quantity?: string }>;
+  searchParams: Promise<{
+    return_to?: string;
+    session_id?: string;
+    upgraded?: string;
+    downgraded?: string;
+    addon?: string;
+    quantity?: string;
+    featured_location?: string;
+    location_id?: string;
+    location_name?: string;
+    billing_interval?: string;
+  }>;
 }
 
 async function getListingData(): Promise<ListingWithRelations | null> {
@@ -30,10 +41,10 @@ export default async function BillingSuccessPage({ searchParams }: BillingSucces
   // If we have a session_id, verify and sync the subscription status FIRST
   // This handles the race condition where webhook hasn't processed yet
   // Must happen before any redirects to ensure subscription is synced
-  // IMPORTANT: Only sync for main plan checkouts — addon and featured_location
+  // IMPORTANT: Only sync for main plan checkouts. Add-on and featured-location
   // sessions have their own webhook handlers and must NOT overwrite the
   // profile's stripe_subscription_id with their subscription ID.
-  if (params.session_id && !params.addon) {
+  if (params.session_id && !params.addon && !params.featured_location) {
     await verifyAndSyncCheckoutSession(params.session_id);
   }
 
@@ -46,15 +57,20 @@ export default async function BillingSuccessPage({ searchParams }: BillingSucces
   const isUpgrade = params.upgraded === "true";
   const isDowngrade = params.downgraded === "true";
   const isAddon = !!params.addon;
+  const isFeaturedLocation = params.featured_location === "true";
   const addonType = params.addon as AddonType | undefined;
   const addonQuantity = parseInt(params.quantity || "1", 10);
   const addonInfo = addonType && addonType in ADDON_INFO ? ADDON_INFO[addonType] : null;
+  const locationName = params.location_name || "Your location";
 
   // Determine title and description based on action type
   let title = "You're Live!";
   let description = "Your practice is now live on FindABATherapy. Families can discover and contact you directly.";
 
-  if (isAddon && addonInfo) {
+  if (isFeaturedLocation) {
+    title = "Featured Location Added!";
+    description = `${locationName} is now featured and will appear at the top of FindABATherapy.org search results.`;
+  } else if (isAddon && addonInfo) {
     const totalUnits = addonQuantity * addonInfo.unitsPerPack;
     title = `${addonInfo.label} Added!`;
     description = `+${totalUnits} ${addonInfo.unitLabel}${totalUnits !== 1 ? "s" : ""} added to your plan at $${addonQuantity * addonInfo.pricePerPack}/mo.`;
@@ -67,7 +83,7 @@ export default async function BillingSuccessPage({ searchParams }: BillingSucces
   }
 
   // Determine checkout type for tracking
-  const checkoutType = isAddon ? "addon" : isUpgrade ? "upgrade" : isDowngrade ? "downgrade" : "new";
+  const checkoutType = isAddon || isFeaturedLocation ? "addon" : isUpgrade ? "upgrade" : isDowngrade ? "downgrade" : "new";
 
   return (
     <div className="flex min-h-[60vh] items-center justify-center">
@@ -93,7 +109,22 @@ export default async function BillingSuccessPage({ searchParams }: BillingSucces
               {isDowngrade ? "What happens next?" : "Next steps"}
             </h3>
             <ul className="mt-2 space-y-2 text-sm text-emerald-800 dark:text-emerald-200">
-              {isAddon ? (
+              {isFeaturedLocation ? (
+                <>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                    This featured location add-on is now active
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                    {locationName} will rank above non-featured locations in matching FindABATherapy.org searches
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                    Manage featured placements from billing or the locations page
+                  </li>
+                </>
+              ) : isAddon ? (
                 <>
                   <li className="flex items-start gap-2">
                     <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0" />
@@ -129,12 +160,12 @@ export default async function BillingSuccessPage({ searchParams }: BillingSucces
 
           <div className="flex flex-col gap-3 sm:flex-row">
             <Button asChild className="flex-1">
-              <Link href={isAddon ? "/dashboard/billing" : "/dashboard"}>
-                {isAddon ? "Back to Billing" : "Go to Dashboard"}
+              <Link href={isFeaturedLocation ? (params.return_to === "locations" ? "/dashboard/locations" : "/dashboard/billing") : isAddon ? "/dashboard/billing" : "/dashboard"}>
+                {isFeaturedLocation ? (params.return_to === "locations" ? "Back to Locations" : "Back to Billing") : isAddon ? "Back to Billing" : "Go to Dashboard"}
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>
-            {!isAddon && listing && (
+            {!isAddon && !isFeaturedLocation && listing && (
               <Button variant="outline" asChild className="flex-1">
                 <Link href={`/provider/${listing.slug}`} target="_blank">
                   View Live Listing

@@ -6,6 +6,7 @@ import { getUser } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { convertInquiryToClient } from "@/lib/actions/clients";
+import { getCurrentPlanTier } from "@/lib/plans/guards";
 
 import { ClientForm } from "./client-form";
 
@@ -22,6 +23,11 @@ export default async function NewClientPage({ searchParams }: NewClientPageProps
   const user = await getUser();
   if (!user) {
     redirect("/auth/sign-in");
+  }
+
+  const planTier = await getCurrentPlanTier();
+  if (planTier === "free") {
+    redirect("/dashboard/clients");
   }
 
   const params = await searchParams;

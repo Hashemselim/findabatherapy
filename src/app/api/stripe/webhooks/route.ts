@@ -513,6 +513,17 @@ async function handleFeaturedLocationCheckoutCompleted(
     ? new Date(subscriptionItem.current_period_end * 1000).toISOString()
     : new Date().toISOString();
 
+  const { data: existingFeatured } = await supabase
+    .from("location_featured_subscriptions")
+    .select("id")
+    .eq("stripe_subscription_id", subscriptionId)
+    .maybeSingle();
+
+  if (existingFeatured) {
+    console.log(`Featured subscription already exists for ${subscriptionId}, skipping duplicate checkout insert`);
+    return;
+  }
+
   // Insert featured subscription record
   const { error: insertError } = await supabase
     .from("location_featured_subscriptions")
@@ -587,7 +598,7 @@ async function handleFeaturedLocationSubscriptionCreated(
     .from("location_featured_subscriptions")
     .select("id")
     .eq("stripe_subscription_id", subscription.id)
-    .single();
+    .maybeSingle();
 
   if (existing) {
     console.log(`Featured subscription already exists for ${subscription.id}`);
@@ -800,6 +811,17 @@ async function handleAddonSubscriptionCreated(
     ? new Date(subscriptionItem.current_period_end * 1000).toISOString()
     : new Date().toISOString();
 
+  const { data: existingAddon } = await supabase
+    .from("profile_addons")
+    .select("id")
+    .eq("stripe_subscription_id", subscription.id)
+    .maybeSingle();
+
+  if (existingAddon) {
+    console.log(`Addon already exists for subscription ${subscription.id}, skipping duplicate create`);
+    return;
+  }
+
   // Insert addon record
   const { error: insertError } = await supabase
     .from("profile_addons")
@@ -860,6 +882,17 @@ async function handleAddonCheckoutCompleted(
   const currentPeriodEnd = subscriptionItem?.current_period_end
     ? new Date(subscriptionItem.current_period_end * 1000).toISOString()
     : new Date().toISOString();
+
+  const { data: existingAddon } = await supabase
+    .from("profile_addons")
+    .select("id")
+    .eq("stripe_subscription_id", subscriptionId)
+    .maybeSingle();
+
+  if (existingAddon) {
+    console.log(`Addon already exists for subscription ${subscriptionId}, skipping duplicate checkout insert`);
+    return;
+  }
 
   // Insert addon record
   const { error: insertError } = await supabase

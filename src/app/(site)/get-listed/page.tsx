@@ -81,7 +81,6 @@ const plans = [
       { text: `Photo gallery (up to ${PLAN_CONFIGS.free.features.maxPhotos})`, highlightWord: "Photo gallery", highlightType: "blue" as const },
       { text: "Ages, languages, diagnoses & specialties", highlightWord: "Ages, languages", highlightType: "blue" as const },
       "Insurance list display",
-      "1 job posting",
       "10 client records",
       "SEO-boosting backlink",
     ],
@@ -106,7 +105,7 @@ const plans = [
       { text: "Priority search placement", highlightWord: "Priority", highlightType: "yellow" as const },
       { text: "Branded agency page", highlightWord: "Branded agency page", highlightType: "yellow" as const },
       { text: "Direct contact form & inbox", highlightWord: "Direct contact form", highlightType: "yellow" as const },
-      { text: "Up to 250 CRM contacts", highlightWord: "250 CRM", highlightType: "yellow" as const },
+      { text: "Unlimited CRM clients", highlightWord: "Unlimited", highlightType: "yellow" as const },
       { text: "Communication templates", highlightWord: "Communication", highlightType: "yellow" as const },
       { text: `Up to ${PLAN_CONFIGS.pro.features.maxLocations} locations`, highlightWord: `${PLAN_CONFIGS.pro.features.maxLocations}`, highlightType: "yellow" as const },
       { text: "Photo gallery (up to 10)", highlightWord: "Photo gallery", highlightType: "yellow" as const },
@@ -169,7 +168,7 @@ const faqs = [
   {
     question: "What's included in the free plan?",
     answer:
-      "The free plan includes a professional listing with up to 3 locations, 3 photos, ages, languages, diagnoses, specialties, insurance list, 1 job posting, and 10 client records. Upgrade to Pro for branded pages, full CRM, communication templates, analytics, and more.",
+      "The free plan includes a professional listing with up to 3 locations, 3 photos, ages, languages, diagnoses, specialties, insurance list, and 10 client records. Upgrade to Pro for branded pages, unlimited CRM, job postings, communication templates, analytics, and more.",
   },
 ];
 
@@ -561,8 +560,8 @@ export default function GetListedPage() {
             <div className="mt-8 grid gap-4 sm:grid-cols-2">
               {[
                 { name: "Extra users", price: "$20/mo", desc: "Add team members to your account", icon: Users },
-                { name: "Location pack", price: "$10/mo", desc: "5 additional service locations", icon: MapPin },
-                { name: "Job pack", price: "$5/mo", desc: "5 additional job postings", icon: Star },
+                { name: "Location pack", price: "$15/mo", desc: "5 additional service locations", icon: MapPin },
+                { name: "Job pack", price: "$15/mo", desc: "5 additional job postings", icon: Star },
                 { name: "Storage pack", price: "$5/mo", desc: "10 GB additional file storage", icon: ImagePlus },
               ].map((addon) => (
                 <div key={addon.name} className="group flex items-start gap-4 rounded-xl border border-border/60 bg-white p-5 transition-all duration-300 ease-premium hover:-translate-y-[2px] hover:border-[#5788FF]/30 hover:shadow-[0_8px_30px_rgba(87,136,255,0.1)]">

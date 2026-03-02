@@ -45,7 +45,7 @@ import {
 import { BubbleBackground } from "@/components/ui/bubble-background";
 import { BillingPortalButton } from "@/components/billing/billing-portal-button";
 import { CancelDowngradeButton } from "@/components/billing/cancel-downgrade-button";
-import { FeaturedManageButton } from "@/components/dashboard/featured-manage-button";
+import { FeaturedLocationAction } from "@/components/billing/featured-location-action";
 import { AddonCard } from "@/components/billing/addon-card";
 import { getSubscription, getPendingDowngrade, getFeaturedAddonPrices, getFeaturedLocations } from "@/lib/stripe/actions";
 import { getActiveAddons } from "@/lib/actions/addons";
@@ -255,7 +255,7 @@ export default async function DashboardBillingPage() {
                 </div>
                 <p className="text-sm text-slate-500">
                   {isFreePlan
-                    ? "Professional listing with up to 3 locations"
+                    ? "Preview mode with up to 3 locations and demo-only premium tools"
                     : `$${planPrice}/mo${isAnnual ? " (billed annually)" : ""} • ${renewalDate ? `Renews ${renewalDate}` : "Active subscription"}`}
                 </p>
                 {!isFreePlan && isAnnual && (
@@ -384,12 +384,12 @@ export default async function DashboardBillingPage() {
           </h3>
           <ul className="grid gap-2 sm:grid-cols-2">
             {(isPro ? STRIPE_PLANS.pro.features : [
-              "Standard search placement",
+              "Preview listing and dashboard access",
               "Up to 3 locations",
               "Up to 3 photos",
               "Ages, languages, diagnoses & specialties",
               "Insurance list display",
-              "1 job posting & 10 client records",
+              "Demo CRM and job workflows",
               "SEO-boosting backlink",
             ]).map((feature, idx) => (
               <li key={idx} className="flex items-center gap-2 text-sm text-slate-600">
@@ -488,7 +488,7 @@ export default async function DashboardBillingPage() {
         </div>
       )}
 
-      {/* Featured Add-on */}
+      {/* Featured Location Add-on */}
       {!isFreePlan && (
         <Card className="border-slate-200 bg-white">
           <CardHeader>
@@ -498,7 +498,7 @@ export default async function DashboardBillingPage() {
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <CardTitle className="text-foreground">Featured Placement</CardTitle>
+                  <CardTitle className="text-foreground">Featured Location Placement</CardTitle>
                   <Badge variant="outline" className="border-slate-200 text-slate-600">
                     Add-on
                   </Badge>
@@ -509,7 +509,7 @@ export default async function DashboardBillingPage() {
                   )}
                 </div>
                 <CardDescription className="text-slate-500">
-                  Boost your visibility with premium placement options
+                  Boost individual locations to the top of matching FindABATherapy.org state search results
                 </CardDescription>
               </div>
             </div>
@@ -533,7 +533,7 @@ export default async function DashboardBillingPage() {
                           <p className="font-medium text-foreground">{loc.locationLabel}</p>
                           <div className="flex items-center gap-2 text-xs text-muted-foreground">
                             <TrendingUp className="h-3 w-3 text-[#5788FF]" />
-                            <span>Featured in {loc.state} searches</span>
+                            <span>Featured in FindABATherapy.org {loc.state} searches</span>
                             <span className="text-slate-400">•</span>
                             <span>
                               ${loc.billingInterval === "year" ? featuredPricing.annual.price : featuredPricing.monthly.price}/mo ({loc.billingInterval === "year" ? "annual" : "monthly"})
@@ -551,13 +551,17 @@ export default async function DashboardBillingPage() {
                           </div>
                         </div>
                       </div>
-                      <FeaturedManageButton
+                      <FeaturedLocationAction
                         locationId={loc.locationId}
                         locationName={loc.locationLabel}
-                        status={loc.status}
-                        billingInterval={loc.billingInterval}
-                        currentPeriodEnd={loc.currentPeriodEnd}
-                        cancelAtPeriodEnd={loc.cancelAtPeriodEnd}
+                        pricing={featuredPricing}
+                        returnTo="billing"
+                        subscription={{
+                          status: loc.status,
+                          billingInterval: loc.billingInterval,
+                          currentPeriodEnd: loc.currentPeriodEnd,
+                          cancelAtPeriodEnd: loc.cancelAtPeriodEnd,
+                        }}
                       />
                     </div>
                   ))}
@@ -593,7 +597,7 @@ export default async function DashboardBillingPage() {
                     {featuredLocations.length > 0 ? "Feature More Locations" : "Feature Individual Locations"}
                   </p>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    Go to your Locations page to feature specific locations
+                    Go to your Locations page to feature specific locations on FindABATherapy.org
                   </p>
                   <Button asChild size="sm" className="mt-4 gap-2 border border-[#FEE720] bg-[#FEE720] text-[#333333] hover:bg-[#FFF5C2]">
                     <Link href="/dashboard/locations">
@@ -608,7 +612,7 @@ export default async function DashboardBillingPage() {
         </Card>
       )}
 
-      {/* Add-on Packs */}
+      {/* Add-ons */}
       {isPro && (
         <Card className="border-slate-200 bg-white">
           <CardHeader>
@@ -617,9 +621,9 @@ export default async function DashboardBillingPage() {
                 <Package className="h-6 w-6 text-slate-600" />
               </div>
               <div>
-                <CardTitle className="text-slate-900">Add-on Packs</CardTitle>
+                <CardTitle className="text-slate-900">Add-ons</CardTitle>
                 <CardDescription className="text-slate-500">
-                  Expand your limits with additional capacity packs
+                  Add capacity packs and premium placement add-ons to your Pro plan
                 </CardDescription>
               </div>
             </div>

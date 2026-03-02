@@ -7,6 +7,7 @@ import { WebsiteProvider } from "@/components/website/layout/website-provider";
 import { WebsiteNav } from "@/components/website/layout/website-nav";
 import { WebsiteFooter } from "@/components/website/layout/website-footer";
 import { WebsiteWatermark } from "@/components/website/layout/website-watermark";
+import { PreviewBanner } from "@/components/ui/preview-banner";
 
 type WebsiteLayoutProps = PropsWithChildren<{
   params: Promise<{ slug: string }>;
@@ -62,6 +63,10 @@ export default async function WebsiteSlugLayout({
   }
 
   const provider = result.data;
+  const isPreview =
+    provider.profile.planTier === "free" ||
+    (provider.profile.subscriptionStatus !== "active" &&
+      provider.profile.subscriptionStatus !== "trialing");
 
   // Only render published websites
   if (!provider.websitePublished) {
@@ -71,6 +76,13 @@ export default async function WebsiteSlugLayout({
   return (
     <WebsiteProvider provider={provider}>
       <div className="flex min-h-screen flex-col bg-white">
+        {isPreview && (
+          <PreviewBanner
+            variant="public"
+            message="This website is in preview mode. Activate your account to go live."
+            triggerFeature="provider_website"
+          />
+        )}
         <WebsiteNav />
         <main className="flex-1">{children}</main>
         <WebsiteFooter />

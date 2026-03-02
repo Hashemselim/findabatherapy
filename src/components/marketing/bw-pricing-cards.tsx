@@ -23,7 +23,6 @@ const plans = [
       "Basic provider profile",
       "Up to 3 locations & 3 photos",
       "Up to 10 client records",
-      "1 job posting",
     ],
     ctaLabel: "Start Free Preview",
     ctaStyle: "outline" as const,
@@ -35,12 +34,12 @@ const plans = [
     features: [
       "Everything in Free, plus:",
       "Branded agency page & intake forms",
-      "Up to 250 CRM contacts",
+      "Unlimited CRM clients",
       "Communication templates & automation",
       "Insurance & authorization tracking",
       "Referral source analytics",
       "Up to 10 locations & 10 photos",
-      "Up to 5 job postings on FindABAJobs",
+      "Up to 10 job postings on FindABAJobs",
       "Priority search placement",
     ],
     ctaLabel: "Go Live Now",
@@ -213,8 +212,8 @@ export function BwPricingCards({
           <div className="grid gap-3 sm:grid-cols-2">
             {[
               { name: "Extra users", price: "$20/mo", desc: "Add team members to your account" },
-              { name: "Location pack", price: "$10/mo", desc: "5 additional service locations" },
-              { name: "Job pack", price: "$5/mo", desc: "5 additional job postings" },
+              { name: "Location pack", price: "$15/mo", desc: "5 additional service locations" },
+              { name: "Job pack", price: "$15/mo", desc: "5 additional job postings" },
               { name: "Storage pack", price: "$5/mo", desc: "10 GB additional file storage" },
             ].map((addon) => (
               <div key={addon.name} className="flex items-start justify-between rounded-xl border border-amber-200/40 px-4 py-3">

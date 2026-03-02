@@ -39,7 +39,7 @@ export type AllowedImageType = (typeof ALLOWED_IMAGE_TYPES)[number];
  * Photo gallery limits by plan
  */
 export const PHOTO_LIMITS = {
-  free: 0,
+  free: 3,
   pro: 10,
 } as const;
 
