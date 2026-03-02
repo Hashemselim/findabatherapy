@@ -52,7 +52,8 @@ export function generateStateFAQs(
  */
 export function generateStateFAQsShort(
   stateName: string,
-  stateAbbrev: string
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _stateAbbrev: string
 ): StateFAQ[] {
   return [
     {

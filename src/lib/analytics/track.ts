@@ -91,13 +91,6 @@ function detectBotType(userAgent: string | null | undefined): "ai" | "bot" | nul
 }
 
 /**
- * Detect if the user agent is a bot/crawler (includes AI assistants)
- */
-function isBot(userAgent: string | null | undefined): boolean {
-  return detectBotType(userAgent) !== null;
-}
-
-/**
  * Generate a simple session ID from request headers
  * Used for deduplication of events
  */

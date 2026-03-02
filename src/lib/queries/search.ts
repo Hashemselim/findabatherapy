@@ -122,7 +122,6 @@ export async function searchListings(
   const page = options.page || 1;
   const limit = options.limit || 20;
   const offset = (page - 1) * limit;
-  const sortBy = options.sortBy || "relevance";
 
   // Base query for published listings
   let query = supabase
@@ -187,6 +186,7 @@ export async function searchListings(
   const maxResults = 1000;
   query = query.limit(maxResults);
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { data, error, count } = await query;
 
   if (error) {
@@ -574,6 +574,7 @@ export async function searchLocations(
   const maxResults = 1000;
   query = query.limit(maxResults);
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { data, error, count } = await query;
 
   if (error) {
@@ -811,6 +812,7 @@ export async function searchGooglePlacesLocations(
   // Apply pagination
   query = query.range(offset, offset + limit - 1);
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { data, error, count } = await query;
 
   if (error) {

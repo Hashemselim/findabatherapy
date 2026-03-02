@@ -1,4 +1,4 @@
-import { POSITION_TYPES, EMPLOYMENT_TYPES } from "@/lib/validations/jobs";
+import { POSITION_TYPES } from "@/lib/validations/jobs";
 import type { PublicJobPosting } from "@/lib/queries/jobs";
 
 const BASE_URL = "https://www.findabajobs.org";

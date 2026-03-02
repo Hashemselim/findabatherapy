@@ -2490,6 +2490,7 @@ export async function submitPublicClientIntake(data: {
   const serviceLocationData = tables.service_locations as Record<string, unknown>;
   if (Object.keys(serviceLocationData).length > 0) {
     // Map location_type → label column and strip non-DB keys
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { location_type, same_as_home, agency_location_id, formatted_address: _fa, ...svcAddress } = serviceLocationData;
 
     // If "same as home", copy home address data

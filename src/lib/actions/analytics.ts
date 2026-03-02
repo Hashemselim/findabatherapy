@@ -120,7 +120,6 @@ async function getMetricsForPeriod(
   let viewCount = 0;
   let uniqueSessions = new Set<unknown>();
   let impressionCount = 0;
-  let userImpressionCount = 0;
   let aiImpressionCount = 0;
   let botImpressionCount = 0;
   let clickCount = 0;
@@ -184,9 +183,6 @@ async function getMetricsForPeriod(
       return locationIds.includes(locId);
     }) || [];
     impressionCount = filteredImpressions.length;
-    userImpressionCount = filteredImpressions.filter((e) =>
-      (e.metadata as Record<string, unknown>)?.source === "user"
-    ).length;
     aiImpressionCount = filteredImpressions.filter((e) =>
       (e.metadata as Record<string, unknown>)?.source === "ai"
     ).length;
@@ -195,9 +191,6 @@ async function getMetricsForPeriod(
     ).length;
   } else {
     impressionCount = impressionData?.length || 0;
-    userImpressionCount = impressionData?.filter((e) =>
-      (e.metadata as Record<string, unknown>)?.source === "user"
-    ).length || 0;
     aiImpressionCount = impressionData?.filter((e) =>
       (e.metadata as Record<string, unknown>)?.source === "ai"
     ).length || 0;

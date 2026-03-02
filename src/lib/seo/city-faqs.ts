@@ -54,7 +54,8 @@ export function generateCityFAQs(
 export function generateCityFAQsShort(
   cityName: string,
   stateName: string,
-  stateAbbrev: string
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _stateAbbrev: string
 ): CityFAQ[] {
   return [
     {

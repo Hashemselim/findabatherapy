@@ -254,7 +254,7 @@ test.describe("DASH-036: Application Status Change", () => {
     let foundOptions = 0;
 
     for (const status of statusOptions) {
-      const option = page.locator(`option:has-text("${status}"), [role="option"]:has-text("${status}")`, { timeout: 1000 });
+      const option = page.locator(`option:has-text("${status}"), [role="option"]:has-text("${status}")`).first();
       const hasOption = await option.isVisible().catch(() => false);
       if (hasOption) foundOptions++;
     }

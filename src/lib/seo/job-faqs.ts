@@ -101,7 +101,8 @@ export function generateJobCityFAQs(
  */
 export function generateJobStateFAQsShort(
   stateName: string,
-  stateAbbrev: string
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _stateAbbrev: string
 ): JobStateFAQ[] {
   return [
     {
@@ -125,7 +126,8 @@ export function generateJobStateFAQsShort(
 export function generateJobCityFAQsShort(
   cityName: string,
   stateName: string,
-  stateAbbrev: string
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _stateAbbrev: string
 ): JobCityFAQ[] {
   return [
     {
