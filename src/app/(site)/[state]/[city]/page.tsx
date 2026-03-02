@@ -17,7 +17,6 @@ import {
 import { INSURANCES } from "@/lib/data/insurances";
 import { trackSearchImpressionsWithBotDetection } from "@/lib/analytics/track";
 import { searchProviderLocationsWithGooglePlaces } from "@/lib/actions/search";
-import { geocodeCityState } from "@/lib/geo/geocode";
 import { JsonLd } from "@/components/seo/json-ld";
 import {
   generateFAQSchema,
@@ -70,9 +69,6 @@ export async function generateMetadata({ params }: CityPageProps): Promise<Metad
   const city = getCity(stateAbbrev, citySlug);
   if (!city) return {};
 
-  // Geocode for geo meta tags
-  const coords = await geocodeCityState(city.name, city.stateName);
-
   const title = `ABA Therapy in ${city.name}, ${stateAbbrev}`;
   const description = `Find ABA therapy providers in ${city.name}, ${city.stateName}. Browse verified autism therapy agencies offering in-home, center-based, and telehealth ABA services. Compare providers and filter by insurance.`;
 
@@ -107,10 +103,8 @@ export async function generateMetadata({ params }: CityPageProps): Promise<Metad
     other: {
       "geo.region": `US-${stateAbbrev}`,
       "geo.placename": city.name,
-      ...(coords && {
-        "geo.position": `${coords.latitude};${coords.longitude}`,
-        ICBM: `${coords.latitude}, ${coords.longitude}`,
-      }),
+      "geo.position": `${city.lat};${city.lng}`,
+      ICBM: `${city.lat}, ${city.lng}`,
     },
   };
 }
@@ -129,9 +123,6 @@ export default async function CityPage({ params }: CityPageProps) {
     notFound();
   }
 
-  // Geocode the city to get coordinates for proximity search
-  const cityCoords = await geocodeCityState(city.name, city.stateName);
-
   // Search for providers in the state, sorted by proximity to this city
   // NOTE: We intentionally do NOT pass the city filter - we want ALL state providers
   // sorted by distance to this city, not filtered to only this city
@@ -139,8 +130,8 @@ export default async function CityPage({ params }: CityPageProps) {
     {
       state: city.stateName,
       // Don't pass city - it would filter results instead of just sorting
-      userLat: cityCoords?.latitude,
-      userLng: cityCoords?.longitude,
+      userLat: city.lat,
+      userLng: city.lng,
     },
     {
       limit: 50, // Show more results on city pages
@@ -152,8 +143,8 @@ export default async function CityPage({ params }: CityPageProps) {
     ? result.data
     : { results: [], total: 0, radiusMiles: 25 };
 
-  // City pages have proximity search if geocoding succeeded
-  const hasProximitySearch = cityCoords !== null;
+  // City pages always have proximity search since coordinates are pre-computed
+  const hasProximitySearch = true;
 
   // Track search impressions (non-blocking) - only for real listings
   const realListingsForTracking = locations
