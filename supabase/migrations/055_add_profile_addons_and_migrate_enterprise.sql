@@ -19,22 +19,30 @@ CREATE TABLE IF NOT EXISTS profile_addons (
 );
 
 -- Indexes
-CREATE INDEX idx_profile_addons_profile_id ON profile_addons(profile_id);
-CREATE INDEX idx_profile_addons_status ON profile_addons(status);
-CREATE INDEX idx_profile_addons_type ON profile_addons(addon_type);
+CREATE INDEX IF NOT EXISTS idx_profile_addons_profile_id ON profile_addons(profile_id);
+CREATE INDEX IF NOT EXISTS idx_profile_addons_status ON profile_addons(status);
+CREATE INDEX IF NOT EXISTS idx_profile_addons_type ON profile_addons(addon_type);
 
 -- RLS
 ALTER TABLE profile_addons ENABLE ROW LEVEL SECURITY;
 
 -- Users can read their own add-ons (profiles.id = auth.uid())
-CREATE POLICY "Users can view own addons"
-  ON profile_addons FOR SELECT
-  USING (profile_id = auth.uid());
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Users can view own addons' AND tablename = 'profile_addons') THEN
+    CREATE POLICY "Users can view own addons"
+      ON profile_addons FOR SELECT
+      USING (profile_id = auth.uid());
+  END IF;
+END $$;
 
 -- Service role can manage all add-ons (for webhook handler)
-CREATE POLICY "Service role manages addons"
-  ON profile_addons FOR ALL
-  USING (auth.role() = 'service_role');
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Service role manages addons' AND tablename = 'profile_addons') THEN
+    CREATE POLICY "Service role manages addons"
+      ON profile_addons FOR ALL
+      USING (auth.role() = 'service_role');
+  END IF;
+END $$;
 
 -- Updated_at trigger
 CREATE OR REPLACE FUNCTION update_profile_addons_updated_at()
@@ -45,6 +53,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trigger_update_profile_addons_updated_at ON profile_addons;
 CREATE TRIGGER trigger_update_profile_addons_updated_at
   BEFORE UPDATE ON profile_addons
   FOR EACH ROW
@@ -66,12 +75,15 @@ UPDATE profiles SET
   plan_tier = 'pro',
   migrated_from_enterprise_at = now(),
   enterprise_grandfathered_until = now() + interval '6 months'
-WHERE plan_tier = 'enterprise';
+WHERE plan_tier = 'enterprise'
+  AND migrated_from_enterprise_at IS NULL;
 
--- Auto-provision homepage_placement addon for former enterprise users
+-- Auto-provision homepage_placement addon for former enterprise users (skip if already provisioned)
 INSERT INTO profile_addons (profile_id, addon_type, quantity, status, grandfathered_until)
 SELECT id, 'homepage_placement', 1, 'active', now() + interval '6 months'
-FROM profiles WHERE migrated_from_enterprise_at IS NOT NULL;
+FROM profiles
+WHERE migrated_from_enterprise_at IS NOT NULL
+  AND id NOT IN (SELECT profile_id FROM profile_addons WHERE addon_type = 'homepage_placement');
 
 -- =============================================================================
 -- Email drip state tracking (for Phase 9 drip sequence)
