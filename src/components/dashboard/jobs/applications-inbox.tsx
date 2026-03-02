@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 
 import {
   ApplicationsFilters,
@@ -130,11 +130,12 @@ export function ApplicationsInbox({
   }, []);
 
   // Load first application on mount if there are applications
-  useState(() => {
-    if (initialApplications.length > 0 && !selectedApplication) {
+  useEffect(() => {
+    if (initialApplications.length > 0) {
       handleSelectApplication(initialApplications[0]);
     }
-  });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <>
