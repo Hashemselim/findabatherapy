@@ -2407,6 +2407,26 @@ export async function submitPublicClientIntake(data: {
   const { createAdminClient } = await import("@/lib/supabase/server");
   const adminSupabase = await createAdminClient();
 
+  // Verify the provider has an active paid plan (free-tier intake forms are preview-only)
+  const { data: providerProfile } = await adminSupabase
+    .from("profiles")
+    .select("plan_tier, subscription_status")
+    .eq("id", data.profileId)
+    .single();
+
+  if (!providerProfile) {
+    return { success: false, error: "Provider not found" };
+  }
+
+  const isActivePaid =
+    providerProfile.plan_tier !== "free" &&
+    (providerProfile.subscription_status === "active" ||
+      providerProfile.subscription_status === "trialing");
+
+  if (!isActivePaid) {
+    return { success: false, error: "This provider is not currently accepting intake submissions" };
+  }
+
   // Route flat field values to per-table buckets using the field registry
   const { routeFieldsToTables } = await import("@/lib/intake/build-intake-schema");
   const tables = routeFieldsToTables(data.fields);

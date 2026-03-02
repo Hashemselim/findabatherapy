@@ -5,6 +5,7 @@ import { Globe } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { PreviewBanner } from "@/components/ui/preview-banner";
 import { getClientIntakePageData, getIntakeFieldsConfig, getIntakeTokenData, getPublicAgencyLocations, type PrefillData } from "@/lib/actions/intake";
 
 import { ClientIntakeForm } from "./client-intake-form";
@@ -65,6 +66,7 @@ export default async function ClientIntakePage({ params, searchParams }: ClientI
   }
 
   const { listing, profile } = result.data;
+  const isPreview = profile.planTier === "free";
   const { background_color, show_powered_by } = profile.intakeFormSettings;
   const contrastColor = getContrastColor(background_color);
 
@@ -98,6 +100,13 @@ export default async function ClientIntakePage({ params, searchParams }: ClientI
         background: `linear-gradient(135deg, ${background_color} 0%, ${background_color}dd 50%, ${background_color}bb 100%)`,
       }}
     >
+      {isPreview && (
+        <PreviewBanner
+          variant="public"
+          message="This intake form is a preview — upgrade to receive submissions."
+          triggerFeature="client_intake"
+        />
+      )}
       {/* Main Content Container */}
       <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 sm:py-12">
         {/* White Card Container */}
@@ -171,7 +180,7 @@ export default async function ClientIntakePage({ params, searchParams }: ClientI
           </div>
 
           {/* Form Section */}
-          <div className="px-6 py-8 sm:px-8 sm:py-10">
+          <div className={`px-6 py-8 sm:px-8 sm:py-10 ${isPreview ? "pointer-events-none select-none opacity-60" : ""}`}>
             <ClientIntakeForm
               listingId={listing.id}
               profileId={listing.profileId}

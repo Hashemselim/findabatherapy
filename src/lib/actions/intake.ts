@@ -87,17 +87,14 @@ export async function getContactPageData(
     profile.subscription_status === "trialing";
   const isPremium = profile.plan_tier !== "free" && isActiveSubscription;
 
-  if (!isPremium) {
-    return { success: false, error: "Intake form not available" };
-  }
-
   // Check if contact form is enabled
   const contactFormAttribute = listing.listing_attribute_values?.find(
     (attr: { attribute_key: string }) => attr.attribute_key === "contact_form_enabled"
   );
   const contactFormEnabled = contactFormAttribute?.value_boolean !== false;
 
-  if (!contactFormEnabled) {
+  // For premium users, enforce contact form enabled check
+  if (isPremium && !contactFormEnabled) {
     return { success: false, error: "Contact form not enabled" };
   }
 
@@ -124,7 +121,8 @@ export async function getContactPageData(
         id: listing.id,
         slug: listing.slug,
         logoUrl,
-        contactFormEnabled,
+        // Free-tier providers: page renders in preview mode (form is locked)
+        contactFormEnabled: isPremium ? contactFormEnabled : false,
       },
       profile: {
         agencyName: profile.agency_name,
@@ -221,12 +219,8 @@ export async function getClientIntakePageData(
     profile.subscription_status === "trialing";
   const isPremium = profile.plan_tier !== "free" && isActiveSubscription;
 
-  if (!isPremium) {
-    return { success: false, error: "Client intake form not available" };
-  }
-
-  // Check if client intake is enabled
-  if (!listing.client_intake_enabled) {
+  // For premium users, enforce client intake enabled check
+  if (isPremium && !listing.client_intake_enabled) {
     return { success: false, error: "Client intake form not enabled" };
   }
 
@@ -252,7 +246,8 @@ export async function getClientIntakePageData(
         id: listing.id,
         slug: listing.slug,
         logoUrl,
-        clientIntakeEnabled: listing.client_intake_enabled ?? false,
+        // Free-tier providers: page renders in preview mode (form is locked)
+        clientIntakeEnabled: isPremium ? (listing.client_intake_enabled ?? false) : false,
         profileId: listing.profile_id,
       },
       profile: {

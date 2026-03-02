@@ -8,19 +8,11 @@ export default async function SiteLayout({ children }: PropsWithChildren) {
   const requestHeaders = await headers();
   const isBehaviorWorkPage = requestHeaders.get("x-behaviorwork-page") === "1";
 
-  if (isBehaviorWorkPage) {
-    return (
-      <div className="flex min-h-screen flex-col bg-background text-foreground">
-        <main className="flex-1">{children}</main>
-      </div>
-    );
-  }
-
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground">
-      <SiteHeader />
+      {!isBehaviorWorkPage && <SiteHeader />}
       <main className="flex-1">{children}</main>
-      <SiteFooter />
+      {!isBehaviorWorkPage && <SiteFooter />}
     </div>
   );
 }

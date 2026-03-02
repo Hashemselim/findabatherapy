@@ -269,6 +269,64 @@ export async function createAddonSubscription(
 }
 
 /**
+ * Cancel an add-on subscription (at period end).
+ * Sets cancel_at_period_end on Stripe and marks the local row.
+ */
+export async function cancelAddon(
+  addonId: string
+): Promise<ActionResult> {
+  const user = await getUser();
+  if (!user) {
+    return { success: false, error: "Not authenticated" };
+  }
+
+  const supabase = await createClient();
+
+  // Verify the addon belongs to this user
+  const { data: addon, error: fetchError } = await supabase
+    .from("profile_addons")
+    .select("id, stripe_subscription_id, status, profile_id")
+    .eq("id", addonId)
+    .eq("profile_id", user.id)
+    .eq("status", "active")
+    .single();
+
+  if (fetchError || !addon) {
+    return { success: false, error: "Add-on not found or already cancelled" };
+  }
+
+  if (!addon.stripe_subscription_id) {
+    return { success: false, error: "No subscription linked to this add-on" };
+  }
+
+  try {
+    // Cancel at period end so the user keeps the add-on until billing cycle ends
+    await stripe.subscriptions.update(addon.stripe_subscription_id, {
+      cancel_at_period_end: true,
+    });
+
+    // Mark local row
+    const adminClient = await createAdminClient();
+    await adminClient
+      .from("profile_addons")
+      .update({ cancel_at_period_end: true })
+      .eq("id", addonId);
+
+    revalidatePath("/dashboard/billing");
+    return { success: true };
+  } catch (error) {
+    console.error("Cancel addon error:", error);
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to cancel add-on",
+    };
+  }
+}
+
+/**
  * Compute effective limits for a profile: Pro base limits + active add-on quantities
  */
 export async function getEffectiveLimits(

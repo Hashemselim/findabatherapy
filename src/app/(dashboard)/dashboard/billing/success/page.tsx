@@ -4,6 +4,7 @@ import { CheckCircle2, ArrowRight, ExternalLink, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ConfettiBurst } from "@/components/ui/confetti-burst";
 import { CheckoutTracker } from "@/components/analytics/checkout-tracker";
 import { getListing, type ListingWithRelations } from "@/lib/actions/listings";
 import { verifyAndSyncCheckoutSession } from "@/lib/stripe/actions";
@@ -70,7 +71,8 @@ export default async function BillingSuccessPage({ searchParams }: BillingSucces
 
   return (
     <div className="flex min-h-[60vh] items-center justify-center">
-      {/* PostHog checkout tracking */}
+      {/* Confetti + PostHog checkout tracking */}
+      {!isDowngrade && <ConfettiBurst />}
       <CheckoutTracker type={checkoutType} />
 
       <Card className="w-full max-w-lg">

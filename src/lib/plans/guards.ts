@@ -331,6 +331,47 @@ export async function guardCredentialTracking(): Promise<GuardResult> {
 }
 
 /**
+ * Guard: Check if user can add more team users
+ * For Pro users, checks effective limits (base 1 + extra_users add-ons)
+ */
+export async function guardAddUser(
+  currentCount: number
+): Promise<GuardResult> {
+  const user = await getUser();
+  const tier = await getCurrentPlanTier();
+
+  // For Pro users, check effective limits (base + add-ons)
+  if (tier === "pro" && user) {
+    const limitsResult = await getEffectiveLimits(user.id);
+    if (limitsResult.success && limitsResult.data) {
+      const effectiveMax = limitsResult.data.maxUsers;
+      if (currentCount >= effectiveMax) {
+        return {
+          allowed: false,
+          reason: `You've used ${currentCount} of ${effectiveMax} user seats`,
+          requiredPlan: "pro",
+          addonType: "extra_users",
+          currentCount,
+          maxCount: effectiveMax,
+        };
+      }
+      return { allowed: true };
+    }
+  }
+
+  // Free users: 1 user (the owner)
+  if (currentCount >= 1) {
+    return {
+      allowed: false,
+      reason: "Additional user seats require a Pro plan",
+      requiredPlan: "pro",
+    };
+  }
+
+  return { allowed: true };
+}
+
+/**
  * Guard: Check if user can add more clients
  */
 export async function guardAddClient(
