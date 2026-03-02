@@ -410,13 +410,7 @@ function AddonPurchaseButton({
     return (
       <div className="rounded-lg border border-dashed border-blue-200 bg-blue-50/50 transition-colors hover:border-blue-300 hover:bg-blue-50">
         <button
-          onClick={() => {
-            if (isHomepage) {
-              handlePurchase();
-            } else {
-              setShowQuantity(!showQuantity);
-            }
-          }}
+          onClick={() => setShowQuantity(!showQuantity)}
           disabled={loading}
           className="flex w-full items-center gap-3 p-3 text-left disabled:opacity-50"
         >
@@ -437,21 +431,23 @@ function AddonPurchaseButton({
           </div>
         </button>
 
-        {showQuantity && !isHomepage && (
+        {showQuantity && (
           <div className="space-y-2 border-t border-blue-200 px-3 pb-3 pt-2">
-            <div className="flex items-center gap-3">
-              <QuantityStepper
-                value={quantity}
-                onChange={setQuantity}
-                min={1}
-                max={10}
-              />
-              <span className="text-xs text-slate-500">
-                Add {quantity * info.unitsPerPack} {info.unitLabel}
-                {quantity * info.unitsPerPack !== 1 ? "s" : ""} for{" "}
-                <span className="font-medium text-slate-700">${totalPrice}/mo</span>
-              </span>
-            </div>
+            {!isHomepage && (
+              <div className="flex items-center gap-3">
+                <QuantityStepper
+                  value={quantity}
+                  onChange={setQuantity}
+                  min={1}
+                  max={10}
+                />
+                <span className="text-xs text-slate-500">
+                  Add {quantity * info.unitsPerPack} {info.unitLabel}
+                  {quantity * info.unitsPerPack !== 1 ? "s" : ""} for{" "}
+                  <span className="font-medium text-slate-700">${totalPrice}/mo</span>
+                </span>
+              </div>
+            )}
             <Button
               size="sm"
               className="h-8 w-full text-xs"
@@ -461,8 +457,10 @@ function AddonPurchaseButton({
               {loading ? (
                 <>
                   <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
-                  Updating...
+                  {isHomepage ? "Processing..." : "Updating..."}
                 </>
+              ) : isHomepage ? (
+                `Purchase — $${info.pricePerPack}/mo`
               ) : (
                 `Add More — $${totalPrice}/mo`
               )}
@@ -476,13 +474,7 @@ function AddonPurchaseButton({
   return (
     <div className="rounded-lg border border-dashed border-slate-300 bg-white transition-colors hover:border-slate-400 hover:bg-slate-50">
       <button
-        onClick={() => {
-          if (isHomepage) {
-            handlePurchase();
-          } else {
-            setShowQuantity(!showQuantity);
-          }
-        }}
+        onClick={() => setShowQuantity(!showQuantity)}
         disabled={loading}
         className="flex w-full items-center gap-3 p-3 text-left disabled:opacity-50"
       >
@@ -499,24 +491,26 @@ function AddonPurchaseButton({
         </div>
       </button>
 
-      {showQuantity && !isHomepage && (
+      {showQuantity && (
         <div className="border-t border-slate-200 px-3 pb-3 pt-2 space-y-2">
-          <div className="flex items-center gap-3">
-            <QuantityStepper
-              value={quantity}
-              onChange={setQuantity}
-              min={1}
-              max={10}
-            />
-            <span className="text-xs text-slate-500">
-              {quantity} &times; ${info.pricePerPack} ={" "}
-              <span className="font-medium text-slate-700">${totalPrice}/mo</span>
-              <span className="ml-1 text-slate-400">
-                ({totalUnits} {info.unitLabel}
-                {totalUnits !== 1 ? "s" : ""})
+          {!isHomepage && (
+            <div className="flex items-center gap-3">
+              <QuantityStepper
+                value={quantity}
+                onChange={setQuantity}
+                min={1}
+                max={10}
+              />
+              <span className="text-xs text-slate-500">
+                {quantity} &times; ${info.pricePerPack} ={" "}
+                <span className="font-medium text-slate-700">${totalPrice}/mo</span>
+                <span className="ml-1 text-slate-400">
+                  ({totalUnits} {info.unitLabel}
+                  {totalUnits !== 1 ? "s" : ""})
+                </span>
               </span>
-            </span>
-          </div>
+            </div>
+          )}
           <Button
             size="sm"
             className="w-full h-8 text-xs"
