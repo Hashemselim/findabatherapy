@@ -35,7 +35,14 @@ import { getJobCountAndLimit } from "@/lib/actions/jobs";
 import { getNewApplicationCount } from "@/lib/actions/applications";
 import { getProfile } from "@/lib/supabase/server";
 
-export default async function DashboardOverviewPage() {
+interface DashboardOverviewPageProps {
+  searchParams?: Promise<{ welcome?: string }>;
+}
+
+export default async function DashboardOverviewPage({
+  searchParams,
+}: DashboardOverviewPageProps) {
+  const params = searchParams ? await searchParams : undefined;
   let profile;
   let listingResult;
 
@@ -130,12 +137,25 @@ export default async function DashboardOverviewPage() {
 
   const analytics = analyticsResult?.success ? analyticsResult.data : undefined;
   const inquiryCount = inquiryResult?.success ? inquiryResult.data : 0;
-  const jobStats = jobCountResult.success ? jobCountResult.data : { count: 0, limit: 1 };
   const applicationCount = applicationCountResult.success ? applicationCountResult.data : 0;
+  const showWelcome = params?.welcome === "1";
 
   return (
     <div className="space-y-3">
       <DashboardTracker section="overview" />
+      {showWelcome && (
+        <Card className="border-emerald-500/30 bg-emerald-500/5">
+          <CardContent className="flex items-start gap-3 py-4">
+            <CheckCircle2 className="mt-0.5 h-5 w-5 text-emerald-500" />
+            <div>
+              <p className="font-medium text-emerald-900">You&apos;re in.</p>
+              <p className="text-sm text-emerald-800">
+                Your onboarding is complete. Your FindABATherapy presence is live, and the rest of your BehaviorWork dashboard is ready to use or preview based on your plan.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
       <DashboardPageHeader
         title="Overview"
         description="Manage your listing, track performance, and connect with families."

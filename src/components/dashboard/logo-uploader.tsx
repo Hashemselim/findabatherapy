@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { Upload, X, Loader2, ImageIcon } from "lucide-react";
 
@@ -23,14 +23,23 @@ import { FILE_SIZE_LIMITS, ALLOWED_IMAGE_TYPES } from "@/lib/storage/config";
 interface LogoUploaderProps {
   currentLogoUrl: string | null;
   hideHeader?: boolean;
+  onLogoChange?: (logoUrl: string | null) => void;
 }
 
-export function LogoUploader({ currentLogoUrl, hideHeader = false }: LogoUploaderProps) {
+export function LogoUploader({
+  currentLogoUrl,
+  hideHeader = false,
+  onLogoChange,
+}: LogoUploaderProps) {
   const [logoUrl, setLogoUrl] = useState<string | null>(currentLogoUrl);
   const [isUploading, setIsUploading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setLogoUrl(currentLogoUrl);
+  }, [currentLogoUrl]);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -58,6 +67,7 @@ export function LogoUploader({ currentLogoUrl, hideHeader = false }: LogoUploade
 
     if (result.success && result.data) {
       setLogoUrl(result.data.url);
+      onLogoChange?.(result.data.url);
     } else {
       setError(result.success ? "Upload failed" : result.error);
     }
@@ -78,6 +88,7 @@ export function LogoUploader({ currentLogoUrl, hideHeader = false }: LogoUploade
 
     if (result.success) {
       setLogoUrl(null);
+      onLogoChange?.(null);
     } else {
       setError(result.error);
     }

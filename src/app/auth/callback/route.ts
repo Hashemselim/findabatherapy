@@ -101,14 +101,6 @@ export async function GET(request: Request) {
           signupMethod,
         });
 
-        // For paid plans selected from pricing page, redirect to payment first
-        if (userPlan === "pro") {
-          return NextResponse.redirect(
-            `${origin}/dashboard/billing/checkout?plan=${userPlan}&interval=${userInterval}&return_to=onboarding`
-          );
-        }
-
-        // Free plan - go straight to onboarding
         return NextResponse.redirect(`${origin}/dashboard/onboarding`);
       }
 

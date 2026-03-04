@@ -1,518 +1,213 @@
 "use client";
 
-import { useState, useEffect, useTransition } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import Link from "next/link";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
 import {
-  ArrowLeft,
   ArrowRight,
-  CheckCircle2,
-  Crown,
+  BookOpen,
+  Briefcase,
   ExternalLink,
   FileText,
   Globe,
   Loader2,
   Mail,
-  MapPin,
-  MessageSquare,
-  Palette,
-  Phone,
   Sparkles,
-  Users,
 } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { completeOnboarding, getOnboardingData } from "@/lib/actions/onboarding";
-import { getPaymentStatus } from "@/lib/actions/billing";
-import { createCheckoutSession } from "@/lib/stripe/actions";
-import { SERVICE_MODE_OPTIONS } from "@/lib/validations/onboarding";
-import { type PlanTier } from "@/lib/plans/features";
+import { getOnboardingData } from "@/lib/actions/onboarding";
 
-interface OnboardingData {
-  profile: {
-    agencyName: string;
-    contactEmail: string;
-    contactPhone: string | null;
-    website: string | null;
-    planTier: string;
-    billingInterval: string;
-  } | null;
-  listing: {
-    id: string;
-    slug: string;
-    headline: string | null;
-    description: string | null;
-    serviceModes: string[];
-    isAcceptingClients: boolean;
-    videoUrl: string | null;
-  } | null;
-  location: {
-    street: string | null;
-    city: string;
-    state: string;
-    postalCode: string | null;
-    serviceRadiusMiles: number;
-    latitude: number | null;
-    longitude: number | null;
-  } | null;
-  attributes: Record<string, unknown>;
-}
+const previewCards = [
+  {
+    title: "Branded Website",
+    description: "Your full agency website with custom branding, sections, and content.",
+    href: (slug: string) => `/site/${slug}`,
+    icon: Globe,
+    color: { bg: "bg-violet-50", text: "text-violet-600" },
+    status: "Pro feature",
+    statusColor: "text-slate-600",
+  },
+  {
+    title: "Agency Digital Brochure",
+    description: "A branded page with your story, services, and identity.",
+    href: (slug: string) => `/p/${slug}`,
+    icon: BookOpen,
+    color: { bg: "bg-sky-50", text: "text-sky-600" },
+    status: "Pro feature",
+    statusColor: "text-slate-600",
+  },
+  {
+    title: "FindABATherapy Listing",
+    description: "Your public profile for families searching for ABA care.",
+    href: (slug: string) => `/provider/${slug}`,
+    icon: Sparkles,
+    color: { bg: "bg-blue-50", text: "text-blue-600" },
+    status: "Live on Free & Pro",
+    statusColor: "text-emerald-600",
+  },
+  {
+    title: "Contact Page",
+    description: "A branded contact experience for families to reach out.",
+    href: (slug: string) => `/site/${slug}/contact`,
+    icon: Mail,
+    color: { bg: "bg-rose-50", text: "text-rose-600" },
+    status: "Pro feature",
+    statusColor: "text-slate-600",
+  },
+  {
+    title: "Intake Form",
+    description: "Branded intake flow that keeps inquiries organized.",
+    href: (slug: string) => `/intake/${slug}/client`,
+    icon: FileText,
+    color: { bg: "bg-amber-50", text: "text-amber-600" },
+    status: "Pro feature",
+    statusColor: "text-slate-600",
+  },
+  {
+    title: "Resources Page",
+    description: "Share parent resources and educational content.",
+    href: (slug: string) => `/site/${slug}/resources`,
+    icon: Sparkles,
+    color: { bg: "bg-emerald-50", text: "text-emerald-600" },
+    status: "Pro feature",
+    statusColor: "text-slate-600",
+  },
+  {
+    title: "Careers Page",
+    description: "A hiring destination that ties into FindABAJobs.",
+    href: (slug: string) => `/site/${slug}/careers`,
+    icon: Briefcase,
+    color: { bg: "bg-indigo-50", text: "text-indigo-600" },
+    status: "Pro feature",
+    statusColor: "text-slate-600",
+  },
+];
 
-function formatServiceMode(mode: string): string {
-  const option = SERVICE_MODE_OPTIONS.find((o) => o.value === mode);
-  return option?.label || mode;
-}
+const fadeUp = {
+  hidden: { opacity: 0, y: 12 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.21, 0.47, 0.32, 0.98] as const } },
+};
 
-export default function OnboardingPreviewPage() {
+const stagger = {
+  hidden: { opacity: 0 },
+  show: { opacity: 1, transition: { staggerChildren: 0.06, delayChildren: 0.1 } },
+};
+
+export default function OnboardingBrandedPreviewPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const [isPending, startTransition] = useTransition();
   const [isLoading, setIsLoading] = useState(true);
-  const [data, setData] = useState<OnboardingData | null>(null);
-  const [planTier, setPlanTier] = useState<PlanTier>("free");
-  const [error, setError] = useState<string | null>(null);
-
-  const paymentSuccess = searchParams.get("payment") === "success";
-  const isPro = planTier !== "free";
-  const slug = data?.listing?.slug || null;
-  const agencyName = data?.profile?.agencyName || "Your Agency";
+  const [agencyName, setAgencyName] = useState("Your agency");
+  const [slug, setSlug] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadData() {
-      const [onboardingResult, paymentResult] = await Promise.all([
-        getOnboardingData(),
-        getPaymentStatus(),
-      ]);
-
-      if (onboardingResult.success && onboardingResult.data) {
-        setData(onboardingResult.data);
+      const result = await getOnboardingData();
+      if (result.success && result.data) {
+        setAgencyName(result.data.profile?.agencyName || "Your agency");
+        setSlug(result.data.listing?.slug || null);
       }
-
-      if (paymentResult.success && paymentResult.data) {
-        setPlanTier(paymentResult.data.planTier);
-      }
-
       setIsLoading(false);
     }
+
     loadData();
   }, []);
 
-  function handleGoLive() {
-    setError(null);
-    startTransition(async () => {
-      const result = await createCheckoutSession("pro", "month", "onboarding");
-      if (result.success && result.data?.url) {
-        window.location.href = result.data.url;
-      } else if (!result.success) {
-        setError(result.error);
-      } else {
-        setError("Failed to start checkout. Please try again.");
-      }
-    });
-  }
-
-  function handleContinuePreview() {
-    setError(null);
-    startTransition(async () => {
-      const result = await completeOnboarding(true);
-      if (!result.success) {
-        setError(result.error);
-        return;
-      }
-      router.push("/dashboard/onboarding/success");
-    });
-  }
-
-  function handlePublish() {
-    setError(null);
-    startTransition(async () => {
-      const result = await completeOnboarding(true);
-      if (!result.success) {
-        setError(result.error);
-        return;
-      }
-      router.push("/dashboard/onboarding/success");
-    });
-  }
-
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-[#5788FF]" />
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="h-6 w-6 animate-spin text-[#1A2744]" />
+          <p className="text-sm text-slate-400">Preparing your preview...</p>
+        </div>
       </div>
     );
   }
 
-  const insurances = (data?.attributes?.insurances as string[]) || [];
-  const languages = (data?.attributes?.languages as string[]) || [];
-
   return (
-    <div className="space-y-6">
-      {/* Payment Success Banner */}
-      {paymentSuccess && (
-        <div className="flex items-center gap-3 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-4">
-          <Crown className="h-5 w-5 flex-shrink-0 text-emerald-600" />
-          <div>
-            <p className="font-medium text-emerald-900 dark:text-emerald-100">
-              Pro plan activated!
-            </p>
-            <p className="text-sm text-emerald-700 dark:text-emerald-300">
-              Your branded pages and premium features are now available.
-            </p>
-          </div>
+    <motion.div variants={stagger} initial="hidden" animate="show">
+      {/* Page header */}
+      <motion.div variants={fadeUp} className="mb-8">
+        <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1">
+          <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+          <span className="text-xs font-medium text-emerald-700">Everything is coming together</span>
         </div>
-      )}
-
-      <div className="text-center">
-        <Badge className="mb-4 rounded-full border-emerald-500/30 bg-emerald-500/10 text-emerald-600">
-          <CheckCircle2 className="mr-1 h-3 w-3" />
-          Profile Complete
-        </Badge>
-        <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">
-          Preview your listing
+        <p className="mb-2 text-sm font-medium text-slate-400">Step 5 of 7</p>
+        <h1 className="text-3xl font-semibold tracking-tight text-[#1A2744] sm:text-4xl">
+          Your branded pages are taking shape
         </h1>
-        <p className="mt-2 mx-auto max-w-lg text-muted-foreground">
-          Here&apos;s what families will see. Go Live to activate branded pages, CRM, and all Pro features.
+        <p className="mt-2 max-w-2xl text-base leading-relaxed text-slate-500">
+          {agencyName} now has a branded presence across the platform. Preview each experience below.
         </p>
-      </div>
+      </motion.div>
 
-      {error && (
-        <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
-          {error}
-        </div>
-      )}
-
-      {/* Listing Preview Card */}
-      <div className="mx-auto max-w-2xl">
-        <Card className="overflow-hidden border-border/60">
-          <div className="bg-gradient-to-r from-primary/5 to-primary/10 p-4 sm:p-6">
-            <h3 className="text-lg font-semibold text-foreground sm:text-xl">
-              {agencyName}
-            </h3>
-            {data?.listing?.headline && (
-              <p className="mt-1 text-sm text-muted-foreground">
-                {data.listing.headline}
-              </p>
-            )}
-          </div>
-
-          <CardContent className="space-y-4 p-4 sm:p-6">
-            {/* Location */}
-            {data?.location && (
-              <div className="flex items-start gap-3">
-                <MapPin className="mt-0.5 h-4 w-4 text-[#5788FF]" />
-                <div>
-                  <p className="text-sm font-medium text-foreground">
-                    {data.location.city}, {data.location.state}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Serves within {data.location.serviceRadiusMiles} miles
+      {/* Preview cards grid */}
+      <motion.div
+        variants={stagger}
+        className="mb-8 grid gap-3 sm:grid-cols-2 xl:grid-cols-3"
+      >
+        {previewCards.map((card) => {
+          const Icon = card.icon;
+          return (
+            <motion.div
+              key={card.title}
+              variants={fadeUp}
+              whileHover={{ y: -2 }}
+              transition={{ duration: 0.2 }}
+              className="group flex flex-col rounded-2xl border border-amber-200/40 bg-white p-5 transition-colors hover:border-amber-200/70"
+            >
+              <div className="flex items-start gap-3.5">
+                <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${card.color.bg}`}>
+                  <Icon className={`h-5 w-5 ${card.color.text}`} />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="font-semibold text-[#1A2744]">{card.title}</h3>
+                  <p className="mt-0.5 text-sm leading-relaxed text-slate-600">
+                    {card.description}
                   </p>
                 </div>
               </div>
-            )}
 
-            {/* Contact Info */}
-            <div className="space-y-2">
-              {data?.profile?.contactEmail && (
-                <div className="flex items-center gap-3">
-                  <Mail className="h-4 w-4 text-[#5788FF]" />
-                  <span className="text-sm text-foreground">
-                    {data.profile.contactEmail}
-                  </span>
-                </div>
-              )}
-              {data?.profile?.contactPhone && (
-                <div className="flex items-center gap-3">
-                  <Phone className="h-4 w-4 text-[#5788FF]" />
-                  <span className="text-sm text-foreground">
-                    {data.profile.contactPhone}
-                  </span>
-                </div>
-              )}
-              {data?.profile?.website && (
-                <div className="flex min-w-0 items-center gap-3">
-                  <Globe className="h-4 w-4 flex-shrink-0 text-[#5788FF]" />
-                  <span className="truncate text-sm text-foreground">
-                    {data.profile.website}
-                  </span>
-                </div>
-              )}
-            </div>
-
-            {/* Service Modes */}
-            {data?.listing?.serviceModes && data.listing.serviceModes.length > 0 && (
-              <div>
-                <p className="mb-2 text-xs font-medium text-muted-foreground">
-                  Service Modes
-                </p>
-                <div className="flex flex-wrap gap-1.5">
-                  {data.listing.serviceModes.map((mode) => (
-                    <Badge key={mode} variant="secondary" className="text-xs">
-                      {formatServiceMode(mode)}
-                    </Badge>
-                  ))}
-                </div>
+              <div className="mt-4 flex items-center justify-between">
+                <span className={`text-xs font-medium ${card.statusColor}`}>
+                  {card.status}
+                </span>
+                {slug && (
+                  <a
+                    href={card.href(slug)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-xs font-medium text-[#1A2744] opacity-100 sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100"
+                  >
+                    Preview
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                )}
               </div>
-            )}
+            </motion.div>
+          );
+        })}
+      </motion.div>
 
-            {/* Insurances */}
-            {insurances.length > 0 && (
-              <div>
-                <p className="mb-2 text-xs font-medium text-muted-foreground">
-                  Insurance Accepted
-                </p>
-                <div className="flex flex-wrap gap-1.5">
-                  {insurances.slice(0, 4).map((ins) => (
-                    <Badge key={ins} variant="outline" className="text-xs">
-                      {ins}
-                    </Badge>
-                  ))}
-                  {insurances.length > 4 && (
-                    <Badge variant="outline" className="text-xs">
-                      +{insurances.length - 4} more
-                    </Badge>
-                  )}
-                </div>
-              </div>
-            )}
+      {/* Navigation footer */}
+      <motion.div
+        variants={fadeUp}
+        className="flex flex-col gap-3 rounded-2xl border border-amber-200/40 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:py-4"
+      >
+        <p className="text-xs text-slate-500 sm:text-sm sm:text-slate-600">
+          You can preview live links from your dashboard anytime.
+        </p>
 
-            {/* Languages */}
-            {languages.length > 0 && (
-              <div>
-                <p className="mb-2 text-xs font-medium text-muted-foreground">
-                  Languages
-                </p>
-                <div className="flex flex-wrap gap-1.5">
-                  {languages.map((lang) => (
-                    <Badge key={lang} variant="outline" className="text-xs">
-                      {lang}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Accepting Clients Status */}
-            {data?.listing?.isAcceptingClients && (
-              <div className="flex items-center gap-2 text-sm text-emerald-600">
-                <CheckCircle2 className="h-4 w-4" />
-                <span>Accepting new clients</span>
-              </div>
-            )}
-          </CardContent>
-
-          {/* Edit Link */}
-          <div className="border-t border-border/60 bg-muted/30 px-6 py-3">
-            <Link
-              href="/dashboard/onboarding/details"
-              className="text-sm text-[#5788FF] hover:underline"
-            >
-              Edit listing details
-            </Link>
-          </div>
-        </Card>
-      </div>
-
-      {/* Branded Page Preview Link */}
-      {slug && (
-        <Card className="mx-auto max-w-2xl border-primary/30 bg-gradient-to-br from-primary/5 to-violet-500/5">
-          <CardContent className="flex items-start gap-4 p-5">
-            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-primary/10">
-              <Palette className="h-5 w-5 text-primary" />
-            </div>
-            <div className="flex-1">
-              <h3 className="text-sm font-semibold text-foreground">
-                Branded Agency Page
-              </h3>
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                A shareable page for {agencyName} with your logo, services, and intake funnel
-              </p>
-              <div className="mt-2 flex items-center gap-2">
-                <code className="rounded bg-muted px-2 py-1 text-xs text-muted-foreground">
-                  behaviorwork.com/p/{slug}
-                </code>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 px-2 text-xs"
-                  onClick={() =>
-                    window.open(`/p/${slug}`, "_blank", "noopener")
-                  }
-                >
-                  <ExternalLink className="mr-1 h-3 w-3" />
-                  Preview
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Pro Features Grid */}
-      <div className="mx-auto max-w-2xl grid gap-3 sm:grid-cols-2">
-        <Card className="border-border/60">
-          <CardContent className="flex items-start gap-3 p-4">
-            <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-emerald-500/10">
-              <MessageSquare className="h-4 w-4 text-emerald-600" />
-            </div>
-            <div>
-              <h3 className="text-sm font-semibold text-foreground">
-                Branded Contact Form
-              </h3>
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                Receive inquiries directly from families
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border/60">
-          <CardContent className="flex items-start gap-3 p-4">
-            <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-violet-500/10">
-              <FileText className="h-4 w-4 text-violet-600" />
-            </div>
-            <div>
-              <h3 className="text-sm font-semibold text-foreground">
-                CRM & Communications
-              </h3>
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                Unlimited clients, templates, and automation
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border/60">
-          <CardContent className="flex items-start gap-3 p-4">
-            <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-amber-500/10">
-              <Users className="h-4 w-4 text-amber-600" />
-            </div>
-            <div>
-              <h3 className="text-sm font-semibold text-foreground">
-                Branded Careers Page
-              </h3>
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                Attract qualified candidates with a professional hub
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border/60">
-          <CardContent className="flex items-start gap-3 p-4">
-            <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-blue-500/10">
-              <Globe className="h-4 w-4 text-blue-600" />
-            </div>
-            <div>
-              <h3 className="text-sm font-semibold text-foreground">
-                Analytics & Insights
-              </h3>
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                Track views, clicks, and referral sources
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Go Live CTA */}
-      {isPro ? (
-        <div className="mx-auto max-w-2xl rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-6 text-center">
-          <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500/10">
-            <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-          </div>
-          <h3 className="text-lg font-semibold text-foreground">
-            You&apos;re all set!
-          </h3>
-          <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
-            Your Pro plan is active. Publish your listing to go live on FindABATherapy.org.
-          </p>
-          <div className="mt-5">
-            <Button
-              onClick={handlePublish}
-              disabled={isPending}
-              size="lg"
-              className="rounded-full px-8"
-            >
-              {isPending ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Publishing...
-                </>
-              ) : (
-                <>
-                  Publish Listing
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </>
-              )}
-            </Button>
-          </div>
-        </div>
-      ) : (
-        <div className="mx-auto max-w-2xl rounded-xl border border-primary/20 bg-gradient-to-r from-primary/5 via-violet-500/5 to-primary/5 p-6 text-center">
-          <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-            <Sparkles className="h-5 w-5 text-primary" />
-          </div>
-          <h3 className="text-lg font-semibold text-foreground">
-            Ready to go live?
-          </h3>
-          <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
-            Activate branded pages, CRM, communication templates, analytics, and all Pro features.
-          </p>
-
-          <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:justify-center">
-            <Button
-              onClick={handleGoLive}
-              disabled={isPending}
-              size="lg"
-              className="rounded-full px-8"
-            >
-              {isPending ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Redirecting...
-                </>
-              ) : (
-                <>
-                  <Crown className="mr-2 h-4 w-4" />
-                  Go Live — $79/mo
-                </>
-              )}
-            </Button>
-            <Button
-              variant="ghost"
-              onClick={handleContinuePreview}
-              disabled={isPending}
-              size="lg"
-              className="rounded-full text-muted-foreground"
-            >
-              Continue exploring in preview mode
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
-          </div>
-
-          <p className="mt-3 text-xs text-muted-foreground">
-            Cancel anytime. Your listing is published on the free plan too.
-          </p>
-        </div>
-      )}
-
-      {/* Back Button */}
-      <div className="flex justify-start">
         <Button
           type="button"
-          variant="ghost"
-          onClick={() => router.push("/dashboard/onboarding/location")}
-          disabled={isPending}
-          className="rounded-full"
+          size="lg"
+          className="h-11 w-full shrink-0 rounded-full bg-[#FFDC33] px-7 font-semibold text-[#1A2744] shadow-md shadow-amber-200/50 hover:bg-[#F5CF1B] sm:ml-auto sm:w-auto"
+          onClick={() => router.push("/dashboard/onboarding/dashboard")}
         >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back
+          Continue
+          <ArrowRight className="ml-2 h-4 w-4" />
         </Button>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }

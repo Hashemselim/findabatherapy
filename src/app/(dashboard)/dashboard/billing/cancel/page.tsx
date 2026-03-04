@@ -20,9 +20,9 @@ export default async function BillingCancelPage({ searchParams }: BillingCancelP
     await resetPlanToFree();
   }
 
-  // If user came from onboarding, redirect back to the branded preview step
+  // If user came from onboarding, redirect back to the final decision step
   if (params.return_to === "onboarding") {
-    redirect("/dashboard/onboarding/branded-preview");
+    redirect("/dashboard/onboarding/plan?payment=cancelled");
   }
 
   return (

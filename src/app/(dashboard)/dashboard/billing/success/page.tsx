@@ -50,7 +50,7 @@ export default async function BillingSuccessPage({ searchParams }: BillingSucces
 
   // If user came from onboarding, redirect to the Go Live step
   if (params.return_to === "onboarding") {
-    redirect("/dashboard/onboarding/review?payment=success");
+    redirect("/dashboard/onboarding/plan?payment=success");
   }
 
   const listing = await getListingData();

@@ -3,6 +3,18 @@ import { NextResponse } from "next/server";
 
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 
+type SignupIntent = "therapy" | "jobs" | "both";
+
+function normalizeSignupIntent(value: string | null | undefined): SignupIntent {
+  if (value === "therapy" || value === "jobs" || value === "both") {
+    return value;
+  }
+  if (value === "context_jobs" || value === "jobs_only") {
+    return "jobs";
+  }
+  return "both";
+}
+
 /**
  * Email confirmation handler.
  * This route handles email verification links sent during signup.
@@ -44,6 +56,13 @@ export async function GET(request: Request) {
           data.user.user_metadata?.agency_name ||
           data.user.email?.split("@")[0] ||
           "My Agency";
+        const selectedPlan = data.user.user_metadata?.selected_plan === "pro" ? "pro" : "free";
+        const billingInterval =
+          data.user.user_metadata?.billing_interval === "annual" ||
+          data.user.user_metadata?.billing_interval === "year"
+            ? "year"
+            : "month";
+        const selectedIntent = normalizeSignupIntent(data.user.user_metadata?.selected_intent);
 
         const { error: profileError } = await adminClient
           .from("profiles")
@@ -51,7 +70,9 @@ export async function GET(request: Request) {
             id: data.user.id,
             agency_name: agencyName,
             contact_email: data.user.email!,
-            plan_tier: "free",
+            plan_tier: selectedPlan,
+            billing_interval: billingInterval,
+            primary_intent: selectedIntent,
           });
 
         if (profileError) {

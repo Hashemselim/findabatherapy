@@ -1,13 +1,11 @@
 "use client";
 
 import { usePathname } from "next/navigation";
+import { motion } from "framer-motion";
 
-import { useAuth } from "@/contexts/auth-context";
-import { isDevOnboardingPreviewEnabled } from "@/lib/onboarding-preview";
-import {
-  OnboardingProgress,
-  ONBOARDING_STEPS,
-} from "@/components/onboarding/onboarding-progress";
+import { BehaviorWorkLogo } from "@/components/brand/behaviorwork-logo";
+import { ONBOARDING_STEPS } from "@/lib/onboarding/flow";
+import { OnboardingProgress } from "@/components/onboarding/onboarding-progress";
 
 export default function OnboardingLayout({
   children,
@@ -15,36 +13,56 @@ export default function OnboardingLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const { isAuthenticated, loading } = useAuth();
 
-  // Determine current step from pathname
   const currentStepIndex = ONBOARDING_STEPS.findIndex(
     (step) => step.path === pathname
   );
   const currentStep =
     ONBOARDING_STEPS[currentStepIndex]?.id || ONBOARDING_STEPS[0].id;
 
-  const showDevBanner =
-    isDevOnboardingPreviewEnabled() && !loading && !isAuthenticated;
-
   return (
-    <div className="space-y-6">
-      {/* Dev preview banner */}
-      {showDevBanner && (
-        <div className="-mx-4 -mt-4 border-b border-amber-500/20 bg-amber-500/10 px-4 py-1.5 text-center text-xs text-amber-700 sm:-mx-6 sm:px-6">
-          Dev Preview — not signed in, form submissions disabled
-        </div>
-      )}
-
-      {/* Progress */}
-      <div className="-mx-4 -mt-4 mb-6 border-b border-border/60 bg-muted/30 px-4 py-4 sm:-mx-6 sm:-mt-6 sm:px-6">
-        <div className="mx-auto max-w-4xl">
-          <OnboardingProgress currentStep={currentStep} />
-        </div>
+    <div className="relative min-h-screen overflow-x-hidden bg-[#FFFBF0]">
+      {/* Subtle ambient background */}
+      <div className="pointer-events-none fixed inset-0 overflow-hidden">
+        <div className="absolute -left-[300px] -top-[200px] h-[600px] w-[600px] rounded-full bg-[#FFDC33]/[0.06] blur-[120px]" />
+        <div className="absolute -right-[200px] top-[40%] h-[500px] w-[500px] rounded-full bg-[#5788FF]/[0.04] blur-[100px]" />
       </div>
 
-      {/* Content */}
-      <div className="mx-auto max-w-4xl">{children}</div>
+      {/* Progress bar - sticky header */}
+      <header className="sticky top-0 z-50 border-b border-amber-200/60 bg-[#FFFBF0]/95 backdrop-blur-xl">
+        <div className="mx-auto max-w-5xl px-4 py-3 sm:px-6 sm:py-4">
+          <div className="flex items-center gap-3 sm:gap-4">
+            {/* Brand mark */}
+            <div className="flex items-center gap-2 sm:gap-2.5">
+              <BehaviorWorkLogo size="sm" />
+              <span className="hidden text-sm font-semibold tracking-tight text-[#5788FF] sm:inline">
+                Setup
+              </span>
+            </div>
+
+            {/* Divider */}
+            <div className="h-5 w-px bg-amber-200/60" />
+
+            {/* Progress stepper */}
+            <div className="min-w-0 flex-1">
+              <OnboardingProgress currentStep={currentStep} />
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Main content */}
+      <main className="relative">
+        <motion.div
+          key={pathname}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, ease: [0.21, 0.47, 0.32, 0.98] as const }}
+          className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-12"
+        >
+          {children}
+        </motion.div>
+      </main>
     </div>
   );
 }

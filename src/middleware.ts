@@ -1,5 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+import {
+  evaluateOnboardingFlow,
+  isAllowedPreOnboardingPath,
+  resolveLegacyOnboardingRedirect,
+} from "@/lib/onboarding/flow";
 import { isDevOnboardingPreviewEnabled } from "@/lib/onboarding-preview";
 import { updateSession } from "@/lib/supabase/middleware";
 import { domains, type Brand } from "@/lib/utils/domains";
@@ -251,26 +256,123 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(redirectUrl);
   }
 
-  // If auth route and authenticated, redirect to dashboard
-  if (isAuthRoute && user) {
-    // Check if user has completed onboarding
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("onboarding_completed_at")
-      .eq("id", user.id)
-      .single();
-
-    // If no profile or onboarding not completed, redirect to onboarding
-    if (!profile || !profile.onboarding_completed_at) {
-      return NextResponse.redirect(new URL("/dashboard/onboarding", request.url));
+  if (isProtectedRoute && user) {
+    const legacyRedirect = resolveLegacyOnboardingRedirect(pathname);
+    if (legacyRedirect) {
+      return NextResponse.redirect(new URL(legacyRedirect, request.url));
     }
 
-    // Otherwise redirect to the default dashboard landing page
-    return NextResponse.redirect(new URL("/dashboard/clients/pipeline", request.url));
+    const [{ data: profile }, { data: listing }] = await Promise.all([
+      supabase
+        .from("profiles")
+        .select(
+          "agency_name, contact_email, plan_tier, billing_interval, onboarding_completed_at, subscription_status"
+        )
+        .eq("id", user.id)
+        .single(),
+      supabase
+        .from("listings")
+        .select("id, description")
+        .eq("profile_id", user.id)
+        .single(),
+    ]);
+
+    let hasLocationStep = false;
+    let hasServicesStep = false;
+
+    if (listing?.id) {
+      const [{ count }, { data: servicesAttr }] = await Promise.all([
+        supabase
+          .from("locations")
+          .select("id", { count: "exact", head: true })
+          .eq("listing_id", listing.id),
+        supabase
+          .from("listing_attribute_values")
+          .select("value_json")
+          .eq("listing_id", listing.id)
+          .eq("attribute_key", "services_offered")
+          .maybeSingle(),
+      ]);
+
+      hasLocationStep = (count || 0) > 0;
+      hasServicesStep = Array.isArray(servicesAttr?.value_json) && servicesAttr.value_json.length > 0;
+    }
+
+    const flow = evaluateOnboardingFlow({
+      onboardingCompleted: Boolean(profile?.onboarding_completed_at),
+      selectedPlan: profile?.plan_tier,
+      billingInterval: profile?.billing_interval,
+      subscriptionStatus: profile?.subscription_status,
+      hasAgencyStep:
+        Boolean(profile?.agency_name) &&
+        Boolean(profile?.contact_email) &&
+        Boolean(listing?.description?.trim()),
+      hasLocationStep,
+      hasServicesStep,
+    });
+
+    if (!flow.isComplete && !isAllowedPreOnboardingPath(pathname)) {
+      return NextResponse.redirect(new URL(flow.firstIncompletePath, request.url));
+    }
   }
 
-  // Note: Onboarding gating is handled at the page level, not in middleware.
-  // Pages that require onboarding show a "Complete Onboarding" message instead of redirecting.
+  // If auth route and authenticated, redirect to dashboard
+  if (isAuthRoute && user) {
+    const [{ data: profile }, { data: listing }] = await Promise.all([
+      supabase
+        .from("profiles")
+        .select(
+          "agency_name, contact_email, plan_tier, billing_interval, onboarding_completed_at, subscription_status"
+        )
+        .eq("id", user.id)
+        .single(),
+      supabase
+        .from("listings")
+        .select("id, description")
+        .eq("profile_id", user.id)
+        .single(),
+    ]);
+
+    let hasLocationStep = false;
+    let hasServicesStep = false;
+
+    if (listing?.id) {
+      const [{ count }, { data: servicesAttr }] = await Promise.all([
+        supabase
+          .from("locations")
+          .select("id", { count: "exact", head: true })
+          .eq("listing_id", listing.id),
+        supabase
+          .from("listing_attribute_values")
+          .select("value_json")
+          .eq("listing_id", listing.id)
+          .eq("attribute_key", "services_offered")
+          .maybeSingle(),
+      ]);
+
+      hasLocationStep = (count || 0) > 0;
+      hasServicesStep = Array.isArray(servicesAttr?.value_json) && servicesAttr.value_json.length > 0;
+    }
+
+    const flow = evaluateOnboardingFlow({
+      onboardingCompleted: Boolean(profile?.onboarding_completed_at),
+      selectedPlan: profile?.plan_tier,
+      billingInterval: profile?.billing_interval,
+      subscriptionStatus: profile?.subscription_status,
+      hasAgencyStep:
+        Boolean(profile?.agency_name) &&
+        Boolean(profile?.contact_email) &&
+        Boolean(listing?.description?.trim()),
+      hasLocationStep,
+      hasServicesStep,
+    });
+
+    if (!flow.isComplete) {
+      return NextResponse.redirect(new URL(flow.firstIncompletePath, request.url));
+    }
+
+    return NextResponse.redirect(new URL("/dashboard/clients/pipeline", request.url));
+  }
 
   return supabaseResponse;
 }

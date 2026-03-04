@@ -1,27 +1,10 @@
 "use client";
 
 import { Check } from "lucide-react";
+import { motion } from "framer-motion";
 
+import { ONBOARDING_STEPS } from "@/lib/onboarding/flow";
 import { cn } from "@/lib/utils";
-
-export type OnboardingStep = {
-  id: string;
-  label: string;
-  path: string;
-};
-
-// Streamlined 4-step onboarding:
-// Step 0: Welcome (quick intro — "set up in 10 minutes")
-// Step 1: Your Brand (agency info, headline, description)
-// Step 2: Location (address, service types, insurances)
-// Step 3: Preview & Go Live (listing preview + "Go Live $79/mo" vs "Continue in preview mode")
-// Note: Enhanced details (ages, languages, diagnoses) can be added later from dashboard
-export const ONBOARDING_STEPS: OnboardingStep[] = [
-  { id: "welcome", label: "Welcome", path: "/dashboard/onboarding" },
-  { id: "brand", label: "Your Brand", path: "/dashboard/onboarding/details" },
-  { id: "location", label: "Location", path: "/dashboard/onboarding/location" },
-  { id: "preview", label: "Preview", path: "/dashboard/onboarding/branded-preview" },
-];
 
 type OnboardingProgressProps = {
   currentStep: string;
@@ -38,76 +21,122 @@ export function OnboardingProgress({
 
   return (
     <div className="w-full">
-      {/* Desktop Progress */}
-      <div className="hidden md:flex items-center justify-center gap-2">
+      {/* Desktop: Connected dot stepper */}
+      <div className="hidden items-center md:flex">
         {ONBOARDING_STEPS.map((step, index) => {
-          const isCompleted = completedSteps.includes(step.id) || index < currentIndex;
+          const isCompleted =
+            completedSteps.includes(step.id) || index < currentIndex;
           const isCurrent = step.id === currentStep;
+          const isLast = index === ONBOARDING_STEPS.length - 1;
 
           return (
-            <div key={step.id} className="flex items-center">
-              <div className="flex items-center gap-2">
+            <div key={step.id} className="flex flex-1 items-center last:flex-none">
+              {/* Step circle + label */}
+              <div className="group relative flex items-center gap-2">
                 <div
                   className={cn(
-                    "flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium transition-colors",
+                    "relative flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold transition-all duration-500",
                     isCompleted
-                      ? "bg-emerald-500 text-white"
+                      ? "bg-emerald-500 text-white shadow-[0_0_0_3px_rgba(16,185,129,0.15)]"
                       : isCurrent
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted text-muted-foreground"
+                        ? "bg-[#5788FF] text-white shadow-[0_0_0_3px_rgba(87,136,255,0.15)]"
+                        : "bg-amber-100/60 text-slate-400"
                   )}
                 >
                   {isCompleted ? (
-                    <Check className="h-4 w-4" />
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                    >
+                      <Check className="h-3.5 w-3.5" strokeWidth={3} />
+                    </motion.div>
                   ) : (
-                    index + 1
+                    <span>{index + 1}</span>
+                  )}
+
+                  {/* Current step pulse */}
+                  {isCurrent && (
+                    <span className="absolute inset-0 animate-ping rounded-full bg-[#5788FF]/20" style={{ animationDuration: "2s" }} />
                   )}
                 </div>
+
                 <span
                   className={cn(
-                    "text-sm font-medium",
+                    "hidden text-xs font-medium transition-colors lg:block",
                     isCurrent
-                      ? "text-foreground"
+                      ? "text-[#1A2744]"
                       : isCompleted
                         ? "text-emerald-600"
-                        : "text-muted-foreground"
+                        : "text-slate-400"
                   )}
                 >
                   {step.label}
                 </span>
               </div>
-              {index < ONBOARDING_STEPS.length - 1 && (
-                <div
-                  className={cn(
-                    "mx-3 h-px w-8 transition-colors",
-                    index < currentIndex ? "bg-emerald-500" : "bg-muted"
-                  )}
-                />
+
+              {/* Connector line */}
+              {!isLast && (
+                <div className="mx-2 h-px flex-1 lg:mx-3">
+                  <div className="relative h-full w-full overflow-hidden rounded-full bg-amber-200/60">
+                    <motion.div
+                      className="absolute inset-y-0 left-0 rounded-full bg-emerald-400"
+                      initial={false}
+                      animate={{
+                        width: isCompleted ? "100%" : isCurrent ? "50%" : "0%",
+                      }}
+                      transition={{ duration: 0.6, ease: [0.21, 0.47, 0.32, 0.98] }}
+                    />
+                  </div>
+                </div>
               )}
             </div>
           );
         })}
       </div>
 
-      {/* Mobile Progress */}
-      <div className="flex md:hidden items-center justify-between">
-        <span className="text-sm font-medium text-foreground">
-          Step {currentIndex + 1} of {ONBOARDING_STEPS.length}
-        </span>
-        <span className="text-sm text-muted-foreground">
-          {ONBOARDING_STEPS[currentIndex]?.label}
-        </span>
-      </div>
+      {/* Mobile: Compact stepper */}
+      <div className="flex flex-col gap-2 md:hidden">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#5788FF] text-[10px] font-bold text-white">
+              {currentIndex + 1}
+            </div>
+            <span className="text-sm font-semibold text-[#1A2744]">
+              {ONBOARDING_STEPS[currentIndex]?.label}
+            </span>
+          </div>
+          <span className="text-xs tabular-nums text-slate-400">
+            {currentIndex + 1}/{ONBOARDING_STEPS.length}
+          </span>
+        </div>
 
-      {/* Mobile Progress Bar */}
-      <div className="mt-2 md:hidden">
-        <div className="h-1.5 w-full rounded-full bg-muted">
-          <div
-            className="h-full rounded-full bg-primary transition-all"
-            style={{
-              width: `${((currentIndex + 1) / ONBOARDING_STEPS.length) * 100}%`,
-            }}
-          />
+        {/* Progress track */}
+        <div className="flex gap-1">
+          {ONBOARDING_STEPS.map((step, index) => {
+            const isCompleted =
+              completedSteps.includes(step.id) || index < currentIndex;
+            const isCurrent = step.id === currentStep;
+
+            return (
+              <motion.div
+                key={step.id}
+                className={cn(
+                  "h-1 flex-1 rounded-full",
+                  isCompleted
+                    ? "bg-emerald-400"
+                    : isCurrent
+                      ? "bg-[#5788FF]"
+                      : "bg-amber-200/60"
+                )}
+                initial={false}
+                animate={{
+                  opacity: isCurrent || isCompleted ? 1 : 0.4,
+                }}
+                transition={{ duration: 0.3 }}
+              />
+            );
+          })}
         </div>
       </div>
     </div>

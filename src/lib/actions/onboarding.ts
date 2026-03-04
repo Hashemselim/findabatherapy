@@ -600,6 +600,18 @@ export async function completeOnboarding(
   return { success: true, data: { redirectTo } };
 }
 
+export async function finalizeOnboardingAsFree(): Promise<
+  ActionResult<{ redirectTo: string }>
+> {
+  return completeOnboarding(true);
+}
+
+export async function finalizeOnboardingAfterPayment(): Promise<
+  ActionResult<{ redirectTo: string }>
+> {
+  return completeOnboarding(true);
+}
+
 /**
  * Update premium attributes (Enhanced Details step)
  * This includes ages, languages, diagnoses, specialties, video URL, and contact form toggle
@@ -723,6 +735,8 @@ export async function getOnboardingData(): Promise<
       contactEmail: string;
       contactPhone: string | null;
       website: string | null;
+      brandColor: string;
+      showPoweredBy: boolean;
       planTier: string;
       billingInterval: string;
       primaryIntent: OnboardingIntent;
@@ -767,7 +781,7 @@ export async function getOnboardingData(): Promise<
   // Get profile
   const { data: profile } = await supabase
     .from("profiles")
-    .select("agency_name, contact_email, contact_phone, website, plan_tier, billing_interval, primary_intent")
+    .select("agency_name, contact_email, contact_phone, website, plan_tier, billing_interval, primary_intent, intake_form_settings")
     .eq("id", user.id)
     .single();
 
@@ -829,6 +843,18 @@ export async function getOnboardingData(): Promise<
             contactEmail: profile.contact_email,
             contactPhone: profile.contact_phone,
             website: profile.website,
+            brandColor:
+              (
+                profile.intake_form_settings as
+                  | { background_color?: string; show_powered_by?: boolean }
+                  | null
+              )?.background_color || "#5788FF",
+            showPoweredBy:
+              (
+                profile.intake_form_settings as
+                  | { background_color?: string; show_powered_by?: boolean }
+                  | null
+              )?.show_powered_by ?? true,
             planTier: profile.plan_tier,
             billingInterval: profile.billing_interval || "month",
             primaryIntent: (profile.primary_intent || "both") as OnboardingIntent,

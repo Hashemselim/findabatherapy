@@ -2,11 +2,62 @@
 
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Loader2, Heart, Users, Briefcase } from "lucide-react";
+import { motion } from "framer-motion";
+import {
+  ArrowRight,
+  BarChart3,
+  Briefcase,
+  HeartHandshake,
+  Mail,
+  Users,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { updateProfileIntent } from "@/lib/actions/onboarding";
+
+const toolGroups = [
+  {
+    title: "Client Growth",
+    description: "Get found by families with a polished public presence.",
+    icon: HeartHandshake,
+    color: "#059669",
+    bgColor: "#ECFDF5",
+  },
+  {
+    title: "Operations",
+    description: "Run intake, follow-up, and workflows from one dashboard.",
+    icon: Users,
+    color: "#2563EB",
+    bgColor: "#EFF6FF",
+  },
+  {
+    title: "Communications",
+    description: "Keep your outreach and follow-up on brand.",
+    icon: Mail,
+    color: "#9333EA",
+    bgColor: "#FAF5FF",
+  },
+  {
+    title: "Hiring",
+    description: "Promote open roles with your employer brand.",
+    icon: Briefcase,
+    color: "#EA580C",
+    bgColor: "#FFF7ED",
+  },
+];
+
+const container = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: { staggerChildren: 0.08, delayChildren: 0.3 },
+  },
+};
+
+const item = {
+  hidden: { opacity: 0, y: 16 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.21, 0.47, 0.32, 0.98] as const } },
+};
 
 export default function OnboardingWelcomePage() {
   const router = useRouter();
@@ -14,84 +65,116 @@ export default function OnboardingWelcomePage() {
 
   function handleContinue() {
     startTransition(async () => {
-      // Default intent to "both" — no longer asking users to choose
       await updateProfileIntent("both");
       router.push("/dashboard/onboarding/details");
     });
   }
 
   return (
-    <div className="space-y-8">
-      <div className="space-y-3 text-center">
-        <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">
-          Let&apos;s set up your agency
-        </h1>
-        <p className="mx-auto max-w-lg text-muted-foreground">
-          In under 5 minutes, you&apos;ll have a professional listing, branded
-          pages, and tools to manage your clients.
-        </p>
-      </div>
+    <div className="flex min-h-[calc(100dvh-64px)] flex-col items-center justify-center sm:min-h-[calc(100dvh-80px)]">
+      <motion.div
+        variants={container}
+        initial="hidden"
+        animate="show"
+        className="w-full max-w-3xl"
+      >
+        {/* Hero section */}
+        <motion.div variants={item} className="mb-12 text-center">
+          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-amber-200/60 bg-white px-4 py-1.5 shadow-sm">
+            <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+            <span className="text-xs font-medium tracking-wide text-slate-500">
+              Ready to set up your agency
+            </span>
+          </div>
 
-      {/* What you'll get */}
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Card className="border-[#5788FF]/20">
-          <CardContent className="p-5 text-center">
-            <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-[#5788FF]/10">
-              <Heart className="h-5 w-5 text-[#5788FF]" />
-            </div>
-            <h3 className="font-semibold text-foreground">Get Found</h3>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Professional listing on our ABA therapy directory
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="border-emerald-500/20">
-          <CardContent className="p-5 text-center">
-            <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500/10">
-              <Users className="h-5 w-5 text-emerald-600" />
-            </div>
-            <h3 className="font-semibold text-foreground">Branded Pages</h3>
-            <p className="mt-1 text-sm text-muted-foreground">
-              A shareable agency page for referral partners and families
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="border-violet-500/20">
-          <CardContent className="p-5 text-center">
-            <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-violet-500/10">
-              <Briefcase className="h-5 w-5 text-violet-600" />
-            </div>
-            <h3 className="font-semibold text-foreground">Grow Your Team</h3>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Post jobs and receive applications from qualified candidates
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+          <h1 className="mx-auto max-w-2xl text-4xl font-semibold tracking-tight text-[#1A2744] sm:text-5xl md:text-[3.5rem] md:leading-[1.1]">
+            Welcome — let&apos;s{" "}
+            <span className="relative inline-block">
+              <span className="relative z-10 text-[#5788FF]">unlock</span>
+              <span className="absolute -bottom-1 left-0 right-0 z-0 h-3 rounded-full bg-[#FFDC33]/40 sm:h-4" />
+            </span>{" "}
+            your agency&apos;s full potential.
+          </h1>
 
-      <div className="space-y-3 text-center">
-        <Button
-          onClick={handleContinue}
-          size="lg"
-          className="rounded-full px-8"
-          disabled={isPending}
+          <p className="mx-auto mt-5 max-w-lg text-base leading-relaxed text-slate-500 sm:text-lg">
+            Your membership brings together growth, operations, and hiring in one premium system.
+          </p>
+        </motion.div>
+
+        {/* Tool group cards */}
+        <motion.div
+          variants={item}
+          className="mb-8 grid grid-cols-1 gap-3 sm:grid-cols-2"
         >
-          {isPending ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Setting up...
-            </>
-          ) : (
-            <>
-              Get Started
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </>
-          )}
-        </Button>
-        <p className="text-xs text-muted-foreground">
-          Free to start. Preview everything. Go Live when ready.
-        </p>
-      </div>
+          {toolGroups.map((group) => {
+            const Icon = group.icon;
+            return (
+              <motion.div
+                key={group.title}
+                whileHover={{ y: -2, boxShadow: "0 8px 30px rgba(0,0,0,0.06)" }}
+                transition={{ duration: 0.2 }}
+                className="group flex items-start gap-4 rounded-2xl border border-amber-200/40 bg-[#FFFBF0] p-5 transition-colors hover:border-amber-200/70"
+              >
+                <div
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-transform duration-300 group-hover:scale-110"
+                  style={{ backgroundColor: group.bgColor, color: group.color }}
+                >
+                  <Icon className="h-5 w-5" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-sm font-semibold text-[#1A2744]">
+                    {group.title}
+                  </h3>
+                  <p className="mt-1 text-sm leading-relaxed text-slate-600">
+                    {group.description}
+                  </p>
+                </div>
+              </motion.div>
+            );
+          })}
+        </motion.div>
+
+        {/* Included platforms */}
+        <motion.div
+          variants={item}
+          className="mb-10 flex flex-col gap-2 sm:flex-row"
+        >
+          <div className="flex flex-1 items-center gap-3 rounded-xl border border-blue-100 bg-blue-50/50 px-4 py-3">
+            <BarChart3 className="h-4 w-4 shrink-0 text-blue-600" />
+            <div>
+              <span className="text-sm font-medium text-blue-900">FindABATherapy</span>
+              <span className="ml-1.5 text-sm text-blue-600/70">included</span>
+            </div>
+          </div>
+          <div className="flex flex-1 items-center gap-3 rounded-xl border border-emerald-100 bg-emerald-50/50 px-4 py-3">
+            <Briefcase className="h-4 w-4 shrink-0 text-emerald-600" />
+            <div>
+              <span className="text-sm font-medium text-emerald-900">FindABAJobs</span>
+              <span className="ml-1.5 text-sm text-emerald-600/70">included</span>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* CTA */}
+        <motion.div variants={item} className="flex flex-col items-center gap-4 text-center">
+          <Button
+            size="lg"
+            className="group relative h-12 overflow-hidden rounded-full bg-[#FFDC33] px-8 text-sm font-semibold text-[#1A2744] shadow-md shadow-amber-200/50 transition-all hover:bg-[#F5CF1B] hover:shadow-lg hover:shadow-amber-200/60"
+            disabled={isPending}
+            onClick={handleContinue}
+          >
+            {/* Shimmer effect */}
+            <span className="absolute inset-0 -translate-x-full animate-[shimmer_3s_ease-in-out_infinite] bg-gradient-to-r from-transparent via-[#1A2744]/10 to-transparent" />
+            <span className="relative flex items-center gap-2">
+              {isPending ? "Starting..." : "Begin Setup"}
+              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+            </span>
+          </Button>
+          <p className="text-sm text-slate-400">
+            Takes about 5 minutes. You&apos;ll preview everything before going live.
+          </p>
+        </motion.div>
+      </motion.div>
     </div>
   );
 }

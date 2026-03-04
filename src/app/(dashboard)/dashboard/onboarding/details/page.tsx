@@ -1,118 +1,128 @@
 "use client";
 
-import { useState, useEffect, useTransition } from "react";
+import Image from "next/image";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { motion } from "framer-motion";
+import { ArrowRight, Globe, Loader2, Mail, Phone } from "lucide-react";
+import { useForm } from "react-hook-form";
 import { z } from "zod";
-import Link from "next/link";
-import { ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
 
+import { BrandColorPicker } from "@/components/dashboard/brand-color-picker";
+import { LogoUploader } from "@/components/dashboard/logo-uploader";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { OnboardingTracker } from "@/components/analytics/onboarding-tracker";
-import { useFormErrorHandler, FormErrorSummary } from "@/hooks/use-form-error-handler";
+import { updateIntakeFormSettings } from "@/lib/actions/intake";
 import {
   getOnboardingData,
-  updateProfileBasics,
+  saveOnboardingDraft,
   updateListingDetails,
+  updateProfileBasics,
 } from "@/lib/actions/onboarding";
-import { SERVICES_OFFERED_OPTIONS } from "@/lib/validations/onboarding";
 
-// Schema for practice details (Step 1)
-const practiceDetailsSchema = z.object({
-  // Practice basics
-  agencyName: z.string().min(2, "Practice name must be at least 2 characters"),
-  contactEmail: z.string().email("Please enter a valid email"),
-  contactPhone: z.string().optional().or(z.literal("")),
-  website: z.string().url("Please enter a valid URL").optional().or(z.literal("")),
-  // Listing details
+const detailsSchema = z.object({
+  agencyName: z.string().min(2, "Agency name must be at least 2 characters"),
   headline: z.string().max(150, "Tagline must be less than 150 characters").optional().or(z.literal("")),
-  description: z.string().min(50, "About text must be at least 50 characters").max(2000, "About text must be less than 2000 characters"),
-  // Services offered
-  servicesOffered: z.array(z.string()).min(1, "Please select at least one service"),
+  description: z.string().min(50, "Description must be at least 50 characters"),
+  website: z.string().url("Please enter a valid URL").optional().or(z.literal("")),
+  contactPhone: z.string().optional().or(z.literal("")),
+  contactEmail: z.string().email("Please enter a valid email address"),
 });
 
-type PracticeDetailsData = z.infer<typeof practiceDetailsSchema>;
+type DetailsFormData = z.infer<typeof detailsSchema>;
+
+const DEFAULT_BRAND_COLOR = "#5788FF";
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 12 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.21, 0.47, 0.32, 0.98] as const } },
+};
+
+const stagger = {
+  hidden: { opacity: 0 },
+  show: { opacity: 1, transition: { staggerChildren: 0.08, delayChildren: 0.1 } },
+};
 
 export default function OnboardingDetailsPage() {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [brandColor, setBrandColor] = useState(DEFAULT_BRAND_COLOR);
 
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
-    watch,
     reset,
-    setValue,
-  } = useForm<PracticeDetailsData>({
-    resolver: zodResolver(practiceDetailsSchema),
+    watch,
+    formState: { errors },
+  } = useForm<DetailsFormData>({
+    resolver: zodResolver(detailsSchema),
     defaultValues: {
       agencyName: "",
-      contactEmail: "",
-      contactPhone: "",
-      website: "",
       headline: "",
       description: "",
-      servicesOffered: ["aba"], // Default to ABA therapy
+      website: "",
+      contactPhone: "",
+      contactEmail: "",
     },
   });
 
-  const { formRef, hasErrors, errorCount } = useFormErrorHandler({
-    errors,
-    isSubmitting,
-  });
-
+  const agencyName = watch("agencyName");
+  const headline = watch("headline");
   const description = watch("description");
-  const selectedServices = watch("servicesOffered") || [];
+  const contactEmail = watch("contactEmail");
+  const contactPhone = watch("contactPhone");
+  const website = watch("website");
 
-  function toggleService(service: string) {
-    const current = selectedServices || [];
-    if (current.includes(service)) {
-      setValue(
-        "servicesOffered",
-        current.filter((s) => s !== service),
-        { shouldValidate: true }
-      );
-    } else {
-      setValue("servicesOffered", [...current, service], { shouldValidate: true });
-    }
-  }
-
-  // Load existing data
   useEffect(() => {
     async function loadData() {
       const result = await getOnboardingData();
+
       if (result.success && result.data) {
-        const { profile, listing, attributes } = result.data;
+        const agencyNameValue = result.data.profile?.agencyName || "";
 
         reset({
-          agencyName: profile?.agencyName || "",
-          contactEmail: profile?.contactEmail || "",
-          contactPhone: profile?.contactPhone || "",
-          website: profile?.website || "",
-          headline: listing?.headline || "",
-          description: listing?.description || "",
-          servicesOffered: (attributes?.services_offered as string[]) || ["aba"],
+          agencyName: agencyNameValue,
+          headline: result.data.listing?.headline || "",
+          description: result.data.listing?.description || "",
+          website: result.data.profile?.website || "",
+          contactPhone: result.data.profile?.contactPhone || "",
+          contactEmail: result.data.profile?.contactEmail || "",
         });
+
+        setLogoUrl(result.data.listing?.logoUrl || null);
+        setBrandColor(result.data.profile?.brandColor || DEFAULT_BRAND_COLOR);
+
+        if (!result.data.listing?.id && agencyNameValue) {
+          await saveOnboardingDraft({
+            agencyName: agencyNameValue,
+            contactEmail: result.data.profile?.contactEmail || "",
+            headline: result.data.listing?.headline || "",
+            description: result.data.listing?.description || "",
+          });
+
+          const refreshed = await getOnboardingData();
+          if (refreshed.success && refreshed.data?.listing?.logoUrl !== undefined) {
+            setLogoUrl(refreshed.data.listing.logoUrl || null);
+          }
+        }
       }
+
       setIsLoading(false);
     }
+
     loadData();
   }, [reset]);
 
-  async function onSubmit(data: PracticeDetailsData) {
+  function onSubmit(data: DetailsFormData) {
     setError(null);
 
     startTransition(async () => {
-      // Update profile basics
       const profileResult = await updateProfileBasics({
         agencyName: data.agencyName,
         contactEmail: data.contactEmail,
@@ -125,232 +135,211 @@ export default function OnboardingDetailsPage() {
         return;
       }
 
-      // Update listing details (creates listing if needed)
-      const detailsResult = await updateListingDetails({
+      const listingResult = await updateListingDetails({
         headline: data.headline || "",
         description: data.description,
-        serviceModes: ["in_home"], // Default, will be updated in location step
-        servicesOffered: data.servicesOffered,
+        serviceModes: [],
       });
 
-      if (!detailsResult.success) {
-        setError(detailsResult.error);
+      if (!listingResult.success) {
+        setError(listingResult.error);
         return;
       }
 
-      // Navigate to Location & Services (Step 2)
       router.push("/dashboard/onboarding/location");
     });
   }
 
+  async function handleBrandColorChange(color: string) {
+    setBrandColor(color);
+    const result = await updateIntakeFormSettings({ background_color: color });
+    if (!result.success) {
+      setError(result.error);
+    }
+  }
+
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-[#5788FF]" />
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="h-6 w-6 animate-spin text-[#1A2744]" />
+          <p className="text-sm text-slate-400">Loading your agency details...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6">
-      {/* PostHog onboarding tracking */}
-      <OnboardingTracker step="brand" stepNumber={2} totalSteps={4} />
-
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">
-          Tell us about your company
+    <motion.div variants={stagger} initial="hidden" animate="show" className="min-w-0">
+      {/* Page header */}
+      <motion.div variants={fadeUp} className="mb-8">
+        <p className="mb-2 text-sm font-medium text-slate-400">Step 2 of 7</p>
+        <h1 className="text-3xl font-semibold tracking-tight text-[#1A2744] sm:text-4xl">
+          Tell us about your agency
         </h1>
-        <p className="mt-1 text-muted-foreground sm:mt-2">
-          This information powers both your provider listing and employer profile.
+        <p className="mt-2 max-w-2xl text-base leading-relaxed text-slate-500">
+          This info shapes your listing, branded pages, and dashboard. You can always refine later.
         </p>
-      </div>
+      </motion.div>
 
-      <form ref={formRef} onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        {error && (
-          <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
-            {error}
-          </div>
-        )}
+      <div className="grid min-w-0 gap-8 xl:grid-cols-[minmax(0,1fr)_340px]">
+        <form onSubmit={handleSubmit(onSubmit)} className="min-w-0 space-y-4 sm:space-y-6">
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive"
+            >
+              {error}
+            </motion.div>
+          )}
 
-        {/* Company Info */}
-        <Card className="border-border/60">
-          <CardHeader>
-            <CardTitle>Company Information</CardTitle>
-            <CardDescription>
-              Basic details about your ABA therapy company
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="agencyName">
-                Practice Name <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="agencyName"
-                placeholder="ABC ABA Therapy"
-                {...register("agencyName")}
-                disabled={isPending}
-              />
-              {errors.agencyName && (
-                <p className="text-sm text-destructive">{errors.agencyName.message}</p>
-              )}
+          {/* Agency Basics */}
+          <motion.section
+            variants={fadeUp}
+            className="space-y-5 rounded-2xl border border-amber-200/60 bg-white p-4 sm:p-6"
+          >
+            <div>
+              <h2 className="text-lg font-semibold text-[#1A2744]">Agency basics</h2>
+              <p className="mt-1 text-sm text-slate-600">How families will first see you.</p>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="headline">Tagline (optional)</Label>
-              <Input
-                id="headline"
-                placeholder="Compassionate ABA therapy for every child"
-                {...register("headline")}
-                disabled={isPending}
-              />
-              {errors.headline && (
-                <p className="text-sm text-destructive">{errors.headline.message}</p>
-              )}
-              <p className="text-xs text-muted-foreground">
-                A brief description that appears in search results
-              </p>
-            </div>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="agencyName">Agency name</Label>
+                <Input
+                  id="agencyName"
+                  placeholder="e.g. BrightPath ABA"
+                  {...register("agencyName")}
+                  className="h-11 border-amber-200/60 bg-[#FFFBF0] focus:bg-white"
+                />
+                {errors.agencyName && <p className="text-sm text-destructive">{errors.agencyName.message}</p>}
+              </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="description">
-                About Your Practice <span className="text-destructive">*</span>
-              </Label>
-              <Textarea
-                id="description"
-                rows={5}
-                placeholder="Tell families about your approach, values, and what makes your practice unique..."
-                {...register("description")}
-                disabled={isPending}
-              />
-              <div className="flex justify-between text-xs">
-                {errors.description ? (
-                  <p className="text-destructive">{errors.description.message}</p>
-                ) : (
-                  <span className="text-muted-foreground">50-2000 characters</span>
-                )}
-                <span className={description?.length > 2000 ? "text-destructive" : "text-muted-foreground"}>
-                  {description?.length || 0} / 2000
-                </span>
+              <div className="space-y-2">
+                <div className="flex items-baseline justify-between">
+                  <Label htmlFor="headline">Tagline</Label>
+                  <span className="text-xs text-slate-400">Optional</span>
+                </div>
+                <Input
+                  id="headline"
+                  placeholder="Modern ABA care for growing families"
+                  {...register("headline")}
+                  className="h-11 border-amber-200/60 bg-[#FFFBF0] focus:bg-white"
+                />
+                {errors.headline && <p className="text-sm text-destructive">{errors.headline.message}</p>}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  rows={5}
+                  placeholder="Describe your approach, the families you serve, and what makes your agency special."
+                  {...register("description")}
+                  className="border-amber-200/60 bg-[#FFFBF0] focus:bg-white"
+                />
+                {errors.description && <p className="text-sm text-destructive">{errors.description.message}</p>}
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </motion.section>
 
-        {/* Services Offered */}
-        <Card className="border-border/60">
-          <CardHeader>
-            <CardTitle>Services Offered</CardTitle>
-            <CardDescription>
-              Select all therapy services your practice provides <span className="text-destructive">*</span>
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-              {SERVICES_OFFERED_OPTIONS.map((service) => (
-                <label
-                  key={service.value}
-                  className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors ${
-                    selectedServices.includes(service.value)
-                      ? "border-primary bg-primary/5"
-                      : "border-border/60 hover:bg-muted/50"
-                  }`}
-                >
-                  <Checkbox
-                    checked={selectedServices.includes(service.value)}
-                    onCheckedChange={() => toggleService(service.value)}
-                    disabled={isPending}
-                  />
-                  <span className="text-sm">{service.label}</span>
-                </label>
-              ))}
+          {/* Contact */}
+          <motion.section
+            variants={fadeUp}
+            className="space-y-5 rounded-2xl border border-amber-200/60 bg-white p-4 sm:p-6"
+          >
+            <div>
+              <h2 className="text-lg font-semibold text-[#1A2744]">Contact info</h2>
+              <p className="mt-1 text-sm text-slate-600">How families will reach you.</p>
             </div>
-            {errors.servicesOffered && (
-              <p className="mt-2 text-sm text-destructive">{errors.servicesOffered.message}</p>
-            )}
-          </CardContent>
-        </Card>
 
-        {/* Contact Info */}
-        <Card className="border-border/60">
-          <CardHeader>
-            <CardTitle>Contact Information</CardTitle>
-            <CardDescription>
-              How families can reach you
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="contactEmail">
-                  Email <span className="text-destructive">*</span>
-                </Label>
+                <Label htmlFor="contactEmail">Contact email</Label>
                 <Input
                   id="contactEmail"
-                  type="email"
-                  placeholder="contact@yourpractice.com"
+                  placeholder="hello@youragency.com"
                   {...register("contactEmail")}
-                  disabled={isPending}
+                  className="h-11 border-amber-200/60 bg-[#FFFBF0] focus:bg-white"
                 />
-                {errors.contactEmail && (
-                  <p className="text-sm text-destructive">{errors.contactEmail.message}</p>
-                )}
+                {errors.contactEmail && <p className="text-sm text-destructive">{errors.contactEmail.message}</p>}
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="contactPhone">Phone (optional)</Label>
-                <Input
-                  id="contactPhone"
-                  type="tel"
-                  placeholder="(555) 123-4567"
-                  {...register("contactPhone")}
-                  disabled={isPending}
-                />
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <div className="flex items-baseline justify-between">
+                    <Label htmlFor="contactPhone">Phone</Label>
+                    <span className="text-xs text-slate-400">Optional</span>
+                  </div>
+                  <Input
+                    id="contactPhone"
+                    placeholder="(555) 123-4567"
+                    {...register("contactPhone")}
+                    className="h-11 border-amber-200/60 bg-[#FFFBF0] focus:bg-white"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-baseline justify-between">
+                    <Label htmlFor="website">Website</Label>
+                    <span className="text-xs text-slate-400">Optional</span>
+                  </div>
+                  <Input
+                    id="website"
+                    placeholder="https://youragency.com"
+                    {...register("website")}
+                    className="h-11 border-amber-200/60 bg-[#FFFBF0] focus:bg-white"
+                  />
+                  {errors.website && <p className="text-sm text-destructive">{errors.website.message}</p>}
+                </div>
               </div>
             </div>
+          </motion.section>
 
-            <div className="space-y-2">
-              <Label htmlFor="website">Website (optional)</Label>
-              <Input
-                id="website"
-                type="url"
-                placeholder="https://www.yourpractice.com"
-                {...register("website")}
-                disabled={isPending}
-              />
-              {errors.website && (
-                <p className="text-sm text-destructive">{errors.website.message}</p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Navigation */}
-        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <Button
-            type="button"
-            variant="ghost"
-            asChild
-            disabled={isPending}
-            className="w-full rounded-full sm:w-auto"
+          {/* Brand */}
+          <motion.section
+            variants={fadeUp}
+            className="space-y-5 rounded-2xl border border-amber-200/60 bg-white p-4 sm:p-6"
           >
-            <Link href="/dashboard/onboarding">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back
-            </Link>
-          </Button>
-          <div className="flex flex-col items-end gap-2">
-            {hasErrors && <FormErrorSummary errorCount={errorCount} />}
+            <div>
+              <h2 className="text-lg font-semibold text-[#1A2744]">Brand identity</h2>
+              <p className="mt-1 text-sm text-slate-600">Logo and color used across your branded pages.</p>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="rounded-xl border border-amber-200/60 bg-[#FFFBF0] p-4">
+                <LogoUploader currentLogoUrl={logoUrl} hideHeader onLogoChange={setLogoUrl} />
+              </div>
+              <div className="rounded-xl border border-amber-200/60 bg-[#FFFBF0] p-4">
+                <BrandColorPicker
+                  value={brandColor}
+                  onColorChange={handleBrandColorChange}
+                  description="This color anchors your branded pages."
+                />
+              </div>
+            </div>
+          </motion.section>
+
+          {/* Navigation footer */}
+          <motion.div
+            variants={fadeUp}
+            className="flex flex-col gap-3 rounded-2xl border border-amber-200/60 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:py-4"
+          >
+            <p className="text-xs text-slate-500 sm:text-sm sm:text-slate-600">
+              Name, description, and email are required.
+            </p>
+
             <Button
               type="submit"
-              disabled={isPending}
               size="lg"
-              className="w-full rounded-full px-8 sm:w-auto"
+              className="h-11 w-full shrink-0 rounded-full bg-[#FFDC33] px-7 font-semibold text-[#1A2744] shadow-md shadow-amber-200/50 hover:bg-[#F5CF1B] sm:ml-auto sm:w-auto"
+              disabled={isPending}
             >
               {isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Saving...
+                  Saving
                 </>
               ) : (
                 <>
@@ -359,9 +348,180 @@ export default function OnboardingDetailsPage() {
                 </>
               )}
             </Button>
+          </motion.div>
+
+          {/* Mobile branded preview — below continue button */}
+          <motion.div variants={fadeUp} className="min-w-0 xl:hidden">
+            <div className="overflow-hidden rounded-2xl border border-amber-200/60 bg-white shadow-sm">
+              <div className="border-b border-amber-200/60 bg-[#FFFBF0] px-4 py-2.5">
+                <div className="flex items-center gap-2">
+                  <div className="h-2 w-2 rounded-full bg-emerald-400" />
+                  <span className="text-xs font-medium text-slate-500">Live Preview</span>
+                </div>
+              </div>
+
+              <div className="p-3 sm:p-4">
+                <div
+                  className="overflow-hidden rounded-xl p-2.5 sm:p-3"
+                  style={{
+                    backgroundColor: brandColor,
+                    backgroundImage: "linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 50%)",
+                  }}
+                >
+                  <div className="rounded-lg bg-white p-3 shadow-sm sm:p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[#FFFBF0] sm:h-12 sm:w-12">
+                        {logoUrl ? (
+                          <Image
+                            src={logoUrl}
+                            alt="Agency logo"
+                            width={48}
+                            height={48}
+                            className="h-full w-full object-contain p-1"
+                          />
+                        ) : (
+                          <span className="text-xs font-bold text-slate-400 sm:text-sm">
+                            {(agencyName || "BW").slice(0, 2).toUpperCase()}
+                          </span>
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h3 className="truncate text-sm font-semibold text-[#1A2744] sm:text-base">
+                          {agencyName || "Your agency name"}
+                        </h3>
+                        <p className="truncate text-xs text-slate-600">
+                          {headline || "Your tagline goes here"}
+                        </p>
+                      </div>
+                    </div>
+
+                    <p className="mt-2.5 line-clamp-2 text-xs leading-relaxed text-slate-500">
+                      {description || "Your agency description will appear here."}
+                    </p>
+
+                    <div className="mt-2.5 space-y-1">
+                      {[
+                        { icon: Mail, value: contactEmail || "Email" },
+                        { icon: Phone, value: contactPhone || "Phone" },
+                        { icon: Globe, value: website || "Website" },
+                      ].map(({ icon: Icon, value }) => (
+                        <div
+                          key={value}
+                          className="flex items-center gap-2 rounded-lg bg-[#FFFBF0] px-2 py-1 text-xs text-slate-500"
+                        >
+                          <Icon className="h-3 w-3 shrink-0 text-slate-400" />
+                          <span className="truncate">{value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-2.5 flex flex-wrap gap-1.5">
+                  {["Listing", "Agency page", "Contact page", "Dashboard"].map(
+                    (label) => (
+                      <span
+                        key={label}
+                        className="rounded-md bg-[#FFFBF0] px-2 py-1 text-[10px] font-medium text-slate-600"
+                      >
+                        {label}
+                      </span>
+                    )
+                  )}
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        </form>
+
+        {/* Live preview sidebar — hidden on mobile */}
+        <motion.aside
+          variants={fadeUp}
+          className="hidden xl:sticky xl:top-24 xl:block xl:self-start"
+        >
+          <div className="overflow-hidden rounded-2xl border border-amber-200/60 bg-white shadow-sm">
+            <div className="border-b border-amber-200/60 bg-[#FFFBF0] px-5 py-3">
+              <div className="flex items-center gap-2">
+                <div className="h-2 w-2 rounded-full bg-emerald-400" />
+                <span className="text-xs font-medium text-slate-500">Live Preview</span>
+              </div>
+            </div>
+
+            <div className="p-4">
+              {/* Branded preview card */}
+              <div
+                className="overflow-hidden rounded-xl p-3"
+                style={{
+                  backgroundColor: brandColor,
+                  backgroundImage: "linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 50%)",
+                }}
+              >
+                <div className="rounded-lg bg-white p-4 shadow-sm">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[#FFFBF0]">
+                      {logoUrl ? (
+                        <Image
+                          src={logoUrl}
+                          alt="Agency logo"
+                          width={48}
+                          height={48}
+                          className="h-full w-full object-contain p-1.5"
+                        />
+                      ) : (
+                        <span className="text-sm font-bold text-slate-400">
+                          {(agencyName || "BW").slice(0, 2).toUpperCase()}
+                        </span>
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <h3 className="truncate text-base font-semibold text-[#1A2744]">
+                        {agencyName || "Your agency name"}
+                      </h3>
+                      <p className="truncate text-xs text-slate-600">
+                        {headline || "Your tagline goes here"}
+                      </p>
+                    </div>
+                  </div>
+
+                  <p className="mt-3 line-clamp-3 text-xs leading-relaxed text-slate-500">
+                    {description || "Your agency description will appear here."}
+                  </p>
+
+                  <div className="mt-3 space-y-1.5">
+                    {[
+                      { icon: Mail, value: contactEmail || "Email" },
+                      { icon: Phone, value: contactPhone || "Phone" },
+                      { icon: Globe, value: website || "Website" },
+                    ].map(({ icon: Icon, value }) => (
+                      <div
+                        key={value}
+                        className="flex items-center gap-2 rounded-lg bg-[#FFFBF0] px-2.5 py-1.5 text-xs text-slate-500"
+                      >
+                        <Icon className="h-3 w-3 text-slate-400" />
+                        <span className="truncate">{value}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Used across badges */}
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {["Listing", "Agency page", "Contact page", "Dashboard"].map(
+                  (label) => (
+                    <span
+                      key={label}
+                      className="rounded-md bg-[#FFFBF0] px-2 py-1 text-[10px] font-medium text-slate-600"
+                    >
+                      {label}
+                    </span>
+                  )
+                )}
+              </div>
+            </div>
           </div>
-        </div>
-      </form>
-    </div>
+        </motion.aside>
+      </div>
+    </motion.div>
   );
 }

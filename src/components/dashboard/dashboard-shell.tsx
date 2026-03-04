@@ -1,4 +1,7 @@
+"use client";
+
 import { type PropsWithChildren, type ReactNode } from "react";
+import { usePathname } from "next/navigation";
 
 import { DashboardSidebar, type CompanyProfile, type NavItem, type UserProfile } from "@/components/dashboard/dashboard-sidebar";
 import { DashboardTopbar } from "@/components/dashboard/dashboard-topbar";
@@ -35,6 +38,17 @@ export function DashboardShell({
   customNavItems,
   sidebarDataTour,
 }: DashboardShellProps) {
+  const pathname = usePathname();
+  const isOnboardingRoute = pathname.startsWith("/dashboard/onboarding");
+
+  if (isOnboardingRoute) {
+    return (
+      <div className="min-h-screen overflow-x-hidden bg-[#f7f2e8] text-foreground">
+        {children}
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#F5F5F0] text-foreground dark:bg-zinc-900">
       {demoBanner}
