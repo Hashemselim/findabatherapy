@@ -12,39 +12,44 @@ import { trackFaqExpanded } from "@/lib/posthog/events";
 
 const faqs = [
   {
+    question: "Does GoodABA replace CentralReach or my practice management system?",
+    answer:
+      "No — GoodABA complements your practice management tool. CentralReach, Catalyst, and similar systems handle session notes, data collection, and clinical billing. GoodABA handles everything before that: how families find you, how inquiries are captured, how your intake pipeline is managed, and how your team stays on top of follow-ups. Think of it as the business operations layer that feeds clients into your clinical system.",
+  },
+  {
     question: "What happens when I hit the free plan limits?",
     answer:
       "You'll get a notification before reaching limits. You can upgrade to Pro at any time to unlock branded pages, more client records, and the full growth toolkit — no data is lost.",
   },
   {
-    question: "Can I switch plans at any time?",
+    question: "Can my front desk person or intake coordinator use this?",
     answer:
-      "Yes. Upgrade, downgrade, or cancel at any time. When you upgrade, you get immediate access to new features. When you downgrade, you keep access through the end of your billing period.",
+      "Absolutely. GoodABA is designed for the people who actually run agency operations — not just the owner. Intake coordinators, office managers, and BCBAs can all access client records, send communications, and manage tasks. With Pro, you can add team members to your account.",
   },
   {
-    question: "Is my data secure?",
+    question: "I already have a website. Do I still need GoodABA?",
     answer:
-      "Absolutely. BehaviorWork is HIPAA compliant, uses encrypted data transmission, and stores data on enterprise-grade infrastructure. Your client information is protected with the same standards used by healthcare organizations.",
+      "Yes — your website tells families about your agency, but GoodABA captures and manages what happens next. Branded intake forms, a client CRM, automated follow-up emails, insurance tracking, and task management aren't something a website can do. You can link your GoodABA forms directly from your existing site.",
   },
   {
     question: "Do I need technical skills to set this up?",
     answer:
-      "Not at all. Most agencies complete setup the same day. Our guided onboarding walks you through every step — from creating your listing to publishing branded intake forms.",
+      "Not at all. Most agencies complete setup the same day. Our guided onboarding walks you through every step — from creating your listing to publishing branded intake forms. No coding, no IT department needed.",
   },
   {
-    question: "What's included in the FindABATherapy listing?",
+    question: "What's included in the GoodABA listing?",
     answer:
-      "Every account gets a professional provider profile on FindABATherapy.org — the ABA therapy directory families use to find providers. Your listing includes your services, locations, photos, specialties, and a direct contact link.",
+      "Every account gets a professional provider profile on GoodABA.com — the ABA therapy directory families use to find providers. Your listing includes your services, locations, photos, specialties, and a direct contact link. Pro accounts get priority placement and a verified badge.",
   },
   {
-    question: "Can I cancel anytime?",
+    question: "Is GoodABA HIPAA compliant? Can I store client documents safely?",
     answer:
-      "Yes. There are no long-term contracts. Cancel anytime from your dashboard, and you'll keep access through the end of your billing period.",
+      "Yes. GoodABA is fully HIPAA compliant with encrypted data transmission, secure document storage, and enterprise-grade infrastructure. You can safely store insurance cards, assessments, consents, and other client documents — all organized per client.",
   },
   {
-    question: "Do you offer discounts for annual billing?",
+    question: "Can I switch plans or cancel at any time?",
     answer:
-      "Yes — save up to 40% with annual billing. Pro drops from $79/month to $47/month when billed annually.",
+      "Yes. There are no long-term contracts. Upgrade, downgrade, or cancel at any time from your dashboard. When you upgrade, you get immediate access. When you downgrade or cancel, you keep access through the end of your billing period. Save 40% with annual billing.",
   },
 ] as const;
 
