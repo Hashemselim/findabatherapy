@@ -4,11 +4,18 @@ import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 
 import { stripe } from "@/lib/stripe";
-import { createClient, createAdminClient, getUser } from "@/lib/supabase/server";
+import {
+  createClient,
+  createAdminClient,
+  getCurrentProfileId,
+  getUser,
+  requireProfileRole,
+} from "@/lib/supabase/server";
 import { ADDON_PRICE_IDS, CHECKOUT_URLS } from "@/lib/stripe/config";
 import { getValidatedOrigin } from "@/lib/utils/domains";
 import { type PlanTier, getPlanFeatures } from "@/lib/plans/features";
 import { type AddonType, type ActiveAddon, type EffectiveLimits, ADDON_INFO } from "@/lib/plans/addon-config";
+import { getWorkspaceSeatSummary } from "@/lib/actions/workspace-users";
 
 // Note: types are NOT re-exported from "use server" files.
 // Import AddonType, ActiveAddon, ADDON_INFO from "@/lib/plans/addon-config" instead.
@@ -18,15 +25,15 @@ type ActionResult<T = void> =
   | { success: false; error: string };
 
 /** Resolve plan tier for the current user (avoids circular import with guards.ts) */
-async function resolveCurrentPlanTier(): Promise<PlanTier> {
-  const user = await getUser();
-  if (!user) return "free";
+async function resolveCurrentPlanTier(profileId?: string | null): Promise<PlanTier> {
+  const resolvedProfileId = profileId || (await getCurrentProfileId());
+  if (!resolvedProfileId) return "free";
 
   const supabase = await createClient();
   const { data: profile } = await supabase
     .from("profiles")
     .select("plan_tier, subscription_status, onboarding_completed_at")
-    .eq("id", user.id)
+    .eq("id", resolvedProfileId)
     .single();
 
   const planTier = (profile?.plan_tier as PlanTier) || "free";
@@ -90,13 +97,15 @@ export async function createAddonSubscription(
     quantity?: number;
   }>
 > {
+  const membership = await requireProfileRole("owner").catch(() => null);
   const user = await getUser();
-  if (!user) {
+  if (!membership || !user) {
     return { success: false, error: "Not authenticated" };
   }
+  const profileId = membership.profile_id;
 
   // Only Pro users can buy add-ons
-  const tier = await resolveCurrentPlanTier();
+  const tier = await resolveCurrentPlanTier(profileId);
   if (tier !== "pro") {
     return { success: false, error: "Add-ons require a Pro plan" };
   }
@@ -122,7 +131,7 @@ export async function createAddonSubscription(
   const { data: existing } = await supabase
     .from("profile_addons")
     .select("id, quantity, stripe_subscription_id, cancel_at_period_end")
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .eq("addon_type", addonType)
     .eq("status", "active")
     .maybeSingle();
@@ -169,7 +178,7 @@ export async function createAddonSubscription(
         metadata: {
           type: "addon",
           addon_type: addonType,
-          profile_id: user.id,
+          profile_id: profileId,
           quantity: String(newQuantity),
         },
       });
@@ -199,7 +208,7 @@ export async function createAddonSubscription(
   const { data: profile } = await supabase
     .from("profiles")
     .select("id, stripe_customer_id, stripe_subscription_id")
-    .eq("id", user.id)
+    .eq("id", profileId)
     .single();
 
   if (!profile) {
@@ -344,8 +353,8 @@ export async function createAddonSubscription(
 export async function cancelAddon(
   addonId: string
 ): Promise<ActionResult> {
-  const user = await getUser();
-  if (!user) {
+  const membership = await requireProfileRole("owner").catch(() => null);
+  if (!membership) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -354,9 +363,9 @@ export async function cancelAddon(
   // Verify the addon belongs to this user
   const { data: addon, error: fetchError } = await supabase
     .from("profile_addons")
-    .select("id, stripe_subscription_id, status, profile_id")
+    .select("id, stripe_subscription_id, status, profile_id, addon_type, quantity")
     .eq("id", addonId)
-    .eq("profile_id", user.id)
+    .eq("profile_id", membership.profile_id)
     .eq("status", "active")
     .single();
 
@@ -366,6 +375,21 @@ export async function cancelAddon(
 
   if (!addon.stripe_subscription_id) {
     return { success: false, error: "No subscription linked to this add-on" };
+  }
+
+  if (addon.addon_type === "extra_users") {
+    const seatSummaryResult = await getWorkspaceSeatSummary(membership.profile_id);
+    if (!seatSummaryResult.success || !seatSummaryResult.data) {
+      return { success: false, error: "Failed to validate current seat usage" };
+    }
+
+    const futureMaxSeats = seatSummaryResult.data.maxSeats - addon.quantity;
+    if (seatSummaryResult.data.usedSeats > futureMaxSeats) {
+      return {
+        success: false,
+        error: "This seat add-on cannot be cancelled while the workspace is using those seats",
+      };
+    }
   }
 
   try {
@@ -401,8 +425,8 @@ export async function cancelAddon(
 export async function reactivateAddon(
   addonId: string
 ): Promise<ActionResult> {
-  const user = await getUser();
-  if (!user) {
+  const membership = await requireProfileRole("owner").catch(() => null);
+  if (!membership) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -412,7 +436,7 @@ export async function reactivateAddon(
     .from("profile_addons")
     .select("id, stripe_subscription_id, status, profile_id, cancel_at_period_end")
     .eq("id", addonId)
-    .eq("profile_id", user.id)
+    .eq("profile_id", membership.profile_id)
     .eq("status", "active")
     .single();
 
@@ -459,7 +483,7 @@ export async function reactivateAddon(
 export async function getEffectiveLimits(
   profileId: string
 ): Promise<ActionResult<EffectiveLimits>> {
-  const tier = await resolveCurrentPlanTier();
+  const tier = await resolveCurrentPlanTier(profileId);
   const base = getPlanFeatures(tier);
 
   // Start with base limits

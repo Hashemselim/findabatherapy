@@ -559,7 +559,7 @@ export default function GetListedPage() {
             </header>
             <div className="mt-8 grid gap-4 sm:grid-cols-2">
               {[
-                { name: "Extra users", price: "$20/mo", desc: "Add team members to your account", icon: Users },
+                { name: "User seats", price: "$20/mo", desc: "Add shared account users", icon: Users },
                 { name: "Location pack", price: "$15/mo", desc: "5 additional service locations", icon: MapPin },
                 { name: "Job pack", price: "$15/mo", desc: "5 additional job postings", icon: Star },
                 { name: "Storage pack", price: "$5/mo", desc: "10 GB additional file storage", icon: ImagePlus },

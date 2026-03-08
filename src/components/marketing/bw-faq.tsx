@@ -24,7 +24,7 @@ const faqs = [
   {
     question: "Can my front desk person or intake coordinator use this?",
     answer:
-      "Absolutely. GoodABA is designed for the people who actually run agency operations — not just the owner. Intake coordinators, office managers, and BCBAs can all access client records, send communications, and manage tasks. With Pro, you can add team members to your account.",
+      "Absolutely. GoodABA is designed for the people who actually run agency operations — not just the owner. Intake coordinators, office managers, and BCBAs can all access client records, send communications, and manage tasks. With Pro, you can add shared account users with additional user seats.",
   },
   {
     question: "I already have a website. Do I still need GoodABA?",

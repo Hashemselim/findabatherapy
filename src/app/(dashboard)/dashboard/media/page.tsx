@@ -44,7 +44,7 @@ export default async function MediaPage() {
   const isActiveSubscription =
     profile.subscription_status === "active" ||
     profile.subscription_status === "trialing";
-  const effectivePlanTier = (profile.plan_tier !== "free" && isActiveSubscription)
+  const effectivePlanTier = (profile.plan_tier && profile.plan_tier !== "free" && isActiveSubscription)
     ? profile.plan_tier
     : "free";
 

@@ -1,7 +1,15 @@
 import { type EmailOtpType } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 
-import { createClient, createAdminClient } from "@/lib/supabase/server";
+import {
+  createClient,
+  getCurrentProfileId,
+  getWorkspaceInviteCookie,
+} from "@/lib/supabase/server";
+import {
+  acceptWorkspaceInvitation,
+  createWorkspaceForUser,
+} from "@/lib/workspace/memberships";
 
 type SignupIntent = "therapy" | "jobs" | "both";
 
@@ -41,6 +49,37 @@ export async function GET(request: Request) {
     }
 
     if (data.user) {
+      const pendingInviteToken = await getWorkspaceInviteCookie();
+      if (pendingInviteToken) {
+        try {
+          const result = await acceptWorkspaceInvitation({
+            token: pendingInviteToken,
+            user: data.user,
+          });
+
+          const { data: invitedProfile } = await supabase
+            .from("profiles")
+            .select("onboarding_completed_at")
+            .eq("id", result.profileId)
+            .single();
+
+          if (!invitedProfile?.onboarding_completed_at) {
+            return NextResponse.redirect(`${origin}/dashboard/onboarding`);
+          }
+
+          return NextResponse.redirect(`${origin}${next}`);
+        } catch (inviteError) {
+          return NextResponse.redirect(
+            `${origin}/auth/sign-in?error=${encodeURIComponent(inviteError instanceof Error ? inviteError.message : "Invitation could not be accepted")}`
+          );
+        }
+      }
+
+      const currentProfileId = (await getCurrentProfileId()) || data.user.id;
+      if (currentProfileId !== data.user.id) {
+        return NextResponse.redirect(`${origin}${next}`);
+      }
+
       // Check if profile exists
       const { data: existingProfile } = await supabase
         .from("profiles")
@@ -50,8 +89,6 @@ export async function GET(request: Request) {
 
       // Create profile if it doesn't exist (for email signups)
       if (!existingProfile) {
-        const adminClient = await createAdminClient();
-
         const agencyName =
           data.user.user_metadata?.agency_name ||
           data.user.email?.split("@")[0] ||
@@ -64,20 +101,14 @@ export async function GET(request: Request) {
             : "month";
         const selectedIntent = normalizeSignupIntent(data.user.user_metadata?.selected_intent);
 
-        const { error: profileError } = await adminClient
-          .from("profiles")
-          .insert({
-            id: data.user.id,
-            agency_name: agencyName,
-            contact_email: data.user.email!,
-            plan_tier: selectedPlan,
-            billing_interval: billingInterval,
-            primary_intent: selectedIntent,
-          });
-
-        if (profileError) {
-          console.error("Profile creation error:", profileError);
-        }
+        await createWorkspaceForUser({
+          userId: data.user.id,
+          email: data.user.email!,
+          agencyName,
+          planTier: selectedPlan,
+          billingInterval,
+          primaryIntent: selectedIntent,
+        });
 
         // New user - redirect to onboarding
         return NextResponse.redirect(`${origin}/dashboard/onboarding`);

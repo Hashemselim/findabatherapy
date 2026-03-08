@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient as createSupabaseClient, getUser } from "@/lib/supabase/server";
+import { createClient as createSupabaseClient, getCurrentProfileId } from "@/lib/supabase/server";
 import { REFERRAL_SOURCE_OPTIONS } from "@/lib/validations/clients";
 
 // =============================================================================
@@ -38,8 +38,8 @@ const SOURCE_LABELS: Record<string, string> = Object.fromEntries(
  * Get referral source analytics for the current user's clients
  */
 export async function getReferralAnalytics(): Promise<ActionResult<ReferralAnalytics>> {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -49,7 +49,7 @@ export async function getReferralAnalytics(): Promise<ActionResult<ReferralAnaly
   const { data: clients, error } = await supabase
     .from("clients")
     .select("id, referral_source")
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .is("deleted_at", null);
 
   if (error) {

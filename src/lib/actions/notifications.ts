@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { createClient, createAdminClient, getUser } from "@/lib/supabase/server";
+import { createClient, createAdminClient, getCurrentProfileId } from "@/lib/supabase/server";
 
 type ActionResult<T = void> =
   | { success: true; data?: T }
@@ -82,8 +82,8 @@ export async function getNotifications(filter?: {
   limit?: number;
   offset?: number;
 }): Promise<ActionResult<{ notifications: Notification[]; unreadCount: number }>> {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -95,7 +95,7 @@ export async function getNotifications(filter?: {
   let query = supabase
     .from("notifications")
     .select("*")
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .order("created_at", { ascending: false })
     .range(offset, offset + limit - 1);
 
@@ -118,7 +118,7 @@ export async function getNotifications(filter?: {
   const { count, error: countError } = await supabase
     .from("notifications")
     .select("*", { count: "exact", head: true })
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .eq("is_read", false);
 
   if (countError) {
@@ -150,15 +150,15 @@ export async function getNotifications(filter?: {
 // ---------------------------------------------------------------------------
 
 export async function getUnreadNotificationCount(): Promise<number> {
-  const user = await getUser();
-  if (!user) return 0;
+  const profileId = await getCurrentProfileId();
+  if (!profileId) return 0;
 
   const supabase = await createClient();
 
   const { count, error } = await supabase
     .from("notifications")
     .select("*", { count: "exact", head: true })
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .eq("is_read", false);
 
   if (error) {
@@ -176,8 +176,8 @@ export async function getUnreadNotificationCount(): Promise<number> {
 export async function getUnreadCountsByType(): Promise<
   ActionResult<Record<NotificationType, number>>
 > {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -186,7 +186,7 @@ export async function getUnreadCountsByType(): Promise<
   const { data: rows, error } = await supabase
     .from("notifications")
     .select("type")
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .eq("is_read", false);
 
   if (error) {
@@ -213,8 +213,8 @@ export async function getUnreadCountsByType(): Promise<
 export async function markNotificationAsRead(
   notificationId: string
 ): Promise<ActionResult> {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -224,7 +224,7 @@ export async function markNotificationAsRead(
     .from("notifications")
     .update({ is_read: true, read_at: new Date().toISOString() })
     .eq("id", notificationId)
-    .eq("profile_id", user.id);
+    .eq("profile_id", profileId);
 
   if (error) {
     console.error("[NOTIFICATIONS] Failed to mark as read:", error);
@@ -242,8 +242,8 @@ export async function markNotificationAsRead(
 export async function markAllNotificationsAsRead(
   type?: NotificationType
 ): Promise<ActionResult> {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -252,7 +252,7 @@ export async function markAllNotificationsAsRead(
   let query = supabase
     .from("notifications")
     .update({ is_read: true, read_at: new Date().toISOString() })
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .eq("is_read", false);
 
   if (type) {

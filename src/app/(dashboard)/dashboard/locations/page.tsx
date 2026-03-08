@@ -60,7 +60,7 @@ export default async function LocationsPage() {
   const isActiveSubscription =
     profile.subscription_status === "active" ||
     profile.subscription_status === "trialing";
-  const effectivePlanTier = (profile.plan_tier !== "free" && isActiveSubscription)
+  const effectivePlanTier = (profile.plan_tier && profile.plan_tier !== "free" && isActiveSubscription)
     ? profile.plan_tier
     : "free";
 
@@ -93,7 +93,7 @@ export default async function LocationsPage() {
       <LocationsPageContent
         locations={locations}
         locationLimit={locationLimit}
-        effectivePlanTier={effectivePlanTier}
+        effectivePlanTier={effectivePlanTier as "free" | "pro"}
         featuredPricing={featuredPricing}
         companyDefaults={companyDefaults}
       />

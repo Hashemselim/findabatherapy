@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { createClient, createAdminClient, getUser } from "@/lib/supabase/server";
+import { createClient, createAdminClient, getCurrentProfileId } from "@/lib/supabase/server";
 import { verifyTurnstileToken } from "@/lib/turnstile";
 import { createNotification } from "@/lib/actions/notifications";
 import {
@@ -259,8 +259,8 @@ export async function getApplications(filter?: {
   status?: ApplicationStatus;
   jobId?: string;
 }): Promise<ActionResult<{ applications: ApplicationSummary[]; newCount: number }>> {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -270,7 +270,7 @@ export async function getApplications(filter?: {
   const { data: jobs } = await supabase
     .from("job_postings")
     .select("id")
-    .eq("profile_id", user.id);
+    .eq("profile_id", profileId);
 
   const jobIds = jobs?.map((j) => j.id) || [];
 
@@ -345,8 +345,8 @@ export async function getApplications(filter?: {
  * Get a single application by ID
  */
 export async function getApplication(id: string): Promise<ActionResult<ApplicationWithJob>> {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -380,7 +380,7 @@ export async function getApplication(id: string): Promise<ActionResult<Applicati
     profile_id: string;
   };
 
-  if (job.profile_id !== user.id) {
+  if (job.profile_id !== profileId) {
     return { success: false, error: "Not authorized to view this application" };
   }
 
@@ -418,8 +418,8 @@ export async function updateApplicationStatus(
   id: string,
   status: ApplicationStatus
 ): Promise<ActionResult> {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -449,7 +449,7 @@ export async function updateApplicationStatus(
   }
 
   const job = application.job_postings as unknown as { profile_id: string };
-  if (job.profile_id !== user.id) {
+  if (job.profile_id !== profileId) {
     return { success: false, error: "Not authorized to update this application" };
   }
 
@@ -483,8 +483,8 @@ export async function updateApplicationDetails(
   id: string,
   data: { notes?: string | null; rating?: number | null }
 ): Promise<ActionResult> {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -513,7 +513,7 @@ export async function updateApplicationDetails(
   }
 
   const job = application.job_postings as unknown as { profile_id: string };
-  if (job.profile_id !== user.id) {
+  if (job.profile_id !== profileId) {
     return { success: false, error: "Not authorized to update this application" };
   }
 
@@ -545,8 +545,8 @@ export async function updateApplicationDetails(
 export async function getResumeDownloadUrl(
   applicationId: string
 ): Promise<ActionResult<{ url: string }>> {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -569,7 +569,7 @@ export async function getResumeDownloadUrl(
   }
 
   const job = application.job_postings as unknown as { profile_id: string };
-  if (job.profile_id !== user.id) {
+  if (job.profile_id !== profileId) {
     return { success: false, error: "Not authorized to access this resume" };
   }
 
@@ -593,8 +593,8 @@ export async function getResumeDownloadUrl(
  * Get new application count (for sidebar badge)
  */
 export async function getNewApplicationCount(): Promise<ActionResult<number>> {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return { success: true, data: 0 };
   }
 
@@ -604,7 +604,7 @@ export async function getNewApplicationCount(): Promise<ActionResult<number>> {
   const { data: jobs } = await supabase
     .from("job_postings")
     .select("id")
-    .eq("profile_id", user.id);
+    .eq("profile_id", profileId);
 
   const jobIds = jobs?.map((j) => j.id) || [];
 

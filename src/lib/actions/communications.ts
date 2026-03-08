@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { createClient as createSupabaseClient, getUser } from "@/lib/supabase/server";
+import { createClient as createSupabaseClient, getCurrentProfileId, getUser } from "@/lib/supabase/server";
 import { guardCommunications } from "@/lib/plans/guards";
 import type { AgencyBrandingData } from "@/lib/email/email-helpers";
 import { getFromEmail } from "@/lib/utils/domains";
@@ -63,7 +63,8 @@ export interface CommunicationFilters {
  */
 export async function getTemplates(): Promise<ActionResult<CommunicationTemplate[]>> {
   const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!user || !profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -72,7 +73,7 @@ export async function getTemplates(): Promise<ActionResult<CommunicationTemplate
   const { data, error } = await supabase
     .from("communication_templates")
     .select("*")
-    .or(`profile_id.is.null,profile_id.eq.${user.id}`)
+    .or(`profile_id.is.null,profile_id.eq.${profileId}`)
     .eq("is_active", true)
     .order("sort_order", { ascending: true });
 
@@ -89,7 +90,8 @@ export async function getTemplates(): Promise<ActionResult<CommunicationTemplate
  */
 export async function getTemplate(slug: string): Promise<ActionResult<CommunicationTemplate>> {
   const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!user || !profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -98,7 +100,7 @@ export async function getTemplate(slug: string): Promise<ActionResult<Communicat
   const { data, error } = await supabase
     .from("communication_templates")
     .select("*")
-    .or(`profile_id.is.null,profile_id.eq.${user.id}`)
+    .or(`profile_id.is.null,profile_id.eq.${profileId}`)
     .eq("slug", slug)
     .eq("is_active", true)
     .single();
@@ -122,7 +124,8 @@ export async function getClientCommunications(
   clientId: string
 ): Promise<ActionResult<ClientCommunication[]>> {
   const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!user || !profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -131,7 +134,7 @@ export async function getClientCommunications(
   const { data, error } = await supabase
     .from("client_communications")
     .select("*")
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .eq("client_id", clientId)
     .order("sent_at", { ascending: false });
 
@@ -152,7 +155,8 @@ export async function getAllCommunications(
   pageSize: number = 50
 ): Promise<ActionResult<{ communications: ClientCommunication[]; total: number }>> {
   const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!user || !profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -165,7 +169,7 @@ export async function getAllCommunications(
       *,
       clients!inner(child_first_name, child_last_name)
     `, { count: "exact" })
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .order("sent_at", { ascending: false })
     .range(offset, offset + pageSize - 1);
 
@@ -220,7 +224,8 @@ export async function populateMergeFields(
   clientId: string
 ): Promise<ActionResult<string>> {
   const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!user || !profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -236,7 +241,7 @@ export async function populateMergeFields(
       client_insurances(insurance_name, is_primary)
     `)
     .eq("id", clientId)
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .single();
 
   if (clientError || !client) {
@@ -247,14 +252,14 @@ export async function populateMergeFields(
   const { data: profile } = await supabase
     .from("profiles")
     .select("agency_name, contact_email")
-    .eq("id", user.id)
+    .eq("id", profileId)
     .single();
 
   // Fetch primary location for phone
   const { data: listing } = await supabase
     .from("listings")
     .select("slug, locations(phone)")
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .single();
 
   // Resolve field values
@@ -343,7 +348,8 @@ export async function sendCommunication(params: {
   recipientName?: string;
 }): Promise<ActionResult<{ communicationId: string }>> {
   const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!user || !profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -375,7 +381,7 @@ export async function sendCommunication(params: {
     .from("clients")
     .select("id")
     .eq("id", params.clientId)
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .single();
 
   if (clientError || !client) {
@@ -383,7 +389,7 @@ export async function sendCommunication(params: {
   }
 
   // Fetch agency branding for the email template
-  const agencyData = await getAgencyBrandingData(user.id);
+  const agencyData = await getAgencyBrandingData(profileId);
 
   // Send email via Resend using dynamic import to avoid circular deps
   let sendSuccess = false;
@@ -427,7 +433,7 @@ export async function sendCommunication(params: {
     .from("client_communications")
     .insert({
       client_id: params.clientId,
-      profile_id: user.id,
+      profile_id: profileId,
       template_slug: params.templateSlug,
       subject: params.subject,
       body: sanitizedBody,

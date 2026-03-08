@@ -45,6 +45,8 @@ function SignUpForm() {
   const billingInterval = searchParams.get("interval") || "monthly";
   const urlIntent = searchParams.get("intent") || searchParams.get("context");
   const selectedIntent = normalizeIntent(urlIntent);
+  const inviteToken = searchParams.get("invite");
+  const inviteEmail = searchParams.get("email");
 
   // PostHog tracking
   const tracking = useSignupTracking(selectedPlan);
@@ -105,7 +107,13 @@ function SignUpForm() {
     tracking.trackFormSubmitted("google", billingInterval);
 
     // For OAuth, we pass plan and interval via URL state (handled in callback)
-    const result = await signInWithOAuth("google", selectedPlan || undefined, billingInterval, selectedIntent);
+    const result = await signInWithOAuth(
+      "google",
+      selectedPlan || undefined,
+      billingInterval,
+      selectedIntent,
+      inviteToken || undefined
+    );
 
     if ("error" in result) {
       setError(result.message);
@@ -123,7 +131,13 @@ function SignUpForm() {
     tracking.trackFormSubmitted("microsoft", billingInterval);
 
     // For OAuth, we pass plan and interval via URL state (handled in callback)
-    const result = await signInWithOAuth("azure", selectedPlan || undefined, billingInterval, selectedIntent);
+    const result = await signInWithOAuth(
+      "azure",
+      selectedPlan || undefined,
+      billingInterval,
+      selectedIntent,
+      inviteToken || undefined
+    );
 
     if ("error" in result) {
       setError(result.message);
@@ -148,7 +162,14 @@ function SignUpForm() {
         <CardTitle className="text-3xl">Create your account</CardTitle>
         <p className="text-sm text-muted-foreground">
           Already have an account?{" "}
-          <Link href="/auth/sign-in" className="text-primary hover:underline">
+          <Link
+            href={
+              inviteToken
+                ? `/auth/sign-in?invite=${encodeURIComponent(inviteToken)}${inviteEmail ? `&email=${encodeURIComponent(inviteEmail)}` : ""}`
+                : "/auth/sign-in"
+            }
+            className="text-primary hover:underline"
+          >
             Sign in
           </Link>
         </p>
@@ -169,6 +190,12 @@ function SignUpForm() {
         {success && (
           <div className="rounded-lg bg-emerald-500/10 p-3 text-sm text-emerald-600">
             {success}
+          </div>
+        )}
+
+        {inviteToken && (
+          <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm text-slate-700">
+            Create your sign-in to join the invited workspace{inviteEmail ? ` for ${inviteEmail}` : ""}.
           </div>
         )}
 
@@ -238,6 +265,7 @@ function SignUpForm() {
 
         {/* PRD 3.2.1: Email form - Email, Password, Terms checkbox, Continue button */}
         <form action={handleSubmit} className="space-y-4">
+          {inviteToken && <input type="hidden" name="inviteToken" value={inviteToken} />}
           <input type="hidden" name="selectedIntent" value={selectedIntent} />
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
@@ -248,6 +276,7 @@ function SignUpForm() {
               type="email"
               required
               disabled={isLoading}
+              defaultValue={inviteEmail || undefined}
               onFocus={() => tracking.trackFormStarted()}
               onBlur={(e) => {
                 if (e.target.value) tracking.trackFieldCompleted("email");

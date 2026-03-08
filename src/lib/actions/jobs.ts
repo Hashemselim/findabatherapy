@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { createClient, getUser } from "@/lib/supabase/server";
+import { createClient, getCurrentProfileId } from "@/lib/supabase/server";
 import {
   createJobPostingSchema,
   updateJobPostingSchema,
@@ -140,8 +140,8 @@ async function isSlugUnique(
  * Get all job postings for the current user
  */
 export async function getJobPostings(): Promise<ActionResult<JobPostingSummary[]>> {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -164,7 +164,7 @@ export async function getJobPostings(): Promise<ActionResult<JobPostingSummary[]
         state
       )
     `)
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -215,8 +215,8 @@ export async function getJobPostings(): Promise<ActionResult<JobPostingSummary[]
  * Get a single job posting by ID (for edit page)
  */
 export async function getJobPosting(id: string): Promise<ActionResult<JobPostingWithRelations>> {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -240,7 +240,7 @@ export async function getJobPosting(id: string): Promise<ActionResult<JobPosting
       )
     `)
     .eq("id", id)
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .single();
 
   if (error) {
@@ -267,7 +267,7 @@ export async function getJobPosting(id: string): Promise<ActionResult<JobPosting
   const { data: listing } = await supabase
     .from("listings")
     .select("logo_url")
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .single();
 
   const location = job.locations as { id: string; city: string; state: string; street: string | null } | null;
@@ -317,8 +317,8 @@ export async function getJobPosting(id: string): Promise<ActionResult<JobPosting
  * Create a new job posting
  */
 export async function createJobPosting(data: CreateJobPostingData): Promise<ActionResult<{ id: string; slug: string }>> {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -334,7 +334,7 @@ export async function createJobPosting(data: CreateJobPostingData): Promise<Acti
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("agency_name, plan_tier, subscription_status")
-    .eq("id", user.id)
+    .eq("id", profileId)
     .single();
 
   if (profileError || !profile) {
@@ -347,9 +347,9 @@ export async function createJobPosting(data: CreateJobPostingData): Promise<Acti
   const { count: jobCount } = await supabase
     .from("job_postings")
     .select("id", { count: "exact", head: true })
-    .eq("profile_id", user.id);
+    .eq("profile_id", profileId);
 
-  const limitsResult = await getEffectiveLimits(user.id);
+  const limitsResult = await getEffectiveLimits(profileId);
   const limit = limitsResult.success && limitsResult.data
     ? limitsResult.data.maxJobPostings
     : JOB_LIMITS[effectiveTier];
@@ -373,7 +373,7 @@ export async function createJobPosting(data: CreateJobPostingData): Promise<Acti
 
   // Prepare insert data
   const insertData = {
-    profile_id: user.id,
+    profile_id: profileId,
     location_id: parsed.data.locationId || null,
     custom_city: parsed.data.customCity || null,
     custom_state: parsed.data.customState || null,
@@ -418,8 +418,8 @@ export async function updateJobPosting(
   id: string,
   data: UpdateJobPostingData
 ): Promise<ActionResult> {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -442,7 +442,7 @@ export async function updateJobPosting(
     return { success: false, error: "Job posting not found" };
   }
 
-  if (existingJob.profile_id !== user.id) {
+  if (existingJob.profile_id !== profileId) {
     return { success: false, error: "Not authorized to edit this job posting" };
   }
 
@@ -509,8 +509,8 @@ export async function updateJobStatus(
   id: string,
   status: JobStatus
 ): Promise<ActionResult> {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -533,7 +533,7 @@ export async function updateJobStatus(
     return { success: false, error: "Job posting not found" };
   }
 
-  if (existingJob.profile_id !== user.id) {
+  if (existingJob.profile_id !== profileId) {
     return { success: false, error: "Not authorized to edit this job posting" };
   }
 
@@ -565,8 +565,8 @@ export async function updateJobStatus(
  * Delete a job posting
  */
 export async function deleteJobPosting(id: string): Promise<ActionResult> {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -583,7 +583,7 @@ export async function deleteJobPosting(id: string): Promise<ActionResult> {
     return { success: false, error: "Job posting not found" };
   }
 
-  if (existingJob.profile_id !== user.id) {
+  if (existingJob.profile_id !== profileId) {
     return { success: false, error: "Not authorized to delete this job posting" };
   }
 
@@ -639,8 +639,8 @@ export async function reopenJobPosting(id: string): Promise<ActionResult> {
  * Get the current user's job count and limit
  */
 export async function getJobCountAndLimit(): Promise<ActionResult<{ count: number; limit: number; canCreate: boolean }>> {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -650,7 +650,7 @@ export async function getJobCountAndLimit(): Promise<ActionResult<{ count: numbe
   const { data: profile } = await supabase
     .from("profiles")
     .select("plan_tier, subscription_status")
-    .eq("id", user.id)
+    .eq("id", profileId)
     .single();
 
   if (!profile) {
@@ -658,7 +658,7 @@ export async function getJobCountAndLimit(): Promise<ActionResult<{ count: numbe
   }
 
   const effectiveTier = getEffectivePlanTier(profile.plan_tier, profile.subscription_status);
-  const limitsResult = await getEffectiveLimits(user.id);
+  const limitsResult = await getEffectiveLimits(profileId);
   const limit = limitsResult.success && limitsResult.data
     ? limitsResult.data.maxJobPostings
     : JOB_LIMITS[effectiveTier];
@@ -667,7 +667,7 @@ export async function getJobCountAndLimit(): Promise<ActionResult<{ count: numbe
   const { count } = await supabase
     .from("job_postings")
     .select("id", { count: "exact", head: true })
-    .eq("profile_id", user.id);
+    .eq("profile_id", profileId);
 
   return {
     success: true,

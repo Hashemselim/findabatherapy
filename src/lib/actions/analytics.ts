@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient, createAdminClient, getUser } from "@/lib/supabase/server";
+import { createClient, createAdminClient, getCurrentProfileId } from "@/lib/supabase/server";
 import {
   EVENT_TYPES,
   type DashboardMetrics,
@@ -28,8 +28,8 @@ export async function getListingAnalytics(
   period: TimePeriod = "month",
   locationIds?: string[]
 ): Promise<ActionResult<DashboardMetrics>> {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -39,7 +39,7 @@ export async function getListingAnalytics(
   const { data: listing } = await supabase
     .from("listings")
     .select("id")
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .single();
 
   if (!listing) {
@@ -402,8 +402,8 @@ export interface AnalyticsSummary {
 }
 
 export async function getAnalyticsSummary(): Promise<ActionResult<AnalyticsSummary>> {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -413,7 +413,7 @@ export async function getAnalyticsSummary(): Promise<ActionResult<AnalyticsSumma
   const { data: listing } = await supabase
     .from("listings")
     .select("id")
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .single();
 
   if (!listing) {
@@ -470,8 +470,8 @@ export async function getAnalyticsSummary(): Promise<ActionResult<AnalyticsSumma
 export async function getLocationAnalytics(
   period: TimePeriod = "month"
 ): Promise<ActionResult<LocationAnalytics[]>> {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -489,7 +489,7 @@ export async function getLocationAnalytics(
         state
       )
     `)
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .single();
 
   if (!listing) {

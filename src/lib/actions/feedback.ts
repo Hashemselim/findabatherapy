@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { createClient, createAdminClient, getUser, getProfile } from "@/lib/supabase/server";
+import { createClient, createAdminClient, getCurrentProfileId, getUser, getProfile } from "@/lib/supabase/server";
 import { type FeedbackStatus, type FeedbackCategory } from "@/lib/validations/feedback";
 import { sendFeedbackNotification } from "@/lib/email/notifications";
 import { isCurrentUserAdmin } from "@/lib/actions/admin";
@@ -45,7 +45,8 @@ export async function submitFeedbackAuthenticated(
 ): Promise<ActionResult> {
   // Get authenticated user
   const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!user || !profileId) {
     return { success: false, error: "You must be logged in to submit feedback" };
   }
 
@@ -67,7 +68,7 @@ export async function submitFeedbackAuthenticated(
 
   // Insert feedback with profile info
   const { error: insertError } = await supabase.from("feedback").insert({
-    profile_id: user.id,
+    profile_id: profileId,
     name: profile.contact_name || profile.agency_name || "Unknown",
     email: profile.contact_email || user.email || "",
     phone: profile.contact_phone || null,

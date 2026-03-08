@@ -1,11 +1,13 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Mail, User, Shield, KeyRound } from "lucide-react";
+import { Mail, User, Shield, KeyRound, Users } from "lucide-react";
 
 import { CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
 import { DashboardCard, DashboardCallout } from "@/components/dashboard/ui";
-import { getUser, getProfile } from "@/lib/supabase/server";
+import { getCurrentMembership, getUser, getProfile } from "@/lib/supabase/server";
 
 // Provider icons as separate components for cleaner code
 function GoogleIcon() {
@@ -38,6 +40,7 @@ export default async function DashboardSettingsPage() {
   }
 
   const profile = await getProfile();
+  const membership = await getCurrentMembership();
 
   // Get all linked authentication methods from identities array
   const identities = user.identities || [];
@@ -154,6 +157,19 @@ export default async function DashboardSettingsPage() {
               </div>
             </div>
 
+            {profile && membership && (
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-4">
+                <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground sm:w-32">
+                  <Users className="h-4 w-4" />
+                  Workspace
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-sm text-foreground">{String(profile.agency_name || "Workspace")}</p>
+                  <Badge variant="outline">{membership.role}</Badge>
+                </div>
+              </div>
+            )}
+
             {/* Account Created */}
             {createdAt && (
               <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-4">
@@ -177,6 +193,22 @@ export default async function DashboardSettingsPage() {
         icon={Shield}
         tone="default"
       />
+
+      {membership && membership.role !== "member" && (
+        <DashboardCard>
+          <CardHeader className="border-b border-border/60 bg-muted/20">
+            <CardTitle>Workspace Users</CardTitle>
+            <CardDescription>
+              Invite account users, manage roles, and track seat usage.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pt-6">
+            <Button asChild variant="outline">
+              <Link href="/dashboard/settings/users">Manage Users</Link>
+            </Button>
+          </CardContent>
+        </DashboardCard>
+      )}
     </div>
   );
 }

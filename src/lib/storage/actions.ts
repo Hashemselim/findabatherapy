@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { createClient, getUser } from "@/lib/supabase/server";
+import { createClient, getCurrentProfileId } from "@/lib/supabase/server";
 import {
   STORAGE_BUCKETS,
   PHOTO_LIMITS,
@@ -22,8 +22,8 @@ type ActionResult<T = void> =
 export async function uploadLogo(
   formData: FormData
 ): Promise<ActionResult<{ url: string }>> {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -48,7 +48,7 @@ export async function uploadLogo(
   const { data: listing } = await supabase
     .from("listings")
     .select("id, logo_url")
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .single();
 
   if (!listing) {
@@ -106,8 +106,8 @@ export async function uploadLogo(
  * Delete the logo for a listing
  */
 export async function deleteLogo(): Promise<ActionResult> {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -117,7 +117,7 @@ export async function deleteLogo(): Promise<ActionResult> {
   const { data: listing } = await supabase
     .from("listings")
     .select("id, logo_url")
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .single();
 
   if (!listing) {
@@ -157,8 +157,8 @@ export async function deleteLogo(): Promise<ActionResult> {
 export async function getPhotos(): Promise<
   ActionResult<{ photos: Array<{ id: string; url: string; order: number }> }>
 > {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -168,7 +168,7 @@ export async function getPhotos(): Promise<
   const { data: listing } = await supabase
     .from("listings")
     .select("id")
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .single();
 
   if (!listing) {
@@ -209,8 +209,8 @@ export async function getPhotos(): Promise<
 export async function uploadPhoto(
   formData: FormData
 ): Promise<ActionResult<{ id: string; url: string }>> {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -235,13 +235,13 @@ export async function uploadPhoto(
   const { data: profile } = await supabase
     .from("profiles")
     .select("plan_tier, subscription_status")
-    .eq("id", user.id)
+    .eq("id", profileId)
     .single();
 
   const { data: listing } = await supabase
     .from("listings")
     .select("id")
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .single();
 
   if (!listing || !profile) {
@@ -312,8 +312,8 @@ export async function uploadPhoto(
  * Delete a photo from the gallery
  */
 export async function deletePhoto(photoId: string): Promise<ActionResult> {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -323,7 +323,7 @@ export async function deletePhoto(photoId: string): Promise<ActionResult> {
   const { data: listing } = await supabase
     .from("listings")
     .select("id")
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .single();
 
   if (!listing) {
@@ -365,8 +365,8 @@ export async function deletePhoto(photoId: string): Promise<ActionResult> {
 export async function reorderPhotos(
   photoIds: string[]
 ): Promise<ActionResult> {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -376,7 +376,7 @@ export async function reorderPhotos(
   const { data: listing } = await supabase
     .from("listings")
     .select("id")
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .single();
 
   if (!listing) {
@@ -404,8 +404,8 @@ export async function reorderPhotos(
 export async function updateVideoUrl(
   videoUrl: string | null
 ): Promise<ActionResult> {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -415,7 +415,7 @@ export async function updateVideoUrl(
   const { data: profile } = await supabase
     .from("profiles")
     .select("plan_tier, subscription_status")
-    .eq("id", user.id)
+    .eq("id", profileId)
     .single();
 
   if (!profile) {
@@ -436,7 +436,7 @@ export async function updateVideoUrl(
   const { data: listing } = await supabase
     .from("listings")
     .select("id")
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .single();
 
   if (!listing) {
@@ -464,8 +464,8 @@ export async function updateVideoUrl(
  * Get current video URL for a listing
  */
 export async function getVideoUrl(): Promise<ActionResult<{ url: string | null }>> {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -475,7 +475,7 @@ export async function getVideoUrl(): Promise<ActionResult<{ url: string | null }
   const { data: listing } = await supabase
     .from("listings")
     .select("video_url")
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .single();
 
   if (!listing) {

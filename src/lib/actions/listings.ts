@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { createClient, getUser } from "@/lib/supabase/server";
+import { createClient, getCurrentProfileId } from "@/lib/supabase/server";
 import { STORAGE_BUCKETS } from "@/lib/storage/config";
 
 type ActionResult<T = void> =
@@ -81,14 +81,14 @@ export interface ListingWithRelations extends ListingData {
  * Get just the listing slug for the current user (lightweight query for nav)
  */
 export async function getListingSlug(): Promise<string | null> {
-  const user = await getUser();
-  if (!user) return null;
+  const profileId = await getCurrentProfileId();
+  if (!profileId) return null;
 
   const supabase = await createClient();
   const { data } = await supabase
     .from("listings")
     .select("slug")
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .single();
 
   return data?.slug ?? null;
@@ -98,8 +98,8 @@ export async function getListingSlug(): Promise<string | null> {
  * Get listing for the current user's dashboard
  */
 export async function getListing(): Promise<ActionResult<ListingWithRelations>> {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -132,7 +132,7 @@ export async function getListing(): Promise<ActionResult<ListingWithRelations>> 
         intake_form_settings
       )
     `)
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .single();
 
   if (listingError) {
@@ -250,8 +250,8 @@ export async function updateListing(data: {
   serviceModes?: string[];
   isAcceptingClients?: boolean;
 }): Promise<ActionResult> {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -270,7 +270,7 @@ export async function updateListing(data: {
   const { error } = await supabase
     .from("listings")
     .update(updateData)
-    .eq("profile_id", user.id);
+    .eq("profile_id", profileId);
 
   if (error) {
     return { success: false, error: error.message };
@@ -296,8 +296,8 @@ function generateSlug(agencyName: string): string {
  * Update company/agency name in profile and listing slug
  */
 export async function updateAgencyName(agencyName: string): Promise<ActionResult<{ newSlug: string }>> {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -315,7 +315,7 @@ export async function updateAgencyName(agencyName: string): Promise<ActionResult
       agency_name: trimmedName,
       updated_at: new Date().toISOString(),
     })
-    .eq("id", user.id);
+    .eq("id", profileId);
 
   if (profileError) {
     return { success: false, error: profileError.message };
@@ -331,7 +331,7 @@ export async function updateAgencyName(agencyName: string): Promise<ActionResult
       .from("listings")
       .select("id")
       .eq("slug", checkSlug)
-      .neq("profile_id", user.id) // Exclude current user's listing
+      .neq("profile_id", profileId) // Exclude current workspace listing
       .single();
 
     if (!existingListing) {
@@ -348,7 +348,7 @@ export async function updateAgencyName(agencyName: string): Promise<ActionResult
       slug: newSlug,
       updated_at: new Date().toISOString(),
     })
-    .eq("profile_id", user.id);
+    .eq("profile_id", profileId);
 
   if (listingError) {
     return { success: false, error: listingError.message };
@@ -365,8 +365,8 @@ export async function updateAgencyName(agencyName: string): Promise<ActionResult
 export async function updateListingStatus(
   status: "draft" | "published" | "suspended"
 ): Promise<ActionResult> {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -376,7 +376,7 @@ export async function updateListingStatus(
   const { data: profile } = await supabase
     .from("profiles")
     .select("plan_tier")
-    .eq("id", user.id)
+    .eq("id", profileId)
     .single();
 
   if (!profile) {
@@ -399,7 +399,7 @@ export async function updateListingStatus(
   const { error } = await supabase
     .from("listings")
     .update(updateData)
-    .eq("profile_id", user.id);
+    .eq("profile_id", profileId);
 
   if (error) {
     return { success: false, error: error.message };
@@ -429,8 +429,8 @@ export async function unpublishListing(): Promise<ActionResult> {
  * Falls back to primary location data for insurances if not set in attributes
  */
 export async function getListingAttributes(): Promise<ActionResult<Record<string, unknown>>> {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -440,7 +440,7 @@ export async function getListingAttributes(): Promise<ActionResult<Record<string
   const { data: listing, error: listingError } = await supabase
     .from("listings")
     .select("id")
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .single();
 
   if (listingError || !listing) {
@@ -494,8 +494,8 @@ export async function updateListingAttributes(data: {
   clinicalSpecialties?: string[];
   isAcceptingClients?: boolean;
 }): Promise<ActionResult> {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -505,7 +505,7 @@ export async function updateListingAttributes(data: {
   const { data: listing, error: listingError } = await supabase
     .from("listings")
     .select("id")
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .single();
 
   if (listingError || !listing) {
@@ -615,8 +615,8 @@ export async function updateCompanyContact(data: {
   contactPhone?: string;
   website?: string;
 }): Promise<ActionResult> {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -630,7 +630,7 @@ export async function updateCompanyContact(data: {
       website: data.website || null,
       updated_at: new Date().toISOString(),
     })
-    .eq("id", user.id);
+    .eq("id", profileId);
 
   if (error) {
     return { success: false, error: error.message };
@@ -646,8 +646,8 @@ export async function updateCompanyContact(data: {
  * Update contact form enabled setting
  */
 export async function updateContactFormEnabled(enabled: boolean): Promise<ActionResult> {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -657,7 +657,7 @@ export async function updateContactFormEnabled(enabled: boolean): Promise<Action
   const { data: listing, error: listingError } = await supabase
     .from("listings")
     .select("id, profiles!inner(plan_tier)")
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .single();
 
   if (listingError || !listing) {
@@ -698,8 +698,8 @@ export async function updateContactFormEnabled(enabled: boolean): Promise<Action
  * This controls whether the full client intake form at /intake/[slug]/client is accessible
  */
 export async function updateClientIntakeEnabled(enabled: boolean): Promise<ActionResult> {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -709,7 +709,7 @@ export async function updateClientIntakeEnabled(enabled: boolean): Promise<Actio
   const { data: listing, error: listingError } = await supabase
     .from("listings")
     .select("id, profiles!inner(plan_tier, subscription_status)")
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .single();
 
   if (listingError || !listing) {
@@ -731,7 +731,7 @@ export async function updateClientIntakeEnabled(enabled: boolean): Promise<Actio
       client_intake_enabled: enabled,
       updated_at: new Date().toISOString(),
     })
-    .eq("profile_id", user.id);
+    .eq("profile_id", profileId);
 
   if (error) {
     return { success: false, error: error.message };
@@ -746,8 +746,8 @@ export async function updateClientIntakeEnabled(enabled: boolean): Promise<Actio
  * Get client intake enabled status for the current user
  */
 export async function getClientIntakeEnabled(): Promise<ActionResult<boolean>> {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -756,7 +756,7 @@ export async function getClientIntakeEnabled(): Promise<ActionResult<boolean>> {
   const { data: listing, error } = await supabase
     .from("listings")
     .select("client_intake_enabled")
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .single();
 
   if (error || !listing) {
@@ -775,8 +775,8 @@ export async function getCareersPageSettings(): Promise<ActionResult<{
   ctaText: string;
   hideBadge: boolean;
 }>> {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -785,7 +785,7 @@ export async function getCareersPageSettings(): Promise<ActionResult<{
   const { data: listing, error } = await supabase
     .from("listings")
     .select("careers_brand_color, careers_headline, careers_cta_text, careers_hide_badge")
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .single();
 
   if (error || !listing) {
@@ -811,8 +811,8 @@ export async function updateCareersPageSettings(data: {
   headline?: string;
   ctaText?: string;
 }): Promise<ActionResult> {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -842,7 +842,7 @@ export async function updateCareersPageSettings(data: {
   const { error } = await supabase
     .from("listings")
     .update(updateData)
-    .eq("profile_id", user.id);
+    .eq("profile_id", profileId);
 
   if (error) {
     return { success: false, error: error.message };
@@ -856,8 +856,8 @@ export async function updateCareersPageSettings(data: {
  * Toggle careers page badge visibility (Pro+ feature)
  */
 export async function updateCareersHideBadge(hideBadge: boolean): Promise<ActionResult> {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -867,7 +867,7 @@ export async function updateCareersHideBadge(hideBadge: boolean): Promise<Action
   const { data: listing, error: listingError } = await supabase
     .from("listings")
     .select("id, profiles!inner(plan_tier, subscription_status)")
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .single();
 
   if (listingError || !listing) {
@@ -885,7 +885,7 @@ export async function updateCareersHideBadge(hideBadge: boolean): Promise<Action
   const { error } = await supabase
     .from("listings")
     .update({ careers_hide_badge: hideBadge, updated_at: new Date().toISOString() })
-    .eq("profile_id", user.id);
+    .eq("profile_id", profileId);
 
   if (error) {
     return { success: false, error: error.message };

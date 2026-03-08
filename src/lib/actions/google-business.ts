@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { createClient, createAdminClient, getUser } from "@/lib/supabase/server";
+import { createClient, createAdminClient, getCurrentProfileId } from "@/lib/supabase/server";
 
 type ActionResult<T = void> =
   | { success: true; data?: T }
@@ -45,8 +45,8 @@ export async function linkGoogleBusiness(
   rating: number | null,
   ratingCount: number | null
 ): Promise<ActionResult> {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -64,7 +64,7 @@ export async function linkGoogleBusiness(
   }
 
   const listing = location.listings as unknown as { profile_id: string };
-  if (listing.profile_id !== user.id) {
+  if (listing.profile_id !== profileId) {
     return { success: false, error: "Not authorized" };
   }
 
@@ -93,8 +93,8 @@ export async function linkGoogleBusiness(
  * Removes the Google Place ID and rating data.
  */
 export async function unlinkGoogleBusiness(locationId: string): Promise<ActionResult> {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -112,7 +112,7 @@ export async function unlinkGoogleBusiness(locationId: string): Promise<ActionRe
   }
 
   const listing = location.listings as unknown as { profile_id: string };
-  if (listing.profile_id !== user.id) {
+  if (listing.profile_id !== profileId) {
     return { success: false, error: "Not authorized" };
   }
 
@@ -141,8 +141,8 @@ export async function unlinkGoogleBusiness(locationId: string): Promise<ActionRe
  * Fetches the latest rating from Google Places API.
  */
 export async function refreshGoogleRating(locationId: string): Promise<ActionResult<{ rating: number | null; ratingCount: number | null }>> {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -160,7 +160,7 @@ export async function refreshGoogleRating(locationId: string): Promise<ActionRes
   }
 
   const listing = location.listings as unknown as { profile_id: string };
-  if (listing.profile_id !== user.id) {
+  if (listing.profile_id !== profileId) {
     return { success: false, error: "Not authorized" };
   }
 
@@ -225,8 +225,8 @@ export async function refreshGoogleRating(locationId: string): Promise<ActionRes
 export async function fetchGoogleReviews(
   locationId: string
 ): Promise<ActionResult<{ reviews: GoogleReview[] }>> {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -244,7 +244,7 @@ export async function fetchGoogleReviews(
   }
 
   const listing = location.listings as unknown as { profile_id: string };
-  if (listing.profile_id !== user.id) {
+  if (listing.profile_id !== profileId) {
     return { success: false, error: "Not authorized" };
   }
 
@@ -368,8 +368,8 @@ export async function fetchGoogleReviews(
 export async function getGoogleReviews(
   locationId: string
 ): Promise<ActionResult<{ reviews: GoogleReview[] }>> {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -387,7 +387,7 @@ export async function getGoogleReviews(
   }
 
   const listing = location.listings as unknown as { profile_id: string };
-  if (listing.profile_id !== user.id) {
+  if (listing.profile_id !== profileId) {
     return { success: false, error: "Not authorized" };
   }
 
@@ -426,8 +426,8 @@ export async function updateSelectedReviews(
   locationId: string,
   selectedReviewIds: string[]
 ): Promise<ActionResult> {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -449,7 +449,7 @@ export async function updateSelectedReviews(
   }
 
   const listing = location.listings as unknown as { profile_id: string; slug: string };
-  if (listing.profile_id !== user.id) {
+  if (listing.profile_id !== profileId) {
     return { success: false, error: "Not authorized" };
   }
 
@@ -492,8 +492,8 @@ export async function toggleShowGoogleReviews(
   locationId: string,
   showReviews: boolean
 ): Promise<ActionResult> {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -511,7 +511,7 @@ export async function toggleShowGoogleReviews(
   }
 
   const listing = location.listings as unknown as { profile_id: string; slug: string };
-  if (listing.profile_id !== user.id) {
+  if (listing.profile_id !== profileId) {
     return { success: false, error: "Not authorized" };
   }
 

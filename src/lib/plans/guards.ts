@@ -1,6 +1,6 @@
 "use server";
 
-import { getUser, createClient } from "@/lib/supabase/server";
+import { createClient, getCurrentProfileId } from "@/lib/supabase/server";
 import {
   type PlanTier,
   type PlanFeatures,
@@ -9,6 +9,7 @@ import {
 } from "./features";
 import { type AddonType } from "@/lib/plans/addon-config";
 import { getEffectiveLimits } from "@/lib/actions/addons";
+import { getWorkspaceSeatSummary } from "@/lib/actions/workspace-users";
 
 export type GuardResult<T = void> =
   | { allowed: true; data?: T }
@@ -21,8 +22,8 @@ export type GuardResult<T = void> =
  * After onboarding: Returns "free" if subscription is not active, regardless of plan_tier
  */
 export async function getCurrentPlanTier(): Promise<PlanTier> {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return "free";
   }
 
@@ -30,7 +31,7 @@ export async function getCurrentPlanTier(): Promise<PlanTier> {
   const { data: profile } = await supabase
     .from("profiles")
     .select("plan_tier, subscription_status, onboarding_completed_at")
-    .eq("id", user.id)
+    .eq("id", profileId)
     .single();
 
   const planTier = (profile?.plan_tier as PlanTier) || "free";
@@ -90,13 +91,13 @@ export async function canAccessFeature(
 export async function guardAddLocation(
   currentCount: number
 ): Promise<GuardResult> {
-  const user = await getUser();
+  const profileId = await getCurrentProfileId();
   const tier = await getCurrentPlanTier();
   const features = getPlanFeatures(tier);
 
   // For Pro users, check effective limits (base + add-ons)
-  if (tier === "pro" && user) {
-    const limitsResult = await getEffectiveLimits(user.id);
+  if (tier === "pro" && profileId) {
+    const limitsResult = await getEffectiveLimits(profileId);
     if (limitsResult.success && limitsResult.data) {
       const effectiveMax = limitsResult.data.maxLocations;
       if (currentCount >= effectiveMax) {
@@ -131,13 +132,13 @@ export async function guardAddLocation(
 export async function guardAddJob(
   currentCount: number
 ): Promise<GuardResult> {
-  const user = await getUser();
+  const profileId = await getCurrentProfileId();
   const tier = await getCurrentPlanTier();
   const features = getPlanFeatures(tier);
 
   // For Pro users, check effective limits (base + add-ons)
-  if (tier === "pro" && user) {
-    const limitsResult = await getEffectiveLimits(user.id);
+  if (tier === "pro" && profileId) {
+    const limitsResult = await getEffectiveLimits(profileId);
     if (limitsResult.success && limitsResult.data) {
       const effectiveMax = limitsResult.data.maxJobPostings;
       if (currentCount >= effectiveMax) {
@@ -335,32 +336,29 @@ export async function guardCredentialTracking(): Promise<GuardResult> {
  * For Pro users, checks effective limits (base 1 + extra_users add-ons)
  */
 export async function guardAddUser(
-  currentCount: number
+  currentCount?: number
 ): Promise<GuardResult> {
-  const user = await getUser();
   const tier = await getCurrentPlanTier();
+  const seatSummaryResult = await getWorkspaceSeatSummary();
 
-  // For Pro users, check effective limits (base + add-ons)
-  if (tier === "pro" && user) {
-    const limitsResult = await getEffectiveLimits(user.id);
-    if (limitsResult.success && limitsResult.data) {
-      const effectiveMax = limitsResult.data.maxUsers;
-      if (currentCount >= effectiveMax) {
-        return {
-          allowed: false,
-          reason: `You've used ${currentCount} of ${effectiveMax} user seats`,
-          requiredPlan: "pro",
-          addonType: "extra_users",
-          currentCount,
-          maxCount: effectiveMax,
-        };
-      }
-      return { allowed: true };
+  if (seatSummaryResult.success && seatSummaryResult.data) {
+    const { usedSeats, maxSeats } = seatSummaryResult.data;
+    const nextCount = currentCount ?? usedSeats;
+    if (nextCount >= maxSeats) {
+      return {
+        allowed: false,
+        reason: `You've used ${usedSeats} of ${maxSeats} user seats`,
+        requiredPlan: "pro",
+        addonType: "extra_users",
+        currentCount: usedSeats,
+        maxCount: maxSeats,
+      };
     }
+    return { allowed: true };
   }
 
   // Free users: 1 user (the owner)
-  if (currentCount >= 1) {
+  if ((currentCount ?? 1) >= 1 || tier !== "pro") {
     return {
       allowed: false,
       reason: "Additional user seats require a Pro plan",

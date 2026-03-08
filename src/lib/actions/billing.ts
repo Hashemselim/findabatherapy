@@ -1,6 +1,7 @@
 "use server";
 
-import { createClient, getUser } from "@/lib/supabase/server";
+import { createClient, getCurrentProfileId, requireProfileRole } from "@/lib/supabase/server";
+import { getWorkspaceSeatSummary } from "@/lib/actions/workspace-users";
 
 type ActionResult<T = void> =
   | { success: true; data?: T }
@@ -22,8 +23,8 @@ export interface PaymentStatus {
  * This is used to determine if premium features should be unlocked
  */
 export async function getPaymentStatus(): Promise<ActionResult<PaymentStatus>> {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -31,7 +32,7 @@ export async function getPaymentStatus(): Promise<ActionResult<PaymentStatus>> {
   const { data: profile, error } = await supabase
     .from("profiles")
     .select("plan_tier, stripe_subscription_id, subscription_status")
-    .eq("id", user.id)
+    .eq("id", profileId)
     .single();
 
   if (error || !profile) {
@@ -63,8 +64,8 @@ export async function getPaymentStatus(): Promise<ActionResult<PaymentStatus>> {
  * Used to determine intent during onboarding
  */
 export async function getSelectedPlanTier(): Promise<ActionResult<{ planTier: "free" | "pro" }>> {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -72,7 +73,7 @@ export async function getSelectedPlanTier(): Promise<ActionResult<{ planTier: "f
   const { data: profile, error } = await supabase
     .from("profiles")
     .select("plan_tier")
-    .eq("id", user.id)
+    .eq("id", profileId)
     .single();
 
   if (error || !profile) {
@@ -94,9 +95,21 @@ export async function getSelectedPlanTier(): Promise<ActionResult<{ planTier: "f
  * Only resets if user doesn't have an active subscription (edge case protection).
  */
 export async function resetPlanToFree(): Promise<ActionResult> {
-  const user = await getUser();
-  if (!user) {
+  const membership = await requireProfileRole("owner").catch(() => null);
+  if (!membership) {
     return { success: false, error: "Not authenticated" };
+  }
+
+  const seatSummaryResult = await getWorkspaceSeatSummary(membership.profile_id);
+  if (!seatSummaryResult.success || !seatSummaryResult.data) {
+    return { success: false, error: "Failed to validate seat usage" };
+  }
+
+  if (seatSummaryResult.data.usedSeats > 1) {
+    return {
+      success: false,
+      error: "Reduce workspace users and pending invitations to one seat before resetting to Free.",
+    };
   }
 
   const supabase = await createClient();
@@ -105,7 +118,7 @@ export async function resetPlanToFree(): Promise<ActionResult> {
   const { data: profile } = await supabase
     .from("profiles")
     .select("subscription_status")
-    .eq("id", user.id)
+    .eq("id", membership.profile_id)
     .single();
 
   // Don't reset if they have an active subscription
@@ -120,7 +133,7 @@ export async function resetPlanToFree(): Promise<ActionResult> {
   const { error } = await supabase
     .from("profiles")
     .update({ plan_tier: "free" })
-    .eq("id", user.id);
+    .eq("id", membership.profile_id);
 
   if (error) {
     return { success: false, error: error.message };

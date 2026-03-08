@@ -85,7 +85,7 @@ export default async function CareersPageDashboard() {
 
       <CareersPageShareCard
         listingSlug={listingSlug}
-        companyName={profile.agency_name}
+        companyName={profile.agency_name || "Your Practice"}
         jobCount={jobs.length}
       />
     </div>

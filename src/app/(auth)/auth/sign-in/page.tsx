@@ -32,6 +32,8 @@ function SignInForm() {
   const turnstileRef = useRef<TurnstileInstance>(null);
 
   const redirectTo = searchParams.get("redirect") || "/dashboard/clients/pipeline";
+  const inviteToken = searchParams.get("invite");
+  const inviteEmail = searchParams.get("email");
   const showTurnstile = failedAttempts >= 2;
 
   async function handleSubmit(formData: FormData) {
@@ -72,7 +74,13 @@ function SignInForm() {
     setError(null);
     setIsGooglePending(true);
 
-    const result = await signInWithOAuth("google");
+    const result = await signInWithOAuth(
+      "google",
+      undefined,
+      undefined,
+      undefined,
+      inviteToken || undefined
+    );
 
     if ("error" in result) {
       setError(result.message);
@@ -87,7 +95,13 @@ function SignInForm() {
     setError(null);
     setIsMicrosoftPending(true);
 
-    const result = await signInWithOAuth("azure");
+    const result = await signInWithOAuth(
+      "azure",
+      undefined,
+      undefined,
+      undefined,
+      inviteToken || undefined
+    );
 
     if ("error" in result) {
       setError(result.message);
@@ -109,7 +123,14 @@ function SignInForm() {
         <CardTitle className="text-3xl">Sign in to your account</CardTitle>
         <p className="text-sm text-muted-foreground">
           Access your dashboard. Don&apos;t have an account?{" "}
-          <Link href="/auth/sign-up" className="text-primary hover:underline">
+          <Link
+            href={
+              inviteToken
+                ? `/auth/sign-up?invite=${encodeURIComponent(inviteToken)}${inviteEmail ? `&email=${encodeURIComponent(inviteEmail)}` : ""}`
+                : "/auth/sign-up"
+            }
+            className="text-primary hover:underline"
+          >
             Sign up
           </Link>
         </p>
@@ -118,6 +139,12 @@ function SignInForm() {
         {error && (
           <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
             {error}
+          </div>
+        )}
+
+        {inviteToken && (
+          <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm text-slate-700">
+            Sign in to join the invited workspace{inviteEmail ? ` for ${inviteEmail}` : ""}.
           </div>
         )}
 
@@ -185,6 +212,7 @@ function SignInForm() {
         </div>
 
         <form action={handleSubmit} className="space-y-4">
+          {inviteToken && <input type="hidden" name="inviteToken" value={inviteToken} />}
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input

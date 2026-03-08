@@ -217,7 +217,7 @@ export function UnifiedPricingTable({ defaultInterval = "annual" }: UnifiedPrici
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
           {[
-            { name: "Extra users", price: "$20/mo", desc: "Add team members to your account" },
+            { name: "User seats", price: "$20/mo", desc: "Add shared account users" },
             { name: "Location pack", price: "$15/mo", desc: "5 additional service locations" },
             { name: "Job pack", price: "$15/mo", desc: "5 additional job postings" },
             { name: "Storage pack", price: "$5/mo", desc: "10 GB additional file storage" },
