@@ -37,7 +37,11 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
-import { DashboardSidebar } from "./dashboard-sidebar";
+import {
+  DashboardSidebar,
+  DASHBOARD_SIDEBAR_WIDTH_PX,
+  dashboardSidebarShellClassName,
+} from "./dashboard-sidebar";
 import {
   getQuickLinkGroups,
   isNavItemActive,
@@ -270,7 +274,14 @@ export function DashboardTopbar({
                 <Menu className="h-5 w-5" aria-hidden />
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="flex w-72 flex-col overflow-hidden p-0 sm:w-80">
+            <SheetContent
+              side="left"
+              className={cn(
+                "flex flex-col gap-0 overflow-hidden p-0 shadow-none",
+                dashboardSidebarShellClassName
+              )}
+              style={{ width: DASHBOARD_SIDEBAR_WIDTH_PX, maxWidth: "calc(100vw - 16px)" }}
+            >
               <SheetHeader className="sr-only">
                 <SheetTitle>{sheetTitle ?? (isDemo ? "Demo Dashboard" : "Dashboard")}</SheetTitle>
                 <SheetDescription>
@@ -280,7 +291,6 @@ export function DashboardTopbar({
               <div className="flex-1 overflow-y-auto">
                 {sheetOpen && (mobileNavComponent ?? (
                   <DashboardSidebar
-                    inSheet
                     isOnboardingComplete={isOnboardingComplete}
                     isDemo={isDemo}
                     providerSlug={providerSlug}
