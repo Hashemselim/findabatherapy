@@ -3,7 +3,7 @@
 import { type PropsWithChildren, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 
-import { DashboardSidebar, type CompanyProfile, type NavItem, type UserProfile } from "@/components/dashboard/dashboard-sidebar";
+import { DashboardSidebar, DASHBOARD_SIDEBAR_WIDTH_PX, dashboardSidebarShellClassName, type CompanyProfile, type NavItem, type UserProfile } from "@/components/dashboard/dashboard-sidebar";
 import { DashboardTopbar } from "@/components/dashboard/dashboard-topbar";
 
 interface DashboardShellProps extends PropsWithChildren {
@@ -61,7 +61,6 @@ export function DashboardShell({
           companyProfile={companyProfile}
           mobileNavComponent={
             <DashboardSidebar
-              inSheet
               isOnboardingComplete={isOnboardingComplete}
               isDemo={isDemo}
               companyProfile={companyProfile}
@@ -80,8 +79,11 @@ export function DashboardShell({
       {/* Desktop lg: no header, just spacing */}
       <div className="flex min-h-screen pt-[calc(3.5rem+1px+2.5rem+1rem)] sm:pt-[calc(4rem+1px+2.5rem+1.5rem)] lg:pt-0">
         {/* Fixed sidebar */}
-        <div className="hidden w-[250px] flex-none lg:block">
-          <div className="fixed left-0 top-0 h-screen w-[250px] border-r border-border/60 bg-card/95 backdrop-blur-sm">
+        <div className="hidden flex-none lg:block" style={{ width: DASHBOARD_SIDEBAR_WIDTH_PX }}>
+          <div
+            className={`fixed left-0 top-0 h-screen ${dashboardSidebarShellClassName}`}
+            style={{ width: DASHBOARD_SIDEBAR_WIDTH_PX }}
+          >
             <DashboardSidebar
               isOnboardingComplete={isOnboardingComplete}
               isDemo={isDemo}

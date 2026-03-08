@@ -50,6 +50,9 @@ import {
 
 export type { NavItem };
 
+export const DASHBOARD_SIDEBAR_WIDTH_PX = 250;
+export const dashboardSidebarShellClassName = "border-r border-border/60 bg-card/95 backdrop-blur-sm";
+
 // ---------------------------------------------------------------------------
 // Section state persistence
 // ---------------------------------------------------------------------------
@@ -111,8 +114,6 @@ interface DashboardSidebarProps {
   customNavItems?: NavItem[];
   dataTour?: string;
   providerSlug?: string | null;
-  /** When true, adjusts styling for rendering inside a Sheet drawer (mobile) */
-  inSheet?: boolean;
 }
 
 export function DashboardSidebar({
@@ -123,7 +124,6 @@ export function DashboardSidebar({
   customNavItems,
   dataTour,
   providerSlug,
-  inSheet = false,
 }: DashboardSidebarProps) {
   const pathname = usePathname();
   const [notificationCount, setNotificationCount] = useState(staticUnreadCount ?? 0);
@@ -197,10 +197,7 @@ export function DashboardSidebar({
     return (
       <aside
         data-tour={dataTour}
-        className={cn(
-          "flex h-full w-full flex-col justify-between overflow-y-auto",
-          !inSheet && "bg-white dark:bg-zinc-950"
-        )}
+        className="flex h-full w-full flex-col justify-between overflow-y-auto"
       >
         <div className="px-5 py-6">
           <nav className="space-y-1">
@@ -219,10 +216,7 @@ export function DashboardSidebar({
   return (
     <aside
       data-tour={dataTour}
-      className={cn(
-        "flex h-full w-full flex-col justify-between overflow-y-auto",
-        !inSheet && "border-r border-border/60 bg-card"
-      )}
+      className="flex h-full w-full flex-col justify-between overflow-y-auto"
     >
       {/* Top: Logo */}
       <div className="flex flex-col">
