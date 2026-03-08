@@ -136,7 +136,7 @@ export function DashboardStatusBadge({
   );
 }
 
-interface DashboardFilterGroupProps extends ComponentProps<"div"> {}
+type DashboardFilterGroupProps = ComponentProps<"div">;
 
 export function DashboardFilterGroup({ className, ...props }: DashboardFilterGroupProps) {
   return (
@@ -182,19 +182,19 @@ export function DashboardFilterButton({
   );
 }
 
-interface DashboardTableCardProps extends DashboardCardProps {}
+type DashboardTableCardProps = DashboardCardProps;
 
 export function DashboardTableCard({ className, tone, ...props }: DashboardTableCardProps) {
   return <DashboardCard tone={tone} className={cn("overflow-hidden p-0", className)} {...props} />;
 }
 
-interface DashboardTableProps extends ComponentProps<typeof BaseTable> {}
+type DashboardTableProps = ComponentProps<typeof BaseTable>;
 
 export function DashboardTable({ className, ...props }: DashboardTableProps) {
   return <BaseTable className={cn("w-full text-sm", className)} {...props} />;
 }
 
-interface DashboardTableHeaderProps extends ComponentProps<typeof BaseTableHeader> {}
+type DashboardTableHeaderProps = ComponentProps<typeof BaseTableHeader>;
 
 export function DashboardTableHeader({ className, ...props }: DashboardTableHeaderProps) {
   return (
@@ -205,19 +205,19 @@ export function DashboardTableHeader({ className, ...props }: DashboardTableHead
   );
 }
 
-interface DashboardTableBodyProps extends ComponentProps<typeof BaseTableBody> {}
+type DashboardTableBodyProps = ComponentProps<typeof BaseTableBody>;
 
 export function DashboardTableBody({ className, ...props }: DashboardTableBodyProps) {
   return <BaseTableBody className={cn("[&_tr:last-child]:border-0", className)} {...props} />;
 }
 
-interface DashboardTableRowProps extends ComponentProps<typeof BaseTableRow> {}
+type DashboardTableRowProps = ComponentProps<typeof BaseTableRow>;
 
 export function DashboardTableRow({ className, ...props }: DashboardTableRowProps) {
   return <BaseTableRow className={cn("border-border/60 hover:bg-muted/40", className)} {...props} />;
 }
 
-interface DashboardTableHeadProps extends ComponentProps<typeof BaseTableHead> {}
+type DashboardTableHeadProps = ComponentProps<typeof BaseTableHead>;
 
 export function DashboardTableHead({ className, ...props }: DashboardTableHeadProps) {
   return (
@@ -231,7 +231,7 @@ export function DashboardTableHead({ className, ...props }: DashboardTableHeadPr
   );
 }
 
-interface DashboardTableCellProps extends ComponentProps<typeof BaseTableCell> {}
+type DashboardTableCellProps = ComponentProps<typeof BaseTableCell>;
 
 export function DashboardTableCell({ className, ...props }: DashboardTableCellProps) {
   return <BaseTableCell className={cn("px-4 py-3.5 align-middle", className)} {...props} />;
