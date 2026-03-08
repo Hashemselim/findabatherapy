@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   Plus,
   Users,
@@ -85,6 +85,8 @@ interface TeamMembersListProps {
 
 export function TeamMembersList({ initialMembers }: TeamMembersListProps) {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
   const [members, setMembers] = useState(initialMembers);
   const [search, setSearch] = useState("");
@@ -101,6 +103,12 @@ export function TeamMembersList({ initialMembers }: TeamMembersListProps) {
     notes: "",
   });
   const [formError, setFormError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (searchParams.get("new") !== "1") return;
+    setAddDialogOpen(true);
+    router.replace(pathname, { scroll: false });
+  }, [pathname, router, searchParams]);
 
   const filtered = members.filter((m) => {
     if (!search) return true;

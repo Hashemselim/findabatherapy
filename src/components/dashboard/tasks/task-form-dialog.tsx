@@ -33,6 +33,8 @@ import { cn } from "@/lib/utils";
 import { TASK_STATUS_OPTIONS } from "@/lib/validations/clients";
 import { addClientTask, updateClientTask } from "@/lib/actions/clients";
 
+const NO_CLIENT_VALUE = "__no_client__";
+
 export interface TaskFormData {
   id?: string;
   title: string;

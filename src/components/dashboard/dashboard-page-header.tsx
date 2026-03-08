@@ -23,7 +23,7 @@ export function DashboardPageHeader({
 }: DashboardPageHeaderProps) {
   return (
     <DashboardCard className="px-5 py-4 sm:px-6 sm:py-5">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
           <h1 className="text-xl font-semibold text-foreground sm:text-2xl">
             {title}
@@ -35,7 +35,9 @@ export function DashboardPageHeader({
           )}
         </div>
         {children && (
-          <div className="flex shrink-0 items-center gap-2">{children}</div>
+          <div className="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:shrink-0 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end [&>[data-slot=button]]:w-full sm:[&>[data-slot=button]]:w-auto">
+            {children}
+          </div>
         )}
       </div>
     </DashboardCard>

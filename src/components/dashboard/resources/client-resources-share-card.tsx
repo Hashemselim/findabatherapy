@@ -10,9 +10,13 @@ import { DashboardCard } from "@/components/dashboard/ui";
 
 interface ClientResourcesShareCardProps {
   listingSlug: string;
+  showActions?: boolean;
 }
 
-export function ClientResourcesShareCard({ listingSlug }: ClientResourcesShareCardProps) {
+export function ClientResourcesShareCard({
+  listingSlug,
+  showActions = true,
+}: ClientResourcesShareCardProps) {
   const [copied, setCopied] = useState(false);
   const [resourcesUrl, setResourcesUrl] = useState(
     getProviderResourcesPath(listingSlug)
@@ -64,31 +68,33 @@ export function ClientResourcesShareCard({ listingSlug }: ClientResourcesShareCa
             <div className="flex-1 rounded-lg border border-border/60 bg-background px-4 py-3">
               <p className="truncate font-mono text-sm text-muted-foreground">{resourcesUrl}</p>
             </div>
-            <div className="flex gap-2">
-              <Button
-                onClick={handleCopyLink}
-                className="shrink-0 gap-2"
-                variant={copied ? "outline-solid" : "default"}
-              >
-                {copied ? (
-                  <>
-                    <Check className="h-4 w-4" />
-                    Copied!
-                  </>
-                ) : (
-                  <>
-                    <Copy className="h-4 w-4" />
-                    Copy Link
-                  </>
-                )}
-              </Button>
-              <Button asChild variant="outline" className="shrink-0 gap-2">
-                <a href={resourcesUrl} target="_blank" rel="noopener noreferrer">
-                  <ExternalLink className="h-4 w-4" />
-                  <span className="hidden sm:inline">Preview</span>
-                </a>
-              </Button>
-            </div>
+            {showActions && (
+              <div className="flex gap-2">
+                <Button
+                  onClick={handleCopyLink}
+                  className="shrink-0 gap-2"
+                  variant={copied ? "outline-solid" : "default"}
+                >
+                  {copied ? (
+                    <>
+                      <Check className="h-4 w-4" />
+                      Copied!
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="h-4 w-4" />
+                      Copy Link
+                    </>
+                  )}
+                </Button>
+                <Button asChild variant="outline" className="shrink-0 gap-2">
+                  <a href={resourcesUrl} target="_blank" rel="noopener noreferrer">
+                    <ExternalLink className="h-4 w-4" />
+                    <span className="hidden sm:inline">Preview</span>
+                  </a>
+                </Button>
+              </div>
+            )}
           </div>
 
           <div className="rounded-lg border border-border/60 bg-background p-4">

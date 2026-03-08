@@ -40,7 +40,14 @@ export default function EmployeeResourcesPage() {
       <DashboardPageHeader
         title="Employee Resources"
         description="Documents and materials for staff."
-      />
+      >
+        <Button asChild size="sm" className="w-full gap-2 sm:w-auto">
+          <Link href="/dashboard/feedback" className="gap-2">
+            Request Early Access
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+        </Button>
+      </DashboardPageHeader>
 
       <DashboardFeatureCard
         title="Employee Resources Coming Soon"
@@ -55,14 +62,6 @@ export default function EmployeeResourcesPage() {
           tone: "default" as const,
         }))}
         footer="Need this sooner? Tell us how your team would use it."
-        action={(
-          <Button asChild size="lg">
-            <Link href="/dashboard/feedback" className="gap-2">
-              Request Early Access
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          </Button>
-        )}
       />
 
       <div className="grid gap-4 sm:grid-cols-2">

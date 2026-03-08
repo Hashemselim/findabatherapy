@@ -4,11 +4,13 @@ import { ArrowRight, ClipboardList, Briefcase } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
+import { SharePageHeaderActions } from "@/components/dashboard/share-page-header-actions";
 import { DashboardEmptyState } from "@/components/dashboard/ui";
 import { CareersPageShareCard } from "@/components/dashboard/jobs/careers-page-share-card";
 import { getProfile } from "@/lib/supabase/server";
 import { getListingSlug } from "@/lib/actions/listings";
 import { getJobsByProvider } from "@/lib/queries/jobs";
+import { getProviderCareersPath } from "@/lib/utils/public-paths";
 
 export default async function CareersPageDashboard() {
   const [profile, listingSlug] = await Promise.all([
@@ -67,10 +69,13 @@ export default async function CareersPageDashboard() {
   }
 
   const jobs = await getJobsByProvider(listingSlug);
+  const careersPath = getProviderCareersPath(listingSlug);
 
   return (
     <div className="space-y-3">
-      <DashboardPageHeader title="Careers Page" description="Share a branded careers page that showcases all your open positions." />
+      <DashboardPageHeader title="Careers Page" description="Share a branded careers page that showcases all your open positions.">
+        <SharePageHeaderActions relativePath={careersPath} />
+      </DashboardPageHeader>
 
       <Card className="border-border/60 bg-muted/20">
         <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
@@ -87,6 +92,7 @@ export default async function CareersPageDashboard() {
         listingSlug={listingSlug}
         companyName={profile.agency_name}
         jobCount={jobs.length}
+        showActions={false}
       />
     </div>
   );

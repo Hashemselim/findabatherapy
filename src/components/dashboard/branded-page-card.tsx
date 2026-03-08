@@ -16,6 +16,7 @@ interface BrandedPageCardProps {
   relativePath: string;
   iconName: BrandedPageIconName;
   howItWorks: string[];
+  showActions?: boolean;
   /** When true, "How it works" renders as a static list instead of an accordion */
   defaultExpanded?: boolean;
 }
@@ -53,6 +54,7 @@ export function BrandedPageCard({
   relativePath,
   iconName,
   howItWorks,
+  showActions = true,
   defaultExpanded,
 }: BrandedPageCardProps) {
   const variant = variantMap[iconName];
@@ -100,18 +102,20 @@ export function BrandedPageCard({
         <CardContent className="space-y-3.5 p-0 pt-3.5">
           <div className="flex flex-col gap-2 rounded-md border border-border/70 bg-white px-3 py-2 sm:flex-row sm:items-center">
             <p className="min-w-0 flex-1 truncate font-mono text-xs text-muted-foreground">{fullUrl}</p>
-            <div className="flex gap-2">
-              <Button size="sm" onClick={handleCopy} className="gap-1.5" variant={copied ? "outline-solid" : "default"}>
-                {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-                {copied ? "Copied" : "Copy"}
-              </Button>
-              <Button asChild size="sm" variant="outline" className="gap-1.5">
-                <a href={fullUrl} target="_blank" rel="noopener noreferrer">
-                  <ExternalLink className="h-3.5 w-3.5" />
-                  Preview
-                </a>
-              </Button>
-            </div>
+            {showActions && (
+              <div className="flex gap-2">
+                <Button size="sm" onClick={handleCopy} className="gap-1.5" variant={copied ? "outline-solid" : "default"}>
+                  {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                  {copied ? "Copied" : "Copy"}
+                </Button>
+                <Button asChild size="sm" variant="outline" className="gap-1.5">
+                  <a href={fullUrl} target="_blank" rel="noopener noreferrer">
+                    <ExternalLink className="h-3.5 w-3.5" />
+                    Preview
+                  </a>
+                </Button>
+              </div>
+            )}
           </div>
 
           {defaultExpanded ? (

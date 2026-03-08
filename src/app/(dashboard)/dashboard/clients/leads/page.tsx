@@ -1,5 +1,8 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
+import { Plus } from "lucide-react";
 
+import { Button } from "@/components/ui/button";
 import { getUser } from "@/lib/supabase/server";
 import { getClients } from "@/lib/actions/clients";
 import { getCurrentPlanTier } from "@/lib/plans/guards";
@@ -7,7 +10,7 @@ import { DEMO_LEADS } from "@/lib/demo/data";
 import { ClientsList } from "@/components/dashboard/clients";
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
 import { DashboardCard } from "@/components/dashboard/ui";
-import { PreviewBanner } from "@/components/ui/preview-banner";
+import { LockedButton, PreviewBanner } from "@/components/ui/preview-banner";
 import { PreviewOverlay } from "@/components/ui/preview-overlay";
 
 export const metadata = {
@@ -70,7 +73,18 @@ export default async function LeadsPage() {
           triggerFeature="leads"
         />
       )}
-      <DashboardPageHeader title="Leads" description="Contacts and intake form submissions waiting to be reviewed." />
+      <DashboardPageHeader title="Leads" description="Contacts and intake form submissions waiting to be reviewed.">
+        {isPreview ? (
+          <LockedButton label="Add Lead" />
+        ) : (
+          <Button asChild size="sm" className="w-full gap-2 sm:w-auto">
+            <Link href="/dashboard/clients/new">
+              <Plus className="h-4 w-4" />
+              Add Lead
+            </Link>
+          </Button>
+        )}
+      </DashboardPageHeader>
       <PreviewOverlay isPreview={isPreview}>
         <DashboardCard className="p-5 sm:p-6">
           <ClientsList

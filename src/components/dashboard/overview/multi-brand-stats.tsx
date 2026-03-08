@@ -137,7 +137,7 @@ export function MultiBrandStats({
           </div>
           <p className="text-xs text-muted-foreground">
             <Link
-              href="/dashboard/employees"
+              href="/dashboard/team/applicants"
               className="hover:underline"
               style={{ color: brandColors.jobs }}
             >

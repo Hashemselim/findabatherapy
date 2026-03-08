@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Video, Loader2, ExternalLink, X, Play, Smile, MessageCircle, CheckCircle2, Pencil, Save } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -32,6 +33,9 @@ export function VideoEmbedForm({
   onDemoAction,
   dataTour,
 }: VideoEmbedFormProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [isEditing, setIsEditing] = useState(false);
   const [videoUrl, setVideoUrl] = useState<string>(isDemo && demoVideoUrl ? demoVideoUrl : "");
   const [savedVideoUrl, setSavedVideoUrl] = useState<string>(isDemo && demoVideoUrl ? demoVideoUrl : ""); // Track saved state
@@ -61,6 +65,16 @@ export function VideoEmbedForm({
     }
     loadVideo();
   }, [isDemo]);
+
+  useEffect(() => {
+    if (searchParams.get("video") !== "edit") return;
+    if (isDemo && onDemoAction) {
+      onDemoAction();
+    } else if (isPremium) {
+      setIsEditing(true);
+    }
+    router.replace(pathname, { scroll: false });
+  }, [isDemo, isPremium, onDemoAction, pathname, router, searchParams]);
 
   const handleSave = async () => {
     setError(null);

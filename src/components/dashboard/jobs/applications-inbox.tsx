@@ -97,7 +97,7 @@ export function ApplicationsInbox({
               filteredApplications.map((application) => (
                 <DashboardTableRow key={application.id} className="group cursor-pointer">
                   <DashboardTableCell className="pl-5">
-                    <Link href={`/dashboard/employees/${application.id}`} className="block">
+                    <Link href={`/dashboard/team/applicants/${application.id}`} className="block">
                       <div className="flex flex-col">
                         <span className="font-medium text-foreground group-hover:underline">
                           {application.applicantName}
@@ -109,7 +109,7 @@ export function ApplicationsInbox({
                     </Link>
                   </DashboardTableCell>
                   <DashboardTableCell>
-                    <Link href={`/dashboard/employees/${application.id}`} className="block text-muted-foreground">
+                    <Link href={`/dashboard/team/applicants/${application.id}`} className="block text-muted-foreground">
                       {application.job.title}
                     </Link>
                   </DashboardTableCell>

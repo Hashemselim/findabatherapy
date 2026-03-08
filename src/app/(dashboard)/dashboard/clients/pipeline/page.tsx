@@ -30,7 +30,7 @@ import {
   getDashboardToneClasses,
   type DashboardTone,
 } from "@/components/dashboard/ui";
-import { PreviewBanner } from "@/components/ui/preview-banner";
+import { LockedButton, PreviewBanner } from "@/components/ui/preview-banner";
 import { PreviewOverlay } from "@/components/ui/preview-overlay";
 import { getProfile } from "@/lib/supabase/server";
 import { getPipelineData } from "@/lib/actions/pipeline";
@@ -188,6 +188,26 @@ export default async function PipelinePage() {
         title="Client Pipeline"
         description={`${totalActive} active client${totalActive !== 1 ? "s" : ""} across your pipeline`}
       >
+        {isPreview ? (
+          <LockedButton label="Add Client" />
+        ) : (
+          <Button asChild size="sm" className="w-full gap-2 sm:w-auto">
+            <Link href="/dashboard/clients/new" className="gap-2">
+              <UserPlus className="h-4 w-4" />
+              Add Client
+            </Link>
+          </Button>
+        )}
+        {isPreview ? (
+          <LockedButton label="Add Task" />
+        ) : (
+          <Button asChild size="sm" className="w-full gap-2 sm:w-auto">
+            <Link href="/dashboard/tasks?new=1" className="gap-2">
+              <CheckCircle2 className="h-4 w-4" />
+              Add Task
+            </Link>
+          </Button>
+        )}
         <Button
           asChild
           variant="outline"
@@ -196,7 +216,7 @@ export default async function PipelinePage() {
         >
           <Link href="/dashboard/clients" className="gap-2">
             <Users className="h-4 w-4" />
-            All Clients
+            View Clients
           </Link>
         </Button>
       </DashboardPageHeader>

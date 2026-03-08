@@ -111,13 +111,13 @@ export default async function DashboardListingPage() {
           </DashboardStatusBadge>
           {isPublished && (
             <>
-              <Button variant="outline" size="sm" className="hidden sm:inline-flex" asChild>
+              <Button variant="outline" size="sm" asChild>
                 <a href={`/provider/${listing.slug}`} target="_blank" rel="noopener noreferrer">
                   <ExternalLink className="mr-2 h-4 w-4" />
                   Therapy Profile
                 </a>
               </Button>
-              <Button variant="outline" size="sm" className="hidden sm:inline-flex" asChild>
+              <Button variant="outline" size="sm" asChild>
                 <a href={`/employers/${listing.slug}`} target="_blank" rel="noopener noreferrer">
                   <ExternalLink className="mr-2 h-4 w-4" />
                   Jobs Profile
@@ -126,23 +126,6 @@ export default async function DashboardListingPage() {
             </>
           )}
         </DashboardPageHeader>
-        {/* Mobile Profile Links */}
-        {isPublished && (
-          <div className="flex gap-2 sm:hidden">
-            <Button variant="outline" size="sm" className="flex-1" asChild>
-              <a href={`/provider/${listing.slug}`} target="_blank" rel="noopener noreferrer">
-                <ExternalLink className="mr-2 h-4 w-4" />
-                Therapy Profile
-              </a>
-            </Button>
-            <Button variant="outline" size="sm" className="flex-1" asChild>
-              <a href={`/employers/${listing.slug}`} target="_blank" rel="noopener noreferrer">
-                <ExternalLink className="mr-2 h-4 w-4" />
-                Jobs Profile
-              </a>
-            </Button>
-          </div>
-        )}
 
         {/* Status and Actions Card */}
         <ListingStatusCard

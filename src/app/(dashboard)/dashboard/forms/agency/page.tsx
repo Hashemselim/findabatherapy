@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { BrandedPageCard } from "@/components/dashboard/branded-page-card";
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
+import { SharePageHeaderActions } from "@/components/dashboard/share-page-header-actions";
 import { DashboardEmptyState } from "@/components/dashboard/ui";
 import { getProfile, createClient } from "@/lib/supabase/server";
 import { getProviderBrochurePath } from "@/lib/utils/public-paths";
@@ -29,15 +30,20 @@ export default async function AgencyBrochurePage() {
     return <NoListingState />;
   }
 
+  const brochurePath = getProviderBrochurePath(listingSlug);
+
   return (
     <div className="space-y-3">
-      <DashboardPageHeader title="Agency Brochure" description="Your shareable agency page for referral partners, doctors, and families." />
+      <DashboardPageHeader title="Agency Brochure" description="Your shareable agency page for referral partners, doctors, and families.">
+        <SharePageHeaderActions relativePath={brochurePath} />
+      </DashboardPageHeader>
 
       <BrandedPageCard
         title="Branded Agency Page"
         sentence="Your shareable agency page for referral partners, doctors, and families."
-        relativePath={getProviderBrochurePath(listingSlug)}
+        relativePath={brochurePath}
         iconName="agency"
+        showActions={false}
         defaultExpanded
         howItWorks={[
           "Share your branded page link with referral sources, doctors, or schools.",
