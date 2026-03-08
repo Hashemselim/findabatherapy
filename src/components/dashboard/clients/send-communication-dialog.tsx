@@ -96,16 +96,21 @@ export function SendCommunicationDialog({
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [selectedEmails, setSelectedEmails] = useState<string[]>([]);
 
+  const validTemplates = useMemo(
+    () => templates.filter((template) => template.slug.trim().length > 0),
+    [templates]
+  );
+
   // Group templates by lifecycle stage
   const templatesByStage = useMemo(() => {
     const grouped: Record<string, CommunicationTemplate[]> = {};
-    for (const template of templates) {
+    for (const template of validTemplates) {
       const stage = template.lifecycle_stage || "any";
       if (!grouped[stage]) grouped[stage] = [];
       grouped[stage].push(template);
     }
     return grouped;
-  }, [templates]);
+  }, [validTemplates]);
 
   // Order stages with current stage first
   const orderedStages = useMemo(() => {
@@ -169,7 +174,7 @@ export function SendCommunicationDialog({
       return;
     }
 
-    const template = templates.find((t) => t.slug === slug);
+    const template = validTemplates.find((t) => t.slug === slug);
     if (!template) return;
 
     // Populate merge fields in subject and body
@@ -263,7 +268,7 @@ export function SendCommunicationDialog({
     });
   };
 
-  const selectedTemplate = templates.find((t) => t.slug === selectedTemplateSlug);
+  const selectedTemplate = validTemplates.find((t) => t.slug === selectedTemplateSlug);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

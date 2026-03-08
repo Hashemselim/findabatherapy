@@ -48,6 +48,8 @@ interface ClientOption {
   name: string;
 }
 
+const NO_CLIENT_VALUE = "__no_client__";
+
 interface TaskFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -159,14 +161,16 @@ export function TaskFormDialog({
               <div className="grid gap-2">
                 <Label htmlFor="client">Client (optional)</Label>
                 <Select
-                  value={selectedClientId}
-                  onValueChange={setSelectedClientId}
+                  value={selectedClientId || NO_CLIENT_VALUE}
+                  onValueChange={(value) =>
+                    setSelectedClientId(value === NO_CLIENT_VALUE ? "" : value)
+                  }
                 >
                   <SelectTrigger id="client">
                     <SelectValue placeholder="No client selected" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">No client</SelectItem>
+                    <SelectItem value={NO_CLIENT_VALUE}>No client</SelectItem>
                     {clients.map((client) => (
                       <SelectItem key={client.id} value={client.id}>
                         {client.name}
