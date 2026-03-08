@@ -1,8 +1,8 @@
 export const jobsConfig = {
-  name: "Find ABA Jobs",
-  tagline: "Discover ABA therapy careers near you",
+  name: "GoodABA Jobs",
+  tagline: "Discover ABA therapy careers on GoodABA",
   description:
-    "Find ABA Jobs is the fastest way to discover BCBA, RBT, and behavior technician positions. Search thousands of jobs from top ABA providers nationwide.",
+    "GoodABA Jobs is the fastest way to discover BCBA, RBT, and behavior technician positions from top ABA providers nationwide.",
   seo: {
     keywords: [
       "aba jobs",
@@ -14,10 +14,10 @@ export const jobsConfig = {
     ],
   },
   social: {
-    twitter: "https://twitter.com/findabajobs",
-    linkedin: "https://www.linkedin.com/company/findabajobs",
+    twitter: "https://twitter.com/goodaba",
+    linkedin: "https://www.linkedin.com/company/goodaba",
   },
-  contactEmail: "support@findabajobs.org",
+  contactEmail: "support@goodaba.com",
 } as const;
 
 export type JobsConfig = typeof jobsConfig;

@@ -53,7 +53,7 @@ export function BwProblem() {
               <div className="mx-auto mt-12 max-w-xl">
                 <p className="text-center text-2xl font-extrabold tracking-tight text-white sm:text-3xl">
                   <span className="relative inline-block">
-                    <span className="relative z-10 text-[#FFDC33]">BehaviorWork</span>
+                    <span className="relative z-10 text-[#FFDC33]">GoodABA</span>
                     <span className="absolute -bottom-0.5 left-0 right-0 z-0 h-2.5 rounded-full bg-[#FFDC33]/20" />
                   </span>{" "}
                   captures that revenue for you.

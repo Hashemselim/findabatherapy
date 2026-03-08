@@ -29,8 +29,8 @@ export interface BehaviorWorkLane {
 
 export const behaviorWorkHeroChips = [
   "Find ABA Therapy",
-  "Find ABA Jobs",
-  "Behavior Work Operations",
+  "GoodABA Jobs",
+  "GoodABA Operations",
 ] as const;
 
 export const behaviorWorkEngineCards = [
@@ -179,7 +179,7 @@ export const behaviorWorkMetrics: BehaviorWorkMetric[] = [
 export const behaviorWorkTestimonials: BehaviorWorkTestimonial[] = [
   {
     quote:
-      "Behavior Work finally gave us one pipeline for inquiries and hiring. Our team stopped juggling disconnected tools.",
+      "GoodABA finally gave us one pipeline for inquiries and hiring. Our team stopped juggling disconnected tools.",
     name: "Lindsey W.",
     role: "Operations Director",
     company: "Northfield ABA",
@@ -207,7 +207,7 @@ export const behaviorWorkFaqs: BehaviorWorkFaq[] = [
   {
     question: "Do I need separate accounts for Therapy and Jobs?",
     answer:
-      "No. Behavior Work uses one account and one subscription to run both Find ABA Therapy and Find ABA Jobs workflows.",
+      "No. GoodABA uses one account and one subscription to run both Find ABA Therapy and GoodABA Jobs workflows.",
   },
   {
     question: "Can I start free and upgrade later?",
@@ -242,7 +242,7 @@ export const behaviorWorkPlanHighlights: Record<BehaviorWorkPlanTier, string[]> 
     "Branded agency page & intake forms",
     "Unlimited CRM clients",
     "Communication templates & analytics",
-    "Priority placement + 10 job postings",
+    "Priority placement + 10 GoodABA Jobs postings",
   ],
 };
 

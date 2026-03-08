@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { POSITION_TYPES, EMPLOYMENT_TYPES } from "@/lib/validations/jobs";
 import type { JobSearchResult } from "@/lib/queries/jobs";
+import { getProviderJobPath } from "@/lib/utils/public-paths";
 import { cn } from "@/lib/utils";
 
 function formatSalary(job: JobSearchResult): string | null {
@@ -75,7 +76,7 @@ function getLighterShade(hexColor: string, opacity: number = 0.1) {
 
 /**
  * Job card for the branded careers page
- * Links to /careers/[providerSlug]/[jobSlug] instead of the main site
+ * Links to the provider-branded GoodABA job route.
  */
 export function BrandedJobCard({ job, providerSlug, index, brandColor = "#10B981", ctaText = "View Details" }: BrandedJobCardProps) {
   const salary = formatSalary(job);
@@ -90,7 +91,7 @@ export function BrandedJobCard({ job, providerSlug, index, brandColor = "#10B981
   const descriptionPreview = getDescriptionPreview(job.description);
 
   return (
-    <Link href={`/careers/${providerSlug}/${job.slug}`} className="group block">
+    <Link href={getProviderJobPath(providerSlug, job.slug)} className="group block">
       <Card
         className="border border-border/60 bg-white transition-all duration-300 ease-premium hover:-translate-y-[2px]"
         style={{

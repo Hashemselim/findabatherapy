@@ -10,6 +10,7 @@ import { JobCard } from "@/components/jobs/job-card";
 import { JsonLd } from "@/components/seo/json-ld";
 import { searchJobs } from "@/lib/queries/jobs";
 import { POSITION_TYPES, type PositionType } from "@/lib/validations/jobs";
+import { getJobsRolePath } from "@/lib/utils/public-paths";
 
 interface PositionJobsPageProps {
   params: Promise<{ position: string }>;
@@ -150,20 +151,20 @@ export async function generateMetadata({ params }: PositionJobsPageProps): Promi
 
   if (!positionValue) {
     return {
-      title: "Position Not Found | Find ABA Jobs",
+      title: "Position Not Found | GoodABA Jobs",
     };
   }
 
   const seo = POSITION_SEO[positionValue];
 
   // Build OG image URL with jobs brand
-  const ogImageUrl = `https://www.findabajobs.org/api/og?brand=jobs&title=${encodeURIComponent(seo.title)}&subtitle=${encodeURIComponent(seo.salaryRange)}`;
+  const ogImageUrl = `https://www.goodaba.com/api/og?brand=jobs&title=${encodeURIComponent(seo.title)}&subtitle=${encodeURIComponent(seo.salaryRange)}`;
 
   return {
-    title: `${seo.metaTitle} | Find ABA Jobs`,
+    title: `${seo.metaTitle} | GoodABA Jobs`,
     description: seo.description.slice(0, 160),
     openGraph: {
-      title: `${seo.metaTitle} | Find ABA Jobs`,
+      title: `${seo.metaTitle} | GoodABA Jobs`,
       description: seo.description.slice(0, 160),
       images: [
         {
@@ -176,12 +177,12 @@ export async function generateMetadata({ params }: PositionJobsPageProps): Promi
     },
     twitter: {
       card: "summary_large_image",
-      title: `${seo.metaTitle} | Find ABA Jobs`,
+      title: `${seo.metaTitle} | GoodABA Jobs`,
       description: seo.description.slice(0, 160),
       images: [ogImageUrl],
     },
     alternates: {
-      canonical: `/${position}-jobs`,
+      canonical: getJobsRolePath(position),
     },
   };
 }
@@ -225,19 +226,19 @@ export default async function PositionJobsPage({ params }: PositionJobsPageProps
         "@type": "ListItem",
         position: 1,
         name: "Home",
-        item: "https://www.findabajobs.org",
+        item: "https://www.goodaba.com/jobs",
       },
       {
         "@type": "ListItem",
         position: 2,
         name: "Search Jobs",
-        item: "https://www.findabajobs.org/search",
+        item: "https://www.goodaba.com/jobs/search",
       },
       {
         "@type": "ListItem",
         position: 3,
         name: seo.title,
-        item: `https://www.findabajobs.org/${position}-jobs`,
+        item: `https://www.goodaba.com${getJobsRolePath(position)}`,
       },
     ],
   };

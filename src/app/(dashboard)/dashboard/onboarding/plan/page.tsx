@@ -26,7 +26,7 @@ type BillingInterval = "month" | "year";
 const proFeatures = [
   "Branded pages go fully live",
   "Lead, intake, client & task tools unlock",
-  "Hiring & employer-brand on FindABAJobs",
+  "Hiring & employer-brand on GoodABA Jobs",
   "Branded email sending & templates",
   "Full analytics & growth reporting",
   "Priority support & onboarding help",

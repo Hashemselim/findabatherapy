@@ -100,14 +100,14 @@ export default async function JobsPage() {
     <div className="space-y-3">
       {isPreview && (
         <PreviewBanner
-          message="FindABAJobs.org is included with Pro. Go Live to post real jobs and recruit BCBAs and RBTs."
+          message="GoodABA Jobs is included with Pro. Go Live to post real jobs and recruit BCBAs and RBTs."
           variant="inline"
           triggerFeature="jobs"
         />
       )}
 
       {/* Page Header */}
-      <DashboardPageHeader title="Job Postings" description="Create and manage job listings on findabajobs.org.">
+      <DashboardPageHeader title="Job Postings" description="Create and manage job listings on GoodABA Jobs.">
         {isPreview ? (
           <LockedButton label="New Job" />
         ) : limits?.canCreate ? (

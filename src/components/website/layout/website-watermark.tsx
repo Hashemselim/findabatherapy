@@ -17,28 +17,28 @@ export function WebsiteWatermark() {
           <span className="hidden sm:inline">
             Website powered by{" "}
             <Link
-              href="https://www.findabatherapy.org"
+              href="https://www.goodaba.com"
               className="font-medium text-gray-700 hover:underline"
             >
-              Find ABA Therapy
+              GoodABA
             </Link>
           </span>
           <span className="sm:hidden">
             Powered by{" "}
             <Link
-              href="https://www.findabatherapy.org"
+              href="https://www.goodaba.com"
               className="font-medium text-gray-700 hover:underline"
             >
-              FindABATherapy
+              GoodABA
             </Link>
           </span>
         </div>
         <Link
-          href="https://www.findabatherapy.org/pricing"
+          href="https://www.goodaba.com/pricing"
           className="rounded-full px-3 py-1 text-xs font-medium text-white shadow-sm transition-all hover:scale-[1.02] hover:shadow-md"
           style={{ backgroundColor: brandColor }}
         >
-          Get your own website
+          Build with GoodABA
         </Link>
       </div>
     </div>

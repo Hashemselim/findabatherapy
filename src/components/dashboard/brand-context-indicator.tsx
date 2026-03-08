@@ -22,7 +22,7 @@ const brandConfig: Record<
   }
 > = {
   jobs: {
-    name: brandsConfig.findABAJobs.name,
+    name: brandsConfig.goodABAJobs.name,
     color: brandColors.jobs,
     icon: Briefcase,
   },

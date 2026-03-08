@@ -14,6 +14,7 @@ import { BubbleBackground } from "@/components/ui/bubble-background";
 import { BrandedPageCard } from "@/components/dashboard/branded-page-card";
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
 import { getProfile, createClient } from "@/lib/supabase/server";
+import { getProviderWebsitePath } from "@/lib/utils/public-paths";
 
 export default async function WebsitePage() {
   const profile = await getProfile();
@@ -47,7 +48,7 @@ export default async function WebsitePage() {
       <BrandedPageCard
         title="Provider Website"
         sentence="A full website for your agency — automatically built from your profile, services, locations, and branding."
-        relativePath={`/site/${listingSlug}`}
+        relativePath={getProviderWebsitePath(listingSlug)}
         iconName="website"
         defaultExpanded
         howItWorks={[

@@ -1,26 +1,49 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 
 import { BehaviorWorkLogo } from "@/components/brand/behaviorwork-logo";
 
-const productLinks = [
-  { href: "/behaviorwork#lifecycle", label: "Platform" },
-  { href: "/behaviorwork/get-started", label: "Pricing" },
-  { href: "/behaviorwork#faq", label: "FAQ" },
-] as const;
-
 const companyLinks = [
-  { href: "/about", label: "About" },
-  { href: "mailto:support@behaviorwork.com", label: "Contact" },
+  { href: "https://www.findabatherapy.org", label: "FindABATherapy" },
+  { href: "mailto:support@goodaba.com", label: "Contact" },
 ] as const;
 
 const legalLinks = [
-  { href: "/privacy", label: "Privacy" },
-  { href: "/terms", label: "Terms" },
+  { href: "/legal/privacy", label: "Privacy" },
+  { href: "/legal/terms", label: "Terms" },
 ] as const;
 
 export function BehaviorWorkFooter() {
+  const [hostname, setHostname] = useState("");
+  const pathname = usePathname();
+
+  useEffect(() => {
+    setHostname(window.location.hostname);
+  }, []);
+
+  const isGoodabaAliasPath =
+    pathname === "/goodaba" ||
+    pathname === "/goodaba/pricing" ||
+    pathname === "/goodaba-internal" ||
+    pathname === "/goodaba-internal/pricing" ||
+    pathname === "/_goodaba" ||
+    pathname === "/_goodaba/pricing";
+  const isLocalGoodabaPricing =
+    (hostname.includes("localhost") || hostname.includes("127.0.0.1")) &&
+    pathname === "/pricing";
+  const isLocalGoodaba = isGoodabaAliasPath || isLocalGoodabaPricing;
+
+  const homeHref = isLocalGoodaba ? "/goodaba" : "/";
+  const pricingHref = isLocalGoodaba ? "/goodaba/pricing" : "/pricing";
+  const productLinks = [
+    { href: `${homeHref}#lifecycle`, label: "Platform" },
+    { href: pricingHref, label: "Pricing" },
+    { href: "/jobs", label: "Jobs" },
+  ] as const;
+
   return (
     <footer className="bg-[#1A2744]">
       <div className="mx-auto max-w-6xl px-5 sm:px-6 lg:px-8">
@@ -31,8 +54,8 @@ export function BehaviorWorkFooter() {
               <BehaviorWorkLogo size="md" />
             </div>
             <p className="mt-3 max-w-xs text-sm leading-relaxed text-slate-400">
-              The growth engine for ABA agencies. From first inquiry to active
-              services.
+              The growth platform for ABA agencies. From first inquiry to active
+              services and hiring.
             </p>
           </div>
 
@@ -97,11 +120,11 @@ export function BehaviorWorkFooter() {
         <div className="border-t border-white/10 py-6">
           <div className="flex flex-col items-center justify-between gap-2 sm:flex-row">
             <p className="text-xs text-slate-500">
-              &copy; {new Date().getFullYear()} BehaviorWork. All rights
+              &copy; {new Date().getFullYear()} GoodABA. All rights
               reserved.
             </p>
             <p className="text-xs text-slate-600">
-              Part of the FindABA family
+              FindABATherapy by GoodABA
             </p>
           </div>
         </div>

@@ -15,6 +15,10 @@ import {
   getSiteUrl as getSafeUrl,
 } from "@/lib/utils/domains";
 import { behaviorWorkLogoHtml } from "@/components/brand/behaviorwork-logo";
+import {
+  agencyEmailWrapper,
+  type AgencyBrandingData,
+} from "@/lib/email/email-helpers";
 
 // Lazy initialization - only create client when needed
 let resend: Resend | null = null;
@@ -33,7 +37,7 @@ function getResendClient(): Resend | null {
 
 /**
  * Get the formatted from email for a specific brand
- * Returns format: "Brand Name <noreply@behaviorwork.com>"
+ * Returns format: "Brand Name <noreply@goodaba.com>"
  * Defaults to therapy site if no brand specified
  */
 function getFromEmail(brand: Brand = "therapy"): string {
@@ -85,12 +89,30 @@ const BRAND = {
 
 /**
  * Branded email wrapper template
- * Primary: BehaviorWork logo on blue header
- * Sub-brand: "via findabatherapy.org" context line
+ * Primary: GoodABA logo on blue header
+ * Sub-brand: Find ABA Therapy context line
  */
-function emailWrapper(content: string, options?: { preheader?: string }): string {
-  const siteUrl = getSiteUrl();
+type EmailWrapperBrandContext = "goodaba" | "therapy";
+
+function emailWrapper(
+  content: string,
+  options?: { preheader?: string; brandContext?: EmailWrapperBrandContext }
+): string {
+  const brandContext = options?.brandContext ?? "goodaba";
+  const siteUrl =
+    brandContext === "therapy" ? domains.therapy.production : domains.goodaba.production;
+  const supportEmail = getSupportEmail("goodaba");
   const logoHtml = behaviorWorkLogoHtml({ fontSize: 28, color: "#ffffff" });
+  const headerContext =
+    brandContext === "therapy"
+      ? `Find ABA Therapy by <a href="https://www.goodaba.com" style="color: rgba(255,255,255,0.9); text-decoration: none;">GoodABA</a>`
+      : "GoodABA";
+  const footerCta =
+    brandContext === "therapy" ? "Visit FindABATherapy.org" : "Visit GoodABA";
+  const footerDescription =
+    brandContext === "therapy"
+      ? "GoodABA helps families connect with trusted ABA therapy providers."
+      : "GoodABA helps ABA providers manage growth, branded pages, and hiring in one place.";
 
   return `
 <!DOCTYPE html>
@@ -99,7 +121,7 @@ function emailWrapper(content: string, options?: { preheader?: string }): string
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <title>BehaviorWork</title>
+  <title>GoodABA</title>
   <!--[if mso]>
   <noscript>
     <xml>
@@ -121,11 +143,11 @@ function emailWrapper(content: string, options?: { preheader?: string }): string
         <!-- Email container -->
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="max-width: 600px; width: 100%;">
 
-          <!-- Header: BehaviorWork logo + via findabatherapy.org -->
+          <!-- Header -->
           <tr>
             <td style="background-color: ${BRAND.primary}; border-radius: 12px 12px 0 0; padding: 20px 32px; text-align: center;">
               ${logoHtml}
-              <p style="margin: 8px 0 0 0; font-size: 12px; color: rgba(255,255,255,0.75);">via <a href="${siteUrl}" style="color: rgba(255,255,255,0.9); text-decoration: none;">findabatherapy.org</a></p>
+              <p style="margin: 8px 0 0 0; font-size: 12px; color: rgba(255,255,255,0.75);">${headerContext}</p>
             </td>
           </tr>
 
@@ -142,13 +164,13 @@ function emailWrapper(content: string, options?: { preheader?: string }): string
               <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
                 <tr>
                   <td align="center" style="padding-bottom: 16px;">
-                    <a href="${siteUrl}" style="color: ${BRAND.primary}; text-decoration: none; font-weight: 600; font-size: 14px;">Visit FindABATherapy.org</a>
+                    <a href="${siteUrl}" style="color: ${BRAND.primary}; text-decoration: none; font-weight: 600; font-size: 14px;">${footerCta}</a>
                   </td>
                 </tr>
                 <tr>
                   <td align="center" style="color: ${BRAND.textLight}; font-size: 12px; line-height: 1.5;">
-                    <p style="margin: 0 0 8px 0;">BehaviorWork helps families connect with trusted ABA therapy providers.</p>
-                    <p style="margin: 0;">Questions? Contact us at <a href="mailto:support@findabatherapy.org" style="color: ${BRAND.primary}; text-decoration: none;">support@findabatherapy.org</a></p>
+                    <p style="margin: 0 0 8px 0;">${footerDescription}</p>
+                    <p style="margin: 0;">Questions? Contact us at <a href="mailto:${supportEmail}" style="color: ${BRAND.primary}; text-decoration: none;">${supportEmail}</a></p>
                   </td>
                 </tr>
               </table>
@@ -161,7 +183,7 @@ function emailWrapper(content: string, options?: { preheader?: string }): string
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="max-width: 600px; width: 100%;">
           <tr>
             <td align="center" style="padding: 24px 20px; color: ${BRAND.textLight}; font-size: 11px; line-height: 1.5;">
-              <p style="margin: 0;">&copy; ${new Date().getFullYear()} BehaviorWork. All rights reserved.</p>
+              <p style="margin: 0;">&copy; ${new Date().getFullYear()} GoodABA. All rights reserved.</p>
               <p style="margin: 8px 0 0 0;">
                 <a href="${siteUrl}/legal/privacy" style="color: ${BRAND.textLight}; text-decoration: underline;">Privacy Policy</a>
                 &nbsp;&bull;&nbsp;
@@ -388,10 +410,13 @@ export async function sendProviderInquiryNotification(
     `.trim();
 
     const { error } = await client.emails.send({
-      from: getFromEmail(),
+      from: getFromEmail("goodaba"),
       to: params.to,
       subject: `New inquiry from ${params.familyName}`,
-      html: emailWrapper(content, { preheader: `${params.familyName} is interested in your ABA therapy services` }),
+      html: emailWrapper(content, {
+        preheader: `${params.familyName} is interested in your ABA therapy services`,
+        brandContext: "goodaba",
+      }),
     });
 
     if (error) {
@@ -411,6 +436,8 @@ export interface FamilyInquiryConfirmationParams {
   familyName: string;
   providerName: string;
   providerSlug: string;
+  source?: "listing_page" | "intake_standalone";
+  agencyBranding?: AgencyBrandingData;
 }
 
 /**
@@ -433,6 +460,8 @@ export async function sendFamilyInquiryConfirmation(
   try {
     const siteUrl = getSiteUrl();
     const providerUrl = `${siteUrl}/provider/${params.providerSlug}`;
+    const isBrandedInquiry =
+      params.source === "intake_standalone" && Boolean(params.agencyBranding);
 
     const content = `
       <h1 style="color: ${BRAND.textDark}; font-size: 24px; font-weight: 700; margin: 0 0 8px 0;">
@@ -447,7 +476,7 @@ export async function sendFamilyInquiryConfirmation(
       </p>
 
       <p style="color: ${BRAND.textMedium}; font-size: 15px; line-height: 1.6; margin: 0 0 24px 0;">
-        Thank you for reaching out to <strong style="color: ${BRAND.textDark};">${params.providerName}</strong> through Find ABA Therapy. Your message has been delivered and the provider will contact you directly.
+        Thank you for reaching out to <strong style="color: ${BRAND.textDark};">${params.providerName}</strong>${isBrandedInquiry ? "" : " through Find ABA Therapy"}. Your message has been delivered and the provider will contact you directly.
       </p>
 
       ${infoCard("What happens next?", `
@@ -473,10 +502,22 @@ export async function sendFamilyInquiryConfirmation(
     `.trim();
 
     const { error } = await client.emails.send({
-      from: getFromEmail(),
+      from: isBrandedInquiry
+        ? `${params.agencyBranding!.agencyName} <${domains.goodaba.noReplyEmail}>`
+        : getFromEmail(),
       to: params.to,
       subject: `Your message to ${params.providerName} has been sent`,
-      html: emailWrapper(content, { preheader: `Thank you for contacting ${params.providerName} through Find ABA Therapy` }),
+      replyTo: isBrandedInquiry
+        ? params.agencyBranding!.contactEmail || undefined
+        : undefined,
+      html: isBrandedInquiry
+        ? agencyEmailWrapper(content, params.agencyBranding!, {
+            preheader: `Thank you for contacting ${params.providerName}`,
+          })
+        : emailWrapper(content, {
+            preheader: `Thank you for contacting ${params.providerName} through Find ABA Therapy`,
+            brandContext: "therapy",
+          }),
     });
 
     if (error) {
@@ -512,6 +553,7 @@ export async function sendPaymentFailureNotification(
 
   try {
     const siteUrl = getSiteUrl();
+    const supportEmail = getSupportEmail("goodaba");
     const formattedAmount = `$${(params.amountDue / 100).toFixed(2)} ${params.currency.toUpperCase()}`;
 
     const content = `
@@ -553,15 +595,18 @@ export async function sendPaymentFailureNotification(
 
       <p style="color: ${BRAND.textLight}; font-size: 13px; margin-top: 24px;">
         If you believe this is an error or need assistance, please contact our support team at
-        <a href="mailto:support@findabatherapy.org" style="color: ${BRAND.primary}; text-decoration: none;">support@findabatherapy.org</a>.
+        <a href="mailto:${supportEmail}" style="color: ${BRAND.primary}; text-decoration: none;">${supportEmail}</a>.
       </p>
     `.trim();
 
     const { error } = await client.emails.send({
-      from: getFromEmail(),
+      from: getFromEmail("goodaba"),
       to: params.to,
       subject: "Action Required: Payment Failed",
-      html: emailWrapper(content, { preheader: "Your payment could not be processed. Action required." }),
+      html: emailWrapper(content, {
+        preheader: "Your payment could not be processed. Action required.",
+        brandContext: "goodaba",
+      }),
     });
 
     if (error) {
@@ -595,6 +640,7 @@ export async function sendSubscriptionConfirmation(
 
   try {
     const siteUrl = getSiteUrl();
+    const supportEmail = getSupportEmail("goodaba");
 
     // Get plan details from config - dynamically shows correct features for Pro
     const planKey = params.planTier.toLowerCase() as "pro";
@@ -645,7 +691,7 @@ export async function sendSubscriptionConfirmation(
       </p>
 
       <p style="color: ${BRAND.textMedium}; font-size: 15px; line-height: 1.6; margin: 0 0 24px 0;">
-        Thank you for subscribing to Find ABA Therapy <strong style="color: ${BRAND.primary};">${planName}</strong>!
+        Thank you for subscribing to GoodABA <strong style="color: ${BRAND.primary};">${planName}</strong>!
         Your account has been upgraded and all features are now available.
       </p>
 
@@ -672,15 +718,18 @@ export async function sendSubscriptionConfirmation(
         Need help getting started? Visit our
         <a href="${siteUrl}/help" style="color: ${BRAND.primary}; text-decoration: none;">help center</a>
         or contact us at
-        <a href="mailto:support@findabatherapy.org" style="color: ${BRAND.primary}; text-decoration: none;">support@findabatherapy.org</a>.
+        <a href="mailto:${supportEmail}" style="color: ${BRAND.primary}; text-decoration: none;">${supportEmail}</a>.
       </p>
     `.trim();
 
     const { error } = await client.emails.send({
-      from: getFromEmail(),
+      from: getFromEmail("goodaba"),
       to: params.to,
-      subject: `Welcome to Find ABA Therapy ${planName}!`,
-      html: emailWrapper(content, { preheader: `Your ${planName} subscription is now active. Start connecting with families today!` }),
+      subject: `Welcome to GoodABA ${planName}!`,
+      html: emailWrapper(content, {
+        preheader: `Your ${planName} subscription is now active. Start connecting with families today!`,
+        brandContext: "goodaba",
+      }),
     });
 
     if (error) {
@@ -718,7 +767,7 @@ export async function sendFeedbackNotification(
   params: FeedbackNotificationParams
 ): Promise<{ success: boolean; error?: string }> {
   const client = getResendClient();
-  const supportEmail = "support@findabatherapy.org";
+  const supportEmail = getSupportEmail("goodaba");
 
   if (!client) {
     console.log("[EMAIL] Resend not configured - would send feedback notification:", {
@@ -798,10 +847,13 @@ export async function sendFeedbackNotification(
     `.trim();
 
     const { error } = await client.emails.send({
-      from: getFromEmail(),
+      from: getFromEmail("goodaba"),
       to: supportEmail,
       subject: `[${categoryLabel}] New Feedback from ${params.name}`,
-      html: emailWrapper(content, { preheader: `${params.name} submitted ${categoryLabel.toLowerCase()}: "${params.message.substring(0, 60)}..."` }),
+      html: emailWrapper(content, {
+        preheader: `${params.name} submitted ${categoryLabel.toLowerCase()}: "${params.message.substring(0, 60)}..."`,
+        brandContext: "goodaba",
+      }),
     });
 
     if (error) {
@@ -817,7 +869,7 @@ export async function sendFeedbackNotification(
 }
 
 // Admin email for notifications - now uses domain utility
-const ADMIN_EMAIL = getAdminEmail("therapy");
+const ADMIN_EMAIL = getAdminEmail("goodaba");
 
 /**
  * Send email notification to admins when a new provider signs up
@@ -882,10 +934,13 @@ export async function sendAdminNewSignupNotification(
     `.trim();
 
     const { error } = await client.emails.send({
-      from: getFromEmail(),
+      from: getFromEmail("goodaba"),
       to: ADMIN_EMAIL,
       subject: `New Provider Signup: ${params.agencyName}`,
-      html: emailWrapper(content, { preheader: `${params.agencyName} just signed up for Find ABA Therapy` }),
+      html: emailWrapper(content, {
+        preheader: `${params.agencyName} just signed up for GoodABA`,
+        brandContext: "goodaba",
+      }),
     });
 
     if (error) {
@@ -989,10 +1044,13 @@ export async function sendAdminFirstPaymentNotification(
     `.trim();
 
     const { error } = await client.emails.send({
-      from: getFromEmail(),
+      from: getFromEmail("goodaba"),
       to: ADMIN_EMAIL,
       subject: `First Payment: ${params.agencyName} - ${formattedAmount}`,
-      html: emailWrapper(content, { preheader: `${params.agencyName} just made their first payment on Find ABA Therapy` }),
+      html: emailWrapper(content, {
+        preheader: `${params.agencyName} just made their first payment on GoodABA`,
+        brandContext: "goodaba",
+      }),
     });
 
     if (error) {
@@ -1020,11 +1078,13 @@ const JOBS_BRAND = {
 
 /**
  * Jobs-specific email wrapper with emerald branding
- * Primary: BehaviorWork logo on emerald header
- * Sub-brand: "via findabajobs.org" context line
+ * Primary: GoodABA logo on emerald header
+ * Sub-brand: GoodABA Jobs context line
  */
 function jobsEmailWrapper(content: string, options?: { preheader?: string }): string {
   const jobsSiteUrl = getJobsSiteUrl();
+  const jobsIndexUrl = `${jobsSiteUrl}/jobs`;
+  const supportEmail = getSupportEmail("goodaba");
   const logoHtml = behaviorWorkLogoHtml({ fontSize: 28, color: "#ffffff" });
 
   return `
@@ -1034,7 +1094,7 @@ function jobsEmailWrapper(content: string, options?: { preheader?: string }): st
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <title>BehaviorWork</title>
+  <title>GoodABA Jobs</title>
   <!--[if mso]>
   <noscript>
     <xml>
@@ -1056,11 +1116,11 @@ function jobsEmailWrapper(content: string, options?: { preheader?: string }): st
         <!-- Email container -->
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="max-width: 600px; width: 100%;">
 
-          <!-- Header: BehaviorWork logo + via findabajobs.org -->
+          <!-- Header: GoodABA logo + GoodABA Jobs context -->
           <tr>
             <td style="background-color: ${JOBS_BRAND.primary}; border-radius: 12px 12px 0 0; padding: 20px 32px; text-align: center;">
               ${logoHtml}
-              <p style="margin: 8px 0 0 0; font-size: 12px; color: rgba(255,255,255,0.75);">via <a href="${jobsSiteUrl}" style="color: rgba(255,255,255,0.9); text-decoration: none;">findabajobs.org</a></p>
+              <p style="margin: 8px 0 0 0; font-size: 12px; color: rgba(255,255,255,0.75);">GoodABA Jobs by <a href="https://www.goodaba.com" style="color: rgba(255,255,255,0.9); text-decoration: none;">GoodABA</a></p>
             </td>
           </tr>
 
@@ -1077,13 +1137,13 @@ function jobsEmailWrapper(content: string, options?: { preheader?: string }): st
               <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
                 <tr>
                   <td align="center" style="padding-bottom: 16px;">
-                    <a href="${jobsSiteUrl}" style="color: ${JOBS_BRAND.primary}; text-decoration: none; font-weight: 600; font-size: 14px;">Visit FindABAJobs.org</a>
+                    <a href="${jobsIndexUrl}" style="color: ${JOBS_BRAND.primary}; text-decoration: none; font-weight: 600; font-size: 14px;">Visit GoodABA Jobs</a>
                   </td>
                 </tr>
                 <tr>
                   <td align="center" style="color: ${BRAND.textLight}; font-size: 12px; line-height: 1.5;">
-                    <p style="margin: 0 0 8px 0;">BehaviorWork connects behavior analysts with top ABA therapy employers.</p>
-                    <p style="margin: 0;">Questions? Contact us at <a href="mailto:support@findabajobs.org" style="color: ${JOBS_BRAND.primary}; text-decoration: none;">support@findabajobs.org</a></p>
+                    <p style="margin: 0 0 8px 0;">GoodABA Jobs connects behavior analysts with top ABA therapy employers.</p>
+                    <p style="margin: 0;">Questions? Contact us at <a href="mailto:${supportEmail}" style="color: ${JOBS_BRAND.primary}; text-decoration: none;">${supportEmail}</a></p>
                   </td>
                 </tr>
               </table>
@@ -1096,7 +1156,7 @@ function jobsEmailWrapper(content: string, options?: { preheader?: string }): st
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="max-width: 600px; width: 100%;">
           <tr>
             <td align="center" style="padding: 24px 20px; color: ${BRAND.textLight}; font-size: 11px; line-height: 1.5;">
-              <p style="margin: 0;">&copy; ${new Date().getFullYear()} BehaviorWork. All rights reserved.</p>
+              <p style="margin: 0;">&copy; ${new Date().getFullYear()} GoodABA. All rights reserved.</p>
               <p style="margin: 8px 0 0 0;">
                 <a href="${jobsSiteUrl}/legal/privacy" style="color: ${BRAND.textLight}; text-decoration: underline;">Privacy Policy</a>
                 &nbsp;&bull;&nbsp;
@@ -1334,7 +1394,7 @@ export async function sendTestEmail(
   const testData: Record<TestEmailType, () => Promise<{ success: boolean; error?: string }>> = {
     // ==========================================================================
     // THERAPY BRAND EMAILS (Blue #5788FF)
-    // From: "Find ABA Therapy <noreply@behaviorwork.com>"
+    // From: "Find ABA Therapy <noreply@goodaba.com>"
     // ==========================================================================
     inquiry: () =>
       sendProviderInquiryNotification({
@@ -1380,7 +1440,7 @@ export async function sendTestEmail(
         rating: 4,
         message:
           "I love the platform! It would be great if you could add a feature to schedule consultations directly through the contact form. This would save time for both families and providers.",
-        pageUrl: "https://findabatherapy.org/provider/abc-therapy",
+        pageUrl: "https://www.goodaba.com/provider/abc-therapy",
       }),
     admin_signup: () =>
       sendAdminNewSignupNotification({
@@ -1403,7 +1463,7 @@ export async function sendTestEmail(
 
     // ==========================================================================
     // JOBS BRAND EMAILS (Emerald #059669)
-    // From: "Find ABA Jobs <noreply@behaviorwork.com>"
+    // From: "GoodABA Jobs <noreply@goodaba.com>"
     // ==========================================================================
     jobs_application_confirmation: () =>
       sendJobApplicationConfirmation({

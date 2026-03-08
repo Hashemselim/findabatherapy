@@ -23,11 +23,11 @@ const brandData = {
     },
   },
   jobs: {
-    name: "Find ABA Jobs",
+    name: "GoodABA Jobs",
     tagline: "Recruit BCBAs, RBTs & behavior analysts",
     color: brandColors.jobs,
     icon: Briefcase,
-    href: "/employers/post",
+    href: "/jobs/employers/post",
     // Normalized to 3 features each for consistent card heights
     featuresByPlan: {
       free: ["View job listings", "View applications", "Email notifications"],

@@ -9,6 +9,7 @@ import { CareersJobFilter } from "@/components/jobs/careers-job-filter";
 import { getJobsByProvider } from "@/lib/queries/jobs";
 import { createAdminClient } from "@/lib/supabase/server";
 import type { PlanTier } from "@/lib/plans/features";
+import { getProviderCareersPath } from "@/lib/utils/public-paths";
 
 interface CareersPageProps {
   params: Promise<{ slug: string }>;
@@ -136,7 +137,7 @@ export async function generateMetadata({ params }: CareersPageProps): Promise<Me
   if (provider.logoUrl) {
     ogParams.set("logo", provider.logoUrl);
   }
-  const ogImageUrl = `https://www.findabajobs.org/api/og?${ogParams.toString()}`;
+  const ogImageUrl = `https://www.goodaba.com/api/og?${ogParams.toString()}`;
 
   return {
     title,
@@ -159,7 +160,9 @@ export async function generateMetadata({ params }: CareersPageProps): Promise<Me
       description,
       images: [ogImageUrl],
     },
-    // No canonical to main site - this is a standalone branded page
+    alternates: {
+      canonical: getProviderCareersPath(slug),
+    },
     robots: {
       index: false, // Don't index private branded pages
       follow: false,

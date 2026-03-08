@@ -3,6 +3,7 @@ import { ArrowLeft } from "lucide-react";
 
 import { FAQSearch } from "@/components/content/faq-search";
 import { FAQ_CATEGORIES } from "@/lib/content/faq";
+import { getProviderResourcesPath } from "@/lib/utils/public-paths";
 
 type ResourcesFaqPageProps = {
   params: Promise<{ slug: string }>;
@@ -14,7 +15,7 @@ export default async function ResourcesFaqPage({ params }: ResourcesFaqPageProps
   return (
     <div className="space-y-5">
       <Link
-        href={`/resources/${slug}`}
+        href={getProviderResourcesPath(slug)}
         className="inline-flex items-center gap-2 text-sm font-medium text-foreground hover:underline"
       >
         <ArrowLeft className="h-4 w-4" />

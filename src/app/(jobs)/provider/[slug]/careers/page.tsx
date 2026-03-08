@@ -13,6 +13,7 @@ import { getJobsByProvider } from "@/lib/queries/jobs";
 import { createAdminClient } from "@/lib/supabase/server";
 import { generateJobsSiteOrganizationSchema } from "@/lib/seo/job-schemas";
 import type { PlanTier } from "@/lib/plans/features";
+import { getProviderCareersPath } from "@/lib/utils/public-paths";
 
 interface CareersPageProps {
   params: Promise<{ slug: string }>;
@@ -101,11 +102,11 @@ export async function generateMetadata({ params }: CareersPageProps): Promise<Me
 
   if (!provider) {
     return {
-      title: "Provider Not Found | Find ABA Jobs",
+      title: "Provider Not Found | GoodABA Jobs",
     };
   }
 
-  const title = `Careers at ${provider.agencyName} | Find ABA Jobs`;
+  const title = `Careers at ${provider.agencyName} | GoodABA Jobs`;
   const description = provider.headline
     ? `Explore career opportunities at ${provider.agencyName}. ${provider.headline}`
     : `Browse open BCBA, RBT, and behavior analyst positions at ${provider.agencyName}. Join a leading ABA therapy provider.`;
@@ -122,7 +123,7 @@ export async function generateMetadata({ params }: CareersPageProps): Promise<Me
   if (provider.logoUrl) {
     ogParams.set("logo", provider.logoUrl);
   }
-  const ogImageUrl = `https://www.findabajobs.org/api/og?${ogParams.toString()}`;
+  const ogImageUrl = `https://www.goodaba.com/api/og?${ogParams.toString()}`;
 
   return {
     title,
@@ -146,7 +147,7 @@ export async function generateMetadata({ params }: CareersPageProps): Promise<Me
       images: [ogImageUrl],
     },
     alternates: {
-      canonical: `/provider/${slug}/careers`,
+      canonical: getProviderCareersPath(slug),
     },
   };
 }

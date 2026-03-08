@@ -56,7 +56,7 @@ function getStateAbbrev(stateSlug: string): string | undefined {
   return undefined;
 }
 
-const BASE_URL = "https://www.findabajobs.org";
+const BASE_URL = "https://www.goodaba.com";
 
 export async function generateMetadata({ params }: CityPageProps): Promise<Metadata> {
   const { state: stateSlug, city: citySlug } = await params;
@@ -78,7 +78,7 @@ export async function generateMetadata({ params }: CityPageProps): Promise<Metad
     title,
     description,
     openGraph: {
-      title: `${title} | Find ABA Jobs`,
+      title: `${title} | GoodABA Jobs`,
       description,
       url: `${BASE_URL}/jobs/${stateSlug}/${citySlug}`,
       images: [
@@ -92,7 +92,7 @@ export async function generateMetadata({ params }: CityPageProps): Promise<Metad
     },
     twitter: {
       card: "summary_large_image",
-      title: `${title} | Find ABA Jobs`,
+      title: `${title} | GoodABA Jobs`,
       description,
       images: [ogImageUrl],
     },
@@ -140,7 +140,7 @@ export default async function CityJobsPage({ params }: CityPageProps) {
     ? generateItemListSchema(
         jobs.map((job, i) => ({
           name: job.title,
-          slug: `/job/${job.slug}`,
+          slug: `/jobs/post/${job.slug}`,
           position: i + 1,
         })),
         `ABA Jobs in ${city.name}, ${city.stateName}`
@@ -421,7 +421,7 @@ export default async function CityJobsPage({ params }: CityPageProps) {
           </CardHeader>
           <CardContent className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm text-muted-foreground">
-              Post your ABA jobs on Find ABA Jobs and connect with qualified
+              Post your ABA jobs on GoodABA Jobs and connect with qualified
               candidates searching for opportunities in {city.name}, {city.stateName}.
             </p>
             <Button asChild variant="default" className="shrink-0 bg-emerald-600 text-white hover:bg-emerald-700">

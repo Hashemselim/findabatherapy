@@ -19,9 +19,9 @@ interface BwDarkCtaProps {
 export function BwDarkCta({
   headline = "Your next client is looking for you",
   accentWord = "right now",
-  subheadline = "Set up your agency on BehaviorWork in 5 minutes. No credit card required.",
+  subheadline = "Set up your agency on GoodABA in 5 minutes. No credit card required.",
   ctaLabel = "Start Growing Your Caseload",
-  ctaHref = "/behaviorwork/get-started",
+  ctaHref = "/pricing",
   section = "final_cta",
   footnote = "Free plan available. Upgrade anytime.",
 }: BwDarkCtaProps) {

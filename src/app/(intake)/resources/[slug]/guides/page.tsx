@@ -4,6 +4,7 @@ import { ArrowLeft, ArrowRight, Clock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getFeaturedArticles } from "@/lib/content/articles";
+import { getProviderResourcesPath } from "@/lib/utils/public-paths";
 
 type ResourcesGuidesPageProps = {
   params: Promise<{ slug: string }>;
@@ -16,7 +17,7 @@ export default async function ResourcesGuidesPage({ params }: ResourcesGuidesPag
   return (
     <div className="space-y-5">
       <Link
-        href={`/resources/${slug}`}
+        href={getProviderResourcesPath(slug)}
         className="inline-flex items-center gap-2 text-sm font-medium text-foreground hover:underline"
       >
         <ArrowLeft className="h-4 w-4" />
@@ -32,7 +33,7 @@ export default async function ResourcesGuidesPage({ params }: ResourcesGuidesPag
 
       <div className="grid gap-3 sm:grid-cols-2">
         {guides.map((guide) => (
-          <Link key={guide.slug} href={`/resources/${slug}/guides/${guide.slug}`} className="group">
+          <Link key={guide.slug} href={getProviderResourcesPath(slug, `/guides/${guide.slug}`)} className="group">
             <Card className="h-full border-border/60 transition-all hover:border-primary/30 hover:shadow-md">
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between gap-2">

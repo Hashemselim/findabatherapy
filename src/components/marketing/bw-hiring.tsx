@@ -8,7 +8,7 @@ import { BwSectionWrapper } from "@/components/marketing/bw-section-wrapper";
 const features = [
   "Unlimited job postings (Pro+)",
   "Applicant tracking dashboard",
-  "Listed on FindABAJobs.org",
+  "Listed on GoodABA Jobs",
 ] as const;
 
 export function BwHiring() {
@@ -24,7 +24,7 @@ export function BwHiring() {
               Need BCBAs and RBTs? We&apos;ve got that too.
             </h2>
             <p className="mt-4 text-lg leading-relaxed text-slate-600">
-              Post unlimited jobs on FindABAJobs.org. Your listings reach
+              Post unlimited jobs on GoodABA Jobs. Your listings reach
               thousands of ABA professionals actively looking for their next
               role.
             </p>
@@ -49,7 +49,7 @@ export function BwHiring() {
               <span className="h-2.5 w-2.5 rounded-full bg-slate-200" />
               <span className="h-2.5 w-2.5 rounded-full bg-slate-200" />
               <span className="ml-3 text-[11px] font-medium text-slate-400">
-                findabajobs.org/jobs
+                goodaba.com/jobs
               </span>
             </div>
             <div className="p-5">

@@ -288,7 +288,7 @@ export function BwLifecycle() {
           </h2>
           <p className="mt-4 text-lg text-slate-500">
             From the moment a family discovers your agency to the day you scale
-            your team — BehaviorWork handles it all.
+            your team, GoodABA handles it all.
           </p>
         </div>
       </BwFadeUp>
@@ -421,7 +421,7 @@ export function BwLifecycle() {
                 Plus: Grow Your Team
               </h3>
               <p className="mt-1.5 text-sm text-slate-500">
-                Post jobs on FindABAJobs.org, manage a branded careers page,
+                Post jobs on GoodABA Jobs, manage a branded careers page,
                 track applicants and employee credentials — client growth +
                 team growth, one platform.
               </p>

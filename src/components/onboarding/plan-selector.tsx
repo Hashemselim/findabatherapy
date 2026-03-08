@@ -30,7 +30,7 @@ const PLANS: PlanOption[] = [
       "Professional listing on FindABATherapy.org",
       "Ages, languages, diagnoses & specialties",
       "10 client records",
-      "1 job posting on FindABAJobs.org",
+      "GoodABA Jobs preview tools",
     ],
   },
   {

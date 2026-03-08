@@ -216,7 +216,7 @@ export async function submitApplication(
   });
 
   // Send email notifications (fire and forget - don't block on email delivery)
-  const jobUrl = `https://www.findabajobs.org/job/${job.slug}`;
+  const jobUrl = `https://www.goodaba.com/jobs/post/${job.slug}`;
 
   // Send confirmation email to applicant
   sendJobApplicationConfirmation({

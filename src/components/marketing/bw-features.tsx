@@ -143,7 +143,7 @@ const features: Feature[] = [
       "A custom careers page to showcase open BCBA and RBT positions.",
   },
   {
-    title: "FindABAJobs.org Posting",
+    title: "GoodABA Jobs Posting",
     icon: Globe,
     category: "Attract",
     description:

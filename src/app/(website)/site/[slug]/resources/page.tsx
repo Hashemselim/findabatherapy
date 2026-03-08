@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 
 import { getProviderWebsiteData } from "@/lib/actions/provider-website";
+import { getProviderWebsitePath } from "@/lib/utils/public-paths";
 
 type ResourcesPageProps = {
   params: Promise<{ slug: string }>;
@@ -40,7 +41,7 @@ const resourceCards = [
     description:
       "Quick answers to common questions parents have about ABA therapy, insurance, and getting started.",
     icon: FileQuestion,
-    href: (slug: string) => `/site/${slug}/resources/faq`,
+    href: (slug: string) => getProviderWebsitePath(slug, "/resources/faq"),
   },
   {
     key: "glossary",
@@ -48,7 +49,7 @@ const resourceCards = [
     description:
       "Simple, plain-language definitions of common ABA therapy terms and concepts.",
     icon: BookOpen,
-    href: (slug: string) => `/site/${slug}/resources/glossary`,
+    href: (slug: string) => getProviderWebsitePath(slug, "/resources/glossary"),
   },
   {
     key: "guides",
@@ -56,7 +57,7 @@ const resourceCards = [
     description:
       "Step-by-step guides to help families navigate ABA therapy, from getting started to daily tips.",
     icon: GraduationCap,
-    href: (slug: string) => `/site/${slug}/resources/guides`,
+    href: (slug: string) => getProviderWebsitePath(slug, "/resources/guides"),
   },
 ] as const;
 

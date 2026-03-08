@@ -7,6 +7,7 @@ import { headers } from "next/headers";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { verifyTurnstileToken } from "@/lib/turnstile";
 import { sendAdminNewSignupNotification } from "@/lib/email/notifications";
+import { getRequestOrigin } from "@/lib/utils/domains";
 
 export type AuthError = {
   error: string;
@@ -144,7 +145,7 @@ export async function signUpWithEmail(formData: FormData): Promise<AuthResult> {
   }
 
   const headersList = await headers();
-  const origin = headersList.get("origin") || process.env.NEXT_PUBLIC_SITE_URL;
+  const origin = getRequestOrigin(headersList, "goodaba");
 
   const supabase = await createClient();
 
@@ -215,7 +216,7 @@ export async function signInWithOAuth(
   selectedIntent?: string
 ): Promise<{ url: string } | AuthError> {
   const headersList = await headers();
-  const origin = headersList.get("origin") || process.env.NEXT_PUBLIC_SITE_URL;
+  const origin = getRequestOrigin(headersList, "goodaba");
 
   // Validate plan tier and billing interval
   // Normalize to "month"/"year" to match Stripe's convention
@@ -294,7 +295,7 @@ export async function resetPassword(formData: FormData): Promise<AuthResult> {
   }
 
   const headersList = await headers();
-  const origin = headersList.get("origin") || process.env.NEXT_PUBLIC_SITE_URL;
+  const origin = getRequestOrigin(headersList, "goodaba");
 
   const supabase = await createClient();
 

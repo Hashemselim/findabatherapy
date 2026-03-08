@@ -76,7 +76,7 @@ export async function submitInquiry(
   // Verify listing exists and is published
   const { data: listing, error: listingError } = await supabase
     .from("listings")
-    .select("id, slug, profile_id, profiles!inner(plan_tier, subscription_status, contact_email, agency_name)")
+    .select("id, slug, profile_id, logo_url, profiles!inner(plan_tier, subscription_status, contact_email, agency_name, website, contact_phone)")
     .eq("id", listingId)
     .eq("status", "published")
     .single();
@@ -90,8 +90,18 @@ export async function submitInquiry(
     subscription_status: string | null;
     contact_email: string;
     agency_name: string;
+    website: string | null;
+    contact_phone: string | null;
   };
   const providerSlug = listing.slug;
+  const brandColor =
+    (
+      await supabase
+        .from("intake_form_settings")
+        .select("background_color")
+        .eq("profile_id", listing.profile_id)
+        .single()
+    ).data?.background_color || "#5788FF";
 
   // Check if provider has premium plan (contact form is premium feature)
   const isPremium =
@@ -222,6 +232,15 @@ export async function submitInquiry(
     familyName: parsed.data.familyName,
     providerName: profile.agency_name,
     providerSlug,
+    source,
+    agencyBranding: {
+      agencyName: profile.agency_name,
+      contactEmail: profile.contact_email || "",
+      logoUrl: listing.logo_url || null,
+      brandColor,
+      website: profile.website || null,
+      phone: profile.contact_phone || null,
+    },
   }).catch((err) => {
     console.error("[INQUIRY] Failed to send family confirmation:", err);
   });

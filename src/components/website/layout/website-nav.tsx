@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { Menu, X, ChevronRight } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { getProviderWebsitePath } from "@/lib/utils/public-paths";
 import { useWebsite } from "./website-provider";
 
 function getLighterShade(hexColor: string, opacity: number) {
@@ -20,7 +21,7 @@ export function WebsiteNav() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const pathname = usePathname();
 
-  const basePath = `/site/${provider.slug}`;
+  const basePath = getProviderWebsitePath(provider.slug);
   const { websiteSettings } = provider;
 
   // On inner pages (not home), always use the "scrolled" (solid) nav style

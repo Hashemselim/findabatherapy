@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Mail, FileText, Phone, ArrowRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { getProviderContactPath, getProviderIntakePath } from "@/lib/utils/public-paths";
 
 interface AgencyPageCtaProps {
   slug: string;
@@ -57,7 +58,7 @@ export function AgencyPageCta({
                 className="w-full rounded-full text-base sm:w-auto"
                 style={{ backgroundColor: brandColor }}
               >
-                <Link href={`/contact/${slug}${refParam}`}>
+                <Link href={`${getProviderContactPath(slug)}${refParam}`}>
                   <Mail className="mr-2 h-4 w-4" />
                   Contact Us
                 </Link>
@@ -70,7 +71,7 @@ export function AgencyPageCta({
               className="w-full rounded-full text-base sm:w-auto"
               style={contactFormEnabled ? { borderColor: brandColor, color: brandColor } : { backgroundColor: brandColor }}
             >
-              <Link href={`/intake/${slug}/client${refParam}`}>
+              <Link href={`${getProviderIntakePath(slug)}${refParam}`}>
                 <FileText className="mr-2 h-4 w-4" />
                 Start Intake
               </Link>

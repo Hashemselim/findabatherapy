@@ -14,6 +14,7 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { getProviderContactPath } from "@/lib/utils/public-paths";
 
 interface IntakeFormShareCardProps {
   listingSlug: string;
@@ -23,11 +24,15 @@ export function IntakeFormShareCard({
   listingSlug,
 }: IntakeFormShareCardProps) {
   const [copied, setCopied] = useState(false);
-  const [contactUrl, setContactUrl] = useState(`/contact/${listingSlug}`);
+  const [contactUrl, setContactUrl] = useState(
+    getProviderContactPath(listingSlug)
+  );
 
   // Set full URL after hydration to avoid hydration mismatch
   useEffect(() => {
-    setContactUrl(`${window.location.origin}/contact/${listingSlug}`);
+    setContactUrl(
+      `${window.location.origin}${getProviderContactPath(listingSlug)}`
+    );
   }, [listingSlug]);
 
   const handleCopyLink = async () => {

@@ -6,6 +6,7 @@ import { ArrowLeft, Clock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { getProviderWebsiteData } from "@/lib/actions/provider-website";
 import { getArticle, ARTICLE_CATEGORIES } from "@/lib/content/articles";
+import { getProviderWebsitePath } from "@/lib/utils/public-paths";
 
 type GuideDetailPageProps = {
   params: Promise<{ slug: string; guideSlug: string }>;
@@ -54,14 +55,14 @@ export default async function WebsiteGuideDetailPage({
         {/* Navigation */}
         <div className="mb-6 flex flex-wrap items-center gap-4">
           <Link
-            href={`/site/${slug}/resources/guides`}
+            href={getProviderWebsitePath(slug, "/resources/guides")}
             className="inline-flex items-center gap-2 text-sm font-medium text-gray-500 transition-colors hover:text-gray-900"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to Guides
           </Link>
           <Link
-            href={`/site/${slug}/resources`}
+            href={getProviderWebsitePath(slug, "/resources")}
             className="inline-flex items-center gap-2 text-sm font-medium text-gray-500 transition-colors hover:text-gray-900"
           >
             <ArrowLeft className="h-4 w-4" />

@@ -17,6 +17,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { getProviderCareersPath } from "@/lib/utils/public-paths";
 
 interface CareersPageShareCardProps {
   listingSlug: string;
@@ -30,11 +31,11 @@ export function CareersPageShareCard({
   jobCount,
 }: CareersPageShareCardProps) {
   const [copied, setCopied] = useState(false);
-  const [careersUrl, setCareersUrl] = useState(`/careers/${listingSlug}`);
+  const [careersUrl, setCareersUrl] = useState(getProviderCareersPath(listingSlug));
 
   // Set full URL after hydration to avoid hydration mismatch
   useEffect(() => {
-    setCareersUrl(`${window.location.origin}/careers/${listingSlug}`);
+    setCareersUrl(`${window.location.origin}${getProviderCareersPath(listingSlug)}`);
   }, [listingSlug]);
 
   const handleCopyLink = async () => {

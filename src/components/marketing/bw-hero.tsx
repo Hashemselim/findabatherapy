@@ -133,12 +133,12 @@ export function BwHero() {
               className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center"
             >
               <Link
-                href="/behaviorwork/get-started"
+                href="/pricing"
                 onClick={() =>
                   trackBehaviorWorkCtaClick({
                     section: "hero",
                     ctaLabel: "Start Growing Your Caseload",
-                    destination: "/behaviorwork/get-started",
+                    destination: "/pricing",
                   })
                 }
                 className="group inline-flex h-12 items-center justify-center rounded-full bg-[#FFDC33] px-7 text-sm font-bold text-[#1A2744] shadow-md shadow-amber-200/50 transition-all hover:bg-[#F5CF1B] hover:shadow-lg hover:shadow-amber-200/60 active:scale-[0.97]"
@@ -195,7 +195,7 @@ export function BwHero() {
                 <span className="h-2.5 w-2.5 rounded-full bg-amber-300/60" />
                 <span className="h-2.5 w-2.5 rounded-full bg-green-300/60" />
                 <span className="ml-3 text-[11px] font-medium text-slate-400">
-                  app.behaviorwork.com/pipeline
+                  app.goodaba.com/pipeline
                 </span>
               </div>
 

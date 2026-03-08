@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
   const brand = searchParams.get("brand") || "therapy";
   const isJobs = brand === "jobs";
 
-  const title = searchParams.get("title") || (isJobs ? "Find ABA Jobs" : "Find ABA Therapy");
+  const title = searchParams.get("title") || (isJobs ? "GoodABA Jobs" : "Find ABA Therapy");
   const subtitle = searchParams.get("subtitle");
   const location = searchParams.get("location");
   const logo = searchParams.get("logo"); // Company logo URL
@@ -50,8 +50,8 @@ export async function GET(request: NextRequest) {
     decorativeColor1: "rgba(16, 185, 129, 0.15)",
     decorativeColor2: "rgba(20, 184, 166, 0.1)",
     decorativeColor3: "rgba(52, 211, 153, 0.1)",
-    brandName: "Find ABA Jobs",
-    siteDomain: "findabajobs.org",
+    brandName: "GoodABA Jobs",
+    siteDomain: "goodaba.com/jobs",
     icon: (
       <svg
         width="36"

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Menu } from "lucide-react";
 
 import { BehaviorWorkLogo } from "@/components/brand/behaviorwork-logo";
@@ -18,14 +19,10 @@ import {
 import { trackBehaviorWorkCtaClick } from "@/lib/posthog/events";
 import { cn } from "@/lib/utils";
 
-const navItems = [
-  { href: "/behaviorwork#lifecycle", label: "Platform" },
-  { href: "/behaviorwork/get-started", label: "Pricing" },
-  { href: "/behaviorwork#faq", label: "FAQ" },
-] as const;
-
 export function BehaviorWorkHeader() {
   const [scrolled, setScrolled] = useState(false);
+  const [hostname, setHostname] = useState("");
+  const pathname = usePathname();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -34,11 +31,35 @@ export function BehaviorWorkHeader() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  useEffect(() => {
+    setHostname(window.location.hostname);
+  }, []);
+
+  const isGoodabaAliasPath =
+    pathname === "/goodaba" ||
+    pathname === "/goodaba/pricing" ||
+    pathname === "/goodaba-internal" ||
+    pathname === "/goodaba-internal/pricing" ||
+    pathname === "/_goodaba" ||
+    pathname === "/_goodaba/pricing";
+  const isLocalGoodabaPricing =
+    (hostname.includes("localhost") || hostname.includes("127.0.0.1")) &&
+    pathname === "/pricing";
+  const isLocalGoodaba = isGoodabaAliasPath || isLocalGoodabaPricing;
+
+  const homeHref = isLocalGoodaba ? "/goodaba" : "/";
+  const pricingHref = isLocalGoodaba ? "/goodaba/pricing" : "/pricing";
+  const navItems = [
+    { href: `${homeHref}#lifecycle`, label: "Platform" },
+    { href: pricingHref, label: "Pricing" },
+    { href: "/jobs", label: "Jobs" },
+  ] as const;
+
   const trackHeaderCta = () => {
     trackBehaviorWorkCtaClick({
       section: "header",
-      ctaLabel: "Start Growing",
-      destination: "/behaviorwork/get-started",
+      ctaLabel: "Start Free",
+      destination: pricingHref,
     });
   };
 
@@ -54,9 +75,9 @@ export function BehaviorWorkHeader() {
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5 sm:px-6 lg:px-8">
         {/* Logo */}
         <Link
-          href="/behaviorwork"
+          href={homeHref}
           className="group flex items-center"
-          aria-label="BehaviorWork home"
+          aria-label="GoodABA home"
         >
           <BehaviorWorkLogo size="lg" />
         </Link>
@@ -83,11 +104,11 @@ export function BehaviorWorkHeader() {
             Log In
           </Link>
           <Link
-            href="/behaviorwork/get-started"
+            href={pricingHref}
             onClick={trackHeaderCta}
             className="inline-flex h-9 items-center justify-center rounded-full bg-[#FFDC33] px-5 text-sm font-bold text-[#1A2744] shadow-sm shadow-amber-200/40 transition-all hover:bg-[#F5CF1B] hover:shadow-md hover:shadow-amber-200/50 active:scale-[0.97]"
           >
-            Start Growing
+            Start Free
           </Link>
         </div>
 
@@ -112,7 +133,7 @@ export function BehaviorWorkHeader() {
                 <BehaviorWorkLogo size="md" />
               </SheetTitle>
               <SheetDescription>
-                The growth engine for ABA agencies.
+                The growth platform for ABA agencies.
               </SheetDescription>
             </SheetHeader>
             <div className="mt-6 flex flex-col gap-1">
@@ -137,11 +158,11 @@ export function BehaviorWorkHeader() {
                 </SheetClose>
                 <SheetClose asChild>
                   <Link
-                    href="/behaviorwork/get-started"
+                    href={pricingHref}
                     onClick={trackHeaderCta}
                     className="mt-1 flex h-10 items-center justify-center rounded-full bg-[#FFDC33] text-sm font-bold text-[#1A2744] shadow-sm shadow-amber-200/40 transition-all hover:bg-[#F5CF1B]"
                   >
-                    Start Growing
+                    Start Free
                   </Link>
                 </SheetClose>
               </div>

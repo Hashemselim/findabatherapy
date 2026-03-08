@@ -7,203 +7,377 @@ import {
 } from "@/lib/onboarding/flow";
 import { isDevOnboardingPreviewEnabled } from "@/lib/onboarding-preview";
 import { updateSession } from "@/lib/supabase/middleware";
-import { domains, type Brand } from "@/lib/utils/domains";
+import { domains } from "@/lib/utils/domains";
 
-// Routes that require authentication
 const PROTECTED_ROUTES = ["/dashboard"];
-
-// Routes that should redirect authenticated users (auth pages)
 const AUTH_ROUTES = ["/auth/sign-in", "/auth/sign-up"];
-
-// Public routes that look like dashboard but don't require auth
 const PUBLIC_DASHBOARD_ROUTES = ["/demo"];
+const CANONICAL_GOODABA_PREFIXES = ["/auth", "/dashboard"];
 
-// =============================================================================
-// MULTI-DOMAIN CONFIGURATION
-// =============================================================================
+function normalizeHost(host: string): string {
+  return host.toLowerCase().replace(/:\d+$/, "");
+}
 
-// Jobs site specific routes (these are served from the (jobs) route group)
-// All job-related routes now live under /jobs/* for clean namespace separation
-const JOBS_ROUTES = [
-  "/jobs",  // Jobs homepage, search, and state pages (e.g., /jobs/california)
-  "/job/",  // Individual job pages (e.g., /job/senior-bcba-phoenix)
-  "/employers", // Employer directory and detail pages
-  "/bcba-jobs",
-  "/bcaba-jobs",
-  "/rbt-jobs",
-  "/bt-jobs",
-  "/clinical-director-jobs",
-  "/regional-director-jobs",
-  "/executive-director-jobs",
-  "/admin-jobs",
-];
+function getRequestHost(request: NextRequest): string {
+  const forwardedHost = request.headers.get("x-forwarded-host");
+  if (forwardedHost) {
+    return forwardedHost.split(",")[0]?.trim() || forwardedHost;
+  }
 
-// Provider careers pages pattern (e.g., /provider/acme-aba/careers)
-const PROVIDER_CAREERS_PATTERN = /^\/provider\/[^/]+\/careers$/;
+  return request.headers.get("host") || "";
+}
 
-function withBehaviorWorkRequestHeaders(request: NextRequest) {
+function withPlatformRequestHeaders(request: NextRequest) {
   const requestHeaders = new Headers(request.headers);
-  requestHeaders.set("x-behaviorwork-page", "1");
+  requestHeaders.set("x-platform-marketing-page", "1");
   return requestHeaders;
 }
 
-function isBehaviorWorkPath(pathname: string): boolean {
-  return pathname === "/behaviorwork" || pathname.startsWith("/behaviorwork/");
+function isGoodabaHost(host: string): boolean {
+  const normalizedHost = normalizeHost(host);
+  return domains.goodaba.domains.some((domain) => normalizedHost === domain);
 }
 
-/**
- * Detect which brand/site the request is for
- */
-function getBrandFromRequest(request: NextRequest): Brand {
-  const host = request.headers.get("host") || "";
-  const normalizedHost = host.toLowerCase().replace(/:\d+$/, "");
-
-  // Check jobs domains
-  if (domains.jobs.domains.some((d) => normalizedHost.includes(d))) {
-    return "jobs";
-  }
-
-  // Check parent (Behavior Work) domains
-  if (domains.parent.domains.some((d) => normalizedHost.includes(d))) {
-    return "parent";
-  }
-
-  // In development, check path for jobs routes on localhost
-  if (process.env.NODE_ENV === "development" && normalizedHost.includes("localhost")) {
-    const pathname = request.nextUrl.pathname;
-    if (isJobsRoute(pathname)) {
-      return "jobs";
-    }
-  }
-
-  // Default to therapy (main site)
-  return "therapy";
+function isLegacyBehaviorWorkHost(host: string): boolean {
+  const normalizedHost = normalizeHost(host);
+  return (
+    domains.goodaba.legacyDomains?.some((domain) => normalizedHost === domain) ??
+    false
+  );
 }
 
-/**
- * Check if the pathname is a jobs route
- */
-function isJobsRoute(pathname: string): boolean {
-  // Check specific jobs routes (all under /jobs/* namespace)
-  if (JOBS_ROUTES.some((route) => pathname.startsWith(route))) {
-    return true;
+function isLegacyJobsHost(host: string): boolean {
+  const normalizedHost = normalizeHost(host);
+  return (
+    domains.jobs.legacyDomains?.some((domain) => normalizedHost === domain) ??
+    false
+  );
+}
+
+function isLocalhost(host: string): boolean {
+  const normalizedHost = normalizeHost(host);
+  return normalizedHost.includes("localhost") || normalizedHost.includes("127.0.0.1");
+}
+
+function matchesRoleJobsPath(pathname: string): RegExpMatchArray | null {
+  return pathname.match(
+    /^\/(bcba|bcaba|rbt|bt|clinical-director|regional-director|executive-director|admin)-jobs$/
+  );
+}
+
+function isProviderControlledGoodabaPath(pathname: string): boolean {
+  return /^\/provider\/[^/]+\/(website|contact|intake|resources|careers|jobs)(\/.*)?$/.test(
+    pathname
+  );
+}
+
+function isLegacyProviderPath(pathname: string): boolean {
+  return (
+    /^\/p\/[^/]+$/.test(pathname) ||
+    /^\/site\/[^/]+(\/.*)?$/.test(pathname) ||
+    /^\/contact\/[^/]+$/.test(pathname) ||
+    /^\/intake\/[^/]+\/client$/.test(pathname) ||
+    /^\/resources\/[^/]+(\/.*)?$/.test(pathname) ||
+    /^\/careers\/[^/]+(\/[^/]+)?$/.test(pathname)
+  );
+}
+
+function mapLegacyProviderPath(pathname: string): string | null {
+  const brochureMatch = pathname.match(/^\/p\/([^/]+)$/);
+  if (brochureMatch) {
+    return `/provider/${brochureMatch[1]}`;
   }
 
-  // Check provider careers pattern (e.g., /provider/acme-aba/careers)
-  if (PROVIDER_CAREERS_PATTERN.test(pathname)) {
-    return true;
+  const websiteMatch = pathname.match(/^\/site\/([^/]+)(\/.*)?$/);
+  if (websiteMatch) {
+    return `/provider/${websiteMatch[1]}/website${websiteMatch[2] ?? ""}`;
   }
 
-  return false;
+  const contactMatch = pathname.match(/^\/contact\/([^/]+)$/);
+  if (contactMatch) {
+    return `/provider/${contactMatch[1]}/contact`;
+  }
+
+  const intakeMatch = pathname.match(/^\/intake\/([^/]+)\/client$/);
+  if (intakeMatch) {
+    return `/provider/${intakeMatch[1]}/intake`;
+  }
+
+  const resourcesMatch = pathname.match(/^\/resources\/([^/]+)(\/.*)?$/);
+  if (resourcesMatch) {
+    return `/provider/${resourcesMatch[1]}/resources${resourcesMatch[2] ?? ""}`;
+  }
+
+  const careersJobMatch = pathname.match(/^\/careers\/([^/]+)\/([^/]+)$/);
+  if (careersJobMatch) {
+    return `/provider/${careersJobMatch[1]}/jobs/${careersJobMatch[2]}`;
+  }
+
+  const careersMatch = pathname.match(/^\/careers\/([^/]+)$/);
+  if (careersMatch) {
+    return `/provider/${careersMatch[1]}/careers`;
+  }
+
+  return null;
+}
+
+function mapLegacyJobsPath(pathname: string): string {
+  if (pathname === "/" || pathname === "") {
+    return "/jobs";
+  }
+
+  const postMatch = pathname.match(/^\/job\/([^/]+)$/);
+  if (postMatch) {
+    return `/jobs/post/${postMatch[1]}`;
+  }
+
+  const roleMatch = matchesRoleJobsPath(pathname);
+  if (roleMatch) {
+    return `/jobs/role/${roleMatch[1]}`;
+  }
+
+  const brandedJobMatch = pathname.match(/^\/careers\/([^/]+)\/([^/]+)$/);
+  if (brandedJobMatch) {
+    return `/provider/${brandedJobMatch[1]}/jobs/${brandedJobMatch[2]}`;
+  }
+
+  const careersMatch = pathname.match(/^\/careers\/([^/]+)$/);
+  if (careersMatch) {
+    return `/provider/${careersMatch[1]}/careers`;
+  }
+
+  if (pathname === "/employers") {
+    return "/jobs/employers";
+  }
+
+  if (pathname === "/employers/post") {
+    return "/jobs/employers/post";
+  }
+
+  const employerDetailMatch = pathname.match(/^\/employers\/([^/]+)$/);
+  if (employerDetailMatch) {
+    return `/jobs/employers/${employerDetailMatch[1]}`;
+  }
+
+  if (pathname.startsWith("/jobs")) {
+    return pathname;
+  }
+
+  if (pathname.startsWith("/auth") || pathname.startsWith("/dashboard")) {
+    return pathname;
+  }
+
+  return "/jobs";
+}
+
+function redirectToGoodaba(
+  request: NextRequest,
+  pathname: string,
+  status: number = 308
+) {
+  const target = new URL(`${pathname}${request.nextUrl.search}`, domains.goodaba.production);
+  return NextResponse.redirect(target, status);
+}
+
+function redirectToTherapy(
+  request: NextRequest,
+  pathname: string,
+  status: number = 308
+) {
+  const target = new URL(`${pathname}${request.nextUrl.search}`, domains.therapy.production);
+  return NextResponse.redirect(target, status);
 }
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const brand = getBrandFromRequest(request);
+  const host = getRequestHost(request);
+  const normalizedHost = normalizeHost(host);
+  const production = process.env.NODE_ENV === "production";
+  const onGoodabaHost = isGoodabaHost(normalizedHost);
+  const onLegacyBehaviorWorkHost = isLegacyBehaviorWorkHost(normalizedHost);
+  const onLegacyJobsHost = isLegacyJobsHost(normalizedHost);
+  const onLocalhost = isLocalhost(normalizedHost);
 
-  // Skip middleware for PostHog proxy routes
   if (pathname.startsWith("/ingest")) {
     return NextResponse.next();
   }
 
-  // Unified get-started route (works on parent domain + QA fallback domains)
-  if (pathname === "/get-started") {
+  if (onLegacyBehaviorWorkHost && production) {
+    if (pathname === "/" || pathname === "/pricing") {
+      return redirectToGoodaba(request, "/");
+    }
+
+    return redirectToGoodaba(request, pathname);
+  }
+
+  if (onLegacyJobsHost && production) {
+    return redirectToGoodaba(request, mapLegacyJobsPath(pathname));
+  }
+
+  if (
+    production &&
+    !onGoodabaHost &&
+    CANONICAL_GOODABA_PREFIXES.some((prefix) => pathname.startsWith(prefix))
+  ) {
+    return redirectToGoodaba(request, pathname);
+  }
+
+  if (pathname === "/get-listed" && production) {
+    return redirectToGoodaba(request, "/");
+  }
+
+  if (
+    pathname === "/behaviorwork" || pathname.startsWith("/behaviorwork/")
+  ) {
+    const canonicalPath =
+      pathname === "/behaviorwork/get-started" ? "/pricing" : "/";
+    if (production) {
+      return redirectToGoodaba(request, canonicalPath);
+    }
+    return NextResponse.redirect(new URL(canonicalPath, request.url), 308);
+  }
+
+  if (pathname === "/goodaba" || pathname === "/goodaba/pricing") {
+    const canonicalPath = pathname === "/goodaba/pricing" ? "/pricing" : "/";
+
+    if (production) {
+      return redirectToGoodaba(request, canonicalPath);
+    }
+
     const url = request.nextUrl.clone();
-    url.pathname = "/behaviorwork/get-started";
+    url.pathname =
+      pathname === "/goodaba/pricing"
+        ? "/goodaba-internal/pricing"
+        : "/goodaba-internal";
     return NextResponse.rewrite(url, {
       request: {
-        headers: withBehaviorWorkRequestHeaders(request),
+        headers: withPlatformRequestHeaders(request),
       },
     });
   }
 
-  // Direct Behavior Work route fallback path
-  if (isBehaviorWorkPath(pathname)) {
-    return NextResponse.next({
-      request: {
-        headers: withBehaviorWorkRequestHeaders(request),
-      },
-    });
-  }
-
-  // =============================================================================
-  // MULTI-DOMAIN ROUTING LOGIC
-  // =============================================================================
-
-  // Jobs site routing: Handle requests to the jobs domain
-  if (brand === "jobs") {
-    // Jobs site homepage - rewrite root to /jobs page
-    if (pathname === "/" || pathname === "") {
+  if (pathname === "/pricing") {
+    if (onGoodabaHost || onLocalhost) {
       const url = request.nextUrl.clone();
-      url.pathname = "/jobs";
-      return NextResponse.rewrite(url);
-    }
-
-    // For jobs site, allow access to:
-    // - Jobs routes (search, job details, careers pages)
-    // - Dashboard routes (for providers managing jobs)
-    // - Auth routes (for providers to sign in)
-    // - API routes
-    // - Static assets
-
-    // Block access to main site routes from jobs domain
-    const mainSiteOnlyRoutes = [
-      "/contact",
-      "/intake",
-      "/removal-request",
-      "/demo",
-    ];
-
-    if (mainSiteOnlyRoutes.some((route) => pathname.startsWith(route))) {
-      // Redirect to main site
-      const mainSiteUrl = new URL(pathname, domains.therapy.production);
-      return NextResponse.redirect(mainSiteUrl);
-    }
-  }
-
-  // Parent site (behaviorwork.com) routing
-  if (brand === "parent") {
-    if (pathname === "/pricing") {
-      const pricingRedirectUrl = request.nextUrl.clone();
-      pricingRedirectUrl.pathname = "/get-started";
-      return NextResponse.redirect(pricingRedirectUrl, 301);
-    }
-
-    // Parent-domain root marketing page
-    if (pathname === "/" || pathname === "") {
-      const url = request.nextUrl.clone();
-      url.pathname = "/behaviorwork";
+      url.pathname = "/goodaba-internal/pricing";
       return NextResponse.rewrite(url, {
         request: {
-          headers: withBehaviorWorkRequestHeaders(request),
+          headers: withPlatformRequestHeaders(request),
         },
       });
     }
 
-    // Parent site serves the unified dashboard
-    // Allow all dashboard routes, auth routes, and API routes
-    // Block public-facing therapy/jobs content routes
-    const publicContentRoutes = [
-      "/search",
-      "/learn",
-      "/faq",
-      "/insurance",
-      "/centers",
-      "/contact",
-      "/intake",
-    ];
-
-    if (publicContentRoutes.some((route) => pathname.startsWith(route))) {
-      // Redirect to therapy site for public content
-      const therapySiteUrl = new URL(pathname, domains.therapy.production);
-      return NextResponse.redirect(therapySiteUrl);
+    if (production) {
+      return redirectToGoodaba(request, "/pricing");
     }
   }
 
-  // =============================================================================
-  // REDIRECT OLD /intake/[slug] URLs to /contact/[slug]
-  // (but keep /intake/[slug]/client for the full client intake form)
-  // =============================================================================
+  if (onGoodabaHost) {
+    if (pathname === "/" || pathname === "") {
+      const url = request.nextUrl.clone();
+      url.pathname = "/goodaba-internal";
+      return NextResponse.rewrite(url, {
+        request: {
+          headers: withPlatformRequestHeaders(request),
+        },
+      });
+    }
+
+    if (pathname.startsWith("/p/")) {
+      const canonicalPath = mapLegacyProviderPath(pathname);
+      if (canonicalPath) {
+        return redirectToGoodaba(request, canonicalPath);
+      }
+    }
+
+    if (isLegacyProviderPath(pathname)) {
+      const canonicalPath = mapLegacyProviderPath(pathname);
+      if (canonicalPath) {
+        return redirectToGoodaba(request, canonicalPath);
+      }
+    }
+
+    if (pathname.startsWith("/job/")) {
+      return redirectToGoodaba(request, mapLegacyJobsPath(pathname));
+    }
+
+    if (matchesRoleJobsPath(pathname)) {
+      return redirectToGoodaba(request, mapLegacyJobsPath(pathname));
+    }
+
+    if (pathname === "/employers" || pathname === "/employers/post" || pathname.startsWith("/employers/")) {
+      return redirectToGoodaba(request, mapLegacyJobsPath(pathname));
+    }
+
+    const brochureMatch = pathname.match(/^\/provider\/([^/]+)$/);
+    if (brochureMatch) {
+      const url = request.nextUrl.clone();
+      url.pathname = `/p/${brochureMatch[1]}`;
+      return NextResponse.rewrite(url);
+    }
+  }
+
+  if (
+    (onGoodabaHost || onLocalhost) &&
+    (pathname === "/goodaba-internal" ||
+      pathname.startsWith("/goodaba-internal/"))
+  ) {
+    return NextResponse.next({
+      request: {
+        headers: withPlatformRequestHeaders(request),
+      },
+    });
+  }
+
+  if (!onGoodabaHost && isLegacyProviderPath(pathname) && production) {
+    const canonicalPath = mapLegacyProviderPath(pathname);
+    if (canonicalPath) {
+      return redirectToGoodaba(request, canonicalPath);
+    }
+  }
+
+  if (
+    !onGoodabaHost &&
+    (pathname.startsWith("/jobs") ||
+      pathname.startsWith("/job/") ||
+      pathname === "/employers" ||
+      pathname === "/employers/post" ||
+      pathname.startsWith("/employers/") ||
+      Boolean(matchesRoleJobsPath(pathname))) &&
+    production
+  ) {
+    return redirectToGoodaba(request, mapLegacyJobsPath(pathname));
+  }
+
+  if (!onGoodabaHost && isProviderControlledGoodabaPath(pathname) && production) {
+    return redirectToGoodaba(request, pathname);
+  }
+
+  if (onGoodabaHost) {
+    const explicitGoodabaPath =
+      pathname.startsWith("/jobs") ||
+      pathname.startsWith("/provider") ||
+      pathname.startsWith("/auth") ||
+      pathname.startsWith("/dashboard") ||
+      pathname.startsWith("/pricing") ||
+      pathname.startsWith("/behaviorwork");
+
+    const clearlyTherapyPath =
+      pathname.startsWith("/search") ||
+      pathname.startsWith("/learn") ||
+      pathname.startsWith("/faq") ||
+      pathname.startsWith("/insurance") ||
+      pathname.startsWith("/centers") ||
+      pathname.startsWith("/states") ||
+      /^\/[a-z-]+$/.test(pathname) ||
+      /^\/[a-z-]+\/[a-z-]+$/.test(pathname) ||
+      /^\/[a-z-]+\/guide$/.test(pathname);
+
+    if (!explicitGoodabaPath && clearlyTherapyPath && production) {
+      return redirectToTherapy(request, pathname);
+    }
+  }
+
   const intakeRedirectMatch = pathname.match(/^\/intake\/([^/]+)$/);
   if (intakeRedirectMatch) {
     const slug = intakeRedirectMatch[1];
@@ -211,20 +385,8 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(redirectUrl, 301);
   }
 
-  // Therapy site routing: Redirect jobs routes to jobs site
-  if (brand === "therapy" && isJobsRoute(pathname)) {
-    // In production, redirect to the jobs domain
-    if (process.env.NODE_ENV === "production") {
-      const jobsUrl = new URL(pathname + request.nextUrl.search, domains.jobs.production);
-      return NextResponse.redirect(jobsUrl);
-    }
-    // In development, allow serving from the same domain for easier testing
-  }
-
-  // Update session and get user
   const { supabaseResponse, user, supabase } = await updateSession(request);
 
-  // Allow demo routes without auth
   const isDemoRoute = PUBLIC_DASHBOARD_ROUTES.some((route) =>
     pathname.startsWith(route)
   );
@@ -232,15 +394,11 @@ export async function middleware(request: NextRequest) {
     return supabaseResponse;
   }
 
-  // Check if the route is protected
   const isProtectedRoute = PROTECTED_ROUTES.some((route) =>
     pathname.startsWith(route)
   );
-
-  // Check if the route is an auth route
   const isAuthRoute = AUTH_ROUTES.some((route) => pathname.startsWith(route));
 
-  // Dev preview: allow unauthenticated onboarding only when explicit preview flag is enabled
   if (
     isDevOnboardingPreviewEnabled() &&
     pathname.startsWith("/dashboard/onboarding") &&
@@ -249,7 +407,6 @@ export async function middleware(request: NextRequest) {
     return supabaseResponse;
   }
 
-  // If protected route and not authenticated, redirect to sign in
   if (isProtectedRoute && !user) {
     const redirectUrl = new URL("/auth/sign-in", request.url);
     redirectUrl.searchParams.set("redirect", pathname);
@@ -295,7 +452,9 @@ export async function middleware(request: NextRequest) {
       ]);
 
       hasLocationStep = (count || 0) > 0;
-      hasServicesStep = Array.isArray(servicesAttr?.value_json) && servicesAttr.value_json.length > 0;
+      hasServicesStep =
+        Array.isArray(servicesAttr?.value_json) &&
+        servicesAttr.value_json.length > 0;
     }
 
     const flow = evaluateOnboardingFlow({
@@ -316,7 +475,6 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // If auth route and authenticated, redirect to dashboard
   if (isAuthRoute && user) {
     const [{ data: profile }, { data: listing }] = await Promise.all([
       supabase
@@ -351,7 +509,9 @@ export async function middleware(request: NextRequest) {
       ]);
 
       hasLocationStep = (count || 0) > 0;
-      hasServicesStep = Array.isArray(servicesAttr?.value_json) && servicesAttr.value_json.length > 0;
+      hasServicesStep =
+        Array.isArray(servicesAttr?.value_json) &&
+        servicesAttr.value_json.length > 0;
     }
 
     const flow = evaluateOnboardingFlow({
@@ -371,7 +531,9 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL(flow.firstIncompletePath, request.url));
     }
 
-    return NextResponse.redirect(new URL("/dashboard/clients/pipeline", request.url));
+    return NextResponse.redirect(
+      new URL("/dashboard/clients/pipeline", request.url)
+    );
   }
 
   return supabaseResponse;
@@ -379,14 +541,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public folder files (images, etc.)
-     * - ingest (PostHog proxy)
-     */
     "/((?!_next/static|_next/image|favicon.ico|ingest|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

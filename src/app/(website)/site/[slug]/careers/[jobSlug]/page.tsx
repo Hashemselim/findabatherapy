@@ -18,6 +18,7 @@ import { Separator } from "@/components/ui/separator";
 import { ApplyButton } from "@/components/jobs/apply-button";
 import { getProviderWebsiteData } from "@/lib/actions/provider-website";
 import { getPublishedJobBySlug } from "@/lib/queries/jobs";
+import { getProviderWebsitePath } from "@/lib/utils/public-paths";
 import {
   POSITION_TYPES,
   EMPLOYMENT_TYPES,
@@ -148,7 +149,7 @@ export default async function WebsiteJobDetailPage({
       <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
         {/* Back Navigation */}
         <Link
-          href={`/site/${slug}/careers`}
+          href={getProviderWebsitePath(slug, "/careers")}
           className="mb-8 inline-flex items-center gap-2 text-sm font-medium transition-colors hover:opacity-80"
           style={{ color: brandColor }}
         >

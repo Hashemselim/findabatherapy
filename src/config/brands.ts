@@ -1,10 +1,10 @@
 export const brandsConfig = {
-  // Parent brand - the unified platform
-  parent: {
-    name: "Behavior Work",
-    tagline: "Your complete ABA practice management platform",
+  // Provider-facing platform brand
+  goodABA: {
+    name: "GoodABA",
+    tagline: "Your complete ABA practice growth platform",
     description:
-      "Behavior Work is the all-in-one platform for ABA providers to manage their practice, recruit talent, and connect with families.",
+      "GoodABA is the all-in-one platform for ABA providers to grow their practice, manage inquiries, and recruit talent.",
   },
 
   // Find ABA Therapy - connecting families with providers
@@ -18,12 +18,12 @@ export const brandsConfig = {
   },
 
   // Find ABA Jobs - connecting providers with talent
-  findABAJobs: {
-    name: "Find ABA Jobs",
-    tagline: "Discover ABA therapy careers near you",
+  goodABAJobs: {
+    name: "GoodABA Jobs",
+    tagline: "Discover ABA therapy careers on GoodABA",
     color: "#10B981", // Emerald
     icon: "Briefcase", // Lucide icon name
-    publicBasePath: "/employers",
+    publicBasePath: "/jobs/employers",
     dashboardSection: "jobs",
   },
 
@@ -44,7 +44,7 @@ export const brandColors = {
   jobs: "#10B981",
   crm: "#8B5CF6",
   // Gradient for parent brand icon
-  parentGradient: {
+  goodABAGradient: {
     from: "#5788FF",
     to: "#10B981",
   },

@@ -94,7 +94,7 @@ export async function processDripEmails(): Promise<ActionResult<{ sent: number; 
 
     try {
       await client.emails.send({
-        from: getFormattedFromEmail("therapy"),
+        from: getFormattedFromEmail("goodaba"),
         to: profile.email!,
         subject: template.subject,
         html: template.html,

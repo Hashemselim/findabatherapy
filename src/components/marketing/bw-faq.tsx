@@ -53,7 +53,7 @@ const faqs = [
   },
 ] as const;
 
-export function BwFaq({ pageLocation = "behaviorwork-lander" }: { pageLocation?: string }) {
+export function BwFaq({ pageLocation = "goodaba-lander" }: { pageLocation?: string }) {
   return (
     <BwSectionWrapper id="faq" background="cream" narrow>
       <BwFadeUp>

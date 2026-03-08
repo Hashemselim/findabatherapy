@@ -17,12 +17,19 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { getOnboardingData } from "@/lib/actions/onboarding";
+import {
+  getProviderBrochurePath,
+  getProviderContactPath,
+  getProviderIntakePath,
+  getProviderResourcesPath,
+  getProviderWebsitePath,
+} from "@/lib/utils/public-paths";
 
 const previewCards = [
   {
     title: "Branded Website",
     description: "Your full agency website with custom branding, sections, and content.",
-    href: (slug: string) => `/site/${slug}`,
+    href: (slug: string) => getProviderWebsitePath(slug),
     icon: Globe,
     color: { bg: "bg-violet-50", text: "text-violet-600" },
     status: "Pro feature",
@@ -31,7 +38,7 @@ const previewCards = [
   {
     title: "Agency Digital Brochure",
     description: "A branded page with your story, services, and identity.",
-    href: (slug: string) => `/p/${slug}`,
+    href: (slug: string) => getProviderBrochurePath(slug),
     icon: BookOpen,
     color: { bg: "bg-sky-50", text: "text-sky-600" },
     status: "Pro feature",
@@ -49,7 +56,7 @@ const previewCards = [
   {
     title: "Contact Page",
     description: "A branded contact experience for families to reach out.",
-    href: (slug: string) => `/site/${slug}/contact`,
+    href: (slug: string) => getProviderContactPath(slug),
     icon: Mail,
     color: { bg: "bg-rose-50", text: "text-rose-600" },
     status: "Pro feature",
@@ -58,7 +65,7 @@ const previewCards = [
   {
     title: "Intake Form",
     description: "Branded intake flow that keeps inquiries organized.",
-    href: (slug: string) => `/intake/${slug}/client`,
+    href: (slug: string) => getProviderIntakePath(slug),
     icon: FileText,
     color: { bg: "bg-amber-50", text: "text-amber-600" },
     status: "Pro feature",
@@ -67,7 +74,7 @@ const previewCards = [
   {
     title: "Resources Page",
     description: "Share parent resources and educational content.",
-    href: (slug: string) => `/site/${slug}/resources`,
+    href: (slug: string) => getProviderResourcesPath(slug),
     icon: Sparkles,
     color: { bg: "bg-emerald-50", text: "text-emerald-600" },
     status: "Pro feature",
@@ -75,8 +82,8 @@ const previewCards = [
   },
   {
     title: "Careers Page",
-    description: "A hiring destination that ties into FindABAJobs.",
-    href: (slug: string) => `/site/${slug}/careers`,
+    description: "A hiring destination that ties into GoodABA Jobs.",
+    href: (slug: string) => getProviderWebsitePath(slug, "/careers"),
     icon: Briefcase,
     color: { bg: "bg-indigo-50", text: "text-indigo-600" },
     status: "Pro feature",

@@ -52,7 +52,7 @@ function getStateInfo(stateSlug: string): { name: string; abbrev: string } | nul
   return null;
 }
 
-const BASE_URL = "https://www.findabajobs.org";
+const BASE_URL = "https://www.goodaba.com";
 
 export async function generateMetadata({ params }: StatePageProps): Promise<Metadata> {
   const { state: stateSlug } = await params;
@@ -73,7 +73,7 @@ export async function generateMetadata({ params }: StatePageProps): Promise<Meta
     title,
     description,
     openGraph: {
-      title: `${title} | Find ABA Jobs`,
+      title: `${title} | GoodABA Jobs`,
       description,
       url: `${BASE_URL}/jobs/${stateSlug}`,
       images: [
@@ -87,7 +87,7 @@ export async function generateMetadata({ params }: StatePageProps): Promise<Meta
     },
     twitter: {
       card: "summary_large_image",
-      title: `${title} | Find ABA Jobs`,
+      title: `${title} | GoodABA Jobs`,
       description,
       images: [ogImageUrl],
     },
@@ -123,7 +123,7 @@ export default async function StateJobsPage({ params }: StatePageProps) {
     ? generateItemListSchema(
         jobs.map((job, index) => ({
           name: job.title,
-          slug: `/job/${job.slug}`,
+          slug: `/jobs/post/${job.slug}`,
           position: index + 1,
         })),
         `ABA Jobs in ${stateInfo.name}`

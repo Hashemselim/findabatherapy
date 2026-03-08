@@ -1,7 +1,7 @@
 import { POSITION_TYPES } from "@/lib/validations/jobs";
 import type { PublicJobPosting } from "@/lib/queries/jobs";
 
-const BASE_URL = "https://www.findabajobs.org";
+const BASE_URL = "https://www.goodaba.com";
 
 /**
  * Generate JobPosting JSON-LD schema for a job
@@ -39,11 +39,11 @@ export function generateJobPostingSchema(job: PublicJobPosting) {
     hiringOrganization: {
       "@type": "Organization",
       name: job.provider.agencyName,
-      sameAs: `${BASE_URL}/provider/${job.provider.slug}`,
+      sameAs: `${BASE_URL}/jobs/employers/${job.provider.slug}`,
       ...(job.provider.logoUrl && { logo: job.provider.logoUrl }),
     },
     directApply: true,
-    url: `${BASE_URL}/job/${job.slug}`,
+    url: `${BASE_URL}/jobs/post/${job.slug}`,
   };
 
   // Add job location or remote work indicator
@@ -127,7 +127,7 @@ export function generateJobBreadcrumbSchema(job: PublicJobPosting) {
       "@type": "ListItem",
       position: 2,
       name: "Search Jobs",
-      item: `${BASE_URL}/search`,
+      item: `${BASE_URL}/jobs/search`,
     },
   ];
 
@@ -138,7 +138,7 @@ export function generateJobBreadcrumbSchema(job: PublicJobPosting) {
       "@type": "ListItem",
       position: 3,
       name: `Jobs in ${job.location.state}`,
-      item: `${BASE_URL}/${stateSlug}`,
+      item: `${BASE_URL}/jobs/${stateSlug}`,
     });
   }
 
@@ -147,7 +147,7 @@ export function generateJobBreadcrumbSchema(job: PublicJobPosting) {
     "@type": "ListItem",
     position: items.length + 1,
     name: job.title,
-    item: `${BASE_URL}/job/${job.slug}`,
+    item: `${BASE_URL}/jobs/post/${job.slug}`,
   });
 
   return {
@@ -164,18 +164,18 @@ export function generateJobsSiteOrganizationSchema() {
   return {
     "@context": "https://schema.org",
     "@type": "Organization",
-    name: "Find ABA Jobs",
+    name: "GoodABA Jobs",
     url: BASE_URL,
     logo: `${BASE_URL}/logo.png`,
-    description: "Find ABA Jobs is the leading job board for BCBA, RBT, and behavior analyst careers in the ABA therapy industry.",
+    description: "GoodABA Jobs is the job board for BCBA, RBT, and behavior analyst careers in the ABA therapy industry.",
     contactPoint: {
       "@type": "ContactPoint",
-      email: "support@findabajobs.org",
+      email: "support@goodaba.com",
       contactType: "customer service",
     },
     sameAs: [
-      "https://twitter.com/findabajobs",
-      "https://www.linkedin.com/company/findabajobs",
+      "https://twitter.com/goodaba",
+      "https://www.linkedin.com/company/goodaba",
     ],
   };
 }
@@ -187,14 +187,14 @@ export function generateJobsSiteWebsiteSchema() {
   return {
     "@context": "https://schema.org",
     "@type": "WebSite",
-    name: "Find ABA Jobs",
+    name: "GoodABA Jobs",
     url: BASE_URL,
     description: "Search thousands of BCBA, RBT, and behavior analyst jobs from top ABA therapy providers nationwide.",
     potentialAction: {
       "@type": "SearchAction",
       target: {
         "@type": "EntryPoint",
-        urlTemplate: `${BASE_URL}/search?q={search_term_string}`,
+        urlTemplate: `${BASE_URL}/jobs/search?q={search_term_string}`,
       },
       "query-input": "required name=search_term_string",
     },

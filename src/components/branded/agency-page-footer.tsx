@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Mail, Phone, Globe } from "lucide-react";
+import { getProviderBrochurePath } from "@/lib/utils/public-paths";
 
 interface AgencyPageFooterProps {
   agencyName: string;
@@ -62,16 +63,16 @@ export function AgencyPageFooter({
             <p className="mt-1 text-xs text-muted-foreground">
               Powered by{" "}
               <Link
-                href="https://behaviorwork.com"
+                href="https://www.goodaba.com"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="font-medium text-[#5788FF] hover:underline"
               >
-                Behavior Work
+                GoodABA
               </Link>
               {" "}|{" "}
               <Link
-                href={`/provider/${slug}`}
+                href={getProviderBrochurePath(slug)}
                 className="text-[#5788FF] hover:underline"
               >
                 View Directory Listing

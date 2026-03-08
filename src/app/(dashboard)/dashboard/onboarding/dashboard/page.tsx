@@ -47,7 +47,7 @@ const dashboardCards = [
   },
   {
     title: "Analytics & hiring",
-    description: "Growth reporting and hiring tools from the BehaviorWork membership.",
+    description: "Growth reporting and hiring tools from your GoodABA membership.",
     icon: BarChart3,
     color: { bg: "bg-indigo-50", text: "text-indigo-600" },
   },
@@ -111,7 +111,7 @@ export default function OnboardingDashboardPreviewPage() {
         })}
       </motion.div>
 
-      {/* FindABAJobs callout */}
+      {/* GoodABA Jobs callout */}
       <motion.div
         variants={fadeUp}
         className="mb-8 flex items-center gap-4 rounded-2xl border border-emerald-200/60 bg-emerald-50/50 p-5"
@@ -120,7 +120,7 @@ export default function OnboardingDashboardPreviewPage() {
           <Briefcase className="h-5 w-5 text-emerald-700" />
         </div>
         <div className="min-w-0">
-          <h3 className="font-semibold text-emerald-900">FindABAJobs is included</h3>
+          <h3 className="font-semibold text-emerald-900">GoodABA Jobs is included</h3>
           <p className="mt-0.5 text-sm text-emerald-700/80">
             Careers pages, job postings, applicants, and employer-brand tools live alongside your
             client growth tools.

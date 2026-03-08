@@ -2,7 +2,7 @@
  * Email drip sequence templates for free users
  *
  * 5-email nurture series sent over 14 days to encourage free users to Go Live.
- * Uses the shared emailWrapper() for consistent BehaviorWork branding.
+ * Uses the shared emailWrapper() for consistent GoodABA branding.
  */
 
 import { emailWrapper } from "./email-helpers";
@@ -43,11 +43,11 @@ function welcomeEmail(agencyName: string): DripEmailTemplate {
   const siteUrl = getSafeUrl();
   const content = `
     <h1 style="margin: 0 0 16px; font-size: 24px; font-weight: 700; color: ${BRAND.textDark};">
-      Welcome to BehaviorWork, ${agencyName}!
+      Welcome to GoodABA, ${agencyName}!
     </h1>
     <p style="margin: 0 0 16px; font-size: 16px; line-height: 1.6; color: ${BRAND.textMedium};">
       Your branded pages are ready to preview. You&rsquo;ve already set up your agency profile,
-      and your listing is taking shape on FindABATherapy.org.
+      and your listing is taking shape on Find ABA Therapy.
     </p>
     <p style="margin: 0 0 16px; font-size: 16px; line-height: 1.6; color: ${BRAND.textMedium};">
       Right now you&rsquo;re in <strong>Preview Mode</strong> &mdash; your pages look great, but they&rsquo;re
@@ -67,8 +67,11 @@ function welcomeEmail(agencyName: string): DripEmailTemplate {
 
   return {
     subject: "Welcome! Your branded pages are ready to preview",
-    preheader: "Your FindABATherapy.org profile is set up. Preview your pages now.",
-    html: emailWrapper(content, { preheader: "Your FindABATherapy.org profile is set up. Preview your pages now." }),
+    preheader: "Your GoodABA profile is set up. Preview your pages now.",
+    html: emailWrapper(content, {
+      preheader: "Your GoodABA profile is set up. Preview your pages now.",
+      brandContext: "goodaba",
+    }),
   };
 }
 
@@ -85,7 +88,7 @@ function featureHighlightEmail(agencyName: string): DripEmailTemplate {
       Hi ${agencyName},
     </p>
     <p style="margin: 0 0 16px; font-size: 16px; line-height: 1.6; color: ${BRAND.textMedium};">
-      Your FindABATherapy listing includes a professional inquiry form that families can use to
+      Your Find ABA Therapy listing includes a professional inquiry form that families can use to
       reach you directly. Once you Go Live, this form becomes active and every inquiry lands
       in your dashboard for easy follow-up.
     </p>
@@ -103,7 +106,10 @@ function featureHighlightEmail(agencyName: string): DripEmailTemplate {
   return {
     subject: "Your contact form can be activated with one click",
     preheader: "Go Live to start receiving inquiries from families searching for ABA therapy.",
-    html: emailWrapper(content, { preheader: "Go Live to start receiving inquiries from families searching for ABA therapy." }),
+    html: emailWrapper(content, {
+      preheader: "Go Live to start receiving inquiries from families searching for ABA therapy.",
+      brandContext: "goodaba",
+    }),
   };
 }
 
@@ -120,7 +126,7 @@ function socialProofEmail(agencyName: string): DripEmailTemplate {
       Hi ${agencyName},
     </p>
     <p style="margin: 0 0 16px; font-size: 16px; line-height: 1.6; color: ${BRAND.textMedium};">
-      Your FindABATherapy.org listing is built and ready. Parents in your area are actively
+      Your Find ABA Therapy listing is built and ready. Parents in your area are actively
       searching for ABA providers &mdash; but right now, they can&rsquo;t find you because
       your listing is still in preview mode.
     </p>
@@ -145,7 +151,10 @@ function socialProofEmail(agencyName: string): DripEmailTemplate {
   return {
     subject: `${agencyName}, parents are looking for ABA providers near you`,
     preheader: "Your listing is ready. Go Live so families can find and contact you.",
-    html: emailWrapper(content, { preheader: "Your listing is ready. Go Live so families can find and contact you." }),
+    html: emailWrapper(content, {
+      preheader: "Your listing is ready. Go Live so families can find and contact you.",
+      brandContext: "goodaba",
+    }),
   };
 }
 
@@ -202,7 +211,10 @@ function beforeAfterEmail(agencyName: string): DripEmailTemplate {
   return {
     subject: "Preview vs. Live: see what you're missing",
     preheader: "Your listing is ready. Here's what changes when you Go Live.",
-    html: emailWrapper(content, { preheader: "Your listing is ready. Here's what changes when you Go Live." }),
+    html: emailWrapper(content, {
+      preheader: "Your listing is ready. Here's what changes when you Go Live.",
+      brandContext: "goodaba",
+    }),
   };
 }
 
@@ -248,7 +260,10 @@ function urgencyNudgeEmail(agencyName: string): DripEmailTemplate {
   return {
     subject: "Most agencies go live within their first week",
     preheader: "Your listing is ready and waiting. Go Live to start receiving inquiries.",
-    html: emailWrapper(content, { preheader: "Your listing is ready and waiting. Go Live to start receiving inquiries." }),
+    html: emailWrapper(content, {
+      preheader: "Your listing is ready and waiting. Go Live to start receiving inquiries.",
+      brandContext: "goodaba",
+    }),
   };
 }
 

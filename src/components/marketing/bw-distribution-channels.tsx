@@ -27,15 +27,15 @@ const channels = [
     ],
   },
   {
-    name: "FindABAJobs.org",
-    tagline: "ABA-specific job board",
+    name: "GoodABA Jobs",
+    tagline: "ABA-specific hiring marketplace",
     description:
       "ABA professionals search for BCBA, RBT, and clinical roles. Your postings reach thousands of qualified candidates.",
     gradient: "from-[#10B981] to-[#059669]",
     footerTag: "Drives hiring pipeline",
     footerColor: "text-[#10B981]",
     footerBg: "bg-[#10B981]/10",
-    href: "https://www.findabajobs.org",
+    href: "https://www.goodaba.com/jobs",
     logoType: "icon" as const,
     bullets: [
       "ABA-specific job board",
@@ -62,7 +62,7 @@ export function BwDistributionChannels() {
             </span>
           </h2>
           <p className="mt-4 text-lg text-slate-500">
-            Every BehaviorWork account includes two public channels that bring
+            Every GoodABA account includes two public channels that bring
             families and ABA professionals to your door.
           </p>
         </div>

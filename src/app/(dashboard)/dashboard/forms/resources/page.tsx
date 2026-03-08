@@ -7,6 +7,7 @@ import { BubbleBackground } from "@/components/ui/bubble-background";
 import { BrandedPageCard } from "@/components/dashboard/branded-page-card";
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
 import { getProfile, createClient } from "@/lib/supabase/server";
+import { getProviderResourcesPath } from "@/lib/utils/public-paths";
 
 export default async function FamilyResourcesPage() {
   const profile = await getProfile();
@@ -35,7 +36,7 @@ export default async function FamilyResourcesPage() {
       <BrandedPageCard
         title="Client Resources"
         sentence="Share one trusted page with FAQs, glossary terms, and parent guides."
-        relativePath={`/resources/${listingSlug}`}
+        relativePath={getProviderResourcesPath(listingSlug)}
         iconName="resources"
         defaultExpanded
         howItWorks={[

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ArrowRight, Phone, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { getProviderWebsitePath } from "@/lib/utils/public-paths";
 import { useWebsite } from "../../layout/website-provider";
 
 function getContrastColor(hex: string): string {
@@ -69,7 +70,7 @@ export function ModernContactCta() {
               color: brandColor,
             }}
           >
-            <Link href={`/site/${provider.slug}/contact`}>
+            <Link href={getProviderWebsitePath(provider.slug, "/contact")}>
               {ctaText}
               <ArrowRight className="ml-2 h-4 w-4" />
             </Link>

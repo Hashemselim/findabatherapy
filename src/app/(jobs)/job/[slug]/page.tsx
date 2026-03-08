@@ -25,6 +25,7 @@ import { JsonLd } from "@/components/seo/json-ld";
 import { jobsConfig } from "@/config/jobs";
 import { ApplyButton } from "@/components/jobs/apply-button";
 import { JobViewTracker } from "@/components/jobs/job-view-tracker";
+import { getJobsEmployersPath, getJobsPostPath } from "@/lib/utils/public-paths";
 
 interface JobPageProps {
   params: Promise<{ slug: string }>;
@@ -36,7 +37,7 @@ export async function generateMetadata({ params }: JobPageProps): Promise<Metada
 
   if (!job) {
     return {
-      title: "Job Not Found | Find ABA Jobs",
+      title: "Job Not Found | GoodABA Jobs",
     };
   }
 
@@ -49,7 +50,7 @@ export async function generateMetadata({ params }: JobPageProps): Promise<Metada
 
   const title = `${job.title} at ${job.provider.agencyName}${location ? ` - ${location}` : ""} | ${jobsConfig.name}`;
   const description = job.description?.slice(0, 160) ||
-    `${positionLabel} position at ${job.provider.agencyName}. Apply now on Find ABA Jobs.`;
+    `${positionLabel} position at ${job.provider.agencyName}. Apply now on GoodABA Jobs.`;
 
   // Build OG image URL with job details
   const ogTitle = `${job.title} at ${job.provider.agencyName}`;
@@ -63,11 +64,14 @@ export async function generateMetadata({ params }: JobPageProps): Promise<Metada
   if (job.provider.logoUrl) {
     ogParams.set("logo", job.provider.logoUrl);
   }
-  const ogImageUrl = `https://www.findabajobs.org/api/og?${ogParams.toString()}`;
+  const ogImageUrl = `https://www.goodaba.com/api/og?${ogParams.toString()}`;
 
   return {
     title,
     description,
+    alternates: {
+      canonical: getJobsPostPath(slug),
+    },
     openGraph: {
       title: ogTitle,
       description,
@@ -209,7 +213,7 @@ export default async function JobPage({ params }: JobPageProps) {
                         </h1>
                         <div className="mt-2 flex flex-wrap items-center gap-2 text-muted-foreground">
                           <Link
-                            href={`/employers/${job.provider.slug}`}
+                            href={getJobsEmployersPath(`/${job.provider.slug}`)}
                             className="flex items-center gap-1 transition hover:text-emerald-600"
                           >
                             <Building2 className="h-4 w-4" />
@@ -275,7 +279,7 @@ export default async function JobPage({ params }: JobPageProps) {
                     />
                     <Button variant="outline" className="!h-14 !text-lg !font-semibold sm:!h-10 sm:!text-sm sm:!font-medium rounded-md" asChild>
                       <Link
-                        href={`/employers/${job.provider.slug}`}
+                        href={getJobsEmployersPath(`/${job.provider.slug}`)}
                         className="gap-2"
                       >
                         View Company
@@ -384,7 +388,7 @@ export default async function JobPage({ params }: JobPageProps) {
                     </div>
                   </div>
                   <Button variant="outline" className="w-full" asChild>
-                    <Link href={`/employers/${job.provider.slug}`}>
+                    <Link href={getJobsEmployersPath(`/${job.provider.slug}`)}>
                       View Company Profile
                     </Link>
                   </Button>

@@ -149,7 +149,7 @@ export default function OnboardingWelcomePage() {
           <div className="flex flex-1 items-center gap-3 rounded-xl border border-emerald-100 bg-emerald-50/50 px-4 py-3">
             <Briefcase className="h-4 w-4 shrink-0 text-emerald-600" />
             <div>
-              <span className="text-sm font-medium text-emerald-900">FindABAJobs</span>
+              <span className="text-sm font-medium text-emerald-900">GoodABA Jobs</span>
               <span className="ml-1.5 text-sm text-emerald-600/70">included</span>
             </div>
           </div>

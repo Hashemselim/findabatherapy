@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
 /**
  * Send all test emails at once
  *
- * Usage: POST /api/test-email/all
+ * Usage: PUT /api/test-email
  * Body: { "to": "email@example.com" }
  */
 export async function PUT(request: NextRequest) {

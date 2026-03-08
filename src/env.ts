@@ -41,6 +41,10 @@ const envSchema = z.object({
   RESEND_API_KEY: z.string().optional(),
   // Email address for sending emails (defaults to onboarding@resend.dev for testing)
   EMAIL_FROM: z.string().min(1).optional().default("onboarding@resend.dev"),
+  EMAIL_FROM_THERAPY: z.string().min(1).optional(),
+  EMAIL_FROM_JOBS: z.string().min(1).optional(),
+  EMAIL_FROM_PARENT: z.string().min(1).optional(),
+  EMAIL_FROM_GOODABA: z.string().min(1).optional(),
 });
 
 const parsed = envSchema.safeParse({
@@ -56,6 +60,10 @@ const parsed = envSchema.safeParse({
   GOOGLE_MAPS_API_KEY: process.env.GOOGLE_MAPS_API_KEY,
   RESEND_API_KEY: process.env.RESEND_API_KEY,
   EMAIL_FROM: process.env.EMAIL_FROM,
+  EMAIL_FROM_THERAPY: process.env.EMAIL_FROM_THERAPY,
+  EMAIL_FROM_JOBS: process.env.EMAIL_FROM_JOBS,
+  EMAIL_FROM_PARENT: process.env.EMAIL_FROM_PARENT,
+  EMAIL_FROM_GOODABA: process.env.EMAIL_FROM_GOODABA,
 });
 
 if (!parsed.success) {

@@ -9,6 +9,7 @@ import {
   Heart,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { getProviderWebsitePath } from "@/lib/utils/public-paths";
 import { useWebsite } from "./website-provider";
 
 function getLighterShade(hexColor: string, opacity: number) {
@@ -19,7 +20,7 @@ function getLighterShade(hexColor: string, opacity: number) {
 
 export function WebsiteFooter() {
   const { provider, brandColor } = useWebsite();
-  const basePath = `/site/${provider.slug}`;
+  const basePath = getProviderWebsitePath(provider.slug);
 
   const primaryLocation =
     provider.locations.find((l) => l.isPrimary) || provider.locations[0];

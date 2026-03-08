@@ -3,7 +3,7 @@ import { PropsWithChildren } from "react";
 
 import { jobsConfig } from "@/config/jobs";
 
-const BASE_URL = "https://www.findabajobs.org";
+const BASE_URL = "https://www.goodaba.com";
 
 /**
  * Careers Layout - Minimal layout for private branded job boards
@@ -25,8 +25,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    creator: "@findabajobs",
-    site: "@findabajobs",
+    creator: "@goodaba",
+    site: "@goodaba",
   },
   other: {
     "theme-color": "#10B981",

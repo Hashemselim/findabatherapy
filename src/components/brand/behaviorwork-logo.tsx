@@ -39,8 +39,8 @@ export function BehaviorWorkLogo({
       style={{ color }}
     >
       <span className="relative z-10">
-        <span className="font-light">Behavior</span>
-        <span className="font-extrabold">Work</span>
+        <span className="font-light">Good</span>
+        <span className="font-extrabold">ABA</span>
       </span>
       <span
         className={cn(
@@ -69,7 +69,7 @@ export function behaviorWorkLogoHtml(options?: {
   const barBottom = Math.max(1, Math.round(fontSize / 8));
 
   return `<span style="display: inline-block; position: relative; font-size: ${fontSize}px; letter-spacing: -0.08em; color: ${color}; line-height: 1.2;"><!--
-  --><span style="position: relative; z-index: 1;"><span style="font-weight: 300;">Behavior</span><span style="font-weight: 800;">Work</span></span><!--
+  --><span style="position: relative; z-index: 1;"><span style="font-weight: 300;">Good</span><span style="font-weight: 800;">ABA</span></span><!--
   --><span style="position: absolute; left: 0; right: -8px; bottom: ${barBottom}px; height: ${barHeight}px; border-radius: 9999px; background-color: ${ACCENT_YELLOW}80; z-index: 0;"></span><!--
 --></span>`;
 }

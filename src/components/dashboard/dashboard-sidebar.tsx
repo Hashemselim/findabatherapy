@@ -30,6 +30,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { BehaviorWorkLogo } from "@/components/brand/behaviorwork-logo";
+import { getJobsEmployersPath } from "@/lib/utils/public-paths";
 import { SupportContactDialog } from "@/components/support-contact-dialog";
 import { getNewApplicationCount } from "@/lib/actions/applications";
 import { getActionableTaskCount } from "@/lib/actions/clients";
@@ -334,13 +335,13 @@ export function DashboardSidebar({
               <ExternalLink className="h-3 w-3 shrink-0 text-muted-foreground/40 transition-colors group-hover:text-muted-foreground" aria-hidden />
             </a>
             <a
-              href={`https://www.findabajobs.org/employers/${providerSlug}`}
+              href={`https://www.goodaba.com${getJobsEmployersPath(`/${providerSlug}`)}`}
               target="_blank"
               rel="noopener noreferrer"
               className="group flex items-center gap-2.5 rounded-lg px-2 py-2 text-xs text-zinc-600 transition-colors hover:bg-accent/50 hover:text-foreground dark:text-zinc-400"
             >
               <Briefcase className="h-3.5 w-3.5 shrink-0 text-[#10B981]" aria-hidden />
-              <span className="flex-1 truncate">findabajobs.org</span>
+              <span className="flex-1 truncate">goodaba.com/jobs</span>
               <ExternalLink className="h-3 w-3 shrink-0 text-muted-foreground/40 transition-colors group-hover:text-muted-foreground" aria-hidden />
             </a>
           </div>

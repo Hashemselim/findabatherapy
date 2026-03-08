@@ -5,7 +5,7 @@ import { JobsHeader } from "@/components/jobs/jobs-header";
 import { JobsFooter } from "@/components/jobs/jobs-footer";
 import { jobsConfig } from "@/config/jobs";
 
-const BASE_URL = "https://www.findabajobs.org";
+const BASE_URL = "https://www.goodaba.com";
 
 export const metadata: Metadata = {
   title: {
@@ -41,8 +41,8 @@ export const metadata: Metadata = {
     images: [
       `${BASE_URL}/api/og?brand=jobs&title=${encodeURIComponent(jobsConfig.name)}&subtitle=${encodeURIComponent(jobsConfig.tagline)}`,
     ],
-    creator: "@findabajobs",
-    site: "@findabajobs",
+    creator: "@goodaba",
+    site: "@goodaba",
   },
   other: {
     "theme-color": "#10B981",

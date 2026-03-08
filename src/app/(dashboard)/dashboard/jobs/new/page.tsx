@@ -64,7 +64,7 @@ export default async function NewJobPage() {
           <CardContent className="space-y-4">
             <p className="text-sm text-amber-800">
               {effectivePlanTier === "free"
-                ? "Preview accounts cannot post real jobs. Go Live to publish jobs on FindABAJobs.org."
+                ? "Preview accounts cannot post real jobs. Go Live to publish jobs on GoodABA Jobs."
                 : `You&apos;ve used ${limits.count} of ${limits.limit} job postings. Add more capacity from billing to publish another one.`}
             </p>
             <Button asChild>
@@ -90,7 +90,7 @@ export default async function NewJobPage() {
         <div>
           <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">New Job Posting</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Create a new job listing on findabajobs.org
+            Create a new job listing on GoodABA Jobs
           </p>
         </div>
       </div>

@@ -6,6 +6,7 @@ import { ArrowLeft } from "lucide-react";
 import { getProviderWebsiteData } from "@/lib/actions/provider-website";
 import { FAQSearch } from "@/components/content/faq-search";
 import { FAQ_CATEGORIES } from "@/lib/content/faq";
+import { getProviderWebsitePath } from "@/lib/utils/public-paths";
 
 type FaqPageProps = {
   params: Promise<{ slug: string }>;
@@ -43,7 +44,7 @@ export default async function WebsiteFaqPage({ params }: FaqPageProps) {
     <section className="py-12 sm:py-16 lg:py-20">
       <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
         <Link
-          href={`/site/${slug}/resources`}
+          href={getProviderWebsitePath(slug, "/resources")}
           className="mb-6 inline-flex items-center gap-2 text-sm font-medium transition-colors hover:opacity-80"
           style={{ color: brandColor }}
         >

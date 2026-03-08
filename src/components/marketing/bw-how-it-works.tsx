@@ -82,12 +82,12 @@ export function BwHowItWorks() {
         <BwMotion variant="fade-up" delay={0.4}>
           <div className="mt-10 flex justify-center">
             <Link
-              href="/behaviorwork/get-started"
+              href="/pricing"
               onClick={() =>
                 trackBehaviorWorkCtaClick({
                   section: "how_it_works",
                   ctaLabel: "Get Started Free",
-                  destination: "/behaviorwork/get-started",
+                  destination: "/pricing",
                 })
               }
               className="inline-flex h-12 items-center justify-center rounded-full bg-[#FFDC33] px-8 text-sm font-extrabold text-[#1A2744] shadow-md shadow-amber-200/40 transition-all hover:bg-[#F5CF1B] hover:shadow-lg hover:shadow-amber-200/50 active:scale-[0.97]"

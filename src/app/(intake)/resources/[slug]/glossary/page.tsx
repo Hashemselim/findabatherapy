@@ -3,6 +3,7 @@ import { ArrowLeft } from "lucide-react";
 
 import { GlossarySearch } from "@/components/content/glossary-search";
 import { GLOSSARY_TERMS } from "@/lib/content/glossary";
+import { getProviderResourcesPath } from "@/lib/utils/public-paths";
 
 type ResourcesGlossaryPageProps = {
   params: Promise<{ slug: string }>;
@@ -14,7 +15,7 @@ export default async function ResourcesGlossaryPage({ params }: ResourcesGlossar
   return (
     <div className="space-y-5">
       <Link
-        href={`/resources/${slug}`}
+        href={getProviderResourcesPath(slug)}
         className="inline-flex items-center gap-2 text-sm font-medium text-foreground hover:underline"
       >
         <ArrowLeft className="h-4 w-4" />

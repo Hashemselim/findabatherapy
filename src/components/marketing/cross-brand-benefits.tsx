@@ -28,7 +28,7 @@ const brandData = {
     domain: "findabatherapy.org",
   },
   jobs: {
-    name: "Find ABA Jobs",
+    name: "GoodABA Jobs",
     tagline: "Hire BCBAs, RBTs & behavior analysts",
     color: brandColors.jobs,
     icon: Briefcase,
@@ -39,8 +39,8 @@ const brandData = {
       "Applicant management dashboard",
     ],
     ctaText: "Learn more",
-    ctaHref: "/employers/post",
-    domain: "findabajobs.org",
+    ctaHref: "/jobs/employers/post",
+    domain: "goodaba.com/jobs",
   },
 };
 
@@ -64,7 +64,7 @@ export function CrossBrandBenefits({ currentBrand }: Props) {
             Also get full access to {other.name}
           </h2>
           <p className="mx-auto mt-3 max-w-xl text-muted-foreground">
-            Your Behavior Work account unlocks both platforms. {other.tagline}.
+            Your GoodABA account unlocks both platforms. {other.tagline}.
           </p>
         </header>
 

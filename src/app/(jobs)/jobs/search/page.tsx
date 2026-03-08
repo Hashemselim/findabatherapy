@@ -19,6 +19,7 @@ import {
   mapSearchPositionToDbTypes,
   getPositionLabel,
 } from "@/lib/search/job-filters";
+import { getJobsEmployersPath } from "@/lib/utils/public-paths";
 
 interface SearchPageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -45,7 +46,7 @@ export async function generateMetadata({ searchParams }: SearchPageProps): Promi
   // Get position label from unified position filter
   const positionLabel = filters.position ? getPositionLabel(filters.position) : null;
 
-  let title = "Find ABA Jobs";
+  let title = "GoodABA Jobs";
   let description = "Search ABA therapy jobs including BCBA, RBT, and behavior technician positions from top providers nationwide.";
 
   // Build title and description based on filters
@@ -78,7 +79,7 @@ export async function generateMetadata({ searchParams }: SearchPageProps): Promi
   title = `${title} | ${jobsConfig.name}`;
 
   // Build OG image URL for jobs brand
-  const ogImageUrl = `https://www.findabajobs.org/api/og?brand=jobs&title=${encodeURIComponent(title.replace(` | ${jobsConfig.name}`, ''))}&subtitle=${encodeURIComponent(description.slice(0, 80))}`;
+  const ogImageUrl = `https://www.goodaba.com/api/og?brand=jobs&title=${encodeURIComponent(title.replace(` | ${jobsConfig.name}`, ""))}&subtitle=${encodeURIComponent(description.slice(0, 80))}`;
 
   return {
     title,
@@ -420,7 +421,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
             Post your ABA jobs and reach thousands of qualified candidates.
           </p>
           <Button asChild className="mt-4 bg-emerald-600 text-white hover:bg-emerald-700">
-            <Link href="/employers/post" className="gap-2">
+            <Link href={getJobsEmployersPath("/post")} className="gap-2">
               Post a Job Free
               <ArrowRight className="h-4 w-4" />
             </Link>

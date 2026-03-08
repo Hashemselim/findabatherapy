@@ -7,6 +7,7 @@ import { BubbleBackground } from "@/components/ui/bubble-background";
 import { BrandedPageCard } from "@/components/dashboard/branded-page-card";
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
 import { getProfile, createClient } from "@/lib/supabase/server";
+import { getProviderContactPath } from "@/lib/utils/public-paths";
 
 export default async function ContactFormPage() {
   const profile = await getProfile();
@@ -35,7 +36,7 @@ export default async function ContactFormPage() {
       <BrandedPageCard
         title="Client Contact Form"
         sentence="Capture new family inquiries with a fast, low-friction first step."
-        relativePath={`/contact/${listingSlug}`}
+        relativePath={getProviderContactPath(listingSlug)}
         iconName="contact"
         defaultExpanded
         howItWorks={[

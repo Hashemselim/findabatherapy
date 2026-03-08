@@ -15,16 +15,16 @@ const footerLinks = [
   {
     title: "By Position",
     links: [
-      { label: "BCBA Jobs", href: "/bcba-jobs" },
-      { label: "RBT Jobs", href: "/rbt-jobs" },
-      { label: "BCaBA Jobs", href: "/bcaba-jobs" },
-      { label: "Clinical Director", href: "/clinical-director-jobs" },
+      { label: "BCBA Jobs", href: "/jobs/role/bcba" },
+      { label: "RBT Jobs", href: "/jobs/role/rbt" },
+      { label: "BCaBA Jobs", href: "/jobs/role/bcaba" },
+      { label: "Clinical Director", href: "/jobs/role/clinical-director" },
     ],
   },
   {
     title: "Employers",
     links: [
-      { label: "Post a Job", href: "/employers/post" },
+      { label: "Post a Job", href: "/jobs/employers/post" },
       { label: "Sign in", href: "/auth/sign-in" },
       { label: "Dashboard", href: "/dashboard/jobs" },
     ],
@@ -82,7 +82,7 @@ const POSITION_SLUG_MAP: Record<string, string> = {
 // Position types for SEO
 const positionLinks = POSITION_TYPES.slice(0, 6).map((type) => ({
   label: `${type.label} Jobs`,
-  href: `/${POSITION_SLUG_MAP[type.value] || type.value}-jobs`,
+  href: `/jobs/role/${POSITION_SLUG_MAP[type.value] || type.value}`,
 }));
 
 export function JobsFooter() {

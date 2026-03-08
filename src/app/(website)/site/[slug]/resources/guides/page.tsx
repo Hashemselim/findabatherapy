@@ -6,6 +6,7 @@ import { ArrowLeft, ArrowRight, Clock } from "lucide-react";
 import { getProviderWebsiteData } from "@/lib/actions/provider-website";
 import { Badge } from "@/components/ui/badge";
 import { getFeaturedArticles } from "@/lib/content/articles";
+import { getProviderWebsitePath } from "@/lib/utils/public-paths";
 
 type GuidesPageProps = {
   params: Promise<{ slug: string }>;
@@ -44,7 +45,7 @@ export default async function WebsiteGuidesPage({ params }: GuidesPageProps) {
     <section className="py-12 sm:py-16 lg:py-20">
       <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
         <Link
-          href={`/site/${slug}/resources`}
+          href={getProviderWebsitePath(slug, "/resources")}
           className="mb-6 inline-flex items-center gap-2 text-sm font-medium transition-colors hover:opacity-80"
           style={{ color: brandColor }}
         >
@@ -66,7 +67,7 @@ export default async function WebsiteGuidesPage({ params }: GuidesPageProps) {
           {guides.map((guide) => (
             <Link
               key={guide.slug}
-              href={`/site/${slug}/resources/guides/${guide.slug}`}
+              href={getProviderWebsitePath(slug, `/resources/guides/${guide.slug}`)}
               className="group"
             >
               <div className="h-full rounded-2xl border border-gray-100 bg-white p-6 shadow-sm transition-all hover:border-gray-200 hover:shadow-md">

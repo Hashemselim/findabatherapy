@@ -165,7 +165,7 @@ export const PLAN_CONFIGS: Record<PlanTier, PlanConfig> = {
       "Unlimited CRM clients",
       "Communication templates & automation",
       "Up to 10 locations",
-      "Up to 10 job postings on FindABAJobs.org",
+      "Up to 10 job postings on GoodABA Jobs",
       "Full task management & reminders",
       "Analytics dashboard",
       "Priority search placement",

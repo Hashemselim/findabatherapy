@@ -7,6 +7,7 @@ import { BubbleBackground } from "@/components/ui/bubble-background";
 import { BrandedPageCard } from "@/components/dashboard/branded-page-card";
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
 import { getProfile, createClient } from "@/lib/supabase/server";
+import { getProviderBrochurePath } from "@/lib/utils/public-paths";
 
 export default async function AgencyBrochurePage() {
   const profile = await getProfile();
@@ -35,7 +36,7 @@ export default async function AgencyBrochurePage() {
       <BrandedPageCard
         title="Branded Agency Page"
         sentence="Your shareable agency page for referral partners, doctors, and families."
-        relativePath={`/p/${listingSlug}`}
+        relativePath={getProviderBrochurePath(listingSlug)}
         iconName="agency"
         defaultExpanded
         howItWorks={[

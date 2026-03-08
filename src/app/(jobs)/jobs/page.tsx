@@ -14,38 +14,39 @@ import { POSITION_TYPES } from "@/lib/validations/jobs";
 import { jobsConfig } from "@/config/jobs";
 import { JsonLd } from "@/components/seo/json-ld";
 import { JobSearchForm } from "@/components/jobs/job-search-form";
+import { getJobsEmployersPath } from "@/lib/utils/public-paths";
 
-const BASE_URL = "https://www.findabajobs.org";
+const BASE_URL = "https://www.goodaba.com";
 
 export const metadata: Metadata = {
-  title: "Find ABA Jobs - BCBA, RBT & Behavior Analyst Careers | Find ABA Jobs",
+  title: "GoodABA Jobs - BCBA, RBT & Behavior Analyst Careers | GoodABA Jobs",
   description:
     "Search thousands of BCBA, RBT, and behavior technician jobs from top ABA therapy providers nationwide. Filter by location, salary, and position type to find your perfect ABA career.",
   alternates: {
     canonical: "/",
   },
   openGraph: {
-    title: "Find ABA Jobs - BCBA, RBT & Behavior Analyst Careers",
+    title: "GoodABA Jobs - BCBA, RBT & Behavior Analyst Careers",
     description:
       "Search thousands of ABA therapy jobs from top providers nationwide. Find BCBA, RBT, and behavior technician positions near you.",
     url: BASE_URL,
     type: "website",
     images: [
       {
-        url: `${BASE_URL}/api/og?brand=jobs&title=${encodeURIComponent("Find ABA Jobs")}&subtitle=${encodeURIComponent("BCBA, RBT & Behavior Analyst Careers")}`,
+        url: `${BASE_URL}/api/og?brand=jobs&title=${encodeURIComponent("GoodABA Jobs")}&subtitle=${encodeURIComponent("BCBA, RBT & Behavior Analyst Careers")}`,
         width: 1200,
         height: 630,
-        alt: "Find ABA Jobs",
+        alt: "GoodABA Jobs",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Find ABA Jobs - BCBA, RBT & Behavior Analyst Careers",
+    title: "GoodABA Jobs - BCBA, RBT & Behavior Analyst Careers",
     description:
       "Search thousands of ABA therapy jobs from top providers nationwide. Find your perfect ABA career today.",
     images: [
-      `${BASE_URL}/api/og?brand=jobs&title=${encodeURIComponent("Find ABA Jobs")}&subtitle=${encodeURIComponent("BCBA, RBT & Behavior Analyst Careers")}`,
+      `${BASE_URL}/api/og?brand=jobs&title=${encodeURIComponent("GoodABA Jobs")}&subtitle=${encodeURIComponent("BCBA, RBT & Behavior Analyst Careers")}`,
     ],
   },
 };
@@ -323,7 +324,7 @@ export default async function JobsHomePage() {
                   </div>
                   <div>
                     <p className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Explore by location</p>
-                    <h2 className="mt-1 text-3xl font-semibold">Find ABA Jobs Near You</h2>
+                    <h2 className="mt-1 text-3xl font-semibold">GoodABA Jobs Near You</h2>
                     <p className="mt-2 text-muted-foreground">Browse jobs in every state or jump directly to your region.</p>
                   </div>
                 </div>
@@ -378,7 +379,7 @@ export default async function JobsHomePage() {
                 asChild
                 className="group/btn shrink-0 rounded-full bg-emerald-600 px-8 py-5 text-base font-semibold text-white shadow-[0_4px_14px_rgba(16,185,129,0.3)] transition-all duration-300 ease-premium hover:-translate-y-[2px] hover:bg-emerald-700 hover:shadow-[0_8px_20px_rgba(16,185,129,0.4)] active:translate-y-0 active:shadow-[0_2px_8px_rgba(16,185,129,0.2)]"
               >
-                <Link href="/employers/post">
+                <Link href={getJobsEmployersPath("/post")}>
                   Post a Job Free
                   <ArrowRight className="ml-2 h-4 w-4 transition-transform duration-300 ease-bounce-sm group-hover/btn:translate-x-0.5" />
                 </Link>

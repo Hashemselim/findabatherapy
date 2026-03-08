@@ -14,6 +14,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { getJobsEmployersPath } from "@/lib/utils/public-paths";
 
 interface JobsHeaderClientProps {
   isLoggedIn: boolean;
@@ -32,7 +33,7 @@ export function JobsHeaderClient({ isLoggedIn, primaryNav }: JobsHeaderClientPro
           size="sm"
           className="rounded-full border border-emerald-600 bg-emerald-600 px-4 text-sm font-medium text-white hover:bg-emerald-700"
         >
-          <Link href="/employers/post">Post a Job</Link>
+          <Link href={getJobsEmployersPath("/post")}>Post a Job</Link>
         </Button>
         {isLoggedIn ? (
           <Button asChild variant="outline" size="sm" className="rounded-full px-4 text-sm font-medium">
@@ -84,7 +85,7 @@ export function JobsHeaderClient({ isLoggedIn, primaryNav }: JobsHeaderClientPro
                   asChild
                   className="rounded-full border border-emerald-600 bg-emerald-600 text-base font-medium text-white hover:bg-emerald-700"
                 >
-                  <Link href="/employers/post">Post a Job</Link>
+                  <Link href={getJobsEmployersPath("/post")}>Post a Job</Link>
                 </Button>
               </SheetClose>
               {isLoggedIn ? (

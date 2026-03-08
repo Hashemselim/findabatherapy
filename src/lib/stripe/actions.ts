@@ -7,7 +7,7 @@ import { headers } from "next/headers";
 import { stripe } from "@/lib/stripe";
 import { createClient, createAdminClient, getUser } from "@/lib/supabase/server";
 import { CHECKOUT_URLS, BILLING_PORTAL_CONFIG, getPriceId, getFeaturedPriceId, type BillingInterval } from "./config";
-import { getValidatedOrigin } from "@/lib/utils/domains";
+import { getRequestOrigin, getValidatedOrigin } from "@/lib/utils/domains";
 
 type ActionResult<T = void> =
   | { success: true; data?: T }
@@ -60,7 +60,7 @@ export async function createCheckoutSession(
   }
 
   const headersList = await headers();
-  const origin = headersList.get("origin") || process.env.NEXT_PUBLIC_SITE_URL;
+  const origin = getRequestOrigin(headersList, "goodaba");
 
   try {
     // Create or retrieve Stripe customer

@@ -13,6 +13,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { EmployerListItem } from "@/lib/queries/jobs";
+import { getJobsEmployersPath } from "@/lib/utils/public-paths";
 
 interface EmployerCardProps {
   employer: EmployerListItem;
@@ -32,7 +33,7 @@ export function EmployerCard({ employer, index }: EmployerCardProps) {
     : null;
 
   return (
-    <Link href={`/employers/${employer.slug}`} className="group block">
+    <Link href={getJobsEmployersPath(`/${employer.slug}`)} className="group block">
       <Card
         className={`h-full border transition-all duration-300 ease-premium hover:-translate-y-[2px] hover:border-emerald-500/30 hover:shadow-[0_8px_30px_rgba(16,185,129,0.1)] ${
           employer.isVerified

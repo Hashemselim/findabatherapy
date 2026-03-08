@@ -41,6 +41,7 @@ import { generateJobsSiteOrganizationSchema } from "@/lib/seo/job-schemas";
 import { getVideoEmbedUrl } from "@/lib/storage/config";
 import { brandColors } from "@/config/brands";
 import type { PlanTier } from "@/lib/plans/features";
+import { getJobsEmployersPath } from "@/lib/utils/public-paths";
 
 interface EmployerPageProps {
   params: Promise<{ slug: string }>;
@@ -208,7 +209,7 @@ export async function generateMetadata({ params }: EmployerPageProps): Promise<M
 
   if (!employer) {
     return {
-      title: "Employer Not Found | Find ABA Jobs",
+      title: "Employer Not Found | GoodABA Jobs",
     };
   }
 
@@ -217,7 +218,7 @@ export async function generateMetadata({ params }: EmployerPageProps): Promise<M
 
   const title = locationStr
     ? `${employer.agencyName} Careers | ABA Jobs in ${locationStr}`
-    : `${employer.agencyName} Careers | Find ABA Jobs`;
+    : `${employer.agencyName} Careers | GoodABA Jobs`;
 
   const description = employer.headline
     ? `Explore career opportunities at ${employer.agencyName}. ${employer.headline}`
@@ -234,7 +235,7 @@ export async function generateMetadata({ params }: EmployerPageProps): Promise<M
   if (employer.logoUrl) {
     ogParams.set("logo", employer.logoUrl);
   }
-  const ogImageUrl = `https://www.findabajobs.org/api/og?${ogParams.toString()}`;
+  const ogImageUrl = `https://www.goodaba.com/api/og?${ogParams.toString()}`;
 
   return {
     title,
@@ -258,7 +259,7 @@ export async function generateMetadata({ params }: EmployerPageProps): Promise<M
       images: [ogImageUrl],
     },
     alternates: {
-      canonical: `/employers/${slug}`,
+      canonical: `/jobs/employers/${slug}`,
     },
   };
 }
@@ -282,8 +283,8 @@ export default async function EmployerPage({ params }: EmployerPageProps) {
 
   // Build breadcrumb items
   const breadcrumbItems = [
-    { label: "Employers", href: "/employers" },
-    { label: employer.agencyName, href: `/employers/${employer.slug}` },
+    { label: "Employers", href: "/jobs/employers" },
+    { label: employer.agencyName, href: getJobsEmployersPath(`/${employer.slug}`) },
   ];
 
   return (

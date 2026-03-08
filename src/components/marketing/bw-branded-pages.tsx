@@ -39,7 +39,7 @@ const slides: Slide[] = [
     description:
       "A branded inquiry form families fill out in under 60 seconds.",
     color: "#5788FF",
-    urlBar: "findabatherapy.org/contact/your-agency",
+    urlBar: "goodaba.com/provider/your-agency/contact",
   },
   {
     icon: ClipboardList,
@@ -48,7 +48,7 @@ const slides: Slide[] = [
     description:
       "Collect child details, parent info, insurance, and availability before the first call.",
     color: "#FFDC33",
-    urlBar: "findabatherapy.org/intake/your-agency",
+    urlBar: "goodaba.com/provider/your-agency/intake",
   },
   {
     icon: Building2,
@@ -57,7 +57,7 @@ const slides: Slide[] = [
     description:
       "A public-facing page with your logo, locations, services, photos, and a direct CTA.",
     color: "#8B5CF6",
-    urlBar: "findabatherapy.org/p/your-agency",
+    urlBar: "goodaba.com/provider/your-agency",
   },
   {
     icon: BookOpen,
@@ -66,7 +66,7 @@ const slides: Slide[] = [
     description:
       "FAQ, ABA glossary, and parent guides branded to your agency.",
     color: "#F59E0B",
-    urlBar: "findabatherapy.org/resources/your-agency",
+    urlBar: "goodaba.com/provider/your-agency/resources",
   },
   {
     icon: Briefcase,
@@ -75,7 +75,7 @@ const slides: Slide[] = [
     description:
       "A branded job board for your agency. List BCBA and RBT positions.",
     color: "#10B981",
-    urlBar: "findabajobs.org/careers/your-agency",
+    urlBar: "goodaba.com/provider/your-agency/careers",
   },
   {
     icon: Mail,
@@ -84,7 +84,7 @@ const slides: Slide[] = [
     description:
       "22 email templates with your agency name, logo, and merge fields — sent automatically at every stage.",
     color: "#5788FF",
-    urlBar: "sent via BehaviorWork",
+    urlBar: "sent via GoodABA",
   },
 ];
 

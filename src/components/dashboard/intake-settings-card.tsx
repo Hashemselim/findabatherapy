@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { updateIntakeFormSettings, type IntakeFormSettings } from "@/lib/actions/intake";
+import { getProviderContactPath } from "@/lib/utils/public-paths";
 
 const COLOR_PRESETS = [
   { name: "Blue", value: "#5788FF" },
@@ -39,8 +40,8 @@ export function IntakeSettingsCard({
   );
 
   const contactUrl = typeof window !== "undefined"
-    ? `${window.location.origin}/contact/${listingSlug}`
-    : `/contact/${listingSlug}`;
+    ? `${window.location.origin}${getProviderContactPath(listingSlug)}`
+    : getProviderContactPath(listingSlug);
 
   const handleColorChange = (color: string) => {
     setSettings((prev) => ({ ...prev, background_color: color }));

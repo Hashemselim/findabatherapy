@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { getListingSlug } from "@/lib/actions/listings";
 import { getCurrentPlanTier } from "@/lib/plans/guards";
+import { getProviderBrochurePath } from "@/lib/utils/public-paths";
 import { CopyUrlButton } from "./copy-url-button";
 
 export default async function BrandedPageManagement() {
@@ -15,7 +16,9 @@ export default async function BrandedPageManagement() {
   ]);
 
   const isPremium = planTier === "pro";
-  const brandedPageUrl = slug ? `https://www.findabatherapy.org/p/${slug}` : null;
+  const brandedPageUrl = slug
+    ? `https://www.goodaba.com${getProviderBrochurePath(slug)}`
+    : null;
 
   return (
     <div className="space-y-6">
@@ -78,13 +81,13 @@ export default async function BrandedPageManagement() {
               {/* Action Buttons */}
               <div className="flex flex-wrap gap-3">
                 <Button asChild variant="outline">
-                  <Link href={`/p/${slug}`} target="_blank">
+                  <Link href={getProviderBrochurePath(slug)} target="_blank">
                     <Eye className="mr-2 h-4 w-4" />
                     Preview Page
                   </Link>
                 </Button>
                 <Button asChild variant="outline">
-                  <a href={`/p/${slug}`} target="_blank" rel="noopener noreferrer">
+                  <a href={getProviderBrochurePath(slug)} target="_blank" rel="noopener noreferrer">
                     <ExternalLink className="mr-2 h-4 w-4" />
                     Open in New Tab
                   </a>

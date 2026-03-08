@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowRight, BookOpen, FileQuestion, GraduationCap } from "lucide-react";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { getProviderResourcesPath } from "@/lib/utils/public-paths";
 
 type ResourcesHubPageProps = {
   params: Promise<{ slug: string }>;
@@ -13,21 +14,21 @@ const cards = [
     title: "Frequently Asked Questions",
     description: "Quick answers to common parent questions.",
     icon: FileQuestion,
-    href: (slug: string) => `/resources/${slug}/faq`,
+    href: (slug: string) => getProviderResourcesPath(slug, "/faq"),
   },
   {
     key: "glossary",
     title: "ABA Glossary",
     description: "Simple definitions of common ABA terms.",
     icon: BookOpen,
-    href: (slug: string) => `/resources/${slug}/glossary`,
+    href: (slug: string) => getProviderResourcesPath(slug, "/glossary"),
   },
   {
     key: "guides",
     title: "Featured Guides",
     description: "Step-by-step guides for families.",
     icon: GraduationCap,
-    href: (slug: string) => `/resources/${slug}/guides`,
+    href: (slug: string) => getProviderResourcesPath(slug, "/guides"),
   },
 ] as const;
 

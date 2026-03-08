@@ -5,6 +5,7 @@ import { BookOpen, Check, Copy, ExternalLink, GraduationCap, Link2, Search, Shar
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { getProviderResourcesPath } from "@/lib/utils/public-paths";
 
 interface ClientResourcesShareCardProps {
   listingSlug: string;
@@ -12,10 +13,14 @@ interface ClientResourcesShareCardProps {
 
 export function ClientResourcesShareCard({ listingSlug }: ClientResourcesShareCardProps) {
   const [copied, setCopied] = useState(false);
-  const [resourcesUrl, setResourcesUrl] = useState(`/resources/${listingSlug}`);
+  const [resourcesUrl, setResourcesUrl] = useState(
+    getProviderResourcesPath(listingSlug)
+  );
 
   useEffect(() => {
-    setResourcesUrl(`${window.location.origin}/resources/${listingSlug}`);
+    setResourcesUrl(
+      `${window.location.origin}${getProviderResourcesPath(listingSlug)}`
+    );
   }, [listingSlug]);
 
   const handleCopyLink = async () => {

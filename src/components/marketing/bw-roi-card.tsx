@@ -63,7 +63,7 @@ export function BwRoiCard() {
 
             <div className="relative">
               <h2 className="text-center text-2xl font-extrabold tracking-tight text-white sm:text-3xl lg:text-4xl">
-                One new client pays for BehaviorWork for{" "}
+                One new client pays for GoodABA for{" "}
                 <span className="text-[#FFDC33]">63 years</span>.
               </h2>
 
@@ -77,7 +77,7 @@ export function BwRoiCard() {
                 <RoiMetric
                   end={948}
                   prefix="$"
-                  label="BehaviorWork Pro per year"
+                  label="GoodABA Pro per year"
                 />
                 <RoiMetric
                   end={63}
@@ -89,12 +89,12 @@ export function BwRoiCard() {
 
               <div className="mt-8 flex justify-center">
                 <Link
-                  href="/behaviorwork/get-started"
+                  href="/pricing"
                   onClick={() =>
                     trackBehaviorWorkCtaClick({
                       section: "roi",
                       ctaLabel: "Start Growing Your Caseload",
-                      destination: "/behaviorwork/get-started",
+                      destination: "/pricing",
                     })
                   }
                   className="group inline-flex h-12 items-center justify-center gap-2 rounded-full bg-[#FFDC33] px-7 text-sm font-bold text-[#1A2744] shadow-lg shadow-amber-500/20 transition-all hover:bg-[#F5CF1B] hover:shadow-xl hover:shadow-amber-500/25 active:scale-[0.97]"

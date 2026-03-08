@@ -28,6 +28,10 @@ import {
 } from "@/components/dashboard/overview";
 import { DashboardTracker } from "@/components/analytics/dashboard-tracker";
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
+import {
+  getProviderCareersPath,
+  getJobsEmployersPath,
+} from "@/lib/utils/public-paths";
 import { getListing } from "@/lib/actions/listings";
 import { getAnalyticsSummary } from "@/lib/actions/analytics";
 import { getUnreadInquiryCount } from "@/lib/actions/inquiries";
@@ -150,7 +154,7 @@ export default async function DashboardOverviewPage({
             <div>
               <p className="font-medium text-emerald-900">You&apos;re in.</p>
               <p className="text-sm text-emerald-800">
-                Your onboarding is complete. Your FindABATherapy presence is live, and the rest of your BehaviorWork dashboard is ready to use or preview based on your plan.
+                Your onboarding is complete. Your FindABATherapy presence is live, and the rest of your GoodABA dashboard is ready to use or preview based on your plan.
               </p>
             </div>
           </CardContent>
@@ -192,13 +196,13 @@ export default async function DashboardOverviewPage({
         links={[
           {
             label: "View Profile",
-            href: `/employers/${listing.slug}`,
+            href: getJobsEmployersPath(`/${listing.slug}`),
             icon: Eye,
             external: true,
           },
           {
             label: "Career Page",
-            href: `/careers/${listing.slug}`,
+            href: getProviderCareersPath(listing.slug),
             icon: Briefcase,
             external: true,
           },

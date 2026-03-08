@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient as createSupabaseClient, getUser } from "@/lib/supabase/server";
 import { guardCommunications } from "@/lib/plans/guards";
 import type { AgencyBrandingData } from "@/lib/email/email-helpers";
+import { getFromEmail } from "@/lib/utils/domains";
 
 // =============================================================================
 // TYPES
@@ -402,7 +403,7 @@ export async function sendCommunication(params: {
       const { agencyEmailWrapper } = await import("@/lib/email/email-helpers");
 
       const { error: resendError } = await resend.emails.send({
-        from: `${agencyData.agencyName} <noreply@behaviorwork.com>`,
+        from: `${agencyData.agencyName} <${getFromEmail("goodaba")}>`,
         to: params.recipientEmail,
         replyTo: agencyData.contactEmail || undefined,
         subject: params.subject,

@@ -26,6 +26,7 @@ import { createAdminClient } from "@/lib/supabase/server";
 import { POSITION_TYPES, EMPLOYMENT_TYPES, BENEFITS_OPTIONS } from "@/lib/validations/jobs";
 import { generateJobPostingSchema } from "@/lib/seo/job-schemas";
 import type { PlanTier } from "@/lib/plans/features";
+import { getProviderCareersPath } from "@/lib/utils/public-paths";
 
 interface BrandedJobPageProps {
   params: Promise<{ slug: string; jobSlug: string }>;
@@ -266,7 +267,7 @@ export default async function BrandedJobPage({ params }: BrandedJobPageProps) {
             style={{ backgroundColor: getLighterShade(brandColor, 0.08) }}
           >
             <Link
-              href={`/careers/${slug}`}
+              href={getProviderCareersPath(slug)}
               className="inline-flex items-center gap-2 text-sm transition-colors hover:opacity-80"
               style={{ color: brandColor }}
             >
@@ -538,7 +539,7 @@ export default async function BrandedJobPage({ params }: BrandedJobPageProps) {
                         asChild
                         style={{ borderColor: brandColor, color: brandColor }}
                       >
-                        <Link href={`/careers/${slug}`}>
+                        <Link href={getProviderCareersPath(slug)}>
                           View All Positions
                         </Link>
                       </Button>
@@ -576,7 +577,7 @@ export default async function BrandedJobPage({ params }: BrandedJobPageProps) {
                   </AvatarFallback>
                 </Avatar>
                 <Link
-                  href={`/careers/${slug}`}
+                  href={getProviderCareersPath(slug)}
                   className="text-sm font-medium text-foreground transition-colors"
                 >
                   {provider.agencyName} Careers

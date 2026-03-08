@@ -26,20 +26,20 @@ import { AlsoIncludedBadge } from "@/components/marketing/also-included-badge";
 import { cn } from "@/lib/utils";
 import { STRIPE_PLANS } from "@/lib/stripe/config";
 
-const BASE_URL = "https://www.findabajobs.org";
+const BASE_URL = "https://www.goodaba.com";
 
 export const metadata: Metadata = {
-  title: "Post ABA Jobs - Hire BCBAs, RBTs & Behavior Analysts | Find ABA Jobs",
+  title: "Post ABA Jobs - Hire BCBAs, RBTs & Behavior Analysts | GoodABA Jobs",
   description:
     "Post job openings and connect with qualified BCBAs, RBTs, and behavior analysts. Reach thousands of ABA professionals actively seeking opportunities.",
   alternates: {
-    canonical: "/employers/post",
+    canonical: "/jobs/employers/post",
   },
   openGraph: {
-    title: "Post ABA Jobs - Hire BCBAs, RBTs & Behavior Analysts",
+    title: "Post ABA Jobs - Hire BCBAs, RBTs & Behavior Analysts | GoodABA Jobs",
     description:
       "Post job openings and connect with qualified BCBAs, RBTs, and behavior analysts. Start hiring today.",
-    url: `${BASE_URL}/employers/post`,
+    url: `${BASE_URL}/jobs/employers/post`,
     type: "website",
     images: [
       {
@@ -52,7 +52,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Post ABA Jobs - Hire BCBAs, RBTs & Behavior Analysts",
+    title: "Post ABA Jobs - Hire BCBAs, RBTs & Behavior Analysts | GoodABA Jobs",
     description:
       "Post job openings and connect with qualified BCBAs, RBTs, and behavior analysts.",
     images: [

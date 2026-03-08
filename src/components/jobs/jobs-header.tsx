@@ -7,7 +7,7 @@ import { JobsHeaderClient } from "./jobs-header-client";
 
 const primaryNav = [
   { href: "/jobs/search", label: "Search Jobs" },
-  { href: "/employers", label: "Employers" },
+  { href: "/jobs/employers", label: "Employers" },
 ];
 
 export async function JobsHeader() {

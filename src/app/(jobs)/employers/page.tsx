@@ -16,21 +16,22 @@ import { EmployerCard } from "@/components/jobs/employer-card";
 import { EmployerSearch } from "@/components/jobs/employer-search";
 import { JsonLd } from "@/components/seo/json-ld";
 import { getAllEmployers, getTotalEmployerCount } from "@/lib/queries/jobs";
+import { getJobsEmployersPath } from "@/lib/utils/public-paths";
 
-const BASE_URL = "https://www.findabajobs.org";
+const BASE_URL = "https://www.goodaba.com";
 
 export const metadata: Metadata = {
-  title: "ABA Therapy Employers - Browse Companies Hiring | Find ABA Jobs",
+  title: "ABA Therapy Employers - Browse Companies Hiring | GoodABA Jobs",
   description:
     "Browse ABA therapy employers and providers hiring BCBA, RBT, and behavior analyst professionals. Find companies with open positions and learn about their culture, locations, and benefits.",
   alternates: {
-    canonical: "/employers",
+    canonical: "/jobs/employers",
   },
   openGraph: {
     title: "ABA Therapy Employers - Browse Companies Hiring",
     description:
       "Browse ABA therapy employers and providers hiring BCBA, RBT, and behavior analyst professionals. Find your next employer today.",
-    url: `${BASE_URL}/employers`,
+    url: `${BASE_URL}/jobs/employers`,
     type: "website",
     images: [
       {
@@ -90,7 +91,7 @@ export default async function EmployersPage({ searchParams }: EmployersPageProps
       item: {
         "@type": "Organization",
         name: employer.agencyName,
-        url: `${BASE_URL}/employers/${employer.slug}`,
+        url: `${BASE_URL}/jobs/employers/${employer.slug}`,
         ...(employer.logoUrl && { logo: employer.logoUrl }),
       },
     })),
@@ -237,7 +238,7 @@ export default async function EmployersPage({ searchParams }: EmployersPageProps
                         different search term or browse all employers.
                       </p>
                       <Button asChild className="mt-6 rounded-full" variant="outline">
-                        <Link href="/employers">View All Employers</Link>
+                        <Link href="/jobs/employers">View All Employers</Link>
                       </Button>
                     </>
                   ) : hiringOnly ? (
@@ -248,7 +249,7 @@ export default async function EmployersPage({ searchParams }: EmployersPageProps
                         browse all ABA therapy providers.
                       </p>
                       <Button asChild className="mt-6 rounded-full" variant="outline">
-                        <Link href="/employers">View All Employers</Link>
+                        <Link href="/jobs/employers">View All Employers</Link>
                       </Button>
                     </>
                   ) : (
@@ -302,7 +303,7 @@ export default async function EmployersPage({ searchParams }: EmployersPageProps
                 asChild
                 className="group/btn shrink-0 rounded-full bg-emerald-600 px-8 py-5 text-base font-semibold text-white shadow-[0_4px_14px_rgba(16,185,129,0.3)] transition-all duration-300 ease-premium hover:-translate-y-[2px] hover:bg-emerald-700 hover:shadow-[0_8px_20px_rgba(16,185,129,0.4)] active:translate-y-0 active:shadow-[0_2px_8px_rgba(16,185,129,0.2)]"
               >
-                <Link href="/employers/post">
+                <Link href={getJobsEmployersPath("/post")}>
                   Post a Job Free
                   <ArrowRight className="ml-2 h-4 w-4 transition-transform duration-300 ease-bounce-sm group-hover/btn:translate-x-0.5" />
                 </Link>

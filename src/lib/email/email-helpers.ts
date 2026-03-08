@@ -6,9 +6,7 @@
  */
 
 import { behaviorWorkLogoHtml } from "@/components/brand/behaviorwork-logo";
-import {
-  getSiteUrl as getSafeUrl,
-} from "@/lib/utils/domains";
+import { domains, getSiteUrl as getSafeUrl, getSupportEmail } from "@/lib/utils/domains";
 
 // Brand colors (shared with notifications.ts)
 const BRAND = {
@@ -25,13 +23,31 @@ const BRAND = {
   border: "#e2e8f0",
 };
 
+type EmailWrapperBrandContext = "goodaba" | "therapy";
+
 /**
- * Branded email wrapper template
- * Wraps HTML content in a branded email layout with header, footer, and legal text.
+ * Branded email wrapper template.
+ * Defaults to GoodABA platform branding, with an opt-in therapy directory variant.
  */
-export function emailWrapper(content: string, options?: { preheader?: string }): string {
-  const siteUrl = getSafeUrl();
+export function emailWrapper(
+  content: string,
+  options?: { preheader?: string; brandContext?: EmailWrapperBrandContext }
+): string {
+  const brandContext = options?.brandContext ?? "goodaba";
+  const siteUrl =
+    brandContext === "therapy" ? domains.therapy.production : domains.goodaba.production;
+  const supportEmail = getSupportEmail("goodaba");
   const logoHtml = behaviorWorkLogoHtml({ fontSize: 28, color: "#ffffff" });
+  const headerContext =
+    brandContext === "therapy"
+      ? `Find ABA Therapy by <a href="https://www.goodaba.com" style="color: rgba(255,255,255,0.9); text-decoration: none;">GoodABA</a>`
+      : "GoodABA";
+  const footerCta =
+    brandContext === "therapy" ? "Visit FindABATherapy.org" : "Visit GoodABA";
+  const footerDescription =
+    brandContext === "therapy"
+      ? "GoodABA helps families connect with trusted ABA therapy providers."
+      : "GoodABA helps ABA providers manage growth, branded pages, and hiring in one place.";
 
   return `
 <!DOCTYPE html>
@@ -40,7 +56,7 @@ export function emailWrapper(content: string, options?: { preheader?: string }):
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <title>BehaviorWork</title>
+  <title>GoodABA</title>
   <!--[if mso]>
   <noscript>
     <xml>
@@ -62,11 +78,11 @@ export function emailWrapper(content: string, options?: { preheader?: string }):
         <!-- Email container -->
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="max-width: 600px; width: 100%;">
 
-          <!-- Header: BehaviorWork logo + via findabatherapy.org -->
+          <!-- Header: GoodABA logo + Find ABA Therapy context -->
           <tr>
             <td style="background-color: ${BRAND.primary}; border-radius: 12px 12px 0 0; padding: 20px 32px; text-align: center;">
               ${logoHtml}
-              <p style="margin: 8px 0 0 0; font-size: 12px; color: rgba(255,255,255,0.75);">via <a href="${siteUrl}" style="color: rgba(255,255,255,0.9); text-decoration: none;">findabatherapy.org</a></p>
+              <p style="margin: 8px 0 0 0; font-size: 12px; color: rgba(255,255,255,0.75);">${headerContext}</p>
             </td>
           </tr>
 
@@ -83,13 +99,13 @@ export function emailWrapper(content: string, options?: { preheader?: string }):
               <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
                 <tr>
                   <td align="center" style="padding-bottom: 16px;">
-                    <a href="${siteUrl}" style="color: ${BRAND.primary}; text-decoration: none; font-weight: 600; font-size: 14px;">Visit FindABATherapy.org</a>
+                    <a href="${siteUrl}" style="color: ${BRAND.primary}; text-decoration: none; font-weight: 600; font-size: 14px;">${footerCta}</a>
                   </td>
                 </tr>
                 <tr>
                   <td align="center" style="color: ${BRAND.textLight}; font-size: 12px; line-height: 1.5;">
-                    <p style="margin: 0 0 8px 0;">BehaviorWork helps families connect with trusted ABA therapy providers.</p>
-                    <p style="margin: 0;">Questions? Contact us at <a href="mailto:support@findabatherapy.org" style="color: ${BRAND.primary}; text-decoration: none;">support@findabatherapy.org</a></p>
+                    <p style="margin: 0 0 8px 0;">${footerDescription}</p>
+                    <p style="margin: 0;">Questions? Contact us at <a href="mailto:${supportEmail}" style="color: ${BRAND.primary}; text-decoration: none;">${supportEmail}</a></p>
                   </td>
                 </tr>
               </table>
@@ -102,7 +118,7 @@ export function emailWrapper(content: string, options?: { preheader?: string }):
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="max-width: 600px; width: 100%;">
           <tr>
             <td align="center" style="padding: 24px 20px; color: ${BRAND.textLight}; font-size: 11px; line-height: 1.5;">
-              <p style="margin: 0;">&copy; ${new Date().getFullYear()} BehaviorWork. All rights reserved.</p>
+              <p style="margin: 0;">&copy; ${new Date().getFullYear()} GoodABA. All rights reserved.</p>
               <p style="margin: 8px 0 0 0;">
                 <a href="${siteUrl}/legal/privacy" style="color: ${BRAND.textLight}; text-decoration: underline;">Privacy Policy</a>
                 &nbsp;&bull;&nbsp;
@@ -250,7 +266,7 @@ export function agencyEmailWrapper(
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="max-width: 600px; width: 100%;">
           <tr>
             <td align="center" style="padding: 24px 20px; color: ${BRAND.textLight}; font-size: 11px; line-height: 1.5;">
-              <p style="margin: 0;">Powered by <a href="${siteUrl}" style="color: ${BRAND.textLight}; text-decoration: underline;">BehaviorWork</a></p>
+              <p style="margin: 0;">Powered by <a href="https://www.goodaba.com" style="color: ${BRAND.textLight}; text-decoration: underline;">GoodABA</a></p>
               <p style="margin: 8px 0 0 0;">
                 <a href="${siteUrl}/legal/privacy" style="color: ${BRAND.textLight}; text-decoration: underline;">Privacy Policy</a>
                 &nbsp;&bull;&nbsp;

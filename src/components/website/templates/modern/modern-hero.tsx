@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ChevronRight, CheckCircle2, Sparkles } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { getProviderWebsitePath } from "@/lib/utils/public-paths";
 import { useWebsite } from "../../layout/website-provider";
 
 function getLighterShade(hexColor: string, opacity: number) {
@@ -14,7 +15,7 @@ function getLighterShade(hexColor: string, opacity: number) {
 
 export function ModernHero() {
   const { provider, brandColor, isPremium } = useWebsite();
-  const basePath = `/site/${provider.slug}`;
+  const basePath = getProviderWebsitePath(provider.slug);
   const ctaText = provider.websiteSettings.hero_cta_text || "Get Started";
 
   const primaryLocation =

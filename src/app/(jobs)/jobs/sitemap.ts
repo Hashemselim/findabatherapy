@@ -3,6 +3,7 @@ import type { MetadataRoute } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { STATE_NAMES } from "@/lib/data/cities";
 import { getBaseUrl } from "@/lib/utils/domains";
+import { getJobsEmployersPath, getJobsPostPath, getJobsRolePath } from "@/lib/utils/public-paths";
 
 // Use the jobs domain for sitemap URLs (safe - never returns localhost in production)
 const BASE_URL = getBaseUrl("jobs");
@@ -30,7 +31,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     .order("updated_at", { ascending: false });
 
   const jobPages: MetadataRoute.Sitemap = (jobs || []).map((job) => ({
-    url: `${BASE_URL}/job/${job.slug}`,
+    url: `${BASE_URL}${getJobsPostPath(job.slug)}`,
     lastModified: new Date(job.updated_at),
     changeFrequency: "weekly",
     priority: 0.7,
@@ -51,16 +52,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.9,
     },
     {
-      url: `${BASE_URL}/employers`,
+      url: `${BASE_URL}${getJobsEmployersPath()}`,
       lastModified: new Date(),
       changeFrequency: "weekly",
       priority: 0.9,
     },
   ];
 
-  // Position type pages (e.g., /bcba-jobs, /rbt-jobs)
+  // Position type pages under the GoodABA jobs namespace.
   const positionPages: MetadataRoute.Sitemap = POSITION_TYPES.map((position) => ({
-    url: `${BASE_URL}/${position}-jobs`,
+    url: `${BASE_URL}${getJobsRolePath(position)}`,
     lastModified: new Date(),
     changeFrequency: "daily" as const,
     priority: 0.95,
