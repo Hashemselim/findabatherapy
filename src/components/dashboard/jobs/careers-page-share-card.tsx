@@ -18,7 +18,6 @@ import { Button } from "@/components/ui/button";
 import { CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getProviderCareersPath } from "@/lib/utils/public-paths";
 import { DashboardCard, DashboardStatusBadge } from "@/components/dashboard/ui";
-import { DashboardCard, DashboardStatusBadge } from "@/components/dashboard/ui";
 
 interface CareersPageShareCardProps {
   listingSlug: string;

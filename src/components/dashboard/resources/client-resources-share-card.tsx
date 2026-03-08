@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getProviderResourcesPath } from "@/lib/utils/public-paths";
 import { DashboardCard } from "@/components/dashboard/ui";
-import { DashboardCard } from "@/components/dashboard/ui";
 
 interface ClientResourcesShareCardProps {
   listingSlug: string;
