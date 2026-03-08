@@ -22,6 +22,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { DashboardTracker } from "@/components/analytics/dashboard-tracker";
+import { PipelineQuickActions } from "@/components/dashboard/clients/pipeline-quick-actions";
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
 import {
   DashboardCard,
@@ -33,6 +34,7 @@ import {
 import { PreviewBanner } from "@/components/ui/preview-banner";
 import { PreviewOverlay } from "@/components/ui/preview-overlay";
 import { getProfile } from "@/lib/supabase/server";
+import { getClientsList } from "@/lib/actions/clients";
 import { getPipelineData } from "@/lib/actions/pipeline";
 import { runTaskAutomation } from "@/lib/actions/task-automation";
 import { getCurrentPlanFeatures, getCurrentPlanTier } from "@/lib/plans/guards";
@@ -127,6 +129,8 @@ export default async function PipelinePage() {
   const counts = pipelineData?.counts ?? {};
   const attentionItems = pipelineData?.attentionItems ?? [];
   const recentActivity = pipelineData?.recentActivity ?? [];
+  const clientsResult = isPreview ? null : await getClientsList();
+  const clients = clientsResult?.success ? clientsResult.data ?? [] : [];
 
   const totalClients = Object.values(counts).reduce((sum, n) => sum + n, 0);
   const totalActive = totalClients - (counts.discharged || 0);
@@ -153,7 +157,7 @@ export default async function PipelinePage() {
             </p>
             <div className="mt-6 flex flex-col gap-3 sm:flex-row">
               <Button asChild>
-                <Link href="/dashboard/clients" className="gap-2">
+                <Link href="/dashboard/clients/new" className="gap-2">
                   <UserPlus className="h-4 w-4" />
                   Add Your First Client
                 </Link>
@@ -188,17 +192,7 @@ export default async function PipelinePage() {
         title="Client Pipeline"
         description={`${totalActive} active client${totalActive !== 1 ? "s" : ""} across your pipeline`}
       >
-        <Button
-          asChild
-          variant="outline"
-          size="sm"
-          className="w-full sm:w-auto"
-        >
-          <Link href="/dashboard/clients" className="gap-2">
-            <Users className="h-4 w-4" />
-            All Clients
-          </Link>
-        </Button>
+        <PipelineQuickActions isPreview={isPreview} clients={clients} />
       </DashboardPageHeader>
 
       {/* Stage Cards — Horizontal Row */}
