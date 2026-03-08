@@ -28,7 +28,7 @@ export default function BillingError({
         <CardContent className="flex flex-col gap-3">
           <Button onClick={reset}>Try again</Button>
           <Button variant="outline" asChild>
-            <Link href="/dashboard">Return to Dashboard</Link>
+            <Link href="/dashboard/clients/pipeline">Return to Dashboard</Link>
           </Button>
         </CardContent>
       </DashboardCard>

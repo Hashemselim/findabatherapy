@@ -64,7 +64,7 @@ export default async function BillingCancelPage({ searchParams }: BillingCancelP
               </Link>
             </Button>
             <Button variant="outline" asChild>
-              <Link href="/dashboard">
+              <Link href="/dashboard/clients/pipeline">
                 {isFeaturedLocation ? "Go to Dashboard" : "Continue with Free Listing"}
               </Link>
             </Button>

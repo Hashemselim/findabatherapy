@@ -12,7 +12,7 @@ export default async function AdminLayout({
   const isAdmin = await isCurrentUserAdmin();
 
   if (!isAdmin) {
-    redirect("/dashboard");
+    redirect("/dashboard/clients/pipeline");
   }
 
   return (
@@ -21,7 +21,7 @@ export default async function AdminLayout({
       <aside className="w-64 border-r bg-muted/30">
         <div className="flex h-16 items-center gap-2 border-b px-4">
           <Link
-            href="/dashboard"
+            href="/dashboard/clients/pipeline"
             className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
           >
             <ChevronLeft className="h-4 w-4" />

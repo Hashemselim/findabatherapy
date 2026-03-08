@@ -101,7 +101,7 @@ export default function OnboardingPlanPage() {
         return;
       }
 
-      router.replace("/dashboard?welcome=1");
+      router.replace("/dashboard/clients/pipeline?welcome=1");
     });
   }, [paymentSuccess, router]);
 
@@ -116,7 +116,7 @@ export default function OnboardingPlanPage() {
         return;
       }
 
-      router.push("/dashboard?welcome=1");
+      router.push("/dashboard/clients/pipeline?welcome=1");
     });
   }
 

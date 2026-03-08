@@ -25,7 +25,7 @@ const footerLinks = [
     links: [
       { label: "Get Listed", href: "/get-listed" },
       { label: "Sign in", href: "/auth/sign-in" },
-      { label: "Dashboard", href: "/dashboard" },
+      { label: "Dashboard", href: "/dashboard/clients/pipeline" },
     ],
   },
   {

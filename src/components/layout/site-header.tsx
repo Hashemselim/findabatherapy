@@ -58,7 +58,7 @@ export async function SiteHeader() {
           </Button>
           {user ? (
             <Button asChild variant="outline" size="sm" className="rounded-full px-4 text-sm font-medium">
-              <Link href="/dashboard" className="gap-2">
+              <Link href="/dashboard/clients/pipeline" className="gap-2">
                 <LayoutDashboard className="h-4 w-4" aria-hidden />
                 Dashboard
               </Link>
@@ -111,7 +111,7 @@ export async function SiteHeader() {
                 {user ? (
                   <SheetClose asChild>
                     <Button asChild variant="outline" className="rounded-full text-base font-medium">
-                      <Link href="/dashboard" className="gap-2">
+                      <Link href="/dashboard/clients/pipeline" className="gap-2">
                         <LayoutDashboard className="h-4 w-4" aria-hidden />
                         Dashboard
                       </Link>

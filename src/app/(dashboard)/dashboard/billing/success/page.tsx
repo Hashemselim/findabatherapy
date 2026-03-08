@@ -161,7 +161,7 @@ export default async function BillingSuccessPage({ searchParams }: BillingSucces
 
           <div className="flex flex-col gap-3 sm:flex-row">
             <Button asChild className="flex-1">
-              <Link href={isFeaturedLocation ? (params.return_to === "locations" ? "/dashboard/locations" : "/dashboard/billing") : isAddon ? "/dashboard/billing" : "/dashboard"}>
+              <Link href={isFeaturedLocation ? (params.return_to === "locations" ? "/dashboard/locations" : "/dashboard/billing") : isAddon ? "/dashboard/billing" : "/dashboard/clients/pipeline"}>
                 {isFeaturedLocation ? (params.return_to === "locations" ? "Back to Locations" : "Back to Billing") : isAddon ? "Back to Billing" : "Go to Dashboard"}
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>

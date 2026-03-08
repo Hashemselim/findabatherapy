@@ -590,7 +590,7 @@ export async function completeOnboarding(
   // Determine redirect based on plan
   // Free plan: Go to dashboard
   // Paid plan: Go to checkout to complete payment
-  let redirectTo = "/dashboard";
+  let redirectTo = "/dashboard/clients/pipeline";
   if (profile?.plan_tier === "pro") {
     // Normalize billing interval: convert "monthly"/"annual" to "month"/"year" for Stripe
     const interval = profile.billing_interval === "annual" || profile.billing_interval === "year" ? "year" : "month";

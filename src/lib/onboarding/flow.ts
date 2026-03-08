@@ -27,7 +27,7 @@ export const LEGACY_ONBOARDING_REDIRECTS: Record<string, string> = {
   "/dashboard/onboarding/basics": "/dashboard/onboarding/details",
   "/dashboard/onboarding/enhanced": "/dashboard/onboarding/services",
   "/dashboard/onboarding/review": "/dashboard/onboarding/plan",
-  "/dashboard/onboarding/success": "/dashboard?welcome=1",
+  "/dashboard/onboarding/success": "/dashboard/clients/pipeline?welcome=1",
 };
 
 export const PRE_ONBOARDING_ALLOWED_ROUTES = [
@@ -98,7 +98,7 @@ export function evaluateOnboardingFlow(input: EvaluateInput): OnboardingFlowSnap
       accessMode,
       completedSteps: ONBOARDING_STEPS.map((step) => step.id),
       currentStep: "plan",
-      firstIncompletePath: "/dashboard",
+      firstIncompletePath: "/dashboard/clients/pipeline",
     };
   }
 
