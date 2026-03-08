@@ -6,7 +6,6 @@ import {
   trackGetListedPageViewed,
   trackGetListedPricingViewed,
   trackGetListedPlanCtaClicked,
-  trackGetListedDemoClicked,
   trackGetListedFaqViewed,
 } from "@/lib/posthog/events";
 
@@ -72,16 +71,9 @@ export function useGetListedTracking() {
     []
   );
 
-  const trackDemo = useCallback(
-    (ctaPosition: "hero" | "pricing" | "features") => {
-      trackGetListedDemoClicked({ ctaPosition });
-    },
-    []
-  );
-
   const trackFaq = useCallback((question: string, questionIndex: number) => {
     trackGetListedFaqViewed({ question, questionIndex });
   }, []);
 
-  return { trackPlanCta, trackDemo, trackFaq };
+  return { trackPlanCta, trackFaq };
 }

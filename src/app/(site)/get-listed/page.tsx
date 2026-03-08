@@ -238,8 +238,8 @@ export default function GetListedPage() {
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <span>Free plan available. No credit card required.</span>
                 <span className="text-border">|</span>
-                <Link href="/demo" className="font-medium text-[#5788FF] transition-colors duration-300 hover:text-[#4a77e8] hover:underline">
-                  Try the demo
+                <Link href="/auth/sign-up?plan=free&intent=therapy" className="font-medium text-[#5788FF] transition-colors duration-300 hover:text-[#4a77e8] hover:underline">
+                  Start free preview
                 </Link>
               </div>
             </div>
@@ -514,7 +514,7 @@ export default function GetListedPage() {
             All plans include SSL security, HIPAA-compliant messaging, and 24/7 uptime monitoring.
           </p>
 
-          {/* Try the Demo Section */}
+          {/* Free Preview Section */}
           <div className="mt-12 overflow-hidden rounded-2xl border-2 border-[#5788FF]/20 bg-linear-to-br from-[#5788FF]/5 via-white to-[#5788FF]/5 p-6 transition-all duration-300 ease-premium hover:border-[#5788FF]/40 hover:shadow-[0_8px_30px_rgba(87,136,255,0.1)] sm:p-8">
             <div className="flex flex-col items-center gap-6 sm:flex-row sm:justify-between">
               <div className="text-center sm:text-left">
@@ -523,12 +523,12 @@ export default function GetListedPage() {
                     <Star className="h-5 w-5 fill-[#5788FF] text-[#5788FF]" />
                   </div>
                   <h3 className="text-xl font-semibold text-foreground">
-                    See the dashboard in action
+                    Start your free preview
                   </h3>
                 </div>
                 <p className="mt-2 max-w-md text-muted-foreground">
-                  Explore an interactive demo of the Pro dashboard with sample data.
-                  See how easy it is to manage your listing, track analytics, and respond to inquiries.
+                  Create a free account to explore the current dashboard with preview data.
+                  You can see the real workflow without landing on an outdated public demo.
                 </p>
               </div>
               <Button
@@ -536,8 +536,8 @@ export default function GetListedPage() {
                 size="lg"
                 className="shrink-0 rounded-full bg-[#5788FF] px-8 text-base font-semibold text-white shadow-[0_4px_14px_rgba(87,136,255,0.3)] transition-all duration-300 ease-premium hover:-translate-y-[2px] hover:bg-[#4a77e8] hover:shadow-[0_8px_20px_rgba(87,136,255,0.4)]"
               >
-                <Link href="/demo">
-                  Try the Demo
+                <Link href="/auth/sign-up?plan=free&intent=therapy">
+                  Start Free Preview
                   <ArrowRight className="ml-2 h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
                 </Link>
               </Button>

@@ -11,7 +11,6 @@ import { domains } from "@/lib/utils/domains";
 
 const PROTECTED_ROUTES = ["/dashboard"];
 const AUTH_ROUTES = ["/auth/sign-in", "/auth/sign-up"];
-const PUBLIC_DASHBOARD_ROUTES = ["/demo"];
 const CANONICAL_GOODABA_PREFIXES = ["/auth", "/dashboard"];
 
 function normalizeHost(host: string): string {
@@ -202,6 +201,18 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  if (
+    pathname === "/demo" ||
+    pathname.startsWith("/demo/") ||
+    pathname === "/demo-preview" ||
+    pathname.startsWith("/demo-preview/")
+  ) {
+    const redirectUrl = new URL("/auth/sign-up", request.url);
+    redirectUrl.searchParams.set("plan", "free");
+    redirectUrl.searchParams.set("intent", "therapy");
+    return NextResponse.redirect(redirectUrl, 308);
+  }
+
   if (onLegacyBehaviorWorkHost && production) {
     if (pathname === "/" || pathname === "/pricing") {
       return redirectToGoodaba(request, "/");
@@ -386,13 +397,6 @@ export async function middleware(request: NextRequest) {
   }
 
   const { supabaseResponse, user, supabase } = await updateSession(request);
-
-  const isDemoRoute = PUBLIC_DASHBOARD_ROUTES.some((route) =>
-    pathname.startsWith(route)
-  );
-  if (isDemoRoute) {
-    return supabaseResponse;
-  }
 
   const isProtectedRoute = PROTECTED_ROUTES.some((route) =>
     pathname.startsWith(route)

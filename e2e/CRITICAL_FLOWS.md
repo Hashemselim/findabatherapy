@@ -1624,40 +1624,6 @@ Premium Fields (Pro/Enterprise only):
 
 ---
 
-## 12. Demo Pages
-
-### 12.1 Demo Dashboard
-
-**URL:** `/demo`
-
-**User Goal:** Preview dashboard without account
-
-**Critical Elements:**
-- [ ] Page loads with demo data
-- [ ] All dashboard sections accessible
-- [ ] Demo badge/indicator visible
-- [ ] CTA to create real account
-- [ ] No actual data modifications allowed
-
----
-
-### 12.2 Demo Sections
-
-**URLs:**
-- `/demo/company`
-- `/demo/locations`
-- `/demo/media`
-- `/demo/analytics`
-- `/demo/inbox`
-
-**Critical Elements:**
-- [ ] Each section loads with sample data
-- [ ] Interactive elements work
-- [ ] Cannot save changes (read-only)
-- [ ] Upgrade prompts displayed
-
----
-
 ## 13. Updated Test Case Matrix
 
 ### 13.1 Additional Find ABA Therapy Tests
@@ -1740,15 +1706,6 @@ Premium Fields (Pro/Enterprise only):
 | ADM-004 | Admin | Admin feedback loads | P2 |
 | ADM-005 | Admin | Removal requests loads | P1 |
 | ADM-006 | Admin | Approve removal works | P1 |
-
-### 13.7 Demo Tests
-
-| Test ID | Flow | Description | Priority |
-|---------|------|-------------|----------|
-| DEMO-001 | Demo | Demo dashboard loads | P2 |
-| DEMO-002 | Demo | Demo company loads | P2 |
-| DEMO-003 | Demo | Demo is read-only | P2 |
-| DEMO-004 | Demo | CTA to sign up visible | P2 |
 
 ---
 
@@ -1867,8 +1824,6 @@ e2e/
 │   └── intake.spec.ts                 # Public intake form tests (NEW)
 ├── admin/
 │   └── admin.spec.ts                  # Admin route tests (NEW)
-├── demo/
-│   └── demo.spec.ts                   # Demo page tests (NEW)
 └── integration/
     ├── jobs-visibility.spec.ts        # Job visibility integration tests
     ├── listing-visibility.spec.ts     # Listing visibility tests

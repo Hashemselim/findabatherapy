@@ -29,7 +29,6 @@ export const POSTHOG_EVENTS = {
   GET_LISTED_PAGE_VIEWED: "get_listed_page_viewed",
   GET_LISTED_PRICING_VIEWED: "get_listed_pricing_viewed",
   GET_LISTED_PLAN_CTA_CLICKED: "get_listed_plan_cta_clicked",
-  GET_LISTED_DEMO_CLICKED: "get_listed_demo_clicked",
   GET_LISTED_FAQ_VIEWED: "get_listed_faq_viewed",
 
   // Behavior Work Landing + Pricing Funnel
@@ -298,14 +297,6 @@ export function trackGetListedPlanCtaClicked(params: {
     plan_tier: params.planTier,
     billing_interval: params.billingInterval,
     cta_text: params.ctaText,
-    cta_position: params.ctaPosition,
-  });
-}
-
-export function trackGetListedDemoClicked(params: {
-  ctaPosition: "hero" | "pricing" | "features";
-}) {
-  capture(POSTHOG_EVENTS.GET_LISTED_DEMO_CLICKED, {
     cta_position: params.ctaPosition,
   });
 }
