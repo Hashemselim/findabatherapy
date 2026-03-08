@@ -9,6 +9,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "check:public-links": "node scripts/check-public-links.mjs",
     "check:public-routes": "node scripts/check-public-route-aliases.mjs",
     "test": "vitest",
     "test:run": "vitest run",
