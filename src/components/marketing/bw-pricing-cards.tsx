@@ -25,7 +25,7 @@ const plans = [
       "Up to 10 client records",
     ],
     ctaLabel: "Start Free Preview",
-    ctaStyle: "outline" as const,
+    ctaStyle: "outline-solid" as const,
   },
   {
     tier: "pro" as const,

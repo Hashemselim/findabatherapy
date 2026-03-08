@@ -91,7 +91,7 @@ export default async function PrePopulatedProviderPage({ params }: PrePopulatedP
         <BubbleBackground
           interactive
           transition={{ stiffness: 100, damping: 50, mass: 0.5 }}
-          className="w-full bg-gradient-to-br from-white via-yellow-50/50 to-blue-50/50 py-6 sm:py-8"
+          className="w-full bg-linear-to-br from-white via-yellow-50/50 to-blue-50/50 py-6 sm:py-8"
           colors={{
             first: "255,255,255",
             second: "255,236,170",
@@ -114,12 +114,12 @@ export default async function PrePopulatedProviderPage({ params }: PrePopulatedP
                 />
                 <div className="space-y-2">
                   <div className="flex flex-wrap items-center gap-2">
-                    <Badge variant="outline" className="gap-1 border-slate-300 bg-slate-50 text-slate-600 transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:scale-[1.02] hover:bg-slate-100 active:scale-[0.98]">
+                    <Badge variant="outline" className="gap-1 border-slate-300 bg-slate-50 text-slate-600 transition-all duration-300 ease-premium hover:scale-[1.02] hover:bg-slate-100 active:scale-[0.98]">
                       <Info className="h-3 w-3" />
                       Directory Listing
                     </Badge>
                     {listing.google_rating && (
-                      <Badge variant="outline" className="gap-1 border-amber-300 bg-amber-50 text-amber-700 transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:scale-[1.02] hover:shadow-[0_2px_8px_rgba(245,158,11,0.2)] active:scale-[0.98]">
+                      <Badge variant="outline" className="gap-1 border-amber-300 bg-amber-50 text-amber-700 transition-all duration-300 ease-premium hover:scale-[1.02] hover:shadow-[0_2px_8px_rgba(245,158,11,0.2)] active:scale-[0.98]">
                         <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
                         {listing.google_rating}
                       </Badge>
@@ -164,7 +164,7 @@ export default async function PrePopulatedProviderPage({ params }: PrePopulatedP
         )}
 
         {/* 4. Insurance Card - Friendly notice */}
-        <Card className="border border-border/80 transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.08)]">
+        <Card className="border border-border/80 transition-all duration-500 ease-premium hover:shadow-[0_8px_30px_rgba(0,0,0,0.08)]">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-violet-500/10">
@@ -189,7 +189,7 @@ export default async function PrePopulatedProviderPage({ params }: PrePopulatedP
         </Card>
 
         {/* 5. Info Notice */}
-        <Card className="border border-dashed border-slate-300 bg-slate-50/50 transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:border-slate-400 hover:bg-slate-50">
+        <Card className="border border-dashed border-slate-300 bg-slate-50/50 transition-all duration-300 ease-premium hover:border-slate-400 hover:bg-slate-50">
           <CardContent className="flex items-center gap-3 py-4">
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-200/70">
               <Info className="h-4 w-4 text-slate-500" />

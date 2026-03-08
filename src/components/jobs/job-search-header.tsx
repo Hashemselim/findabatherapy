@@ -135,7 +135,7 @@ export function JobSearchHeader({
     : null;
 
   return (
-    <div className={transparent ? "" : "border-b border-border/60 bg-gradient-to-br from-white via-emerald-50/30 to-teal-50/30"}>
+    <div className={transparent ? "" : "border-b border-border/60 bg-linear-to-br from-white via-emerald-50/30 to-teal-50/30"}>
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <div className="w-full space-y-3">
           {/* Heading */}
@@ -146,7 +146,7 @@ export function JobSearchHeader({
           )}
 
           {/* Compact search card */}
-          <div className="rounded-2xl border border-border/50 bg-white/80 p-3 shadow-sm backdrop-blur-sm transition-all duration-300 ease-premium hover:shadow-[0_4px_20px_rgba(0,0,0,0.06)] sm:p-4">
+          <div className="rounded-2xl border border-border/50 bg-white/80 p-3 shadow-xs backdrop-blur-xs transition-all duration-300 ease-premium hover:shadow-[0_4px_20px_rgba(0,0,0,0.06)] sm:p-4">
             <form onSubmit={handleSubmit}>
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
                 {/* Position dropdown (single-select) */}
@@ -154,7 +154,7 @@ export function JobSearchHeader({
                   <PopoverTrigger asChild>
                     <button
                       type="button"
-                      className="flex h-10 w-full items-center gap-2 rounded-xl border border-border bg-white px-3 text-left text-sm transition-all duration-300 ease-premium hover:border-emerald-500/40 focus:border-emerald-500/50 focus:outline-none sm:flex-[1.1] sm:min-w-[150px]"
+                      className="flex h-10 w-full items-center gap-2 rounded-xl border border-border bg-white px-3 text-left text-sm transition-all duration-300 ease-premium hover:border-emerald-500/40 focus:border-emerald-500/50 focus:outline-hidden sm:flex-[1.1] sm:min-w-[150px]"
                     >
                       <Briefcase className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
                       <div className="min-w-0 flex-1 overflow-hidden">
@@ -237,7 +237,7 @@ export function JobSearchHeader({
                 {/* Search button */}
                 <Button
                   type="submit"
-                  className="h-10 w-full rounded-xl border border-emerald-600 bg-emerald-600 px-5 text-sm font-semibold text-white shadow-[0_2px_8px_rgba(16,185,129,0.3)] transition-all duration-300 ease-premium hover:-translate-y-[1px] hover:bg-emerald-700 hover:shadow-[0_4px_12px_rgba(16,185,129,0.4)] active:translate-y-0 sm:w-auto"
+                  className="h-10 w-full rounded-xl border border-emerald-600 bg-emerald-600 px-5 text-sm font-semibold text-white shadow-[0_2px_8px_rgba(16,185,129,0.3)] transition-all duration-300 ease-premium hover:-translate-y-px hover:bg-emerald-700 hover:shadow-[0_4px_12px_rgba(16,185,129,0.4)] active:translate-y-0 sm:w-auto"
                 >
                   Search
                 </Button>

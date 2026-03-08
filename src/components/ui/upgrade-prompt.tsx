@@ -41,7 +41,7 @@ export function UpgradePrompt({
     return (
       <div
         className={cn(
-          "flex items-center justify-between gap-4 rounded-xl bg-gradient-to-r from-primary/10 to-primary/5 px-4 py-3",
+          "flex items-center justify-between gap-4 rounded-xl bg-linear-to-r from-primary/10 to-primary/5 px-4 py-3",
           className
         )}
       >
@@ -85,7 +85,7 @@ export function UpgradePrompt({
           className
         )}
       >
-        <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-primary/10">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10">
           <Sparkles className="h-5 w-5 text-primary" />
         </div>
         <div className="min-w-0 flex-1">

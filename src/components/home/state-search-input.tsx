@@ -71,7 +71,7 @@ export function StateSearchInput() {
       </div>
       <Button
         onClick={handleSearch}
-        className="h-12 shrink-0 rounded-xl bg-[#5788FF] px-4 text-white shadow-sm transition-all duration-300 ease-premium hover:-translate-y-[1px] hover:bg-[#4A7AEE] hover:shadow-md active:translate-y-0"
+        className="h-12 shrink-0 rounded-xl bg-[#5788FF] px-4 text-white shadow-xs transition-all duration-300 ease-premium hover:-translate-y-px hover:bg-[#4A7AEE] hover:shadow-md active:translate-y-0"
       >
         <Search className="h-5 w-5" />
       </Button>

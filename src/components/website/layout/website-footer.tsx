@@ -126,7 +126,7 @@ export function WebsiteFooter() {
                     href={`tel:${provider.profile.contactPhone}`}
                     className="flex items-center gap-2 text-sm text-gray-500 transition-colors hover:text-gray-900"
                   >
-                    <Phone className="h-4 w-4 flex-shrink-0" />
+                    <Phone className="h-4 w-4 shrink-0" />
                     {provider.profile.contactPhone}
                   </a>
                 </li>
@@ -136,13 +136,13 @@ export function WebsiteFooter() {
                   href={`mailto:${provider.profile.contactEmail}`}
                   className="flex items-center gap-2 text-sm text-gray-500 transition-colors hover:text-gray-900"
                 >
-                  <Mail className="h-4 w-4 flex-shrink-0" />
+                  <Mail className="h-4 w-4 shrink-0" />
                   {provider.profile.contactEmail}
                 </a>
               </li>
               {primaryLocation && (
                 <li className="flex items-start gap-2 text-sm text-gray-500">
-                  <MapPin className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                  <MapPin className="mt-0.5 h-4 w-4 shrink-0" />
                   <span>
                     {primaryLocation.street && `${primaryLocation.street}, `}
                     {primaryLocation.city}, {primaryLocation.state}
@@ -159,7 +159,7 @@ export function WebsiteFooter() {
                     rel="noopener noreferrer"
                     className="flex items-center gap-2 text-sm text-gray-500 transition-colors hover:text-gray-900"
                   >
-                    <Globe className="h-4 w-4 flex-shrink-0" />
+                    <Globe className="h-4 w-4 shrink-0" />
                     Website
                   </a>
                 </li>

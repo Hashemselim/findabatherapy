@@ -101,7 +101,7 @@ export default function RemovalRequestsPage() {
         {(["all", "pending", "approved", "denied"] as StatusFilter[]).map((status) => (
           <Button
             key={status}
-            variant={statusFilter === status ? "default" : "outline"}
+            variant={statusFilter === status ? "default" : "outline-solid"}
             size="sm"
             onClick={() => setStatusFilter(status)}
           >

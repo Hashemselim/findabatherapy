@@ -3,6 +3,15 @@
 import { useState } from "react";
 import { ArrowDown, ArrowUp } from "lucide-react";
 
+import {
+  DashboardTable,
+  DashboardTableBody,
+  DashboardTableCard,
+  DashboardTableCell,
+  DashboardTableHead,
+  DashboardTableHeader,
+  DashboardTableRow,
+} from "@/components/dashboard/ui";
 import type { TimeSeriesDataPoint } from "@/lib/analytics/events";
 import { cn } from "@/lib/utils";
 
@@ -46,11 +55,11 @@ export function AnalyticsDataTable({
   }
 
   return (
-    <div className={cn("max-h-[300px] overflow-auto rounded-md border", className)}>
-      <table className="w-full text-sm">
-        <thead className="sticky top-0 bg-muted/50">
-          <tr>
-            <th className="px-3 py-2 text-left font-medium text-muted-foreground">
+    <DashboardTableCard className={cn("max-h-[300px] overflow-auto", className)}>
+      <DashboardTable>
+        <DashboardTableHeader className="sticky top-0 z-10">
+          <DashboardTableRow>
+            <DashboardTableHead className="px-3 py-2 font-medium normal-case tracking-normal">
               <button
                 type="button"
                 onClick={toggleSort}
@@ -63,23 +72,23 @@ export function AnalyticsDataTable({
                   <ArrowDown className="h-3 w-3" />
                 )}
               </button>
-            </th>
-            <th className="px-3 py-2 text-right font-medium text-muted-foreground">
+            </DashboardTableHead>
+            <DashboardTableHead className="px-3 py-2 text-right font-medium normal-case tracking-normal">
               {valueLabel}
-            </th>
-          </tr>
-        </thead>
-        <tbody>
+            </DashboardTableHead>
+          </DashboardTableRow>
+        </DashboardTableHeader>
+        <DashboardTableBody>
           {sortedData.map((point) => (
-            <tr key={point.date} className="border-t border-border/50">
-              <td className="px-3 py-2 text-foreground">{formatDate(point.date)}</td>
-              <td className="px-3 py-2 text-right font-medium tabular-nums text-foreground">
+            <DashboardTableRow key={point.date}>
+              <DashboardTableCell className="px-3 py-2 text-foreground">{formatDate(point.date)}</DashboardTableCell>
+              <DashboardTableCell className="px-3 py-2 text-right font-medium tabular-nums text-foreground">
                 {point.value.toLocaleString()}
-              </td>
-            </tr>
+              </DashboardTableCell>
+            </DashboardTableRow>
           ))}
-        </tbody>
-      </table>
-    </div>
+        </DashboardTableBody>
+      </DashboardTable>
+    </DashboardTableCard>
   );
 }

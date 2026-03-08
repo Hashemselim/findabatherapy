@@ -53,7 +53,7 @@ export function AgencySearchForm() {
   return (
     <form
       onSubmit={form.handleSubmit(onSubmit)}
-      className="flex flex-col gap-4 rounded-2xl border border-border bg-card/80 p-4 shadow-sm backdrop-blur md:grid md:grid-cols-[1.2fr_1fr_auto] md:items-end md:gap-6 md:p-6"
+      className="flex flex-col gap-4 rounded-2xl border border-border bg-card/80 p-4 shadow-xs backdrop-blur-sm md:grid md:grid-cols-[1.2fr_1fr_auto] md:items-end md:gap-6 md:p-6"
     >
       <div className="flex flex-col gap-2">
         <label className="text-sm font-medium text-muted-foreground" htmlFor="state">

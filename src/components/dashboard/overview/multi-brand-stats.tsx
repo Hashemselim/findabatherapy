@@ -56,7 +56,7 @@ export function MultiBrandStats({
               <span
                 className={cn(
                   "flex items-center text-xs font-medium",
-                  therapyViewsTrend > 0 ? "text-emerald-600" : "text-red-500"
+                  therapyViewsTrend > 0 ? "text-primary" : "text-destructive"
                 )}
               >
                 <TrendingUp

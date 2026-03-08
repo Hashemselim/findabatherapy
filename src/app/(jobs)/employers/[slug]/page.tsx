@@ -296,7 +296,7 @@ export default async function EmployerPage({ params }: EmployerPageProps) {
         <BubbleBackground
           interactive
           transition={{ stiffness: 100, damping: 50, mass: 0.5 }}
-          className="w-full bg-gradient-to-br from-white via-emerald-50/50 to-teal-50/50 py-6 sm:py-8"
+          className="w-full bg-linear-to-br from-white via-emerald-50/50 to-teal-50/50 py-6 sm:py-8"
           colors={{
             first: "255,255,255",
             second: "167,243,208",
@@ -427,7 +427,7 @@ export default async function EmployerPage({ params }: EmployerPageProps) {
                 {employer.contactEmail && (
                   <a
                     href={`mailto:${employer.contactEmail}`}
-                    className="group flex items-center gap-3 rounded-xl border border-border/60 bg-muted/30 p-4 transition-all duration-300 ease-premium hover:-translate-y-[2px] hover:border-[#5788FF]/30 hover:bg-[#5788FF]/[0.03] hover:shadow-[0_4px_20px_rgba(87,136,255,0.12)] active:translate-y-0 active:shadow-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5788FF]/50"
+                    className="group flex items-center gap-3 rounded-xl border border-border/60 bg-muted/30 p-4 transition-all duration-300 ease-premium hover:-translate-y-[2px] hover:border-[#5788FF]/30 hover:bg-[#5788FF]/3 hover:shadow-[0_4px_20px_rgba(87,136,255,0.12)] active:translate-y-0 active:shadow-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#5788FF]/50"
                   >
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#5788FF]/10 transition-all duration-300 ease-premium group-hover:bg-[#5788FF]/15 group-hover:scale-[1.05]">
                       <Mail className="h-5 w-5 text-[#5788FF] transition-transform duration-300 ease-bounce-sm group-hover:scale-[1.1]" aria-hidden />
@@ -441,7 +441,7 @@ export default async function EmployerPage({ params }: EmployerPageProps) {
                 {employer.contactPhone && (
                   <a
                     href={`tel:+1${employer.contactPhone.replace(/\D/g, "")}`}
-                    className="group flex items-center gap-3 rounded-xl border border-border/60 bg-muted/30 p-4 transition-all duration-300 ease-premium hover:-translate-y-[2px] hover:border-[#5788FF]/30 hover:bg-[#5788FF]/[0.03] hover:shadow-[0_4px_20px_rgba(87,136,255,0.12)] active:translate-y-0 active:shadow-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5788FF]/50"
+                    className="group flex items-center gap-3 rounded-xl border border-border/60 bg-muted/30 p-4 transition-all duration-300 ease-premium hover:-translate-y-[2px] hover:border-[#5788FF]/30 hover:bg-[#5788FF]/3 hover:shadow-[0_4px_20px_rgba(87,136,255,0.12)] active:translate-y-0 active:shadow-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#5788FF]/50"
                   >
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#5788FF]/10 transition-all duration-300 ease-premium group-hover:bg-[#5788FF]/15 group-hover:scale-[1.05]">
                       <Phone className="h-5 w-5 text-[#5788FF] transition-transform duration-300 ease-bounce-sm group-hover:scale-[1.1]" aria-hidden />
@@ -457,7 +457,7 @@ export default async function EmployerPage({ params }: EmployerPageProps) {
                     href={employer.website}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="group flex items-center gap-3 rounded-xl border border-border/60 bg-muted/30 p-4 transition-all duration-300 ease-premium hover:-translate-y-[2px] hover:border-[#5788FF]/30 hover:bg-[#5788FF]/[0.03] hover:shadow-[0_4px_20px_rgba(87,136,255,0.12)] active:translate-y-0 active:shadow-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5788FF]/50"
+                    className="group flex items-center gap-3 rounded-xl border border-border/60 bg-muted/30 p-4 transition-all duration-300 ease-premium hover:-translate-y-[2px] hover:border-[#5788FF]/30 hover:bg-[#5788FF]/3 hover:shadow-[0_4px_20px_rgba(87,136,255,0.12)] active:translate-y-0 active:shadow-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#5788FF]/50"
                     title={employer.website}
                   >
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#5788FF]/10 transition-all duration-300 ease-premium group-hover:bg-[#5788FF]/15 group-hover:scale-[1.05]">
@@ -507,7 +507,7 @@ export default async function EmployerPage({ params }: EmployerPageProps) {
                     {employer.serviceModes.map((mode) => (
                       <li
                         key={mode}
-                        className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-muted/30 px-4 py-2 transition-all duration-300 ease-premium hover:scale-[1.03] hover:border-emerald-500/30 hover:bg-emerald-500/[0.08] hover:text-foreground hover:shadow-[0_2px_8px_rgba(16,185,129,0.15)] active:scale-[0.98]"
+                        className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-muted/30 px-4 py-2 transition-all duration-300 ease-premium hover:scale-[1.03] hover:border-emerald-500/30 hover:bg-emerald-500/8 hover:text-foreground hover:shadow-[0_2px_8px_rgba(16,185,129,0.15)] active:scale-[0.98]"
                       >
                         {mode === "in_home" && <Home className="h-4 w-4 text-emerald-600" aria-hidden />}
                         {mode === "in_center" && <Building2 className="h-4 w-4 text-emerald-600" aria-hidden />}
@@ -537,7 +537,7 @@ export default async function EmployerPage({ params }: EmployerPageProps) {
                       <Badge
                         key={specialty}
                         variant="outline"
-                        className="rounded-full px-3 py-1.5 text-xs transition-all duration-300 ease-premium hover:scale-[1.03] hover:border-emerald-500/30 hover:bg-emerald-500/[0.06] hover:text-emerald-700"
+                        className="rounded-full px-3 py-1.5 text-xs transition-all duration-300 ease-premium hover:scale-[1.03] hover:border-emerald-500/30 hover:bg-emerald-500/6 hover:text-emerald-700"
                       >
                         {specialty}
                       </Badge>
@@ -568,9 +568,9 @@ export default async function EmployerPage({ params }: EmployerPageProps) {
                 {employer.locations.map((location) => (
                   <li
                     key={location.id}
-                    className="flex items-center gap-3 p-3 transition-all duration-300 ease-premium hover:bg-blue-500/[0.04]"
+                    className="flex items-center gap-3 p-3 transition-all duration-300 ease-premium hover:bg-blue-500/4"
                   >
-                    <MapPin className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+                    <MapPin className="h-4 w-4 shrink-0 text-muted-foreground" />
                     <span className="flex-1 text-sm font-medium">
                       {location.city}, {location.state}
                     </span>
@@ -606,7 +606,7 @@ export default async function EmployerPage({ params }: EmployerPageProps) {
                   <Badge
                     key={insurance}
                     variant="outline"
-                    className="rounded-full px-4 py-2 text-sm transition-all duration-300 ease-premium hover:scale-[1.03] hover:border-violet-500/30 hover:bg-violet-500/[0.06] hover:text-violet-700 hover:shadow-[0_2px_8px_rgba(139,92,246,0.15)] active:scale-[0.98]"
+                    className="rounded-full px-4 py-2 text-sm transition-all duration-300 ease-premium hover:scale-[1.03] hover:border-violet-500/30 hover:bg-violet-500/6 hover:text-violet-700 hover:shadow-[0_2px_8px_rgba(139,92,246,0.15)] active:scale-[0.98]"
                   >
                     {insurance}
                   </Badge>
@@ -632,7 +632,7 @@ export default async function EmployerPage({ params }: EmployerPageProps) {
               {videoEmbedUrl && (
                 <div className="space-y-2">
                   <p className="text-sm font-medium text-muted-foreground">Video</p>
-                  <div className="group relative aspect-video w-full overflow-hidden rounded-2xl border bg-black shadow-sm transition-all duration-500 ease-premium hover:shadow-[0_8px_30px_rgba(0,0,0,0.15)]">
+                  <div className="group relative aspect-video w-full overflow-hidden rounded-2xl border bg-black shadow-xs transition-all duration-500 ease-premium hover:shadow-[0_8px_30px_rgba(0,0,0,0.15)]">
                     <iframe
                       src={videoEmbedUrl}
                       className="absolute inset-0 h-full w-full"
@@ -652,7 +652,7 @@ export default async function EmployerPage({ params }: EmployerPageProps) {
                     {employer.photoUrls.map((url, index) => (
                       <div
                         key={url}
-                        className="group relative aspect-video cursor-pointer overflow-hidden rounded-2xl bg-muted/40 shadow-sm transition-all duration-500 ease-premium hover:shadow-[0_8px_30px_rgba(0,0,0,0.12)] active:scale-[0.99]"
+                        className="group relative aspect-video cursor-pointer overflow-hidden rounded-2xl bg-muted/40 shadow-xs transition-all duration-500 ease-premium hover:shadow-[0_8px_30px_rgba(0,0,0,0.12)] active:scale-[0.99]"
                       >
                         <Image
                           src={url}
@@ -660,7 +660,7 @@ export default async function EmployerPage({ params }: EmployerPageProps) {
                           fill
                           className="object-cover transition-transform duration-700 ease-premium group-hover:scale-[1.05]"
                         />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+                        <div className="absolute inset-0 bg-linear-to-t from-black/20 via-transparent to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
                       </div>
                     ))}
                   </div>
@@ -671,7 +671,7 @@ export default async function EmployerPage({ params }: EmployerPageProps) {
         )}
 
         {/* 7. View Therapy Profile Card */}
-        <Card className="group relative overflow-hidden border border-rose-500/20 bg-gradient-to-br from-rose-500/[0.03] via-white to-rose-500/[0.06] transition-all duration-500 ease-premium hover:border-rose-500/30 hover:shadow-[0_8px_30px_rgba(244,63,94,0.12)]">
+        <Card className="group relative overflow-hidden border border-rose-500/20 bg-linear-to-br from-rose-500/3 via-white to-rose-500/6 transition-all duration-500 ease-premium hover:border-rose-500/30 hover:shadow-[0_8px_30px_rgba(244,63,94,0.12)]">
           {/* Decorative elements */}
           <div className="pointer-events-none absolute -right-20 -top-20 h-40 w-40 rounded-full bg-rose-500/5 transition-transform duration-700 ease-premium group-hover:scale-150" />
           <div className="pointer-events-none absolute -bottom-16 -left-16 h-32 w-32 rounded-full bg-rose-500/10 transition-transform duration-700 ease-premium group-hover:scale-150" />
@@ -711,7 +711,7 @@ export default async function EmployerPage({ params }: EmployerPageProps) {
         </Card>
 
         {/* 8. Browse More Jobs CTA */}
-        <Card className="group relative overflow-hidden border border-emerald-500/20 bg-gradient-to-br from-emerald-500/[0.03] via-white to-emerald-500/[0.06] transition-all duration-500 ease-premium hover:border-emerald-500/30 hover:shadow-[0_8px_30px_rgba(16,185,129,0.12)]">
+        <Card className="group relative overflow-hidden border border-emerald-500/20 bg-linear-to-br from-emerald-500/3 via-white to-emerald-500/6 transition-all duration-500 ease-premium hover:border-emerald-500/30 hover:shadow-[0_8px_30px_rgba(16,185,129,0.12)]">
           {/* Decorative elements */}
           <div className="pointer-events-none absolute -right-20 -top-20 h-40 w-40 rounded-full bg-emerald-500/5 transition-transform duration-700 ease-premium group-hover:scale-150" />
           <div className="pointer-events-none absolute -bottom-16 -left-16 h-32 w-32 rounded-full bg-emerald-500/10 transition-transform duration-700 ease-premium group-hover:scale-150" />

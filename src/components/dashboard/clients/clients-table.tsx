@@ -19,6 +19,15 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  DashboardTable,
+  DashboardTableBody,
+  DashboardTableCard,
+  DashboardTableCell,
+  DashboardTableHead,
+  DashboardTableHeader,
+  DashboardTableRow,
+} from "@/components/dashboard/ui";
 import { RelativeTime } from "@/components/ui/relative-time";
 import { cn } from "@/lib/utils";
 import { calculateAge, getClientDisplayName } from "@/lib/validations/clients";
@@ -94,7 +103,7 @@ function ContactCell({
                     aria-label="Copy phone number"
                   >
                     {copiedPhone ? (
-                      <Check className="h-3 w-3 text-green-600" />
+                      <Check className="h-3 w-3 text-primary" />
                     ) : (
                       <Copy className="h-3 w-3" />
                     )}
@@ -135,7 +144,7 @@ function ContactCell({
                     aria-label="Copy email"
                   >
                     {copiedEmail ? (
-                      <Check className="h-3 w-3 text-green-600" />
+                      <Check className="h-3 w-3 text-primary" />
                     ) : (
                       <Copy className="h-3 w-3" />
                     )}
@@ -179,46 +188,44 @@ export function ClientsTable({
   }
 
   return (
-    <Card className="overflow-hidden border-0 shadow-sm">
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b bg-muted/30">
-              <th className="px-5 py-3.5 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+    <DashboardTableCard>
+      <DashboardTable>
+        <DashboardTableHeader>
+          <DashboardTableRow>
+            <DashboardTableHead className="px-5">
                 Client
-              </th>
-              <th className="px-5 py-3.5 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+            </DashboardTableHead>
+            <DashboardTableHead className="px-5">
                 Status
-              </th>
-              <th className="hidden md:table-cell px-5 py-3.5 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+            </DashboardTableHead>
+            <DashboardTableHead className="hidden px-5 md:table-cell">
                 Contact
-              </th>
-              <th className="hidden lg:table-cell px-5 py-3.5 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+            </DashboardTableHead>
+            <DashboardTableHead className="hidden px-5 lg:table-cell">
                 Insurance
-              </th>
-              <th className="hidden sm:table-cell px-5 py-3.5 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+            </DashboardTableHead>
+            <DashboardTableHead className="hidden px-5 sm:table-cell">
                 Added
-              </th>
-              <th className="w-[50px]"></th>
-            </tr>
-          </thead>
-          <tbody>
+            </DashboardTableHead>
+            <DashboardTableHead className="w-[50px]" />
+          </DashboardTableRow>
+        </DashboardTableHeader>
+        <DashboardTableBody>
             {clients.map((client, index) => {
               const age = client.child_date_of_birth
                 ? calculateAge(client.child_date_of_birth)
                 : null;
 
               return (
-                <tr
+                <DashboardTableRow
                   key={client.id}
                   onClick={() => handleRowClick(client.id)}
                   className={cn(
                     "group cursor-pointer transition-all duration-150",
-                    "hover:bg-muted/40",
                     index !== clients.length - 1 && "border-b border-border/50"
                   )}
                 >
-                  <td className="px-5 py-4">
+                  <DashboardTableCell className="px-5 py-4">
                     <div className="flex items-center gap-3">
                       <div className="flex flex-col">
                         <span className="font-medium text-foreground">
@@ -234,18 +241,18 @@ export function ClientsTable({
                         )}
                       </div>
                     </div>
-                  </td>
-                  <td className="px-5 py-4">
+                  </DashboardTableCell>
+                  <DashboardTableCell className="px-5 py-4">
                     <ClientStatusBadge status={client.status} />
-                  </td>
-                  <td className="hidden md:table-cell px-5 py-4">
+                  </DashboardTableCell>
+                  <DashboardTableCell className="hidden px-5 py-4 md:table-cell">
                     <ContactCell
                       name={client.primary_parent_name}
                       phone={client.primary_parent_phone}
                       email={client.primary_parent_email}
                     />
-                  </td>
-                  <td className="hidden lg:table-cell px-5 py-4">
+                  </DashboardTableCell>
+                  <DashboardTableCell className="hidden px-5 py-4 lg:table-cell">
                     {client.primary_insurance_name ? (
                       <div className="flex flex-col">
                         <span className="text-sm font-medium text-foreground/90">
@@ -260,11 +267,11 @@ export function ClientsTable({
                     ) : (
                       <span className="text-muted-foreground/60">—</span>
                     )}
-                  </td>
-                  <td className="hidden sm:table-cell px-5 py-4">
+                  </DashboardTableCell>
+                  <DashboardTableCell className="hidden px-5 py-4 sm:table-cell">
                     <RelativeTime date={client.created_at} className="text-sm text-muted-foreground" />
-                  </td>
-                  <td className="px-3 py-4">
+                  </DashboardTableCell>
+                  <DashboardTableCell className="px-3 py-4">
                     <div className="flex items-center justify-end gap-1">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -308,13 +315,12 @@ export function ClientsTable({
                       </DropdownMenu>
                       <ChevronRight className="h-4 w-4 text-muted-foreground/40 group-hover:text-muted-foreground transition-colors" />
                     </div>
-                  </td>
-                </tr>
+                  </DashboardTableCell>
+                </DashboardTableRow>
               );
             })}
-          </tbody>
-        </table>
-      </div>
-    </Card>
+        </DashboardTableBody>
+      </DashboardTable>
+    </DashboardTableCard>
   );
 }

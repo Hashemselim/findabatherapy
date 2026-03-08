@@ -1,20 +1,25 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import Link from "next/link";
+import { Star } from "lucide-react";
 
+import {
+  DashboardStatusBadge,
+  DashboardTable,
+  DashboardTableBody,
+  DashboardTableCard,
+  DashboardTableCell,
+  DashboardTableHead,
+  DashboardTableHeader,
+  DashboardTableRow,
+} from "@/components/dashboard/ui";
+import { RelativeTime } from "@/components/ui/relative-time";
 import {
   ApplicationsFilters,
   type ApplicationsFilter,
 } from "./applications-filters";
-import { ApplicationsMessageList } from "./applications-message-list";
-import { ApplicationsDetailPanel } from "./applications-detail-panel";
-import {
-  getApplication,
-  updateApplicationStatus,
-  type ApplicationSummary,
-  type ApplicationWithJob,
-} from "@/lib/actions/applications";
-import type { ApplicationStatus } from "@/lib/validations/jobs";
+import { useState } from "react";
+import type { ApplicationSummary } from "@/lib/actions/applications";
 
 interface ApplicationsInboxProps {
   initialApplications: ApplicationSummary[];
@@ -22,182 +27,116 @@ interface ApplicationsInboxProps {
   jobs: { id: string; title: string }[];
 }
 
+const STATUS_TONES = {
+  new: "info",
+  reviewed: "default",
+  phone_screen: "premium",
+  interview: "warning",
+  offered: "success",
+  hired: "success",
+  rejected: "danger",
+} as const;
+
 export function ApplicationsInbox({
   initialApplications,
   initialNewCount,
   jobs,
 }: ApplicationsInboxProps) {
-  const [applications, setApplications] = useState<ApplicationSummary[]>(initialApplications);
-  const [newCount, setNewCount] = useState(initialNewCount);
-  const [selectedApplication, setSelectedApplication] = useState<ApplicationWithJob | null>(null);
-  const [selectedId, setSelectedId] = useState<string | null>(
-    initialApplications[0]?.id || null
-  );
-  const [isLoadingDetail, setIsLoadingDetail] = useState(false);
   const [filter, setFilter] = useState<ApplicationsFilter>("all");
   const [selectedJobId, setSelectedJobId] = useState<string>("all");
-  const [mobileShowDetail, setMobileShowDetail] = useState(false);
 
-  // Calculate counts for each status
   const counts = {
-    total: applications.length,
-    new: applications.filter((a) => a.status === "new").length,
-    reviewed: applications.filter((a) => a.status === "reviewed").length,
-    phone_screen: applications.filter((a) => a.status === "phone_screen").length,
-    interview: applications.filter((a) => a.status === "interview").length,
-    offered: applications.filter((a) => a.status === "offered").length,
-    hired: applications.filter((a) => a.status === "hired").length,
-    rejected: applications.filter((a) => a.status === "rejected").length,
+    total: initialApplications.length,
+    new: initialNewCount,
+    reviewed: initialApplications.filter((a) => a.status === "reviewed").length,
+    phone_screen: initialApplications.filter((a) => a.status === "phone_screen").length,
+    interview: initialApplications.filter((a) => a.status === "interview").length,
+    offered: initialApplications.filter((a) => a.status === "offered").length,
+    hired: initialApplications.filter((a) => a.status === "hired").length,
+    rejected: initialApplications.filter((a) => a.status === "rejected").length,
   };
 
-  // Filter applications
   let filteredApplications = filter === "all"
-    ? applications
-    : applications.filter((a) => a.status === filter);
+    ? initialApplications
+    : initialApplications.filter((a) => a.status === filter);
 
-  // Filter by job
   if (selectedJobId !== "all") {
-    filteredApplications = filteredApplications.filter(
-      (a) => a.job.id === selectedJobId
-    );
+    filteredApplications = filteredApplications.filter((a) => a.job.id === selectedJobId);
   }
 
-  const handleSelectApplication = useCallback(async (app: ApplicationSummary) => {
-    setSelectedId(app.id);
-    setMobileShowDetail(true);
-    setIsLoadingDetail(true);
-
-    // Fetch full application details
-    const result = await getApplication(app.id);
-    if (result.success && result.data) {
-      setSelectedApplication(result.data);
-
-      // Auto-mark as reviewed if status is "new"
-      if (app.status === "new") {
-        const updateResult = await updateApplicationStatus(app.id, "reviewed");
-        if (updateResult.success) {
-          // Update local state
-          setApplications((prev) =>
-            prev.map((a) =>
-              a.id === app.id
-                ? { ...a, status: "reviewed" as ApplicationStatus }
-                : a
-            )
-          );
-          setNewCount((prev) => Math.max(0, prev - 1));
-          setSelectedApplication((prev) =>
-            prev ? { ...prev, status: "reviewed" as ApplicationStatus } : null
-          );
-        }
-      }
-    }
-
-    setIsLoadingDetail(false);
-  }, []);
-
-  const handleApplicationUpdate = useCallback((updatedFields: Partial<ApplicationWithJob>) => {
-    // Update the full application in state
-    setSelectedApplication((prev) =>
-      prev ? { ...prev, ...updatedFields } : null
-    );
-
-    // Update the summary in the list if status or rating changed
-    if (updatedFields.status !== undefined || updatedFields.rating !== undefined) {
-      setApplications((prev) =>
-        prev.map((a) =>
-          a.id === selectedId
-            ? {
-                ...a,
-                ...(updatedFields.status !== undefined && { status: updatedFields.status }),
-                ...(updatedFields.rating !== undefined && { rating: updatedFields.rating }),
-              }
-            : a
-        )
-      );
-
-      // Update new count if status changed from "new"
-      if (updatedFields.status !== undefined && updatedFields.status !== "new") {
-        const wasNew = applications.find((a) => a.id === selectedId)?.status === "new";
-        if (wasNew) {
-          setNewCount((prev) => Math.max(0, prev - 1));
-        }
-      }
-    }
-  }, [selectedId, applications]);
-
-  const handleBackToList = useCallback(() => {
-    setMobileShowDetail(false);
-  }, []);
-
-  // Load first application on mount if there are applications
-  useEffect(() => {
-    if (initialApplications.length > 0) {
-      handleSelectApplication(initialApplications[0]);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   return (
-    <>
-      {/* Mobile layout - page scrolls naturally */}
-      <div className="flex flex-col gap-3 lg:hidden">
-        {/* Filters - hide when viewing detail */}
-        {!mobileShowDetail && (
-          <ApplicationsFilters
-            filter={filter}
-            onFilterChange={setFilter}
-            counts={counts}
-            jobs={jobs}
-            selectedJobId={selectedJobId}
-            onJobChange={setSelectedJobId}
-          />
-        )}
+    <div className="space-y-3">
+      <ApplicationsFilters
+        filter={filter}
+        onFilterChange={setFilter}
+        counts={counts}
+        jobs={jobs}
+        selectedJobId={selectedJobId}
+        onJobChange={setSelectedJobId}
+      />
 
-        {/* Show either list or detail */}
-        {!mobileShowDetail ? (
-          <ApplicationsMessageList
-            applications={filteredApplications}
-            selectedId={selectedId}
-            onSelect={handleSelectApplication}
-          />
-        ) : (
-          <ApplicationsDetailPanel
-            application={selectedApplication}
-            onBack={handleBackToList}
-            showBackButton
-            onApplicationUpdate={handleApplicationUpdate}
-          />
-        )}
-      </div>
-
-      {/* Desktop layout - fixed height with internal scroll */}
-      <div className="hidden min-h-0 flex-1 flex-col gap-3 lg:flex">
-        <ApplicationsFilters
-          filter={filter}
-          onFilterChange={setFilter}
-          counts={counts}
-          jobs={jobs}
-          selectedJobId={selectedJobId}
-          onJobChange={setSelectedJobId}
-        />
-
-        {/* Two-panel layout */}
-        <div className="flex min-h-0 flex-1 gap-4">
-          <div className="w-[350px] shrink-0">
-            <ApplicationsMessageList
-              applications={filteredApplications}
-              selectedId={selectedId}
-              onSelect={handleSelectApplication}
-            />
-          </div>
-          <div className="flex min-h-0 flex-1">
-            <ApplicationsDetailPanel
-              application={selectedApplication}
-              onApplicationUpdate={handleApplicationUpdate}
-            />
-          </div>
-        </div>
-      </div>
-    </>
+      <DashboardTableCard>
+        <DashboardTable>
+          <DashboardTableHeader>
+            <DashboardTableRow>
+              <DashboardTableHead className="pl-5 normal-case tracking-normal">Applicant</DashboardTableHead>
+              <DashboardTableHead className="normal-case tracking-normal">Job</DashboardTableHead>
+              <DashboardTableHead className="hidden normal-case tracking-normal md:table-cell">Status</DashboardTableHead>
+              <DashboardTableHead className="hidden text-right normal-case tracking-normal sm:table-cell">Rating</DashboardTableHead>
+              <DashboardTableHead className="pr-5 text-right normal-case tracking-normal">Applied</DashboardTableHead>
+            </DashboardTableRow>
+          </DashboardTableHeader>
+          <DashboardTableBody>
+            {filteredApplications.length === 0 ? (
+              <DashboardTableRow>
+                <DashboardTableCell colSpan={5} className="py-10 text-center text-sm text-muted-foreground">
+                  No applications match the current filters.
+                </DashboardTableCell>
+              </DashboardTableRow>
+            ) : (
+              filteredApplications.map((application) => (
+                <DashboardTableRow key={application.id} className="group cursor-pointer">
+                  <DashboardTableCell className="pl-5">
+                    <Link href={`/dashboard/employees/${application.id}`} className="block">
+                      <div className="flex flex-col">
+                        <span className="font-medium text-foreground group-hover:underline">
+                          {application.applicantName}
+                        </span>
+                        <span className="text-sm text-muted-foreground">
+                          {application.applicantEmail}
+                        </span>
+                      </div>
+                    </Link>
+                  </DashboardTableCell>
+                  <DashboardTableCell>
+                    <Link href={`/dashboard/employees/${application.id}`} className="block text-muted-foreground">
+                      {application.job.title}
+                    </Link>
+                  </DashboardTableCell>
+                  <DashboardTableCell className="hidden md:table-cell">
+                    <DashboardStatusBadge tone={STATUS_TONES[application.status] ?? "default"}>
+                      {application.status.replace(/_/g, " ")}
+                    </DashboardStatusBadge>
+                  </DashboardTableCell>
+                  <DashboardTableCell className="hidden text-right sm:table-cell">
+                    {application.rating ? (
+                      <span className="inline-flex items-center gap-1 text-sm text-muted-foreground">
+                        <Star className="h-3.5 w-3.5 fill-current text-amber-500" />
+                        {application.rating}
+                      </span>
+                    ) : (
+                      <span className="text-sm text-muted-foreground">-</span>
+                    )}
+                  </DashboardTableCell>
+                  <DashboardTableCell className="pr-5 text-right">
+                    <RelativeTime date={application.createdAt} className="text-sm text-muted-foreground" />
+                  </DashboardTableCell>
+                </DashboardTableRow>
+              ))
+            )}
+          </DashboardTableBody>
+        </DashboardTable>
+      </DashboardTableCard>
+    </div>
   );
 }

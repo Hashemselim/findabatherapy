@@ -1,11 +1,11 @@
 import Link from "next/link";
-import { ArrowRight, CheckCircle2, ClipboardList, FileText } from "lucide-react";
+import { ArrowRight, ClipboardList, FileText } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { BubbleBackground } from "@/components/ui/bubble-background";
 import { BrandedPageCard } from "@/components/dashboard/branded-page-card";
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
+import { DashboardEmptyState } from "@/components/dashboard/ui";
 import { IntakeFieldConfig } from "@/components/dashboard/intake/intake-field-config";
 import { getProfile, createClient } from "@/lib/supabase/server";
 import { getIntakeFieldsConfig } from "@/lib/actions/intake";
@@ -65,45 +65,20 @@ function OnboardingGate() {
     <div className="space-y-3">
       <DashboardPageHeader title="Intake Form" description="Collect complete parent, child, and insurance details before the first call." />
 
-      <Card className="overflow-hidden border-slate-200">
-        <BubbleBackground
-          interactive={false}
-          size="default"
-          className="bg-gradient-to-br from-white via-yellow-50/50 to-blue-50/50"
-          colors={{
-            first: "255,255,255",
-            second: "255,236,170",
-            third: "135,176,255",
-            fourth: "255,248,210",
-            fifth: "190,210,255",
-            sixth: "240,248,255",
-          }}
-        >
-          <CardContent className="flex flex-col items-center px-6 py-12 text-center">
-            <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#5788FF] shadow-lg shadow-[#5788FF]/25">
-              <ClipboardList className="h-8 w-8 text-white" />
-            </div>
-            <p className="text-xl font-semibold text-slate-900">Complete Onboarding First</p>
-            <p className="mt-3 max-w-md text-sm text-slate-600">
-              Finish setting up your practice profile to access your branded forms.
-            </p>
-            <div className="mt-6 flex flex-wrap justify-center gap-3">
-              {["Shareable link", "Custom branding", "Lead capture"].map((b) => (
-                <span key={b} className="inline-flex items-center gap-1.5 rounded-full bg-white/80 px-3 py-1.5 text-xs font-medium text-slate-600">
-                  <CheckCircle2 className="h-3.5 w-3.5 text-[#5788FF]" />
-                  {b}
-                </span>
-              ))}
-            </div>
-            <Button asChild size="lg" className="mt-8">
-              <Link href="/dashboard/onboarding" className="gap-2">
-                Continue Onboarding
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </Button>
-          </CardContent>
-        </BubbleBackground>
-      </Card>
+      <DashboardEmptyState
+        icon={ClipboardList}
+        title="Complete Onboarding First"
+        description="Finish setting up your practice profile to access your branded forms."
+        benefits={["Shareable link", "Custom branding", "Lead capture"]}
+        action={(
+          <Button asChild size="lg">
+            <Link href="/dashboard/onboarding" className="gap-2">
+              Continue Onboarding
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </Button>
+        )}
+      />
     </div>
   );
 }

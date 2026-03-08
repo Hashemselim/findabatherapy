@@ -45,7 +45,7 @@ export function LockedFeature({
 
   const blurClasses = {
     light: "blur-[2px]",
-    medium: "blur-sm",
+    medium: "blur-xs",
     heavy: "blur-md",
   };
 
@@ -208,7 +208,7 @@ export function LockedFeatureCard({
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-xl border border-slate-200 bg-gradient-to-br from-slate-50 via-white to-slate-50 shadow-sm",
+        "relative overflow-hidden rounded-xl border border-slate-200 bg-linear-to-br from-slate-50 via-white to-slate-50 shadow-xs",
         className
       )}
     >

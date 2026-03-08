@@ -20,8 +20,8 @@ export type ListingCardProps = {
 
 const planStyles: Record<ListingPlan, string> = {
   free: "border-border/70",
-  premium: "border-primary/60 bg-primary/[0.04]",
-  featured: "border-primary bg-primary/[0.08] shadow-lg",
+  premium: "border-primary/60 bg-primary/4",
+  featured: "border-primary bg-primary/8 shadow-lg",
 };
 
 const planBadges: Record<ListingPlan, string> = {
@@ -48,7 +48,7 @@ export function ListingCard({
       )}
       <CardHeader className="space-y-2">
         <div className="flex flex-wrap items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground">
-          <Badge variant={plan === "free" ? "outline" : "secondary"}>{planBadges[plan]}</Badge>
+          <Badge variant={plan === "free" ? "outline-solid" : "secondary"}>{planBadges[plan]}</Badge>
           {isAcceptingClients && (
             <span className="inline-flex items-center gap-1 rounded-full border border-[#FEE720] bg-[#FFF5C2] px-2 py-1 text-[#333333]">
               <Sparkles className="h-3 w-3 text-[#5788FF]" aria-hidden />

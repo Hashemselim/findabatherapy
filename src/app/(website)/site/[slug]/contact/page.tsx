@@ -78,7 +78,7 @@ export default async function WebsiteContactPage({
           </div>
 
           <div
-            className={`rounded-2xl border bg-white p-6 shadow-sm sm:p-8 ${isPreview ? "pointer-events-none select-none opacity-60" : ""}`}
+            className={`rounded-2xl border bg-white p-6 shadow-xs sm:p-8 ${isPreview ? "pointer-events-none select-none opacity-60" : ""}`}
             style={{ borderColor: `${brandColor}20` }}
           >
             <ContactFormIntake

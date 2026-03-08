@@ -4,8 +4,9 @@ import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2, CreditCard, CheckCircle2, AlertCircle } from "lucide-react";
 
+import { DashboardCard } from "@/components/dashboard/ui";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { createCheckoutSession } from "@/lib/stripe/actions";
 import { STRIPE_PLANS, type BillingInterval } from "@/lib/stripe/config";
 import {
@@ -101,13 +102,13 @@ function CheckoutContent() {
 
     return (
       <div className="flex min-h-[60vh] items-center justify-center p-4">
-        <Card className="w-full max-w-md border-red-200">
+        <DashboardCard tone="danger" className="w-full max-w-md">
           <CardHeader className="text-center">
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
-              <AlertCircle className="h-6 w-6 text-red-600" />
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10">
+              <AlertCircle className="h-6 w-6 text-destructive" />
             </div>
-            <CardTitle className="text-slate-900">Unable to Process</CardTitle>
-            <CardDescription className="text-slate-600">
+            <CardTitle className="text-foreground">Unable to Process</CardTitle>
+            <CardDescription className="text-muted-foreground">
               {friendlyError}
             </CardDescription>
           </CardHeader>
@@ -115,19 +116,19 @@ function CheckoutContent() {
             <Button
               onClick={() => router.push("/dashboard/billing")}
               variant="outline"
-              className="border-slate-200"
+              className="border-border/60"
             >
               Return to Billing
             </Button>
           </CardContent>
-        </Card>
+        </DashboardCard>
       </div>
     );
   }
 
   return (
     <div className="flex min-h-[60vh] items-center justify-center">
-      <Card className="w-full max-w-md">
+      <DashboardCard className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
             <CreditCard className="h-6 w-6 text-primary" />
@@ -165,7 +166,7 @@ function CheckoutContent() {
                     key={feature}
                     className="flex items-center gap-2 text-sm text-muted-foreground"
                   >
-                    <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+                    <CheckCircle2 className="h-3 w-3 text-primary" />
                     {feature}
                   </li>
                 ))}
@@ -177,7 +178,7 @@ function CheckoutContent() {
             You&apos;ll be redirected to Stripe&apos;s secure checkout page.
           </p>
         </CardContent>
-      </Card>
+      </DashboardCard>
     </div>
   );
 }
@@ -185,7 +186,7 @@ function CheckoutContent() {
 function CheckoutLoading() {
   return (
     <div className="flex min-h-[60vh] items-center justify-center">
-      <Card className="w-full max-w-md">
+      <DashboardCard className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
             <CreditCard className="h-6 w-6 text-primary" />
@@ -198,7 +199,7 @@ function CheckoutLoading() {
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         </CardContent>
-      </Card>
+      </DashboardCard>
     </div>
   );
 }

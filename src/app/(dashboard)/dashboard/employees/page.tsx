@@ -1,12 +1,12 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { ArrowRight, CheckCircle2, ClipboardList } from "lucide-react";
+import { ArrowRight, ClipboardList } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { BubbleBackground } from "@/components/ui/bubble-background";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
+import { DashboardEmptyState, DashboardStatusBadge } from "@/components/dashboard/ui";
 import { PreviewBanner } from "@/components/ui/preview-banner";
 import { PreviewOverlay } from "@/components/ui/preview-overlay";
 import { getProfile } from "@/lib/supabase/server";
@@ -27,55 +27,21 @@ export default async function EmployeesPage() {
     return (
       <div className="space-y-3">
         <DashboardPageHeader title="Employees" description="Manage job applicants and team members." />
-
-        <Card className="overflow-hidden border-slate-200">
-          <BubbleBackground
-            interactive={false}
-            size="default"
-            className="bg-gradient-to-br from-white via-yellow-50/50 to-blue-50/50"
-            colors={{
-              first: "255,255,255",
-              second: "255,236,170",
-              third: "135,176,255",
-              fourth: "255,248,210",
-              fifth: "190,210,255",
-              sixth: "240,248,255",
-            }}
-          >
-            <CardContent className="flex flex-col items-center py-12 px-6 text-center">
-              <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-600 shadow-lg shadow-emerald-600/25">
-                <ClipboardList className="h-8 w-8 text-white" />
-              </div>
-
-              <p className="text-xl font-semibold text-slate-900">
-                Complete Onboarding to Access Employees
-              </p>
-
-              <p className="mt-3 max-w-md text-sm text-slate-600">
-                Finish setting up your practice profile to unlock all dashboard features.
-              </p>
-
-              <div className="mt-6 flex flex-wrap justify-center gap-3">
-                {["View applicants", "Track hiring", "Manage team"].map((benefit) => (
-                  <span
-                    key={benefit}
-                    className="inline-flex items-center gap-1.5 rounded-full bg-white/80 px-3 py-1.5 text-xs font-medium text-slate-600"
-                  >
-                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
-                    {benefit}
-                  </span>
-                ))}
-              </div>
-
-              <Button asChild size="lg" className="mt-8">
-                <Link href="/dashboard/onboarding" className="gap-2">
-                  Continue Onboarding
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-              </Button>
-            </CardContent>
-          </BubbleBackground>
-        </Card>
+        <DashboardEmptyState
+          icon={ClipboardList}
+          title="Complete Onboarding to Access Employees"
+          description="Finish setting up your practice profile to unlock all dashboard features."
+          tone="success"
+          benefits={["View applicants", "Track hiring", "Manage team"]}
+          action={(
+            <Button asChild size="lg">
+              <Link href="/dashboard/onboarding" className="gap-2">
+                Continue Onboarding
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
+          )}
+        />
       </div>
     );
   }
@@ -123,23 +89,29 @@ export default async function EmployeesPage() {
       </DashboardPageHeader>
 
       {/* Tabs for Applicants and Team */}
-      <PreviewOverlay isPreview={isPreview}>
+        <PreviewOverlay isPreview={isPreview}>
       <Tabs defaultValue={isPreview ? "team" : "applicants"} className="flex min-h-0 flex-1 flex-col">
-        <TabsList className="w-fit">
-          <TabsTrigger value="applicants" className="gap-2">
+        <TabsList className="inline-flex min-h-11 w-fit items-center rounded-xl border border-border/60 bg-card p-1 shadow-xs">
+          <TabsTrigger
+            value="applicants"
+            className="flex h-9 items-center rounded-lg border border-transparent px-4 text-xs font-medium leading-none text-muted-foreground data-[state=active]:border-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-xs"
+          >
             Applicants
             {newCount > 0 && (
-              <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-emerald-600 px-1.5 text-xs font-semibold text-white">
+              <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-semibold text-primary-foreground">
                 {newCount > 99 ? "99+" : newCount}
               </span>
             )}
           </TabsTrigger>
-          <TabsTrigger value="team" className="gap-2">
+          <TabsTrigger
+            value="team"
+            className="flex h-9 items-center rounded-lg border border-transparent px-4 text-xs font-medium leading-none text-muted-foreground data-[state=active]:border-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-xs"
+          >
             Team
             {teamMembers.length > 0 && (
-              <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-purple-600 px-1.5 text-xs font-semibold text-white">
+              <DashboardStatusBadge tone="info" className="h-5 min-w-5 justify-center px-1.5 py-0 text-[10px]">
                 {teamMembers.length}
-              </span>
+              </DashboardStatusBadge>
             )}
           </TabsTrigger>
         </TabsList>

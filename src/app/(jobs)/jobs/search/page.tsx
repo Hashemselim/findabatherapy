@@ -281,7 +281,7 @@ function JobSearchSkeleton() {
         {[1, 2, 3, 4, 5, 6].map((i) => (
           <Card key={i} className="animate-pulse">
             <CardContent className="flex gap-4 p-4">
-              <div className="h-14 w-14 flex-shrink-0 rounded-full bg-muted" />
+              <div className="h-14 w-14 shrink-0 rounded-full bg-muted" />
               <div className="flex-1 space-y-2">
                 <div className="h-5 w-1/3 rounded bg-muted" />
                 <div className="h-4 w-1/4 rounded bg-muted" />
@@ -362,12 +362,12 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white to-slate-50/50">
+    <div className="min-h-screen bg-linear-to-b from-white to-slate-50/50">
       {/* Search Header with Location Autocomplete */}
       <BubbleBackground
         interactive
         transition={{ stiffness: 100, damping: 50, mass: 0.5 }}
-        className="w-full bg-gradient-to-br from-white via-emerald-50/50 to-teal-50/50 py-4 sm:py-5"
+        className="w-full bg-linear-to-br from-white via-emerald-50/50 to-teal-50/50 py-4 sm:py-5"
         colors={{
           first: "255,255,255",
           second: "167,243,208",
@@ -391,7 +391,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
       <section className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
         <div className="flex flex-col gap-6 lg:flex-row">
           {/* Sidebar Filters */}
-          <aside className="w-full flex-shrink-0 lg:w-64">
+          <aside className="w-full shrink-0 lg:w-64">
             <Suspense fallback={<div className="h-96 animate-pulse rounded-lg bg-muted" />}>
               <JobFilters />
             </Suspense>

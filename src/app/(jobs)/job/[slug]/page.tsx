@@ -172,7 +172,7 @@ export default async function JobPage({ params }: JobPageProps) {
         companyName={job.provider.agencyName}
       />
 
-      <div className="min-h-screen bg-gradient-to-b from-white to-slate-50/50">
+      <div className="min-h-screen bg-linear-to-b from-white to-slate-50/50">
         {/* Header */}
         <div className="border-b border-border/60 bg-white">
           <div className="container mx-auto px-4 py-6 sm:px-6">
@@ -271,9 +271,9 @@ export default async function JobPage({ params }: JobPageProps) {
                       jobId={job.id}
                       jobTitle={job.title}
                       providerName={job.provider.agencyName}
-                      className="!h-14 !text-lg !font-semibold sm:!h-10 sm:!text-sm sm:!font-medium flex-1 bg-emerald-600 text-white hover:bg-emerald-700 sm:flex-none sm:px-12 rounded-md"
+                      className="h-14! text-lg! font-semibold! sm:h-10! sm:text-sm! sm:font-medium! flex-1 bg-emerald-600 text-white hover:bg-emerald-700 sm:flex-none sm:px-12 rounded-md"
                     />
-                    <Button variant="outline" className="!h-14 !text-lg !font-semibold sm:!h-10 sm:!text-sm sm:!font-medium rounded-md" asChild>
+                    <Button variant="outline" className="h-14! text-lg! font-semibold! sm:h-10! sm:text-sm! sm:font-medium! rounded-md" asChild>
                       <Link
                         href={`/employers/${job.provider.slug}`}
                         className="gap-2"
@@ -354,7 +354,7 @@ export default async function JobPage({ params }: JobPageProps) {
                     jobId={job.id}
                     jobTitle={job.title}
                     providerName={job.provider.agencyName}
-                    className="mt-4 w-full !h-14 !text-lg !font-semibold sm:!h-10 sm:!text-sm sm:!font-medium bg-emerald-600 text-white hover:bg-emerald-700 rounded-md"
+                    className="mt-4 w-full h-14! text-lg! font-semibold! sm:h-10! sm:text-sm! sm:font-medium! bg-emerald-600 text-white hover:bg-emerald-700 rounded-md"
                   />
                 </CardContent>
               </Card>

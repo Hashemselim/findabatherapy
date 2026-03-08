@@ -116,7 +116,7 @@ export function JobSearchForm({
               <PopoverTrigger asChild>
                 <button
                   type="button"
-                  className="mt-2 flex h-12 w-full items-center gap-2 rounded-2xl border border-border bg-white px-3 text-left text-sm transition-all duration-300 ease-premium hover:border-emerald-500/40 focus:border-emerald-500/50 focus:outline-none"
+                  className="mt-2 flex h-12 w-full items-center gap-2 rounded-2xl border border-border bg-white px-3 text-left text-sm transition-all duration-300 ease-premium hover:border-emerald-500/40 focus:border-emerald-500/50 focus:outline-hidden"
                 >
                   <Briefcase className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
                   <div className="min-w-0 flex-1 overflow-hidden">
@@ -204,7 +204,7 @@ export function JobSearchForm({
           {/* Submit Button */}
           <Button
             type="submit"
-            className="mt-2 h-12 w-full rounded-full border border-emerald-600 bg-emerald-600 px-6 text-base font-semibold text-white shadow-[0_4px_14px_rgba(16,185,129,0.3)] transition-all duration-300 ease-premium hover:-translate-y-[1px] hover:bg-emerald-700 hover:shadow-[0_8px_20px_rgba(16,185,129,0.4)] active:translate-y-0 md:mt-0 md:w-auto md:self-end"
+            className="mt-2 h-12 w-full rounded-full border border-emerald-600 bg-emerald-600 px-6 text-base font-semibold text-white shadow-[0_4px_14px_rgba(16,185,129,0.3)] transition-all duration-300 ease-premium hover:-translate-y-px hover:bg-emerald-700 hover:shadow-[0_8px_20px_rgba(16,185,129,0.4)] active:translate-y-0 md:mt-0 md:w-auto md:self-end"
           >
             Search Jobs
           </Button>

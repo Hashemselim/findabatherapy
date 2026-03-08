@@ -3,6 +3,7 @@
 import { TrendingUp, TrendingDown, Eye, Search, MousePointer, MessageSquare } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { getDashboardToneClasses } from "@/components/dashboard/ui";
 import type { ListingMetrics } from "@/lib/analytics/events";
 import { cn } from "@/lib/utils";
 
@@ -52,6 +53,7 @@ export function AnalyticsOverview({ current, previous }: AnalyticsOverviewProps)
           : 0;
         const isPositive = change > 0;
         const isNeutral = change === 0;
+        const changeTone = getDashboardToneClasses(isPositive ? "success" : "danger");
 
         return (
           <Card key={metric.title}>
@@ -71,7 +73,7 @@ export function AnalyticsOverview({ current, previous }: AnalyticsOverviewProps)
                 <p
                   className={cn(
                     "mt-1 flex items-center gap-1 text-xs",
-                    isPositive ? "text-emerald-600" : "text-red-600"
+                    changeTone.emphasis
                   )}
                 >
                   {isPositive ? (

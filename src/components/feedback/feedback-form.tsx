@@ -155,7 +155,7 @@ export function FeedbackForm({ defaultCategory = "general_feedback" }: FeedbackF
                   onClick={() => setSelectedRating(rating)}
                   onMouseEnter={() => setHoveredRating(rating)}
                   onMouseLeave={() => setHoveredRating(null)}
-                  className="rounded-lg p-1 transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+                  className="rounded-lg p-1 transition-transform hover:scale-110 focus:outline-hidden focus:ring-2 focus:ring-primary focus:ring-offset-2"
                 >
                   <Star
                     className={cn(

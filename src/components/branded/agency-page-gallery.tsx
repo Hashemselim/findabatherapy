@@ -31,7 +31,7 @@ export function AgencyPageGallery({
       <div className="space-y-6">
         {/* Video Embed */}
         {videoEmbedUrl && (
-          <div className="relative aspect-video w-full overflow-hidden rounded-2xl border bg-black shadow-sm">
+          <div className="relative aspect-video w-full overflow-hidden rounded-2xl border bg-black shadow-xs">
             <iframe
               src={videoEmbedUrl}
               className="absolute inset-0 h-full w-full"
@@ -48,7 +48,7 @@ export function AgencyPageGallery({
             {photoUrls.map((url, index) => (
               <div
                 key={url}
-                className="group relative aspect-[4/3] overflow-hidden rounded-2xl bg-muted/40 shadow-sm transition-all duration-300 hover:shadow-md"
+                className="group relative aspect-4/3 overflow-hidden rounded-2xl bg-muted/40 shadow-xs transition-all duration-300 hover:shadow-md"
               >
                 <Image
                   src={url}

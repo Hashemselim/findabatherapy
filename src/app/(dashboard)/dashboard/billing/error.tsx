@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { AlertTriangle } from "lucide-react";
 
+import { DashboardCard } from "@/components/dashboard/ui";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function BillingError({
   reset,
@@ -14,10 +15,10 @@ export default function BillingError({
 }) {
   return (
     <div className="flex min-h-[60vh] items-center justify-center">
-      <Card className="w-full max-w-md">
+      <DashboardCard tone="warning" className="w-full max-w-md">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-amber-500/10">
-            <AlertTriangle className="h-6 w-6 text-amber-500" />
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+            <AlertTriangle className="h-6 w-6 text-primary" />
           </div>
           <CardTitle>Something went wrong</CardTitle>
           <CardDescription>
@@ -30,7 +31,7 @@ export default function BillingError({
             <Link href="/dashboard">Return to Dashboard</Link>
           </Button>
         </CardContent>
-      </Card>
+      </DashboardCard>
     </div>
   );
 }

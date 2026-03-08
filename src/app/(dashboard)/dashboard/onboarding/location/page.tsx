@@ -461,7 +461,7 @@ export default function OnboardingLocationPage() {
               transition={{ delay: index * 0.05 }}
               className={`group rounded-2xl border bg-white p-5 transition-colors ${
                 editingLocationId === location.id
-                  ? "border-[#1A2744]/20 shadow-sm"
+                  ? "border-[#1A2744]/20 shadow-xs"
                   : "border-amber-200/60 hover:border-amber-200/70"
               }`}
             >
@@ -698,7 +698,7 @@ export default function OnboardingLocationPage() {
                   </Label>
                   <input
                     id="label"
-                    className="flex h-11 w-full rounded-xl border border-amber-200/60 bg-[#FFFBF0] px-3 py-2 text-sm text-[#1A2744] placeholder:text-slate-400 transition-colors focus:border-[#1A2744]/30 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1A2744]/5"
+                    className="flex h-11 w-full rounded-xl border border-amber-200/60 bg-[#FFFBF0] px-3 py-2 text-sm text-[#1A2744] placeholder:text-slate-400 transition-colors focus:border-[#1A2744]/30 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#1A2744]/5"
                     placeholder="Main office, North campus, etc."
                     value={watch("label") || ""}
                     onChange={(event) => setValue("label", event.target.value, { shouldValidate: true })}
@@ -821,7 +821,7 @@ export default function OnboardingLocationPage() {
                         key={insurance}
                         className={`flex cursor-pointer items-center gap-2.5 rounded-xl border px-3 py-2.5 text-sm transition-all ${
                           isSelected
-                            ? "border-[#1A2744]/20 bg-[#1A2744]/[0.03] text-[#1A2744]"
+                            ? "border-[#1A2744]/20 bg-[#1A2744]/3 text-[#1A2744]"
                             : "border-amber-200/60 bg-[#FFFBF0] text-slate-500 hover:border-amber-200/70"
                         }`}
                       >

@@ -235,7 +235,7 @@ export default function InsurancePage() {
       </section>
 
       {/* CTA Card */}
-      <Card className="mt-12 border-dashed border-primary/50 bg-primary/[0.04]">
+      <Card className="mt-12 border-dashed border-primary/50 bg-primary/4">
         <CardContent className="flex flex-col items-center gap-4 p-6 text-center sm:flex-row sm:text-left">
           <div className="flex-1 space-y-1">
             <p className="text-lg font-semibold text-foreground">

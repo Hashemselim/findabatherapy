@@ -250,7 +250,7 @@ export function FeaturedLocationAction({
 
               {subscription.cancelAtPeriodEnd && (
                 <div className="flex items-start gap-2 rounded-lg border border-orange-200 bg-orange-50 p-3">
-                  <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-orange-600" />
+                  <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-orange-600" />
                   <p className="text-sm text-orange-800">
                     This featured placement ends on {formattedDate}. Reactivate before then to keep it live.
                   </p>
@@ -259,7 +259,7 @@ export function FeaturedLocationAction({
 
               {subscription.status === "past_due" && (
                 <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3">
-                  <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-red-600" />
+                  <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-600" />
                   <p className="text-sm text-red-800">
                     Payment failed for this featured placement. Update your payment method to keep it active.
                   </p>
@@ -352,7 +352,7 @@ export function FeaturedLocationAction({
                 <ul className="mt-4 space-y-2">
                   {FEATURED_FEATURES.map((feature) => (
                     <li key={feature} className="flex items-start gap-2 text-sm text-foreground">
-                      <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#5788FF]" />
+                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-[#5788FF]" />
                       {feature}
                     </li>
                   ))}

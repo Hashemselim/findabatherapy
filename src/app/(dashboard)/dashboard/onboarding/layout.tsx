@@ -24,8 +24,8 @@ export default function OnboardingLayout({
     <div className="relative min-h-screen overflow-x-hidden bg-[#FFFBF0]">
       {/* Subtle ambient background */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute -left-[300px] -top-[200px] h-[600px] w-[600px] rounded-full bg-[#FFDC33]/[0.06] blur-[120px]" />
-        <div className="absolute -right-[200px] top-[40%] h-[500px] w-[500px] rounded-full bg-[#5788FF]/[0.04] blur-[100px]" />
+        <div className="absolute -left-[300px] -top-[200px] h-[600px] w-[600px] rounded-full bg-[#FFDC33]/6 blur-[120px]" />
+        <div className="absolute -right-[200px] top-[40%] h-[500px] w-[500px] rounded-full bg-[#5788FF]/4 blur-[100px]" />
       </div>
 
       {/* Progress bar - sticky header */}

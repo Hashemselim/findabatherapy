@@ -11,8 +11,9 @@ import {
   Loader2,
 } from "lucide-react";
 
+import { DashboardCard } from "@/components/dashboard/ui";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { updateClientIntakeEnabled } from "@/lib/actions/listings";
@@ -66,11 +67,11 @@ export function ClientIntakeShareCard({
   };
 
   return (
-    <Card className="border-purple-200 bg-gradient-to-br from-purple-50/50 to-white">
+    <DashboardCard tone="premium" className="bg-linear-to-br from-primary/5 via-card to-card">
       <CardHeader>
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-600">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary">
               <ClipboardList className="h-5 w-5 text-white" />
             </div>
             <div>
@@ -99,14 +100,14 @@ export function ClientIntakeShareCard({
           <>
             {/* URL Display and Copy */}
             <div className="flex flex-col gap-3 sm:flex-row">
-              <div className="flex-1 rounded-lg border border-purple-200 bg-white px-4 py-3">
+              <div className="flex-1 rounded-lg border border-border/60 bg-card px-4 py-3 shadow-xs">
                 <p className="truncate font-mono text-sm text-muted-foreground">{intakeUrl}</p>
               </div>
               <div className="flex gap-2">
                 <Button
                   onClick={handleCopyLink}
                   className="shrink-0 gap-2"
-                  variant={copied ? "outline" : "default"}
+                  variant={copied ? "outline-solid" : "default"}
                 >
                   {copied ? (
                     <>
@@ -130,30 +131,30 @@ export function ClientIntakeShareCard({
             </div>
 
             {/* What's included */}
-            <div className="rounded-lg border border-purple-200 bg-white p-4">
+            <div className="rounded-lg border border-border/60 bg-card p-4 shadow-xs">
               <p className="mb-3 text-sm font-medium text-foreground">What families can submit:</p>
               <div className="grid gap-2 sm:grid-cols-2">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Users className="h-4 w-4 text-purple-600" />
+                  <Users className="h-4 w-4 text-primary" />
                   Parent/guardian information
                 </div>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <FileText className="h-4 w-4 text-purple-600" />
+                  <FileText className="h-4 w-4 text-primary" />
                   Child details & diagnosis
                 </div>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <FileText className="h-4 w-4 text-purple-600" />
+                  <FileText className="h-4 w-4 text-primary" />
                   Insurance information
                 </div>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <ClipboardList className="h-4 w-4 text-purple-600" />
+                  <ClipboardList className="h-4 w-4 text-primary" />
                   Goes directly to Clients
                 </div>
               </div>
             </div>
           </>
         ) : (
-          <div className="rounded-lg border border-dashed border-purple-200 bg-purple-50/50 p-6 text-center">
+          <div className="rounded-lg border border-dashed border-border/60 bg-muted/30 p-6 text-center">
             <p className="text-sm text-muted-foreground">
               Enable this form to share a comprehensive intake link with families.
               Submissions will appear directly in your Clients list.
@@ -161,6 +162,6 @@ export function ClientIntakeShareCard({
           </div>
         )}
       </CardContent>
-    </Card>
+    </DashboardCard>
   );
 }

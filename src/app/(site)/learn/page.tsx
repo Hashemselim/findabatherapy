@@ -48,7 +48,7 @@ export default function LearnPage() {
         <BubbleBackground
           interactive
           transition={{ stiffness: 100, damping: 50, mass: 0.5 }}
-          className="w-full bg-gradient-to-br from-white via-yellow-50/50 to-blue-50/50 py-8 sm:py-16"
+          className="w-full bg-linear-to-br from-white via-yellow-50/50 to-blue-50/50 py-8 sm:py-16"
           colors={{
             first: "255,255,255",
             second: "255,236,170",
@@ -81,7 +81,7 @@ export default function LearnPage() {
               </div>
               <h1 className="text-[28px] font-semibold leading-[1.2] text-foreground sm:text-[48px]">
                 Learn About{" "}
-                <span className="bg-gradient-to-r from-[#5788FF] to-[#7BA3FF] bg-clip-text text-transparent">ABA Therapy</span>
+                <span className="bg-linear-to-r from-[#5788FF] to-[#7BA3FF] bg-clip-text text-transparent">ABA Therapy</span>
               </h1>
               <p className="mx-auto hidden max-w-2xl text-lg text-muted-foreground sm:block">
                 Expert guides and resources to help families understand ABA therapy, choose providers,
@@ -93,7 +93,7 @@ export default function LearnPage() {
       </section>
 
       {/* Social Proof Bar */}
-      <section className="border-y border-border/60 bg-gradient-to-r from-white via-yellow-50/30 to-white py-5 !mt-0">
+      <section className="border-y border-border/60 bg-linear-to-r from-white via-yellow-50/30 to-white py-5 mt-0!">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-center gap-x-10 gap-y-4 px-4 text-sm sm:px-6">
           <div className="group flex items-center gap-2.5 transition-all duration-300 ease-premium hover:scale-[1.02]">
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#5788FF]/10 transition-all duration-300 ease-premium group-hover:bg-[#5788FF]/15 group-hover:scale-[1.05]">
@@ -116,7 +116,7 @@ export default function LearnPage() {
         </div>
       </section>
 
-      <div className="mx-auto max-w-5xl space-y-8 px-4 !mt-6 sm:!mt-8 sm:px-6">
+      <div className="mx-auto max-w-5xl space-y-8 px-4 mt-6! sm:mt-8! sm:px-6">
         {/* Quick Access Cards - Compact rows on mobile, full cards on desktop */}
         <div className="grid gap-2 sm:grid-cols-2 sm:gap-3">
           <Link
@@ -151,7 +151,7 @@ export default function LearnPage() {
         <ArticleList />
 
         {/* CTA */}
-        <section className="group relative overflow-hidden rounded-3xl border border-[#5788FF]/20 bg-gradient-to-br from-[#5788FF]/[0.03] via-white to-[#5788FF]/[0.06] p-8 transition-all duration-500 ease-premium hover:border-[#5788FF]/30 hover:shadow-[0_8px_30px_rgba(87,136,255,0.12)]">
+        <section className="group relative overflow-hidden rounded-3xl border border-[#5788FF]/20 bg-linear-to-br from-[#5788FF]/3 via-white to-[#5788FF]/6 p-8 transition-all duration-500 ease-premium hover:border-[#5788FF]/30 hover:shadow-[0_8px_30px_rgba(87,136,255,0.12)]">
           {/* Decorative elements */}
           <div className="pointer-events-none absolute -right-20 -top-20 h-40 w-40 rounded-full bg-[#5788FF]/5 transition-transform duration-700 ease-premium group-hover:scale-150" />
           <div className="pointer-events-none absolute -bottom-16 -left-16 h-32 w-32 rounded-full bg-[#FEE720]/20 transition-transform duration-700 ease-premium group-hover:scale-150" />

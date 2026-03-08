@@ -82,7 +82,7 @@ export function ClientQuickActions({
                   onClick={handleCopyPhone}
                 >
                   {copiedPhone ? (
-                    <Check className={cn(iconSize, "text-green-500")} />
+                    <Check className={cn(iconSize, "text-primary")} />
                   ) : (
                     <Copy className={iconSize} />
                   )}
@@ -125,7 +125,7 @@ export function ClientQuickActions({
                   onClick={handleCopyEmail}
                 >
                   {copiedEmail ? (
-                    <Check className={cn(iconSize, "text-green-500")} />
+                    <Check className={cn(iconSize, "text-primary")} />
                   ) : (
                     <Copy className={iconSize} />
                   )}

@@ -16,11 +16,11 @@ export function DemoBanner() {
   return (
     <div
       data-tour="demo-banner"
-      className="sticky top-0 z-50 bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-400 px-4 py-3 text-sm font-medium text-gray-900"
+      className="sticky top-0 z-50 bg-linear-to-r from-amber-400 via-yellow-400 to-amber-400 px-4 py-3 text-sm font-medium text-gray-900"
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
         <div className="flex items-start gap-2 sm:items-center">
-          <Info className="mt-0.5 h-4 w-4 flex-shrink-0 sm:mt-0" />
+          <Info className="mt-0.5 h-4 w-4 shrink-0 sm:mt-0" />
           <span className="text-sm leading-tight">
             You&apos;re viewing a <strong>demo dashboard</strong> with sample Pro account data
           </span>

@@ -65,7 +65,7 @@ export function WebsiteNav() {
           {/* Logo + Name */}
           <Link href={basePath} className="flex items-center gap-3">
             <Avatar
-              className="h-9 w-9 border-2 shadow-sm sm:h-10 sm:w-10"
+              className="h-9 w-9 border-2 shadow-xs sm:h-10 sm:w-10"
               style={{ borderColor: getLighterShade(brandColor, 0.3) }}
             >
               {provider.logoUrl ? (

@@ -156,7 +156,7 @@ export default async function StateJobsPage({ params }: StatePageProps) {
           <BubbleBackground
             interactive
             transition={{ stiffness: 100, damping: 50, mass: 0.5 }}
-            className="w-full bg-gradient-to-br from-white via-emerald-50/50 to-slate-50/50 py-8 sm:py-12"
+            className="w-full bg-linear-to-br from-white via-emerald-50/50 to-slate-50/50 py-8 sm:py-12"
             colors={{
               first: "255,255,255",
               second: "167,243,208",
@@ -412,7 +412,7 @@ export default async function StateJobsPage({ params }: StatePageProps) {
             </section>
 
             {/* CTA Card */}
-            <Card className="border border-emerald-500/30 bg-gradient-to-br from-emerald-500/5 to-emerald-500/10">
+            <Card className="border border-emerald-500/30 bg-linear-to-br from-emerald-500/5 to-emerald-500/10">
               <CardContent className="flex flex-col items-center gap-4 p-6 text-center sm:flex-row sm:text-left">
                 <div className="flex-1 space-y-1">
                   <p className="text-lg font-semibold text-foreground">Are you hiring in {stateInfo.name}?</p>

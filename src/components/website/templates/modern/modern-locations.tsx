@@ -77,7 +77,7 @@ export function ModernLocations() {
             return (
               <div
                 key={location.id}
-                className="group relative overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md"
+                className="group relative overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-xs transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md"
               >
                 {/* Primary badge */}
                 {location.isPrimary && provider.locations.length > 1 && (
@@ -124,7 +124,7 @@ export function ModernLocations() {
 
                   {/* Address */}
                   <div className="mb-3 flex items-start gap-2 text-sm text-gray-600">
-                    <MapPin className="mt-0.5 h-4 w-4 flex-shrink-0 text-gray-400" />
+                    <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-gray-400" />
                     <span>
                       {location.street && `${location.street}, `}
                       {location.city}, {location.state}

@@ -1,5 +1,6 @@
 "use client";
 
+import { DashboardFilterButton, DashboardFilterGroup } from "@/components/dashboard/ui";
 import type { TimePeriod } from "@/lib/analytics/events";
 import { cn } from "@/lib/utils";
 
@@ -18,22 +19,18 @@ const PERIOD_OPTIONS: { value: TimePeriod; label: string }[] = [
 
 export function AnalyticsTimeFilter({ value, onChange, className }: AnalyticsTimeFilterProps) {
   return (
-    <div className={cn("inline-flex rounded-lg border border-border bg-muted/50 p-1", className)}>
+    <DashboardFilterGroup className={cn("inline-flex min-w-0", className)}>
       {PERIOD_OPTIONS.map((option) => (
-        <button
+        <DashboardFilterButton
           key={option.value}
           type="button"
           onClick={() => onChange(option.value)}
-          className={cn(
-            "rounded-md px-3 py-1.5 text-sm font-medium transition-all",
-            value === option.value
-              ? "bg-primary text-primary-foreground shadow-sm"
-              : "text-muted-foreground hover:text-foreground hover:bg-muted"
-          )}
+          active={value === option.value}
+          className="h-8 px-3 text-sm"
         >
           {option.label}
-        </button>
+        </DashboardFilterButton>
       ))}
-    </div>
+    </DashboardFilterGroup>
   );
 }

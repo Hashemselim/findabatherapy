@@ -55,7 +55,7 @@ export function InsuranceSearchInput() {
         </div>
         <Button
           onClick={() => setIsOpen(!isOpen)}
-          className="h-12 shrink-0 rounded-xl bg-violet-600 px-4 text-white shadow-sm transition-all duration-300 ease-premium hover:-translate-y-[1px] hover:bg-violet-700 hover:shadow-md active:translate-y-0"
+          className="h-12 shrink-0 rounded-xl bg-violet-600 px-4 text-white shadow-xs transition-all duration-300 ease-premium hover:-translate-y-px hover:bg-violet-700 hover:shadow-md active:translate-y-0"
         >
           <Search className="h-5 w-5" />
         </Button>

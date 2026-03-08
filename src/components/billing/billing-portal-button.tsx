@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { createBillingPortalSession } from "@/lib/stripe/actions";
 
 interface BillingPortalButtonProps {
-  variant?: "default" | "outline" | "link";
+  variant?: "default" | "outline-solid" | "link";
   size?: "default" | "sm" | "lg";
   className?: string;
   children?: React.ReactNode;

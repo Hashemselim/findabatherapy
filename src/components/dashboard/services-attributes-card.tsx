@@ -20,6 +20,7 @@ import {
   DIAGNOSIS_OPTIONS,
   SPECIALTY_OPTIONS,
 } from "@/lib/validations/onboarding";
+import { getDashboardToneClasses } from "@/components/dashboard/ui";
 import { getListingAttributes, updateListingAttributes } from "@/lib/actions/listings";
 
 interface ServicesAttributesCardProps {
@@ -56,6 +57,7 @@ export function ServicesAttributesCard({ planTier }: ServicesAttributesCardProps
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const successTone = getDashboardToneClasses("success");
 
   useEffect(() => {
     async function loadData() {
@@ -148,7 +150,7 @@ export function ServicesAttributesCard({ planTier }: ServicesAttributesCardProps
         </CardHeader>
         <CardContent className="space-y-6">
           {success && (
-            <div className="flex items-center gap-2 rounded-lg bg-emerald-500/10 p-3 text-sm text-emerald-600">
+            <div className={`flex items-center gap-2 rounded-lg p-3 text-sm ${successTone.icon} ${successTone.emphasis}`}>
               <CheckCircle2 className="h-4 w-4" />
               Changes saved successfully
             </div>

@@ -3,12 +3,12 @@ import { ArrowRight, CheckCircle2, Clock } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
-  Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { DashboardCard, getDashboardToneClasses } from "@/components/dashboard/ui";
 import type { ListingWithRelations } from "@/lib/actions/listings";
 
 interface OnboardingChecklistProps {
@@ -18,6 +18,7 @@ interface OnboardingChecklistProps {
 
 export function OnboardingChecklist({ listing, isPaidPlan }: OnboardingChecklistProps) {
   const isPublished = listing.status === "published";
+  const successTone = getDashboardToneClasses("success");
 
   // Calculate completion status
   const hasDetails = !!(listing.headline && listing.description);
@@ -57,7 +58,7 @@ export function OnboardingChecklist({ listing, isPaidPlan }: OnboardingChecklist
   }
 
   return (
-    <Card className="border-primary/20 bg-primary/5">
+    <DashboardCard tone="premium">
       <CardHeader>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -70,7 +71,7 @@ export function OnboardingChecklist({ listing, isPaidPlan }: OnboardingChecklist
                 : `${completionPercent}% complete - finish the remaining steps to publish`}
             </CardDescription>
           </div>
-          <div className="text-2xl font-bold text-[#5788FF] sm:text-3xl">{completionPercent}%</div>
+          <div className="text-2xl font-bold text-primary sm:text-3xl">{completionPercent}%</div>
         </div>
       </CardHeader>
       <CardContent>
@@ -90,18 +91,18 @@ export function OnboardingChecklist({ listing, isPaidPlan }: OnboardingChecklist
               href={step.href}
               className={`flex items-center gap-2 rounded-lg border p-3 transition-colors hover:bg-muted/50 ${
                 step.completed
-                  ? "border-emerald-500/30 bg-emerald-500/5"
+                  ? "border-primary/20 bg-primary/5"
                   : "border-border/60 bg-background"
               }`}
             >
               {step.completed ? (
-                <CheckCircle2 className="h-4 w-4 flex-shrink-0 text-emerald-500" />
+                <CheckCircle2 className={`h-4 w-4 shrink-0 ${successTone.emphasis}`} />
               ) : (
-                <Clock className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+                <Clock className="h-4 w-4 shrink-0 text-muted-foreground" />
               )}
               <span
                 className={`text-sm ${
-                  step.completed ? "text-emerald-700" : "text-muted-foreground"
+                  step.completed ? successTone.emphasis : "text-muted-foreground"
                 }`}
               >
                 {step.label}
@@ -122,6 +123,6 @@ export function OnboardingChecklist({ listing, isPaidPlan }: OnboardingChecklist
           </div>
         )}
       </CardContent>
-    </Card>
+    </DashboardCard>
   );
 }

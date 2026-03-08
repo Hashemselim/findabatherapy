@@ -364,14 +364,14 @@ export default async function BrandedJobPage({ params }: BrandedJobPageProps) {
                 jobId={job.id}
                 jobTitle={job.title}
                 providerName={provider.agencyName}
-                className="!h-14 !text-lg !font-semibold sm:!h-10 sm:!text-sm sm:!font-medium flex-1 sm:flex-none sm:px-12 rounded-md"
+                className="h-14! text-lg! font-semibold! sm:h-10! sm:text-sm! sm:font-medium! flex-1 sm:flex-none sm:px-12 rounded-md"
                 style={{
                   backgroundColor: brandColor,
                   color: contrastColor,
                 }}
               />
               {provider.website && (
-                <Button variant="outline" className="!h-14 !text-lg !font-semibold sm:!h-10 sm:!text-sm sm:!font-medium rounded-md" asChild>
+                <Button variant="outline" className="h-14! text-lg! font-semibold! sm:h-10! sm:text-sm! sm:font-medium! rounded-md" asChild>
                   <a
                     href={provider.website}
                     target="_blank"
@@ -450,7 +450,7 @@ export default async function BrandedJobPage({ params }: BrandedJobPageProps) {
                       jobId={job.id}
                       jobTitle={job.title}
                       providerName={provider.agencyName}
-                      className="mt-4 w-full !h-14 !text-lg !font-semibold sm:!h-10 sm:!text-sm sm:!font-medium rounded-md"
+                      className="mt-4 w-full h-14! text-lg! font-semibold! sm:h-10! sm:text-sm! sm:font-medium! rounded-md"
                       style={{
                         backgroundColor: brandColor,
                         color: contrastColor,
@@ -609,7 +609,7 @@ export default async function BrandedJobPage({ params }: BrandedJobPageProps) {
               href="https://findabatherapy.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 rounded-full bg-white/20 px-4 py-2 text-xs font-medium backdrop-blur-sm transition-colors hover:bg-white/30"
+              className="inline-flex items-center gap-1.5 rounded-full bg-white/20 px-4 py-2 text-xs font-medium backdrop-blur-xs transition-colors hover:bg-white/30"
               style={{ color: contrastColor }}
             >
               Powered by Find ABA Therapy

@@ -99,7 +99,7 @@ export default async function WebsiteGuideDetailPage({
         </header>
 
         {/* Article Content */}
-        <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm sm:p-8">
+        <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-xs sm:p-8">
           <div
             className="prose prose-slate max-w-none prose-headings:font-semibold prose-h2:text-2xl prose-h3:text-xl prose-h4:text-lg prose-a:text-gray-900 prose-a:no-underline hover:prose-a:underline"
             dangerouslySetInnerHTML={{ __html: article.content }}

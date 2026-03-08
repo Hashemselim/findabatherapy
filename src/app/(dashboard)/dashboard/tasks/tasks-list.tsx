@@ -18,8 +18,8 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { DashboardStatusBadge } from "@/components/dashboard/ui";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -182,30 +182,23 @@ export function TasksList({ initialTasks, clients = [] }: TasksListProps) {
     const isOverdue = isPast(date) && !isToday(date);
 
     return (
-      <Badge
-        variant="outline"
-        className={cn(
-          "gap-1",
-          isOverdue && "border-red-500 text-red-600",
-          isToday(date) && "border-yellow-500 text-yellow-600"
-        )}
-      >
+      <DashboardStatusBadge tone={isOverdue ? "danger" : isToday(date) ? "warning" : "default"} className="gap-1">
         <Calendar className="h-3 w-3" />
         {isToday(date)
           ? "Today"
           : isOverdue
             ? <>Overdue (<RelativeTime date={date} />)</>
             : format(date, "MMM d")}
-      </Badge>
+      </DashboardStatusBadge>
     );
   };
 
   const getStatusIcon = (status: TaskStatus) => {
     switch (status) {
       case "completed":
-        return <CheckCircle2 className="h-5 w-5 text-green-500" />;
+        return <CheckCircle2 className="h-5 w-5 text-primary" />;
       case "in_progress":
-        return <CircleDot className="h-5 w-5 text-blue-500" />;
+        return <CircleDot className="h-5 w-5 text-primary" />;
       default:
         return <Circle className="h-5 w-5 text-muted-foreground" />;
     }
@@ -216,17 +209,18 @@ export function TasksList({ initialTasks, clients = [] }: TasksListProps) {
     if (!option) return null;
 
     return (
-      <Badge
-        variant="secondary"
-        className={cn(
-          "text-xs",
-          status === "pending" && "bg-gray-100 text-gray-700",
-          status === "in_progress" && "bg-blue-100 text-blue-700",
-          status === "completed" && "bg-green-100 text-green-700"
-        )}
+      <DashboardStatusBadge
+        tone={
+          status === "completed"
+            ? "success"
+            : status === "in_progress"
+              ? "info"
+              : "default"
+        }
+        className="text-xs"
       >
         {option.label}
-      </Badge>
+      </DashboardStatusBadge>
     );
   };
 
@@ -237,10 +231,25 @@ export function TasksList({ initialTasks, clients = [] }: TasksListProps) {
         {/* Filters - horizontally scrollable on mobile */}
         <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 sm:overflow-visible">
           <Tabs value={filter} onValueChange={(v) => setFilter(v as typeof filter)}>
-            <TabsList className="inline-flex w-auto min-w-full sm:min-w-0">
-              <TabsTrigger value="all" className="flex-1 sm:flex-none px-4">All ({tasks.length})</TabsTrigger>
-              <TabsTrigger value="active" className="flex-1 sm:flex-none px-4">Active ({activeCount})</TabsTrigger>
-              <TabsTrigger value="completed" className="flex-1 sm:flex-none px-4">Done ({completedCount})</TabsTrigger>
+            <TabsList className="inline-flex min-h-11 w-auto min-w-full items-center rounded-xl border border-border/60 bg-card p-1 shadow-xs sm:min-w-0">
+              <TabsTrigger
+                value="all"
+                className="flex h-9 flex-1 items-center rounded-lg border border-transparent px-4 text-xs font-medium leading-none text-muted-foreground data-[state=active]:border-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-xs sm:flex-none"
+              >
+                All ({tasks.length})
+              </TabsTrigger>
+              <TabsTrigger
+                value="active"
+                className="flex h-9 flex-1 items-center rounded-lg border border-transparent px-4 text-xs font-medium leading-none text-muted-foreground data-[state=active]:border-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-xs sm:flex-none"
+              >
+                Active ({activeCount})
+              </TabsTrigger>
+              <TabsTrigger
+                value="completed"
+                className="flex h-9 flex-1 items-center rounded-lg border border-transparent px-4 text-xs font-medium leading-none text-muted-foreground data-[state=active]:border-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-xs sm:flex-none"
+              >
+                Done ({completedCount})
+              </TabsTrigger>
             </TabsList>
           </Tabs>
         </div>
@@ -301,10 +310,10 @@ export function TasksList({ initialTasks, clients = [] }: TasksListProps) {
                             <Circle className="mr-2 h-4 w-4 text-muted-foreground" />
                           )}
                           {option.value === "in_progress" && (
-                            <CircleDot className="mr-2 h-4 w-4 text-blue-500" />
+                            <CircleDot className="mr-2 h-4 w-4 text-primary" />
                           )}
                           {option.value === "completed" && (
-                            <CheckCircle2 className="mr-2 h-4 w-4 text-green-500" />
+                            <CheckCircle2 className="mr-2 h-4 w-4 text-primary" />
                           )}
                           {option.label}
                         </DropdownMenuItem>
@@ -318,7 +327,7 @@ export function TasksList({ initialTasks, clients = [] }: TasksListProps) {
                       <div className="min-w-0 flex-1">
                         <p
                           className={cn(
-                            "font-medium break-words",
+                            "font-medium wrap-break-word",
                             task.status === "completed" &&
                               "text-muted-foreground line-through"
                           )}
@@ -326,7 +335,7 @@ export function TasksList({ initialTasks, clients = [] }: TasksListProps) {
                           {task.title}
                         </p>
                         {task.content && (
-                          <p className="mt-1 text-sm text-muted-foreground line-clamp-2 break-words">
+                          <p className="mt-1 text-sm text-muted-foreground line-clamp-2 wrap-break-word">
                             {task.content}
                           </p>
                         )}
@@ -366,13 +375,10 @@ export function TasksList({ initialTasks, clients = [] }: TasksListProps) {
 
                       {task.client_name && task.client_id && (
                         <Link href={`/dashboard/clients/${task.client_id}`}>
-                          <Badge
-                            variant="secondary"
-                            className="gap-1 hover:bg-secondary/80 w-fit"
-                          >
+                          <DashboardStatusBadge tone="default" className="w-fit gap-1">
                             <User className="h-3 w-3" />
                             <span className="truncate max-w-[150px]">{task.client_name}</span>
-                          </Badge>
+                          </DashboardStatusBadge>
                         </Link>
                       )}
 

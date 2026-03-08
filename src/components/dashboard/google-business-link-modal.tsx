@@ -163,18 +163,18 @@ export function GoogleBusinessLinkModal({
         <div className="space-y-4">
           {/* Currently linked info */}
           {currentPlaceId && (
-            <div className="rounded-lg border border-green-200 bg-green-50 p-4">
+            <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <Check className="h-5 w-5 text-green-600" />
+                  <Check className="h-5 w-5 text-primary" />
                   <div>
-                    <p className="text-sm font-medium text-green-900">Currently Linked</p>
+                    <p className="text-sm font-medium text-foreground">Currently Linked</p>
                     {currentRating && (
-                      <div className="flex items-center gap-1 text-sm text-green-700">
+                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
                         <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
                         <span>{currentRating.toFixed(1)}</span>
                         {currentRatingCount && (
-                          <span className="text-green-600">
+                          <span className="text-primary">
                             ({currentRatingCount.toLocaleString()} reviews)
                           </span>
                         )}
@@ -187,7 +187,7 @@ export function GoogleBusinessLinkModal({
                   size="sm"
                   onClick={handleUnlink}
                   disabled={isUnlinking}
-                  className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                  className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                 >
                   {isUnlinking ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -231,7 +231,7 @@ export function GoogleBusinessLinkModal({
 
           {/* Error message */}
           {error && (
-            <p className="text-center text-sm text-red-600">{error}</p>
+            <p className="text-center text-sm text-destructive">{error}</p>
           )}
 
           {/* Results */}
@@ -245,7 +245,7 @@ export function GoogleBusinessLinkModal({
                   <div className="min-w-0 flex-1">
                     <p className="font-medium text-foreground">{place.name}</p>
                     <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                      <MapPin className="h-3 w-3 flex-shrink-0" />
+                      <MapPin className="h-3 w-3 shrink-0" />
                       <span className="truncate">{place.address}</span>
                     </div>
                     {place.rating && (
@@ -264,7 +264,7 @@ export function GoogleBusinessLinkModal({
                     size="sm"
                     onClick={() => handleLink(place)}
                     disabled={isLinking === place.placeId || currentPlaceId === place.placeId}
-                    className="flex-shrink-0"
+                    className="shrink-0"
                   >
                     {isLinking === place.placeId ? (
                       <Loader2 className="h-4 w-4 animate-spin" />

@@ -413,7 +413,7 @@ export default async function CityJobsPage({ params }: CityPageProps) {
         </section>
 
         {/* CTA Card */}
-        <Card className="border-dashed border-emerald-500/50 bg-emerald-500/[0.04]">
+        <Card className="border-dashed border-emerald-500/50 bg-emerald-500/4">
           <CardHeader>
             <CardTitle className="text-lg font-semibold">
               Are you hiring in {city.name}?

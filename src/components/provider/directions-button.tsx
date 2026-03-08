@@ -8,7 +8,7 @@ interface DirectionsButtonProps {
   longitude: number | null;
   address: string;
   className?: string;
-  variant?: "default" | "outline" | "ghost";
+  variant?: "default" | "outline-solid" | "ghost";
   size?: "default" | "sm" | "lg" | "icon";
 }
 

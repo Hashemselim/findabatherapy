@@ -96,19 +96,19 @@ export function ModernHero() {
           {/* Badges */}
           <div className="mb-10 flex flex-wrap items-center justify-center gap-3">
             {isPremium && (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-4 py-1.5 text-sm font-medium text-white backdrop-blur-sm">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-4 py-1.5 text-sm font-medium text-white backdrop-blur-xs">
                 <CheckCircle2 className="h-4 w-4" />
                 Verified Provider
               </span>
             )}
             {provider.isAcceptingClients && (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-4 py-1.5 text-sm font-medium text-white backdrop-blur-sm">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-4 py-1.5 text-sm font-medium text-white backdrop-blur-xs">
                 <Sparkles className="h-4 w-4" />
                 Accepting New Clients
               </span>
             )}
             {primaryLocation && (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-4 py-1.5 text-sm font-medium text-white backdrop-blur-sm">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-4 py-1.5 text-sm font-medium text-white backdrop-blur-xs">
                 {primaryLocation.city}, {primaryLocation.state}
                 {provider.locations.length > 1 &&
                   ` + ${provider.locations.length - 1} more`}
@@ -134,7 +134,7 @@ export function ModernHero() {
                 asChild
                 variant="outline"
                 size="lg"
-                className="w-full gap-2 rounded-full border-2 border-white/30 bg-transparent px-8 py-6 text-base font-semibold text-white backdrop-blur-sm transition-all duration-300 hover:border-white/50 hover:bg-white/10 sm:w-auto"
+                className="w-full gap-2 rounded-full border-2 border-white/30 bg-transparent px-8 py-6 text-base font-semibold text-white backdrop-blur-xs transition-all duration-300 hover:border-white/50 hover:bg-white/10 sm:w-auto"
               >
                 <a href={`tel:${provider.profile.contactPhone}`}>
                   Call Us Today

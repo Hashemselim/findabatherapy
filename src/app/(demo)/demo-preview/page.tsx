@@ -179,7 +179,7 @@ function DemoPreviewContent() {
         <BubbleBackground
           interactive
           transition={{ stiffness: 100, damping: 50, mass: 0.5 }}
-          className="w-full bg-gradient-to-br from-white via-yellow-50/50 to-blue-50/50 py-6 sm:py-8"
+          className="w-full bg-linear-to-br from-white via-yellow-50/50 to-blue-50/50 py-6 sm:py-8"
           colors={{
             first: "255,255,255",
             second: "255,236,170",
@@ -318,7 +318,7 @@ function DemoPreviewContent() {
                 </h4>
                 <div className="rounded-xl border border-primary bg-primary/5 p-4 ring-2 ring-primary/20">
                   <div className="flex items-start gap-3">
-                    <MapPin className="mt-0.5 h-5 w-5 flex-shrink-0 text-primary" />
+                    <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
                     <div className="flex-1 space-y-2">
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="font-medium text-foreground">
@@ -367,7 +367,7 @@ function DemoPreviewContent() {
                       key={location.id}
                       className="flex items-center gap-3 p-3"
                     >
-                      <MapPin className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+                      <MapPin className="h-4 w-4 shrink-0 text-muted-foreground" />
                       <span className="flex-1 text-sm font-medium">
                         {location.label || `${location.city}, ${location.state}`}
                       </span>

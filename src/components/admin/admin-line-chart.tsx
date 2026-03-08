@@ -70,7 +70,7 @@ export function AdminLineChart({ title, description, series, className }: AdminL
             {series.map((s) => (
               <Button
                 key={s.key}
-                variant={activeSeries.has(s.key) ? "default" : "outline"}
+                variant={activeSeries.has(s.key) ? "default" : "outline-solid"}
                 size="sm"
                 className="h-7 text-xs"
                 style={{

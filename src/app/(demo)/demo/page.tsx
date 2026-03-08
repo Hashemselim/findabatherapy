@@ -188,7 +188,7 @@ export default function DemoOverviewPage() {
       {/* Featured Upsell */}
       <Card
         data-tour="featured-badge"
-        className="border-[#FEE720] bg-gradient-to-r from-[#FFF5C2]/50 to-[#FFF5C2]/30"
+        className="border-[#FEE720] bg-linear-to-r from-[#FFF5C2]/50 to-[#FFF5C2]/30"
       >
         <CardHeader>
           <div className="flex items-center gap-2">

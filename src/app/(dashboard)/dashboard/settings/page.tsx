@@ -1,9 +1,10 @@
 import { redirect } from "next/navigation";
 import { Mail, User, Shield, KeyRound } from "lucide-react";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
+import { DashboardCard, DashboardCallout } from "@/components/dashboard/ui";
 import { getUser, getProfile } from "@/lib/supabase/server";
 
 // Provider icons as separate components for cleaner code
@@ -50,7 +51,7 @@ export default async function DashboardSettingsPage() {
         return { label: "Microsoft", icon: <MicrosoftIcon /> };
       case "email":
       default:
-        return { label: "Email & Password", icon: <KeyRound className="h-4 w-4 text-slate-500" /> };
+        return { label: "Email & Password", icon: <KeyRound className="h-4 w-4 text-muted-foreground" /> };
     }
   };
 
@@ -94,15 +95,15 @@ export default async function DashboardSettingsPage() {
       />
 
       {/* Account Information Card */}
-      <Card className="border-slate-200 bg-white">
-        <CardHeader className="border-b border-slate-100 bg-slate-50/50">
+      <DashboardCard>
+        <CardHeader className="border-b border-border/60 bg-muted/20">
           <div className="flex items-center gap-3">
-            <div className="rounded-xl bg-slate-100 p-2.5">
-              <User className="h-6 w-6 text-slate-600" />
+            <div className="rounded-xl bg-primary/10 p-2.5 text-primary">
+              <User className="h-6 w-6" />
             </div>
             <div>
-              <CardTitle className="text-slate-900">Account Information</CardTitle>
-              <CardDescription className="text-slate-500">
+              <CardTitle>Account Information</CardTitle>
+              <CardDescription>
                 Your personal details and account settings
               </CardDescription>
             </div>
@@ -112,25 +113,25 @@ export default async function DashboardSettingsPage() {
           <div className="space-y-6">
             {/* Name */}
             <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-4">
-              <div className="flex items-center gap-2 text-sm font-medium text-slate-600 sm:w-32">
+              <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground sm:w-32">
                 <User className="h-4 w-4" />
                 Name
               </div>
-              <p className="text-sm text-slate-900">
-                {displayName || <span className="text-slate-400">Not set</span>}
+              <p className="text-sm text-foreground">
+                {displayName || <span className="text-muted-foreground">Not set</span>}
               </p>
             </div>
 
             {/* Email */}
             <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-4">
-              <div className="flex items-center gap-2 text-sm font-medium text-slate-600 sm:w-32">
+              <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground sm:w-32">
                 <Mail className="h-4 w-4" />
                 Email
               </div>
               <div className="flex items-center gap-2">
-                <p className="text-sm text-slate-900">{user.email}</p>
+                <p className="text-sm text-foreground">{user.email}</p>
                 {user.email_confirmed_at && (
-                  <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700">
+                  <Badge variant="outline" className="border-primary/20 bg-primary/10 text-primary">
                     Verified
                   </Badge>
                 )}
@@ -139,15 +140,15 @@ export default async function DashboardSettingsPage() {
 
             {/* Auth Methods */}
             <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:gap-4">
-              <div className="flex items-center gap-2 text-sm font-medium text-slate-600 sm:w-32 sm:pt-0.5">
+              <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground sm:w-32 sm:pt-0.5">
                 <Shield className="h-4 w-4" />
                 Sign-in {linkedProviders.length > 1 ? "Methods" : "Method"}
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 {linkedProviders.map((provider, idx) => (
-                  <div key={idx} className="flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
+                  <div key={idx} className="flex items-center gap-1.5 rounded-full border border-border/60 bg-muted/30 px-3 py-1">
                     {provider.icon}
-                    <span className="text-sm text-slate-900">{provider.label}</span>
+                    <span className="text-sm text-foreground">{provider.label}</span>
                   </div>
                 ))}
               </div>
@@ -156,31 +157,26 @@ export default async function DashboardSettingsPage() {
             {/* Account Created */}
             {createdAt && (
               <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-4">
-                <div className="flex items-center gap-2 text-sm font-medium text-slate-600 sm:w-32">
+                <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground sm:w-32">
                   <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
                   Member Since
                 </div>
-                <p className="text-sm text-slate-900">{createdAt}</p>
+                <p className="text-sm text-foreground">{createdAt}</p>
               </div>
             )}
           </div>
         </CardContent>
-      </Card>
+      </DashboardCard>
 
       {/* Security Note */}
-      <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-        <div className="flex items-start gap-3">
-          <Shield className="mt-0.5 h-5 w-5 flex-shrink-0 text-slate-400" />
-          <div>
-            <p className="text-sm font-medium text-slate-700">Account Security</p>
-            <p className="mt-1 text-sm text-slate-500">
-              {getSecurityNote()}
-            </p>
-          </div>
-        </div>
-      </div>
+      <DashboardCallout
+        title="Account Security"
+        description={getSecurityNote()}
+        icon={Shield}
+        tone="default"
+      />
     </div>
   );
 }

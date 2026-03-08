@@ -213,7 +213,7 @@ export function PlacesAutocomplete({
 
       {/* Dropdown */}
       {isOpen && predictions.length > 0 && (
-        <div className="absolute z-[9999] mt-1 w-full rounded-lg border border-border bg-popover shadow-lg">
+        <div className="absolute z-9999 mt-1 w-full rounded-lg border border-border bg-popover shadow-lg">
           <ul className="max-h-60 overflow-auto py-1">
             {predictions.map((prediction) => (
               <li key={prediction.placeId}>

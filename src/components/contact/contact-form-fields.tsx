@@ -177,7 +177,7 @@ export function ContactFormFields({
             <Input
               id="familyName"
               placeholder="Full name"
-              className="rounded-xl border-border/60 bg-muted/30 transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] focus:border-[#5788FF] focus:bg-background focus:shadow-[0_0_0_3px_rgba(87,136,255,0.1)] focus:ring-0"
+              className="rounded-xl border-border/60 bg-muted/30 transition-all duration-300 ease-premium focus:border-[#5788FF] focus:bg-background focus:shadow-[0_0_0_3px_rgba(87,136,255,0.1)] focus:ring-0"
               {...register("familyName")}
               aria-invalid={!!errors.familyName}
             />
@@ -194,7 +194,7 @@ export function ContactFormFields({
               id="familyEmail"
               type="email"
               placeholder="your@email.com"
-              className="rounded-xl border-border/60 bg-muted/30 transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] focus:border-[#5788FF] focus:bg-background focus:shadow-[0_0_0_3px_rgba(87,136,255,0.1)] focus:ring-0"
+              className="rounded-xl border-border/60 bg-muted/30 transition-all duration-300 ease-premium focus:border-[#5788FF] focus:bg-background focus:shadow-[0_0_0_3px_rgba(87,136,255,0.1)] focus:ring-0"
               {...register("familyEmail")}
               aria-invalid={!!errors.familyEmail}
             />
@@ -213,7 +213,7 @@ export function ContactFormFields({
               id="familyPhone"
               type="tel"
               placeholder="(555) 123-4567"
-              className="rounded-xl border-border/60 bg-muted/30 transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] focus:border-[#5788FF] focus:bg-background focus:shadow-[0_0_0_3px_rgba(87,136,255,0.1)] focus:ring-0"
+              className="rounded-xl border-border/60 bg-muted/30 transition-all duration-300 ease-premium focus:border-[#5788FF] focus:bg-background focus:shadow-[0_0_0_3px_rgba(87,136,255,0.1)] focus:ring-0"
               {...register("familyPhone")}
               aria-invalid={!!errors.familyPhone}
             />
@@ -229,7 +229,7 @@ export function ContactFormFields({
             <Input
               id="childAge"
               placeholder="e.g., 5 years old"
-              className="rounded-xl border-border/60 bg-muted/30 transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] focus:border-[#5788FF] focus:bg-background focus:shadow-[0_0_0_3px_rgba(87,136,255,0.1)] focus:ring-0"
+              className="rounded-xl border-border/60 bg-muted/30 transition-all duration-300 ease-premium focus:border-[#5788FF] focus:bg-background focus:shadow-[0_0_0_3px_rgba(87,136,255,0.1)] focus:ring-0"
               {...register("childAge")}
             />
           </div>
@@ -243,7 +243,7 @@ export function ContactFormFields({
             id="message"
             placeholder="Tell them about your needs, questions, or situation..."
             rows={4}
-            className="rounded-xl border-border/60 bg-muted/30 transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] focus:border-[#5788FF] focus:bg-background focus:shadow-[0_0_0_3px_rgba(87,136,255,0.1)] focus:ring-0"
+            className="rounded-xl border-border/60 bg-muted/30 transition-all duration-300 ease-premium focus:border-[#5788FF] focus:bg-background focus:shadow-[0_0_0_3px_rgba(87,136,255,0.1)] focus:ring-0"
             {...register("message")}
             aria-invalid={!!errors.message}
           />
@@ -261,7 +261,7 @@ export function ContactFormFields({
             value={watch("referralSource") || ""}
             onValueChange={(value) => setValue("referralSource", value)}
           >
-            <SelectTrigger className="rounded-xl border-border/60 bg-muted/30 transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] focus:border-[#5788FF] focus:bg-background focus:shadow-[0_0_0_3px_rgba(87,136,255,0.1)] focus:ring-0">
+            <SelectTrigger className="rounded-xl border-border/60 bg-muted/30 transition-all duration-300 ease-premium focus:border-[#5788FF] focus:bg-background focus:shadow-[0_0_0_3px_rgba(87,136,255,0.1)] focus:ring-0">
               <SelectValue placeholder="Select an option" />
             </SelectTrigger>
             <SelectContent>
@@ -282,7 +282,7 @@ export function ContactFormFields({
             <Input
               id="referralSourceOther"
               placeholder="How did you find us?"
-              className="rounded-xl border-border/60 bg-muted/30 transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] focus:border-[#5788FF] focus:bg-background focus:shadow-[0_0_0_3px_rgba(87,136,255,0.1)] focus:ring-0"
+              className="rounded-xl border-border/60 bg-muted/30 transition-all duration-300 ease-premium focus:border-[#5788FF] focus:bg-background focus:shadow-[0_0_0_3px_rgba(87,136,255,0.1)] focus:ring-0"
               {...register("referralSourceOther")}
             />
           </div>
@@ -298,7 +298,7 @@ export function ContactFormFields({
         />
 
         {/* Security Verification Section */}
-        <div className="rounded-xl border border-border/60 bg-muted/20 p-4 transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:border-border/80 hover:bg-muted/30">
+        <div className="rounded-xl border border-border/60 bg-muted/20 p-4 transition-all duration-300 ease-premium hover:border-border/80 hover:bg-muted/30">
           <div className="mb-3 flex items-center gap-2 text-sm text-muted-foreground">
             <ShieldCheck className="h-4 w-4" />
             <span>Security verification</span>
@@ -335,7 +335,7 @@ export function ContactFormFields({
 
         <Button
           type="submit"
-          className="group w-full rounded-full py-6 text-base font-medium transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-[2px] active:translate-y-0 disabled:hover:translate-y-0 disabled:hover:shadow-none"
+          className="group w-full rounded-full py-6 text-base font-medium transition-all duration-300 ease-premium hover:-translate-y-[2px] active:translate-y-0 disabled:hover:translate-y-0 disabled:hover:shadow-none"
           disabled={isSubmitting || !turnstileToken}
           style={brandColor ? { backgroundColor: brandColor, color: "#FFFFFF" } : undefined}
         >
@@ -346,7 +346,7 @@ export function ContactFormFields({
             </>
           ) : (
             <>
-              <Send className="mr-2 h-4 w-4 transition-transform duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+              <Send className="mr-2 h-4 w-4 transition-transform duration-300 ease-bounce-sm group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
               {submitButtonText}
             </>
           )}

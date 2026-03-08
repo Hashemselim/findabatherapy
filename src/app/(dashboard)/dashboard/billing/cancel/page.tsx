@@ -2,8 +2,9 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { AlertCircle, ArrowRight, HelpCircle } from "lucide-react";
 
+import { DashboardCard } from "@/components/dashboard/ui";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { resetPlanToFree } from "@/lib/actions/billing";
 
 interface BillingCancelPageProps {
@@ -27,10 +28,10 @@ export default async function BillingCancelPage({ searchParams }: BillingCancelP
 
   return (
     <div className="flex min-h-[60vh] items-center justify-center">
-      <Card className="w-full max-w-lg">
+      <DashboardCard tone="warning" className="w-full max-w-lg">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-amber-500/10">
-            <AlertCircle className="h-8 w-8 text-amber-500" />
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+            <AlertCircle className="h-8 w-8 text-primary" />
           </div>
           <CardTitle className="text-2xl">
             {isFeaturedLocation ? "Featured Checkout Cancelled" : "Payment Not Completed"}
@@ -70,7 +71,7 @@ export default async function BillingCancelPage({ searchParams }: BillingCancelP
           </div>
 
           <div className="flex items-start gap-2 rounded-lg border border-primary/20 bg-primary/5 p-3">
-            <HelpCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-primary" />
+            <HelpCircle className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
             <div className="text-sm">
               <p className="font-medium text-foreground">Need help?</p>
               <p className="text-muted-foreground">
@@ -83,7 +84,7 @@ export default async function BillingCancelPage({ searchParams }: BillingCancelP
             </div>
           </div>
         </CardContent>
-      </Card>
+      </DashboardCard>
     </div>
   );
 }

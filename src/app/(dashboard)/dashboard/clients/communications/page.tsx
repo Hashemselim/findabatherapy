@@ -11,15 +11,26 @@ import {
 
 import { Button } from "@/components/ui/button";
 import {
-  Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { DashboardTracker } from "@/components/analytics/dashboard-tracker";
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
+import {
+  DashboardEmptyState,
+  DashboardStatCard,
+  DashboardStatusBadge,
+  DashboardTable,
+  DashboardTableBody,
+  DashboardTableCard,
+  DashboardTableCell,
+  DashboardTableHead,
+  DashboardTableHeader,
+  DashboardTableRow,
+  type DashboardTone,
+} from "@/components/dashboard/ui";
 import { PreviewBanner } from "@/components/ui/preview-banner";
 import { PreviewOverlay } from "@/components/ui/preview-overlay";
 import { getUser } from "@/lib/supabase/server";
@@ -34,9 +45,9 @@ const STATUS_ICON = {
 } as const;
 
 const STATUS_STYLE = {
-  sent: "bg-green-100 text-green-700",
-  failed: "bg-red-100 text-red-700",
-  bounced: "bg-amber-100 text-amber-700",
+  sent: "success",
+  failed: "danger",
+  bounced: "warning",
 } as const;
 
 export default async function CommunicationsPage() {
@@ -86,52 +97,31 @@ export default async function CommunicationsPage() {
       {/* Summary Cards */}
       <PreviewOverlay isPreview={isPreview}>
       <div className="grid gap-4 sm:grid-cols-3">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100">
-                <Mail className="h-5 w-5 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{total}</p>
-                <p className="text-xs text-muted-foreground">Total Sent</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-green-100">
-                <CheckCircle2 className="h-5 w-5 text-green-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{sentCount}</p>
-                <p className="text-xs text-muted-foreground">Delivered</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-100">
-                <XCircle className="h-5 w-5 text-red-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{failedCount}</p>
-                <p className="text-xs text-muted-foreground">Failed</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <DashboardStatCard
+          label="Total Sent"
+          value={total}
+          icon={<Mail className="h-5 w-5" />}
+          tone="info"
+        />
+        <DashboardStatCard
+          label="Delivered"
+          value={sentCount}
+          icon={<CheckCircle2 className="h-5 w-5" />}
+          tone="success"
+        />
+        <DashboardStatCard
+          label="Failed"
+          value={failedCount}
+          icon={<XCircle className="h-5 w-5" />}
+          tone="danger"
+        />
       </div>
 
       </PreviewOverlay>
 
       {/* Communications Table */}
       <PreviewOverlay isPreview={isPreview} showLabel={false}>
-      <Card>
+      <DashboardTableCard>
         <CardHeader>
           <CardTitle className="text-lg">Recent Communications</CardTitle>
           <CardDescription>
@@ -140,82 +130,79 @@ export default async function CommunicationsPage() {
         </CardHeader>
         <CardContent>
           {communications.length === 0 ? (
-            <div className="py-12 text-center">
-              <Mail className="mx-auto h-10 w-10 text-muted-foreground/40" />
-              <p className="mt-3 text-sm font-medium text-muted-foreground">
-                No communications sent yet
-              </p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Go to a client&apos;s profile and click &quot;Send&quot; in the Communications section.
-              </p>
-              <Button asChild variant="outline" size="sm" className="mt-4">
-                <Link href="/dashboard/clients">
-                  View Clients
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
-            </div>
+            <DashboardEmptyState
+              icon={Mail}
+              title="No communications sent yet"
+              description="Go to a client's profile and click Send in the communications section to start tracking messages here."
+              action={(
+                <Button asChild variant="outline" size="sm">
+                  <Link href="/dashboard/clients">
+                    View Clients
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Link>
+                </Button>
+              )}
+              className="border-0 shadow-none"
+            />
           ) : (
-            <div className="overflow-x-auto -mx-6">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b text-muted-foreground">
-                    <th className="pb-3 pl-6 text-left font-medium">Status</th>
-                    <th className="pb-3 text-left font-medium">Client</th>
-                    <th className="pb-3 text-left font-medium">Subject</th>
-                    <th className="pb-3 text-left font-medium hidden md:table-cell">Recipient</th>
-                    <th className="pb-3 text-left font-medium hidden sm:table-cell">Template</th>
-                    <th className="pb-3 pr-6 text-left font-medium">Date</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
+            <DashboardTable>
+              <DashboardTableHeader>
+                <DashboardTableRow>
+                  <DashboardTableHead className="pl-6 normal-case tracking-normal">Status</DashboardTableHead>
+                  <DashboardTableHead className="normal-case tracking-normal">Client</DashboardTableHead>
+                  <DashboardTableHead className="normal-case tracking-normal">Subject</DashboardTableHead>
+                  <DashboardTableHead className="hidden normal-case tracking-normal md:table-cell">Recipient</DashboardTableHead>
+                  <DashboardTableHead className="hidden normal-case tracking-normal sm:table-cell">Template</DashboardTableHead>
+                  <DashboardTableHead className="pr-6 normal-case tracking-normal">Date</DashboardTableHead>
+                </DashboardTableRow>
+              </DashboardTableHeader>
+              <DashboardTableBody>
                   {communications.map((comm) => {
                     const StatusIcon = STATUS_ICON[comm.status] || CheckCircle2;
-                    const statusStyle = STATUS_STYLE[comm.status] || STATUS_STYLE.sent;
+                    const statusTone = STATUS_STYLE[comm.status] || STATUS_STYLE.sent;
 
                     return (
-                      <tr key={comm.id} className="hover:bg-muted/50">
-                        <td className="py-3 pl-6">
-                          <Badge variant="secondary" className={`text-xs ${statusStyle}`}>
+                      <DashboardTableRow key={comm.id}>
+                        <DashboardTableCell className="py-3 pl-6">
+                          <DashboardStatusBadge tone={statusTone as DashboardTone} className="text-xs">
                             <StatusIcon className="h-3 w-3 mr-1" />
                             {comm.status}
-                          </Badge>
-                        </td>
-                        <td className="py-3">
+                          </DashboardStatusBadge>
+                        </DashboardTableCell>
+                        <DashboardTableCell className="py-3">
                           <Link
                             href={`/dashboard/clients/${comm.client_id}`}
                             className="font-medium hover:underline"
                           >
                             {comm.client_name || "Unknown"}
                           </Link>
-                        </td>
-                        <td className="py-3 max-w-[200px] truncate">
+                        </DashboardTableCell>
+                        <DashboardTableCell className="max-w-[200px] py-3">
                           {comm.subject}
-                        </td>
-                        <td className="py-3 hidden md:table-cell text-muted-foreground">
+                        </DashboardTableCell>
+                        <DashboardTableCell className="hidden py-3 text-muted-foreground md:table-cell">
                           {comm.recipient_email}
-                        </td>
-                        <td className="py-3 hidden sm:table-cell">
+                        </DashboardTableCell>
+                        <DashboardTableCell className="hidden py-3 sm:table-cell">
                           {comm.template_slug ? (
-                            <Badge variant="outline" className="text-xs">
+                            <DashboardStatusBadge tone="default" className="text-xs">
                               {comm.template_slug.replace(/-/g, " ")}
-                            </Badge>
+                            </DashboardStatusBadge>
                           ) : (
                             <span className="text-muted-foreground">Custom</span>
                           )}
-                        </td>
-                        <td className="py-3 pr-6 text-muted-foreground whitespace-nowrap">
+                        </DashboardTableCell>
+                        <DashboardTableCell className="whitespace-nowrap py-3 pr-6 text-muted-foreground">
                           {format(new Date(comm.sent_at), "MMM d, yyyy")}
-                        </td>
-                      </tr>
+                        </DashboardTableCell>
+                      </DashboardTableRow>
                     );
                   })}
-                </tbody>
-              </table>
-            </div>
+              </DashboardTableBody>
+            </DashboardTable>
           )}
         </CardContent>
-      </Card>
+      </DashboardTableCard>
       </PreviewOverlay>
     </div>
   );

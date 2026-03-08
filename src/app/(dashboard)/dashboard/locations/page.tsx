@@ -1,12 +1,11 @@
 import Link from "next/link";
-import { ClipboardList, ArrowRight, CheckCircle2, Star } from "lucide-react";
+import { ClipboardList, ArrowRight, Star } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { BubbleBackground } from "@/components/ui/bubble-background";
 import { type CompanyDefaults } from "@/components/dashboard/locations-manager";
 import { LocationsPageContent } from "@/components/dashboard/locations-header-wrapper";
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
+import { DashboardCallout, DashboardEmptyState } from "@/components/dashboard/ui";
 import { getProfile } from "@/lib/supabase/server";
 import { getLocations } from "@/lib/actions/locations";
 import { getListing } from "@/lib/actions/listings";
@@ -31,54 +30,20 @@ export default async function LocationsPage() {
           description="Manage where families can find your services. Your primary location appears prominently in search results."
         />
 
-        <Card className="overflow-hidden border-slate-200">
-          <BubbleBackground
-            interactive={false}
-            size="default"
-            className="bg-gradient-to-br from-white via-yellow-50/50 to-blue-50/50"
-            colors={{
-              first: "255,255,255",
-              second: "255,236,170",
-              third: "135,176,255",
-              fourth: "255,248,210",
-              fifth: "190,210,255",
-              sixth: "240,248,255",
-            }}
-          >
-            <CardContent className="flex flex-col items-center py-12 px-6 text-center">
-              <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#5788FF] shadow-lg shadow-[#5788FF]/25">
-                <ClipboardList className="h-8 w-8 text-white" />
-              </div>
-
-              <p className="text-xl font-semibold text-slate-900">
-                Complete Onboarding to Access Locations
-              </p>
-
-              <p className="mt-3 max-w-md text-sm text-slate-600">
-                Finish setting up your practice profile to unlock all dashboard features.
-              </p>
-
-              <div className="mt-6 flex flex-wrap justify-center gap-3">
-                {["Add locations", "Set service areas", "Appear in search"].map((benefit) => (
-                  <span
-                    key={benefit}
-                    className="inline-flex items-center gap-1.5 rounded-full bg-white/80 px-3 py-1.5 text-xs font-medium text-slate-600"
-                  >
-                    <CheckCircle2 className="h-3.5 w-3.5 text-[#5788FF]" />
-                    {benefit}
-                  </span>
-                ))}
-              </div>
-
-              <Button asChild size="lg" className="mt-8">
-                <Link href="/dashboard/onboarding" className="gap-2">
-                  Continue Onboarding
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-              </Button>
-            </CardContent>
-          </BubbleBackground>
-        </Card>
+        <DashboardEmptyState
+          icon={ClipboardList}
+          title="Complete Onboarding to Access Locations"
+          description="Finish setting up your practice profile to unlock all dashboard features."
+          benefits={["Add locations", "Set service areas", "Appear in search"]}
+          action={(
+            <Button asChild size="lg">
+              <Link href="/dashboard/onboarding" className="gap-2">
+                Continue Onboarding
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
+          )}
+        />
       </div>
     );
   }
@@ -135,25 +100,12 @@ export default async function LocationsPage() {
 
       {/* Featured Upsell Card - Show for Pro users who haven't featured all locations */}
       {!isFreePlan && featuredCount < locations.length && locations.length > 0 && (
-        <Card className="border-[#FEE720] bg-gradient-to-r from-[#FFF5C2]/50 to-[#FFF5C2]/30">
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <Star className="h-5 w-5 fill-[#5788FF] text-[#5788FF]" />
-              <CardTitle className="text-lg">Boost Your Visibility</CardTitle>
-            </div>
-            <CardDescription>
-              Featured locations appear at the top of search results and get up to
-              3x more visibility.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="text-sm text-muted-foreground">
-                <strong>{featuredCount} of {locations.length}</strong> locations currently featured
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <DashboardCallout
+          tone="premium"
+          icon={Star}
+          title="Boost Your Visibility"
+          description={`Featured locations appear at the top of search results and get up to 3x more visibility. ${featuredCount} of ${locations.length} locations are currently featured.`}
+        />
       )}
     </div>
   );

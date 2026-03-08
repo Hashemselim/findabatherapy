@@ -29,7 +29,7 @@ export function BwTestimonials() {
             delay={i * 0.1}
             bounce
           >
-            <div className="flex h-full flex-col rounded-2xl border border-amber-200/40 bg-white p-6 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md hover:shadow-amber-100/50">
+            <div className="flex h-full flex-col rounded-2xl border border-amber-200/40 bg-white p-6 shadow-xs transition-all hover:-translate-y-0.5 hover:shadow-md hover:shadow-amber-100/50">
               {/* Stars */}
               <div className="flex gap-0.5">
                 {Array.from({ length: 5 }).map((_, j) => (

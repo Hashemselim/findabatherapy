@@ -1,7 +1,6 @@
 import Link from "next/link";
 import {
   ArrowRight,
-  CheckCircle2,
   ClipboardList,
   Sparkles,
   Users,
@@ -9,10 +8,9 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { BubbleBackground } from "@/components/ui/bubble-background";
 import { AnalyticsClient } from "@/components/dashboard/analytics-client";
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
+import { DashboardCallout, DashboardEmptyState, DashboardStatusBadge } from "@/components/dashboard/ui";
 import { PreviewBanner } from "@/components/ui/preview-banner";
 import { PreviewOverlay } from "@/components/ui/preview-overlay";
 import { getProfile } from "@/lib/supabase/server";
@@ -31,54 +29,20 @@ export default async function AnalyticsPage() {
           description="Track how potential clients discover and interact with your listing."
         />
 
-        <Card className="overflow-hidden border-slate-200">
-          <BubbleBackground
-            interactive={false}
-            size="default"
-            className="bg-gradient-to-br from-white via-yellow-50/50 to-blue-50/50"
-            colors={{
-              first: "255,255,255",
-              second: "255,236,170",
-              third: "135,176,255",
-              fourth: "255,248,210",
-              fifth: "190,210,255",
-              sixth: "240,248,255",
-            }}
-          >
-            <CardContent className="flex flex-col items-center py-12 px-6 text-center">
-              <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#5788FF] shadow-lg shadow-[#5788FF]/25">
-                <ClipboardList className="h-8 w-8 text-white" />
-              </div>
-
-              <p className="text-xl font-semibold text-slate-900">
-                Complete Onboarding to Access Analytics
-              </p>
-
-              <p className="mt-3 max-w-md text-sm text-slate-600">
-                Finish setting up your practice profile to unlock all dashboard features.
-              </p>
-
-              <div className="mt-6 flex flex-wrap justify-center gap-3">
-                {["Track views", "Monitor clicks", "See traffic sources"].map((benefit) => (
-                  <span
-                    key={benefit}
-                    className="inline-flex items-center gap-1.5 rounded-full bg-white/80 px-3 py-1.5 text-xs font-medium text-slate-600"
-                  >
-                    <CheckCircle2 className="h-3.5 w-3.5 text-[#5788FF]" />
-                    {benefit}
-                  </span>
-                ))}
-              </div>
-
-              <Button asChild size="lg" className="mt-8">
-                <Link href="/dashboard/onboarding" className="gap-2">
-                  Continue Onboarding
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-              </Button>
-            </CardContent>
-          </BubbleBackground>
-        </Card>
+        <DashboardEmptyState
+          icon={ClipboardList}
+          title="Complete Onboarding to Access Analytics"
+          description="Finish setting up your practice profile to unlock all dashboard features."
+          benefits={["Track views", "Monitor clicks", "See traffic sources"]}
+          action={(
+            <Button asChild size="lg">
+              <Link href="/dashboard/onboarding" className="gap-2">
+                Continue Onboarding
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
+          )}
+        />
       </div>
     );
   }
@@ -128,26 +92,26 @@ export default async function AnalyticsPage() {
 
           {/* FindABATherapy Attribution Callout */}
           {referralData.findabatherapyCount > 0 && (
-            <Card className="border-primary/20 bg-primary/5">
-              <CardContent className="flex items-center gap-4 py-4">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10">
-                  <Sparkles className="h-6 w-6 text-primary" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-primary">
+            <DashboardCallout
+              tone="info"
+              icon={Sparkles}
+              title="FindABATherapy attribution"
+              description={(
+                <>
+                  <span className="text-2xl font-bold text-primary">
                     {referralData.findabatherapyCount}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    client{referralData.findabatherapyCount !== 1 ? "s" : ""} found you through FindABATherapy
-                  </p>
-                </div>
-                <Badge variant="secondary" className="ml-auto bg-primary/10 text-primary">
+                  </span>{" "}
+                  client{referralData.findabatherapyCount !== 1 ? "s" : ""} found you through FindABATherapy.
+                </>
+              )}
+              action={(
+                <DashboardStatusBadge tone="info">
                   {referralData.totalClients > 0
                     ? Math.round((referralData.findabatherapyCount / referralData.totalClients) * 100)
                     : 0}% of total
-                </Badge>
-              </CardContent>
-            </Card>
+                </DashboardStatusBadge>
+              )}
+            />
           )}
 
           {/* Referral Source Breakdown */}

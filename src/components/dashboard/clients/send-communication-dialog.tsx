@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { DashboardStatusBadge, type DashboardTone } from "@/components/dashboard/ui";
 import { cn } from "@/lib/utils";
 import {
   getTemplates,
@@ -35,14 +36,14 @@ import {
 } from "@/lib/actions/communications";
 
 // Lifecycle stage display config
-const LIFECYCLE_STAGES: Record<string, { label: string; color: string }> = {
-  inquiry: { label: "Inquiry", color: "bg-blue-100 text-blue-700" },
-  intake_pending: { label: "Intake Pending", color: "bg-purple-100 text-purple-700" },
-  waitlist: { label: "Waitlist", color: "bg-amber-100 text-amber-700" },
-  assessment: { label: "Assessment", color: "bg-orange-100 text-orange-700" },
-  active: { label: "Active", color: "bg-green-100 text-green-700" },
-  discharged: { label: "Discharged", color: "bg-gray-100 text-gray-700" },
-  any: { label: "General", color: "bg-slate-100 text-slate-700" },
+const LIFECYCLE_STAGES: Record<string, { label: string; tone: DashboardTone }> = {
+  inquiry: { label: "Inquiry", tone: "info" },
+  intake_pending: { label: "Intake Pending", tone: "premium" },
+  waitlist: { label: "Waitlist", tone: "warning" },
+  assessment: { label: "Assessment", tone: "warning" },
+  active: { label: "Active", tone: "success" },
+  discharged: { label: "Discharged", tone: "default" },
+  any: { label: "General", tone: "default" },
 };
 
 // Relationship display labels
@@ -301,17 +302,14 @@ export function SendCommunicationDialog({
                   {orderedStages.map((stage) => {
                     const stageConfig = LIFECYCLE_STAGES[stage] || {
                       label: stage,
-                      color: "bg-gray-100 text-gray-700",
+                      tone: "default" as DashboardTone,
                     };
                     return (
                       <SelectGroup key={stage}>
                         <SelectLabel className="flex items-center gap-2">
-                          <Badge
-                            variant="secondary"
-                            className={cn("text-xs px-1.5 py-0", stageConfig.color)}
-                          >
+                          <DashboardStatusBadge tone={stageConfig.tone} className="px-1.5 py-0 text-xs">
                             {stageConfig.label}
-                          </Badge>
+                          </DashboardStatusBadge>
                           {stage === currentStage && (
                             <span className="text-xs text-muted-foreground">(current)</span>
                           )}
@@ -439,7 +437,7 @@ export function SendCommunicationDialog({
             </div>
           )}
           {successMessage && (
-            <div className="text-sm text-green-700 bg-green-50 rounded-md px-3 py-2">
+            <div className="rounded-md bg-primary/10 px-3 py-2 text-sm text-primary">
               {successMessage}
             </div>
           )}

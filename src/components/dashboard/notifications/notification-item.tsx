@@ -16,51 +16,43 @@ import {
 import { cn } from "@/lib/utils";
 import { markNotificationAsRead } from "@/lib/actions/notifications";
 import type { Notification, NotificationType } from "@/lib/actions/notifications";
+import { getDashboardToneClasses, type DashboardTone } from "@/components/dashboard/ui";
 
 const TYPE_CONFIG: Record<NotificationType, {
   icon: typeof Bell;
-  color: string;
-  bgColor: string;
+  tone: DashboardTone;
 }> = {
   contact_form: {
     icon: Mail,
-    color: "text-blue-600",
-    bgColor: "bg-blue-50",
+    tone: "info",
   },
   intake_submission: {
     icon: FileText,
-    color: "text-purple-600",
-    bgColor: "bg-purple-50",
+    tone: "premium",
   },
   job_application: {
     icon: UserCheck,
-    color: "text-emerald-600",
-    bgColor: "bg-emerald-50",
+    tone: "success",
   },
   task_overdue: {
     icon: Clock,
-    color: "text-red-600",
-    bgColor: "bg-red-50",
+    tone: "danger",
   },
   auth_expiring: {
     icon: AlertTriangle,
-    color: "text-amber-600",
-    bgColor: "bg-amber-50",
+    tone: "warning",
   },
   credential_expiring: {
     icon: ShieldAlert,
-    color: "text-orange-600",
-    bgColor: "bg-orange-50",
+    tone: "warning",
   },
   status_change: {
     icon: ArrowRightLeft,
-    color: "text-indigo-600",
-    bgColor: "bg-indigo-50",
+    tone: "info",
   },
   system: {
     icon: Bell,
-    color: "text-slate-600",
-    bgColor: "bg-slate-50",
+    tone: "default",
   },
 };
 
@@ -90,6 +82,7 @@ export function NotificationItem({ notification, onRead }: NotificationItemProps
   const [isPending, startTransition] = useTransition();
   const config = TYPE_CONFIG[notification.type] || TYPE_CONFIG.system;
   const Icon = config.icon;
+  const toneStyles = getDashboardToneClasses(config.tone);
 
   const handleClick = () => {
     startTransition(async () => {
@@ -111,15 +104,15 @@ export function NotificationItem({ notification, onRead }: NotificationItemProps
         "flex w-full items-start gap-3 rounded-lg border px-4 py-3 text-left transition-colors",
         notification.isRead
           ? "border-transparent bg-transparent hover:bg-muted/50"
-          : "border-blue-100 bg-blue-50/30 hover:bg-blue-50/50",
+          : "border-primary/20 bg-primary/5 hover:bg-primary/10",
         isPending && "opacity-60"
       )}
     >
       <div className={cn(
         "mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg",
-        config.bgColor
+        toneStyles.icon
       )}>
-        <Icon className={cn("h-4.5 w-4.5", config.color)} />
+        <Icon className={cn("h-4.5 w-4.5", toneStyles.emphasis)} />
       </div>
 
       <div className="min-w-0 flex-1">
@@ -135,7 +128,7 @@ export function NotificationItem({ notification, onRead }: NotificationItemProps
               {getRelativeTime(notification.createdAt)}
             </span>
             {!notification.isRead && (
-              <span className="h-2 w-2 shrink-0 rounded-full bg-blue-500" />
+              <span className="h-2 w-2 shrink-0 rounded-full bg-primary" />
             )}
           </div>
         </div>

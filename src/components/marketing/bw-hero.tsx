@@ -120,7 +120,7 @@ export function BwHero() {
               ].map(({ icon: Icon, label }) => (
                 <span
                   key={label}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-amber-200/60 bg-white/80 px-3 py-1.5 text-xs font-semibold text-slate-600 backdrop-blur-sm"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-amber-200/60 bg-white/80 px-3 py-1.5 text-xs font-semibold text-slate-600 backdrop-blur-xs"
                 >
                   <Icon className="h-3 w-3 text-slate-400" />
                   {label}
@@ -155,7 +155,7 @@ export function BwHero() {
                     destination: "#lifecycle",
                   })
                 }
-                className="inline-flex h-12 items-center justify-center rounded-full border border-amber-200/80 bg-white/60 px-7 text-sm font-semibold text-[#1A2744] backdrop-blur-sm transition-all hover:border-amber-300 hover:bg-white"
+                className="inline-flex h-12 items-center justify-center rounded-full border border-amber-200/80 bg-white/60 px-7 text-sm font-semibold text-[#1A2744] backdrop-blur-xs transition-all hover:border-amber-300 hover:bg-white"
               >
                 See How It Works
               </Link>

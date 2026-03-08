@@ -252,7 +252,7 @@ export default async function ProviderPage({ params, searchParams }: ProviderPag
         <BubbleBackground
           interactive
           transition={{ stiffness: 100, damping: 50, mass: 0.5 }}
-          className="w-full bg-gradient-to-br from-white via-yellow-50/50 to-blue-50/50 py-6 sm:py-8"
+          className="w-full bg-linear-to-br from-white via-yellow-50/50 to-blue-50/50 py-6 sm:py-8"
           colors={{
             first: "255,255,255",
             second: "255,236,170",
@@ -277,7 +277,7 @@ export default async function ProviderPage({ params, searchParams }: ProviderPag
                 <div className="space-y-2">
                   <div className="flex flex-wrap items-center gap-2">
                     {isPremium && (
-                      <Badge variant="outline" className="gap-1 border-emerald-500/50 bg-emerald-50 text-emerald-700 transition-all duration-300 ease-premium hover:scale-[1.02] hover:bg-emerald-100 hover:shadow-[0_2px_8px_rgba(16,185,129,0.2)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50">
+                      <Badge variant="outline" className="gap-1 border-emerald-500/50 bg-emerald-50 text-emerald-700 transition-all duration-300 ease-premium hover:scale-[1.02] hover:bg-emerald-100 hover:shadow-[0_2px_8px_rgba(16,185,129,0.2)] active:scale-[0.98] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-emerald-500/50">
                         <BadgeCheck className="h-3 w-3" />
                         Verified
                       </Badge>
@@ -340,7 +340,7 @@ export default async function ProviderPage({ params, searchParams }: ProviderPag
                 <div className="grid gap-4 sm:grid-cols-3">
                   <a
                     href={`mailto:${contactEmail}`}
-                    className="group flex items-center gap-3 rounded-xl border border-border/60 bg-muted/30 p-4 transition-all duration-300 ease-premium hover:-translate-y-[2px] hover:border-[#5788FF]/30 hover:bg-[#5788FF]/[0.03] hover:shadow-[0_4px_20px_rgba(87,136,255,0.12)] active:translate-y-0 active:shadow-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5788FF]/50"
+                    className="group flex items-center gap-3 rounded-xl border border-border/60 bg-muted/30 p-4 transition-all duration-300 ease-premium hover:-translate-y-[2px] hover:border-[#5788FF]/30 hover:bg-[#5788FF]/3 hover:shadow-[0_4px_20px_rgba(87,136,255,0.12)] active:translate-y-0 active:shadow-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#5788FF]/50"
                   >
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#5788FF]/10 transition-all duration-300 ease-premium group-hover:bg-[#5788FF]/15 group-hover:scale-[1.05]">
                       <Mail className="h-5 w-5 text-[#5788FF] transition-transform duration-300 ease-bounce-sm group-hover:scale-[1.1]" aria-hidden />
@@ -353,7 +353,7 @@ export default async function ProviderPage({ params, searchParams }: ProviderPag
                   {contactPhone && (
                     <a
                       href={`tel:+1${contactPhone.replace(/\D/g, "")}`}
-                      className="group flex items-center gap-3 rounded-xl border border-border/60 bg-muted/30 p-4 transition-all duration-300 ease-premium hover:-translate-y-[2px] hover:border-[#5788FF]/30 hover:bg-[#5788FF]/[0.03] hover:shadow-[0_4px_20px_rgba(87,136,255,0.12)] active:translate-y-0 active:shadow-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5788FF]/50"
+                      className="group flex items-center gap-3 rounded-xl border border-border/60 bg-muted/30 p-4 transition-all duration-300 ease-premium hover:-translate-y-[2px] hover:border-[#5788FF]/30 hover:bg-[#5788FF]/3 hover:shadow-[0_4px_20px_rgba(87,136,255,0.12)] active:translate-y-0 active:shadow-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#5788FF]/50"
                     >
                       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#5788FF]/10 transition-all duration-300 ease-premium group-hover:bg-[#5788FF]/15 group-hover:scale-[1.05]">
                         <Phone className="h-5 w-5 text-[#5788FF] transition-transform duration-300 ease-bounce-sm group-hover:scale-[1.1]" aria-hidden />
@@ -369,7 +369,7 @@ export default async function ProviderPage({ params, searchParams }: ProviderPag
                       href={contactWebsite}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="group flex items-center gap-3 rounded-xl border border-border/60 bg-muted/30 p-4 transition-all duration-300 ease-premium hover:-translate-y-[2px] hover:border-[#5788FF]/30 hover:bg-[#5788FF]/[0.03] hover:shadow-[0_4px_20px_rgba(87,136,255,0.12)] active:translate-y-0 active:shadow-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5788FF]/50"
+                      className="group flex items-center gap-3 rounded-xl border border-border/60 bg-muted/30 p-4 transition-all duration-300 ease-premium hover:-translate-y-[2px] hover:border-[#5788FF]/30 hover:bg-[#5788FF]/3 hover:shadow-[0_4px_20px_rgba(87,136,255,0.12)] active:translate-y-0 active:shadow-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#5788FF]/50"
                       title={contactWebsite}
                     >
                       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#5788FF]/10 transition-all duration-300 ease-premium group-hover:bg-[#5788FF]/15 group-hover:scale-[1.05]">
@@ -410,7 +410,7 @@ export default async function ProviderPage({ params, searchParams }: ProviderPag
             {currentLocation && (
               <div
                 id={`location-${currentLocation.id}`}
-                className="rounded-2xl border border-[#5788FF]/20 bg-[#5788FF]/[0.03] p-5 transition-all duration-500 ease-premium hover:border-[#5788FF]/30 hover:bg-[#5788FF]/[0.05] hover:shadow-[0_8px_30px_rgba(87,136,255,0.1)]"
+                className="rounded-2xl border border-[#5788FF]/20 bg-[#5788FF]/3 p-5 transition-all duration-500 ease-premium hover:border-[#5788FF]/30 hover:bg-[#5788FF]/5 hover:shadow-[0_8px_30px_rgba(87,136,255,0.1)]"
               >
                 <div className="mb-3 flex items-center gap-2">
                   <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#5788FF]/10">
@@ -526,7 +526,7 @@ export default async function ProviderPage({ params, searchParams }: ProviderPag
                         {listing.serviceModes.map((mode) => (
                           <li
                             key={mode}
-                            className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-muted/30 px-4 py-2 transition-all duration-300 ease-premium hover:scale-[1.03] hover:border-emerald-500/30 hover:bg-emerald-500/[0.08] hover:text-foreground hover:shadow-[0_2px_8px_rgba(16,185,129,0.15)] active:scale-[0.98]"
+                            className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-muted/30 px-4 py-2 transition-all duration-300 ease-premium hover:scale-[1.03] hover:border-emerald-500/30 hover:bg-emerald-500/8 hover:text-foreground hover:shadow-[0_2px_8px_rgba(16,185,129,0.15)] active:scale-[0.98]"
                           >
                             <Stethoscope className="h-4 w-4 text-emerald-600" aria-hidden />
                             {serviceModeLabels[mode] || mode}
@@ -543,7 +543,7 @@ export default async function ProviderPage({ params, searchParams }: ProviderPag
                   {(agesServed || languages.length > 0 || diagnoses.length > 0 || clinicalSpecialties.length > 0) && (
                     <div className="grid gap-4 pt-2 md:grid-cols-2">
                       {agesServed && (agesServed.min !== undefined || agesServed.max !== undefined) && (
-                        <div className="rounded-xl border border-border/60 bg-muted/30 p-4 transition-all duration-300 ease-premium hover:border-[#5788FF]/20 hover:bg-[#5788FF]/[0.03] hover:shadow-[0_2px_12px_rgba(87,136,255,0.08)]">
+                        <div className="rounded-xl border border-border/60 bg-muted/30 p-4 transition-all duration-300 ease-premium hover:border-[#5788FF]/20 hover:bg-[#5788FF]/3 hover:shadow-[0_2px_12px_rgba(87,136,255,0.08)]">
                           <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Ages Served</p>
                           <p className="mt-1 font-medium text-foreground">
                             {agesServed.min ?? 0} - {agesServed.max ?? 18} years
@@ -552,21 +552,21 @@ export default async function ProviderPage({ params, searchParams }: ProviderPag
                       )}
 
                       {languages.length > 0 && (
-                        <div className="rounded-xl border border-border/60 bg-muted/30 p-4 transition-all duration-300 ease-premium hover:border-[#5788FF]/20 hover:bg-[#5788FF]/[0.03] hover:shadow-[0_2px_12px_rgba(87,136,255,0.08)]">
+                        <div className="rounded-xl border border-border/60 bg-muted/30 p-4 transition-all duration-300 ease-premium hover:border-[#5788FF]/20 hover:bg-[#5788FF]/3 hover:shadow-[0_2px_12px_rgba(87,136,255,0.08)]">
                           <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Languages</p>
                           <p className="mt-1 font-medium text-foreground">{languages.join(", ")}</p>
                         </div>
                       )}
 
                       {diagnoses.length > 0 && (
-                        <div className="rounded-xl border border-border/60 bg-muted/30 p-4 transition-all duration-300 ease-premium hover:border-[#5788FF]/20 hover:bg-[#5788FF]/[0.03] hover:shadow-[0_2px_12px_rgba(87,136,255,0.08)]">
+                        <div className="rounded-xl border border-border/60 bg-muted/30 p-4 transition-all duration-300 ease-premium hover:border-[#5788FF]/20 hover:bg-[#5788FF]/3 hover:shadow-[0_2px_12px_rgba(87,136,255,0.08)]">
                           <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Diagnoses</p>
                           <p className="mt-1 font-medium text-foreground">{diagnoses.join(", ")}</p>
                         </div>
                       )}
 
                       {clinicalSpecialties.length > 0 && (
-                        <div className="rounded-xl border border-border/60 bg-muted/30 p-4 transition-all duration-300 ease-premium hover:border-[#5788FF]/20 hover:bg-[#5788FF]/[0.03] hover:shadow-[0_2px_12px_rgba(87,136,255,0.08)]">
+                        <div className="rounded-xl border border-border/60 bg-muted/30 p-4 transition-all duration-300 ease-premium hover:border-[#5788FF]/20 hover:bg-[#5788FF]/3 hover:shadow-[0_2px_12px_rgba(87,136,255,0.08)]">
                           <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Specialties</p>
                           <p className="mt-1 font-medium text-foreground">{clinicalSpecialties.join(", ")}</p>
                         </div>
@@ -593,7 +593,7 @@ export default async function ProviderPage({ params, searchParams }: ProviderPag
                     {listing.serviceModes.map((mode) => (
                       <li
                         key={mode}
-                        className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-muted/30 px-4 py-2 transition-all duration-300 ease-premium hover:scale-[1.03] hover:border-emerald-500/30 hover:bg-emerald-500/[0.08] hover:text-foreground hover:shadow-[0_2px_8px_rgba(16,185,129,0.15)] active:scale-[0.98]"
+                        className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-muted/30 px-4 py-2 transition-all duration-300 ease-premium hover:scale-[1.03] hover:border-emerald-500/30 hover:bg-emerald-500/8 hover:text-foreground hover:shadow-[0_2px_8px_rgba(16,185,129,0.15)] active:scale-[0.98]"
                       >
                         <Stethoscope className="h-4 w-4 text-emerald-600" aria-hidden />
                         {serviceModeLabels[mode] || mode}
@@ -618,7 +618,7 @@ export default async function ProviderPage({ params, searchParams }: ProviderPag
                 <CardContent>
                   <div className="flex flex-wrap gap-2">
                     {insurances.map((insurance) => (
-                      <Badge key={insurance} variant="outline" className="rounded-full px-4 py-2 text-sm transition-all duration-300 ease-premium hover:scale-[1.03] hover:border-violet-500/30 hover:bg-violet-500/[0.06] hover:text-violet-700 hover:shadow-[0_2px_8px_rgba(139,92,246,0.15)] active:scale-[0.98]">
+                      <Badge key={insurance} variant="outline" className="rounded-full px-4 py-2 text-sm transition-all duration-300 ease-premium hover:scale-[1.03] hover:border-violet-500/30 hover:bg-violet-500/6 hover:text-violet-700 hover:shadow-[0_2px_8px_rgba(139,92,246,0.15)] active:scale-[0.98]">
                         {insurance}
                       </Badge>
                     ))}
@@ -649,9 +649,9 @@ export default async function ProviderPage({ params, searchParams }: ProviderPag
                         <li key={location.id}>
                           <Link
                             href={`/provider/${listing.slug}?location=${location.id}`}
-                            className="group flex items-center gap-3 p-3 transition-all duration-300 ease-premium hover:bg-[#5788FF]/[0.04] hover:pl-4 active:bg-[#5788FF]/[0.08] focus-visible:outline-none focus-visible:bg-[#5788FF]/[0.06]"
+                            className="group flex items-center gap-3 p-3 transition-all duration-300 ease-premium hover:bg-[#5788FF]/4 hover:pl-4 active:bg-[#5788FF]/8 focus-visible:outline-hidden focus-visible:bg-[#5788FF]/6"
                           >
-                            <MapPin className="h-4 w-4 flex-shrink-0 text-muted-foreground transition-all duration-300 ease-premium group-hover:text-[#5788FF] group-hover:scale-110" />
+                            <MapPin className="h-4 w-4 shrink-0 text-muted-foreground transition-all duration-300 ease-premium group-hover:text-[#5788FF] group-hover:scale-110" />
                             <span className="flex-1 text-sm font-medium transition-colors duration-300 group-hover:text-[#5788FF]">
                               {location.city}, {location.state}
                             </span>
@@ -689,7 +689,7 @@ export default async function ProviderPage({ params, searchParams }: ProviderPag
                   {videoEmbedUrl && (
                     <div className="space-y-2">
                       <p className="text-sm font-medium text-muted-foreground">Video</p>
-                      <div className="group relative aspect-video w-full overflow-hidden rounded-2xl border bg-black shadow-sm transition-all duration-500 ease-premium hover:shadow-[0_8px_30px_rgba(0,0,0,0.15)]">
+                      <div className="group relative aspect-video w-full overflow-hidden rounded-2xl border bg-black shadow-xs transition-all duration-500 ease-premium hover:shadow-[0_8px_30px_rgba(0,0,0,0.15)]">
                         <iframe
                           src={videoEmbedUrl}
                           className="absolute inset-0 h-full w-full"
@@ -709,7 +709,7 @@ export default async function ProviderPage({ params, searchParams }: ProviderPag
                         {photoUrls.map((url, index) => (
                           <div
                             key={url}
-                            className="group relative aspect-video cursor-pointer overflow-hidden rounded-2xl bg-muted/40 shadow-sm transition-all duration-500 ease-premium hover:shadow-[0_8px_30px_rgba(0,0,0,0.12)] active:scale-[0.99]"
+                            className="group relative aspect-video cursor-pointer overflow-hidden rounded-2xl bg-muted/40 shadow-xs transition-all duration-500 ease-premium hover:shadow-[0_8px_30px_rgba(0,0,0,0.12)] active:scale-[0.99]"
                           >
                             <Image
                               src={url}
@@ -717,7 +717,7 @@ export default async function ProviderPage({ params, searchParams }: ProviderPag
                               fill
                               className="object-cover transition-transform duration-700 ease-premium group-hover:scale-[1.05]"
                             />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+                            <div className="absolute inset-0 bg-linear-to-t from-black/20 via-transparent to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
                           </div>
                         ))}
                       </div>

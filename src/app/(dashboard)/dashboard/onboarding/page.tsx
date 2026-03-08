@@ -80,7 +80,7 @@ export default function OnboardingWelcomePage() {
       >
         {/* Hero section */}
         <motion.div variants={item} className="mb-12 text-center">
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-amber-200/60 bg-white px-4 py-1.5 shadow-sm">
+          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-amber-200/60 bg-white px-4 py-1.5 shadow-xs">
             <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
             <span className="text-xs font-medium tracking-wide text-slate-500">
               Ready to set up your agency
@@ -164,7 +164,7 @@ export default function OnboardingWelcomePage() {
             onClick={handleContinue}
           >
             {/* Shimmer effect */}
-            <span className="absolute inset-0 -translate-x-full animate-[shimmer_3s_ease-in-out_infinite] bg-gradient-to-r from-transparent via-[#1A2744]/10 to-transparent" />
+            <span className="absolute inset-0 -translate-x-full animate-[shimmer_3s_ease-in-out_infinite] bg-linear-to-r from-transparent via-[#1A2744]/10 to-transparent" />
             <span className="relative flex items-center gap-2">
               {isPending ? "Starting..." : "Begin Setup"}
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />

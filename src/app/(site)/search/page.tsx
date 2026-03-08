@@ -213,7 +213,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
           <BubbleBackground
             interactive
             transition={{ stiffness: 100, damping: 50, mass: 0.5 }}
-            className="w-full bg-gradient-to-br from-white via-yellow-50/50 to-blue-50/50 py-4 sm:py-5"
+            className="w-full bg-linear-to-br from-white via-yellow-50/50 to-blue-50/50 py-4 sm:py-5"
             colors={{
               first: "255,255,255",
               second: "255,236,170",
@@ -236,7 +236,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
           <BubbleBackground
             interactive
             transition={{ stiffness: 100, damping: 50, mass: 0.5 }}
-            className="w-full bg-gradient-to-br from-white via-yellow-50/50 to-blue-50/50 py-6 sm:py-8"
+            className="w-full bg-linear-to-br from-white via-yellow-50/50 to-blue-50/50 py-6 sm:py-8"
             colors={{
               first: "255,255,255",
               second: "255,236,170",
@@ -262,7 +262,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
       <section className="mx-auto max-w-6xl px-4 sm:px-6">
         <div className="flex flex-col gap-6 lg:flex-row">
           {/* Sidebar Filters */}
-          <aside className="w-full flex-shrink-0 lg:w-64">
+          <aside className="w-full shrink-0 lg:w-64">
             <Suspense fallback={<div className="h-96 animate-pulse rounded-lg bg-muted" />}>
               <SearchFilters />
             </Suspense>
@@ -329,7 +329,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
             )}
 
             {/* CTA Card */}
-            <Card className="group relative mt-8 overflow-hidden border border-[#5788FF]/20 bg-gradient-to-br from-[#5788FF]/[0.03] via-white to-[#5788FF]/[0.06] transition-all duration-500 ease-premium hover:border-[#5788FF]/30 hover:shadow-[0_8px_30px_rgba(87,136,255,0.12)]">
+            <Card className="group relative mt-8 overflow-hidden border border-[#5788FF]/20 bg-linear-to-br from-[#5788FF]/3 via-white to-[#5788FF]/6 transition-all duration-500 ease-premium hover:border-[#5788FF]/30 hover:shadow-[0_8px_30px_rgba(87,136,255,0.12)]">
               {/* Decorative elements */}
               <div className="pointer-events-none absolute -right-16 -top-16 h-32 w-32 rounded-full bg-[#5788FF]/5 transition-transform duration-700 ease-premium group-hover:scale-150" />
               <div className="pointer-events-none absolute -bottom-12 -left-12 h-24 w-24 rounded-full bg-primary/10 transition-transform duration-700 ease-premium group-hover:scale-150" />

@@ -50,7 +50,7 @@ export function CrossBrandBenefits({ currentBrand }: Props) {
   const OtherIcon = other.icon;
 
   return (
-    <section className="bg-gradient-to-b from-slate-50/80 to-white py-16 sm:py-24">
+    <section className="bg-linear-to-b from-slate-50/80 to-white py-16 sm:py-24">
       <div className="mx-auto max-w-4xl px-4 sm:px-6">
         {/* Header */}
         <header className="text-center">
@@ -69,7 +69,7 @@ export function CrossBrandBenefits({ currentBrand }: Props) {
         </header>
 
         {/* Other Brand Card */}
-        <Card className="mt-10 overflow-hidden border-2 border-slate-200 bg-white shadow-sm transition-all duration-300 hover:border-slate-300 hover:shadow-md">
+        <Card className="mt-10 overflow-hidden border-2 border-slate-200 bg-white shadow-xs transition-all duration-300 hover:border-slate-300 hover:shadow-md">
           <CardContent className="p-0">
             <div className="flex flex-col md:flex-row">
               {/* Left side - Brand info */}

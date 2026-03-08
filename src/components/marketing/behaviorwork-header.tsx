@@ -47,7 +47,7 @@ export function BehaviorWorkHeader() {
       className={cn(
         "fixed inset-x-0 top-0 z-50 transition-all duration-300",
         scrolled
-          ? "border-b border-amber-200/60 bg-[#FFFBF0] shadow-sm shadow-amber-100/40 sm:bg-[#FFFBF0]/95 sm:backdrop-blur-xl sm:supports-[backdrop-filter]:bg-[#FFFBF0]/85"
+          ? "border-b border-amber-200/60 bg-[#FFFBF0] shadow-xs shadow-amber-100/40 sm:bg-[#FFFBF0]/95 sm:backdrop-blur-xl sm:supports-backdrop-filter:bg-[#FFFBF0]/85"
           : "border-b border-transparent bg-[#FFFBF0]"
       )}
     >
@@ -85,7 +85,7 @@ export function BehaviorWorkHeader() {
           <Link
             href="/behaviorwork/get-started"
             onClick={trackHeaderCta}
-            className="inline-flex h-9 items-center justify-center rounded-full bg-[#FFDC33] px-5 text-sm font-bold text-[#1A2744] shadow-sm shadow-amber-200/40 transition-all hover:bg-[#F5CF1B] hover:shadow-md hover:shadow-amber-200/50 active:scale-[0.97]"
+            className="inline-flex h-9 items-center justify-center rounded-full bg-[#FFDC33] px-5 text-sm font-bold text-[#1A2744] shadow-xs shadow-amber-200/40 transition-all hover:bg-[#F5CF1B] hover:shadow-md hover:shadow-amber-200/50 active:scale-[0.97]"
           >
             Start Growing
           </Link>
@@ -139,7 +139,7 @@ export function BehaviorWorkHeader() {
                   <Link
                     href="/behaviorwork/get-started"
                     onClick={trackHeaderCta}
-                    className="mt-1 flex h-10 items-center justify-center rounded-full bg-[#FFDC33] text-sm font-bold text-[#1A2744] shadow-sm shadow-amber-200/40 transition-all hover:bg-[#F5CF1B]"
+                    className="mt-1 flex h-10 items-center justify-center rounded-full bg-[#FFDC33] text-sm font-bold text-[#1A2744] shadow-xs shadow-amber-200/40 transition-all hover:bg-[#F5CF1B]"
                   >
                     Start Growing
                   </Link>

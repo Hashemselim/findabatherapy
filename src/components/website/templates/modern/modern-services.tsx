@@ -98,7 +98,7 @@ export function ModernServices() {
       <div className="relative mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
         {/* Section Header — white text on brand bg */}
         <div className="mb-12 text-center sm:mb-16">
-          <span className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/15 px-4 py-1.5 text-sm font-medium text-white backdrop-blur-sm">
+          <span className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/15 px-4 py-1.5 text-sm font-medium text-white backdrop-blur-xs">
             <Star className="h-3.5 w-3.5" />
             Our Services
           </span>
@@ -130,7 +130,7 @@ export function ModernServices() {
                 return (
                   <div
                     key={mode}
-                    className="group relative overflow-hidden rounded-2xl border border-white/20 bg-white/10 p-6 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:bg-white/15 hover:shadow-lg"
+                    className="group relative overflow-hidden rounded-2xl border border-white/20 bg-white/10 p-6 backdrop-blur-xs transition-all duration-300 hover:-translate-y-1 hover:bg-white/15 hover:shadow-lg"
                   >
                     <div className="mb-4 inline-flex rounded-xl bg-white/20 p-3 transition-all duration-300 group-hover:scale-110">
                       <Icon className="h-6 w-6 text-white" />
@@ -152,7 +152,7 @@ export function ModernServices() {
         <div className="grid gap-6 sm:grid-cols-2">
           {/* Clinical Specialties */}
           {clinicalSpecialties.length > 0 && (
-            <div className="rounded-2xl border border-white/15 bg-white/10 p-6 backdrop-blur-sm transition-all duration-300 hover:bg-white/15">
+            <div className="rounded-2xl border border-white/15 bg-white/10 p-6 backdrop-blur-xs transition-all duration-300 hover:bg-white/15">
               <div className="mb-4 flex items-center gap-2.5">
                 <div className="rounded-lg bg-white/20 p-2">
                   <Brain className="h-5 w-5 text-white" />
@@ -176,7 +176,7 @@ export function ModernServices() {
 
           {/* Diagnoses */}
           {diagnoses.length > 0 && (
-            <div className="rounded-2xl border border-white/15 bg-white/10 p-6 backdrop-blur-sm transition-all duration-300 hover:bg-white/15">
+            <div className="rounded-2xl border border-white/15 bg-white/10 p-6 backdrop-blur-xs transition-all duration-300 hover:bg-white/15">
               <div className="mb-4 flex items-center gap-2.5">
                 <div className="rounded-lg bg-white/20 p-2">
                   <Stethoscope className="h-5 w-5 text-white" />
@@ -200,7 +200,7 @@ export function ModernServices() {
 
           {/* Ages Served */}
           {agesServed && (
-            <div className="rounded-2xl border border-white/15 bg-white/10 p-6 backdrop-blur-sm transition-all duration-300 hover:bg-white/15">
+            <div className="rounded-2xl border border-white/15 bg-white/10 p-6 backdrop-blur-xs transition-all duration-300 hover:bg-white/15">
               <div className="mb-4 flex items-center gap-2.5">
                 <div className="rounded-lg bg-white/20 p-2">
                   <Baby className="h-5 w-5 text-white" />
@@ -220,7 +220,7 @@ export function ModernServices() {
 
           {/* Languages */}
           {languages.length > 0 && (
-            <div className="rounded-2xl border border-white/15 bg-white/10 p-6 backdrop-blur-sm transition-all duration-300 hover:bg-white/15">
+            <div className="rounded-2xl border border-white/15 bg-white/10 p-6 backdrop-blur-xs transition-all duration-300 hover:bg-white/15">
               <div className="mb-4 flex items-center gap-2.5">
                 <div className="rounded-lg bg-white/20 p-2">
                   <Languages className="h-5 w-5 text-white" />

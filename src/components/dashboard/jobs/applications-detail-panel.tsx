@@ -18,10 +18,10 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { DashboardCard, DashboardStatusBadge, type DashboardTone } from "@/components/dashboard/ui";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CardContent, CardHeader } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import {
@@ -59,24 +59,14 @@ interface ApplicationsDetailPanelProps {
   onApplicationUpdate?: (updatedApp: Partial<ApplicationWithJob>) => void;
 }
 
-const STATUS_COLORS: Record<ApplicationStatus, string> = {
-  new: "bg-blue-100 text-blue-700 border-blue-200",
-  reviewed: "bg-gray-100 text-gray-700 border-gray-200",
-  phone_screen: "bg-purple-100 text-purple-700 border-purple-200",
-  interview: "bg-orange-100 text-orange-700 border-orange-200",
-  offered: "bg-emerald-100 text-emerald-700 border-emerald-200",
-  hired: "bg-green-100 text-green-700 border-green-200",
-  rejected: "bg-red-100 text-red-700 border-red-200",
-};
-
-const STATUS_BORDER_COLORS: Record<ApplicationStatus, string> = {
-  new: "border-blue-300 focus:ring-blue-500",
-  reviewed: "border-gray-300 focus:ring-gray-500",
-  phone_screen: "border-purple-300 focus:ring-purple-500",
-  interview: "border-orange-300 focus:ring-orange-500",
-  offered: "border-emerald-300 focus:ring-emerald-500",
-  hired: "border-green-300 focus:ring-green-500",
-  rejected: "border-red-300 focus:ring-red-500",
+const STATUS_TONES: Record<ApplicationStatus, DashboardTone> = {
+  new: "info",
+  reviewed: "default",
+  phone_screen: "premium",
+  interview: "warning",
+  offered: "success",
+  hired: "success",
+  rejected: "danger",
 };
 
 function getInitials(name: string): string {
@@ -182,24 +172,23 @@ export function ApplicationsDetailPanel({
 
   if (!application) {
     return (
-      <Card className="flex min-h-0 flex-1 items-center justify-center border-border/60">
+      <DashboardCard className="flex min-h-0 flex-1 items-center justify-center">
         <CardContent className="py-12 text-center">
           <Briefcase className="mx-auto h-12 w-12 text-muted-foreground" />
           <p className="mt-4 text-muted-foreground">
             Select an application to view details
           </p>
         </CardContent>
-      </Card>
+      </DashboardCard>
     );
   }
 
   const statusInfo = APPLICATION_STATUSES.find((s) => s.value === application.status);
-  const statusColor = STATUS_COLORS[application.status as ApplicationStatus];
-  const statusBorderColor = STATUS_BORDER_COLORS[status as ApplicationStatus];
+  const statusTone = STATUS_TONES[application.status as ApplicationStatus];
   const sourceInfo = APPLICATION_SOURCES.find((s) => s.value === application.source);
 
   return (
-    <Card className="flex min-h-0 flex-1 flex-col border-border/60">
+    <DashboardCard className="flex min-h-0 flex-1 flex-col">
       <CardHeader className="shrink-0">
         {/* Back button for mobile */}
         {showBackButton && onBack && (
@@ -217,7 +206,7 @@ export function ApplicationsDetailPanel({
         {/* Header with Avatar and Name */}
         <div className="flex items-start gap-4">
           <Avatar className="h-14 w-14 border-2 border-border">
-            <AvatarFallback className="bg-emerald-50 text-lg font-semibold text-emerald-700">
+            <AvatarFallback className="bg-primary/10 text-lg font-semibold text-primary">
               {getInitials(application.applicantName)}
             </AvatarFallback>
           </Avatar>
@@ -226,9 +215,9 @@ export function ApplicationsDetailPanel({
               <h2 className="text-xl font-semibold truncate">
                 {application.applicantName}
               </h2>
-              <Badge variant="outline" className={statusColor}>
+              <DashboardStatusBadge tone={statusTone}>
                 {statusInfo?.label || application.status}
-              </Badge>
+              </DashboardStatusBadge>
             </div>
             <p className="text-sm text-muted-foreground truncate">
               {application.applicantEmail}
@@ -242,7 +231,7 @@ export function ApplicationsDetailPanel({
         <div className="flex flex-wrap gap-x-5 gap-y-2">
           <a
             href={`mailto:${application.applicantEmail}`}
-            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-emerald-600"
+            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary"
           >
             <Mail className="h-4 w-4" />
             {application.applicantEmail}
@@ -250,7 +239,7 @@ export function ApplicationsDetailPanel({
           {application.applicantPhone && (
             <a
               href={`tel:${application.applicantPhone}`}
-              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-emerald-600"
+              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary"
             >
               <Phone className="h-4 w-4" />
               {application.applicantPhone}
@@ -261,7 +250,7 @@ export function ApplicationsDetailPanel({
               href={application.linkedinUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-emerald-600"
+              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary"
             >
               <Linkedin className="h-4 w-4" />
               LinkedIn
@@ -288,14 +277,14 @@ export function ApplicationsDetailPanel({
 
         {/* Job Info */}
         <div className="flex items-center gap-2 rounded-lg bg-muted/50 p-3">
-          <Briefcase className="h-4 w-4 text-emerald-600" />
+          <Briefcase className="h-4 w-4 text-primary" />
           <span className="text-sm">
             Applied for: <strong>{application.job.title}</strong>
           </span>
         </div>
 
         {/* Actions Row */}
-        <div className="flex flex-wrap items-center gap-3 rounded-lg border p-3">
+        <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border/60 bg-muted/20 p-3">
           {/* Status Selector */}
           <div className="flex items-center gap-2">
             <Label className="text-xs text-muted-foreground">Status:</Label>
@@ -304,7 +293,7 @@ export function ApplicationsDetailPanel({
               onValueChange={handleStatusChange}
               disabled={isPending}
             >
-              <SelectTrigger className={`h-8 w-[140px] text-xs ${statusBorderColor}`}>
+              <SelectTrigger className="h-8 w-[140px] border-border/60 bg-card text-xs shadow-xs">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -427,7 +416,7 @@ export function ApplicationsDetailPanel({
         {application.notes && (
           <div>
             <p className="mb-2 text-sm font-medium text-muted-foreground">Internal Notes</p>
-            <div className="rounded-lg bg-amber-50 border border-amber-200 p-4">
+            <div className="rounded-lg border border-border/60 bg-muted/30 p-4">
               <p className="whitespace-pre-wrap text-sm text-foreground">
                 {application.notes}
               </p>
@@ -435,6 +424,6 @@ export function ApplicationsDetailPanel({
           </div>
         )}
       </CardContent>
-    </Card>
+    </DashboardCard>
   );
 }

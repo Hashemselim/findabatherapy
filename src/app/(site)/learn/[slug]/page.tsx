@@ -178,7 +178,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
       <BubbleBackground
         interactive
         transition={{ stiffness: 100, damping: 50, mass: 0.5 }}
-        className="w-full bg-gradient-to-br from-white via-yellow-50/50 to-blue-50/50 py-8 sm:py-12"
+        className="w-full bg-linear-to-br from-white via-yellow-50/50 to-blue-50/50 py-8 sm:py-12"
         colors={{
           first: "255,255,255",
           second: "255,236,170",
@@ -245,7 +245,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
             </div>
 
             {/* E-E-A-T Author/Reviewer Info */}
-            <div className="mt-6 flex flex-col gap-4 rounded-2xl border border-border/60 bg-white/80 p-5 shadow-sm transition-all duration-300 ease-premium hover:shadow-[0_4px_20px_rgba(0,0,0,0.06)] sm:flex-row sm:items-center sm:justify-between">
+            <div className="mt-6 flex flex-col gap-4 rounded-2xl border border-border/60 bg-white/80 p-5 shadow-xs transition-all duration-300 ease-premium hover:shadow-[0_4px_20px_rgba(0,0,0,0.06)] sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-3">
                 <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#5788FF]/10 transition-all duration-300 ease-premium">
                   <User className="h-5 w-5 text-[#5788FF]" />
@@ -298,7 +298,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
 
             <div className="mt-8 space-y-4">
               {article.faqs.map((faq, index) => (
-                <Card key={index} className="group border border-border/60 bg-white transition-all duration-300 ease-premium hover:-translate-y-[1px] hover:border-[#5788FF]/30 hover:shadow-[0_4px_20px_rgba(87,136,255,0.08)]">
+                <Card key={index} className="group border border-border/60 bg-white transition-all duration-300 ease-premium hover:-translate-y-px hover:border-[#5788FF]/30 hover:shadow-[0_4px_20px_rgba(87,136,255,0.08)]">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-base font-medium transition-colors duration-300 group-hover:text-[#5788FF]">
                       {faq.question}
@@ -386,7 +386,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
         )}
 
         {/* CTA */}
-        <section className="group relative mt-14 overflow-hidden rounded-3xl border border-[#5788FF]/20 bg-gradient-to-br from-[#5788FF]/[0.03] via-white to-[#5788FF]/[0.06] p-8 transition-all duration-500 ease-premium hover:border-[#5788FF]/30 hover:shadow-[0_8px_30px_rgba(87,136,255,0.12)]">
+        <section className="group relative mt-14 overflow-hidden rounded-3xl border border-[#5788FF]/20 bg-linear-to-br from-[#5788FF]/3 via-white to-[#5788FF]/6 p-8 transition-all duration-500 ease-premium hover:border-[#5788FF]/30 hover:shadow-[0_8px_30px_rgba(87,136,255,0.12)]">
           {/* Decorative elements */}
           <div className="pointer-events-none absolute -right-20 -top-20 h-40 w-40 rounded-full bg-[#5788FF]/5 transition-transform duration-700 ease-premium group-hover:scale-150" />
           <div className="pointer-events-none absolute -bottom-16 -left-16 h-32 w-32 rounded-full bg-[#FEE720]/20 transition-transform duration-700 ease-premium group-hover:scale-150" />
@@ -414,7 +414,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
               <Button
                 asChild
                 variant="outline"
-                className="rounded-full border-border/60 px-6 py-5 text-base font-medium transition-all duration-300 ease-premium hover:-translate-y-[1px] hover:border-[#5788FF]/30 hover:bg-[#5788FF]/5 hover:shadow-[0_4px_12px_rgba(87,136,255,0.1)]"
+                className="rounded-full border-border/60 px-6 py-5 text-base font-medium transition-all duration-300 ease-premium hover:-translate-y-px hover:border-[#5788FF]/30 hover:bg-[#5788FF]/5 hover:shadow-[0_4px_12px_rgba(87,136,255,0.1)]"
               >
                 <Link href="/learn">
                   Browse More Guides

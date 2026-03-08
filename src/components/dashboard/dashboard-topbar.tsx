@@ -235,7 +235,7 @@ export function DashboardTopbar({
             target="_blank"
             className="flex items-center gap-2"
           >
-            <Heart className="h-4 w-4 text-[#5788FF]" aria-hidden />
+            <Heart className="h-4 w-4 text-primary" aria-hidden />
             <span className="flex-1">Find ABA Therapy Profile</span>
             <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
           </Link>
@@ -246,7 +246,7 @@ export function DashboardTopbar({
             target="_blank"
             className="flex items-center gap-2"
           >
-            <Briefcase className="h-4 w-4 text-emerald-600" aria-hidden />
+            <Briefcase className="h-4 w-4 text-primary" aria-hidden />
             <span className="flex-1">Find ABA Jobs Profile</span>
             <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
           </Link>
@@ -302,7 +302,7 @@ export function DashboardTopbar({
                     className="object-cover"
                   />
                 ) : (
-                  <div className="flex h-full w-full items-center justify-center bg-[#5788FF]/10 text-[10px] font-bold text-[#5788FF]">
+                  <div className="flex h-full w-full items-center justify-center bg-primary/10 text-[10px] font-bold text-primary">
                     {companyProfile.name
                       .split(" ")
                       .map((w) => w[0])
@@ -329,7 +329,7 @@ export function DashboardTopbar({
         {/* Left scroll indicator */}
         <div
           className={cn(
-            "pointer-events-none absolute left-0 top-0 z-10 flex h-full items-center bg-gradient-to-r from-background via-background/80 to-transparent pl-1 pr-4 transition-opacity duration-200",
+            "pointer-events-none absolute left-0 top-0 z-10 flex h-full items-center bg-linear-to-r from-background via-background/80 to-transparent pl-1 pr-4 transition-opacity duration-200",
             canScrollLeft ? "opacity-100" : "opacity-0"
           )}
         >
@@ -369,7 +369,7 @@ export function DashboardTopbar({
                         className={cn(
                           "flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
                           isActive
-                            ? "bg-primary text-primary-foreground shadow-sm"
+                            ? "bg-primary text-primary-foreground shadow-xs"
                             : "bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground"
                         )}
                       >
@@ -393,7 +393,7 @@ export function DashboardTopbar({
                     className={cn(
                       "flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
                       isActive
-                        ? "bg-primary text-primary-foreground shadow-sm"
+                        ? "bg-primary text-primary-foreground shadow-xs"
                         : "bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground"
                     )}
                   >
@@ -407,7 +407,7 @@ export function DashboardTopbar({
         {/* Right scroll indicator */}
         <div
           className={cn(
-            "pointer-events-none absolute right-0 top-0 z-10 flex h-full items-center bg-gradient-to-l from-background via-background/80 to-transparent pl-4 pr-1 transition-opacity duration-200",
+            "pointer-events-none absolute right-0 top-0 z-10 flex h-full items-center bg-linear-to-l from-background via-background/80 to-transparent pl-4 pr-1 transition-opacity duration-200",
             canScrollRight ? "opacity-100" : "opacity-0"
           )}
         >

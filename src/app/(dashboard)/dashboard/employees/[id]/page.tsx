@@ -13,9 +13,9 @@ import {
   Globe,
 } from "lucide-react";
 
+import { DashboardStatusBadge, type DashboardTone } from "@/components/dashboard/ui";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { getApplication } from "@/lib/actions/applications";
@@ -26,14 +26,14 @@ interface EmployeeApplicationPageProps {
   params: Promise<{ id: string }>;
 }
 
-const STATUS_COLORS: Record<ApplicationStatus, string> = {
-  new: "bg-blue-100 text-blue-700 border-blue-200",
-  reviewed: "bg-gray-100 text-gray-700 border-gray-200",
-  phone_screen: "bg-purple-100 text-purple-700 border-purple-200",
-  interview: "bg-orange-100 text-orange-700 border-orange-200",
-  offered: "bg-emerald-100 text-emerald-700 border-emerald-200",
-  hired: "bg-green-100 text-green-700 border-green-200",
-  rejected: "bg-red-100 text-red-700 border-red-200",
+const STATUS_TONES: Record<ApplicationStatus, DashboardTone> = {
+  new: "info",
+  reviewed: "default",
+  phone_screen: "premium",
+  interview: "warning",
+  offered: "success",
+  hired: "success",
+  rejected: "danger",
 };
 
 function getTimeAgo(date: string): string {
@@ -80,7 +80,6 @@ export default async function EmployeeApplicationPage({ params }: EmployeeApplic
   const application = result.data;
   const positionLabel = POSITION_TYPES.find((p) => p.value === application.job.positionType)?.label || application.job.positionType;
   const statusInfo = APPLICATION_STATUSES.find((s) => s.value === application.status);
-  const statusColor = STATUS_COLORS[application.status as ApplicationStatus];
   const sourceInfo = APPLICATION_SOURCES.find((s) => s.value === application.source);
 
   return (
@@ -105,7 +104,7 @@ export default async function EmployeeApplicationPage({ params }: EmployeeApplic
             <CardContent className="p-6">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
                 <Avatar className="h-16 w-16 border-2 border-border">
-                  <AvatarFallback className="bg-emerald-50 text-xl font-semibold text-emerald-700">
+                  <AvatarFallback className="bg-primary/10 text-xl font-semibold text-primary">
                     {getInitials(application.applicantName)}
                   </AvatarFallback>
                 </Avatar>
@@ -114,15 +113,15 @@ export default async function EmployeeApplicationPage({ params }: EmployeeApplic
                     <h1 className="text-2xl font-bold text-foreground">
                       {application.applicantName}
                     </h1>
-                    <Badge variant="outline" className={statusColor}>
+                    <DashboardStatusBadge tone={STATUS_TONES[application.status as ApplicationStatus]}>
                       {statusInfo?.label || application.status}
-                    </Badge>
+                    </DashboardStatusBadge>
                   </div>
 
                   <div className="flex flex-wrap gap-4 text-sm">
                     <a
                       href={`mailto:${application.applicantEmail}`}
-                      className="flex items-center gap-1.5 text-muted-foreground hover:text-emerald-600"
+                      className="flex items-center gap-1.5 text-muted-foreground hover:text-primary"
                     >
                       <Mail className="h-4 w-4" />
                       {application.applicantEmail}
@@ -130,7 +129,7 @@ export default async function EmployeeApplicationPage({ params }: EmployeeApplic
                     {application.applicantPhone && (
                       <a
                         href={`tel:${application.applicantPhone}`}
-                        className="flex items-center gap-1.5 text-muted-foreground hover:text-emerald-600"
+                        className="flex items-center gap-1.5 text-muted-foreground hover:text-primary"
                       >
                         <Phone className="h-4 w-4" />
                         {application.applicantPhone}
@@ -141,7 +140,7 @@ export default async function EmployeeApplicationPage({ params }: EmployeeApplic
                         href={application.linkedinUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-1.5 text-muted-foreground hover:text-emerald-600"
+                        className="flex items-center gap-1.5 text-muted-foreground hover:text-primary"
                       >
                         <Linkedin className="h-4 w-4" />
                         LinkedIn Profile
@@ -223,13 +222,13 @@ export default async function EmployeeApplicationPage({ params }: EmployeeApplic
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-start gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
                   <Briefcase className="h-5 w-5" />
                 </div>
                 <div>
                   <Link
                     href={`/dashboard/jobs/${application.job.id}`}
-                    className="font-semibold text-foreground hover:text-emerald-600"
+                    className="font-semibold text-foreground hover:text-primary"
                   >
                     {application.job.title}
                   </Link>
@@ -255,7 +254,7 @@ export default async function EmployeeApplicationPage({ params }: EmployeeApplic
               <div className="space-y-4">
                 <div className="flex gap-3">
                   <div className="flex flex-col items-center">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
                       <User className="h-4 w-4" />
                     </div>
                     {application.reviewedAt && (
@@ -273,7 +272,7 @@ export default async function EmployeeApplicationPage({ params }: EmployeeApplic
                 {application.reviewedAt && (
                   <div className="flex gap-3">
                     <div className="flex flex-col items-center">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-gray-600">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-muted-foreground">
                         <Clock className="h-4 w-4" />
                       </div>
                     </div>
@@ -297,7 +296,7 @@ export default async function EmployeeApplicationPage({ params }: EmployeeApplic
             <CardContent>
               {application.resumePath ? (
                 <div className="flex items-center gap-3 rounded-lg border p-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
                     <FileText className="h-5 w-5" />
                   </div>
                   <div className="flex-1">

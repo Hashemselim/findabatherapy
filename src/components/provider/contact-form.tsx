@@ -18,9 +18,9 @@ export function ContactForm({ listingId, providerName, locationId }: ContactForm
 
   if (isSuccess) {
     return (
-      <Card className="border border-border/80 transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.08)]">
+      <Card className="border border-border/80 transition-all duration-500 ease-premium hover:shadow-[0_8px_30px_rgba(0,0,0,0.08)]">
         <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 transition-transform duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] hover:scale-110">
+          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 transition-transform duration-500 ease-bounce-sm hover:scale-110">
             <CheckCircle className="h-8 w-8 text-emerald-600" />
           </div>
           <h3 className="text-xl font-semibold text-foreground">
@@ -31,7 +31,7 @@ export function ContactForm({ listingId, providerName, locationId }: ContactForm
           </p>
           <Button
             variant="outline"
-            className="mt-6 rounded-full px-6 transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-[2px] hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)] active:translate-y-0"
+            className="mt-6 rounded-full px-6 transition-all duration-300 ease-premium hover:-translate-y-[2px] hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)] active:translate-y-0"
             onClick={() => setIsSuccess(false)}
           >
             Send Another Message
@@ -42,7 +42,7 @@ export function ContactForm({ listingId, providerName, locationId }: ContactForm
   }
 
   return (
-    <Card className="border border-border/80 transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.08)]">
+    <Card className="border border-border/80 transition-all duration-500 ease-premium hover:shadow-[0_8px_30px_rgba(0,0,0,0.08)]">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <MessageSquare className="h-5 w-5 text-primary" />

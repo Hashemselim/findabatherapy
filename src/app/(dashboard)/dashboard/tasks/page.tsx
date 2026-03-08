@@ -5,6 +5,7 @@ import { getTasks, getClientsList } from "@/lib/actions/clients";
 import { getCurrentPlanTier } from "@/lib/plans/guards";
 import { DEMO_TASKS } from "@/lib/demo/data";
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
+import { DashboardCard } from "@/components/dashboard/ui";
 import { PreviewBanner } from "@/components/ui/preview-banner";
 import { PreviewOverlay } from "@/components/ui/preview-overlay";
 
@@ -61,9 +62,9 @@ export default async function TasksPage() {
       <DashboardPageHeader title="Tasks" description="Manage tasks across all your clients" />
 
       <PreviewOverlay isPreview={isPreview}>
-        <div className="rounded-2xl border border-border/50 bg-white p-5 shadow-sm dark:bg-zinc-950 sm:p-6">
+        <DashboardCard className="p-5 sm:p-6">
           <TasksList initialTasks={tasks} clients={clients} />
-        </div>
+        </DashboardCard>
       </PreviewOverlay>
     </div>
   );

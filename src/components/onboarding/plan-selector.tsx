@@ -77,7 +77,7 @@ export function PlanSelector({
             disabled={disabled}
             className={cn(
               "relative flex flex-col rounded-2xl border-2 p-5 text-left transition-all",
-              "hover:border-primary/60 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-slate-900",
+              "hover:border-primary/60 focus:outline-hidden focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-slate-900",
               disabled && "cursor-not-allowed opacity-50",
               isSelected
                 ? "border-primary bg-primary/10"

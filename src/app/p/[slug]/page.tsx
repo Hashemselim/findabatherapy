@@ -378,7 +378,7 @@ export default async function BrandedAgencyPage({ params, searchParams }: Brande
           <div className="mt-6 text-center">
             <Link
               href="/"
-              className="inline-flex items-center gap-1.5 rounded-full bg-white/20 px-4 py-2 text-xs font-medium backdrop-blur-sm transition-colors hover:bg-white/30"
+              className="inline-flex items-center gap-1.5 rounded-full bg-white/20 px-4 py-2 text-xs font-medium backdrop-blur-xs transition-colors hover:bg-white/30"
               style={{ color: contrastColor }}
             >
               Powered by Find ABA Therapy

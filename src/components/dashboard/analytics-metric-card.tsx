@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { BarChart3, Table2, TrendingDown, TrendingUp } from "lucide-react";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DashboardCard, getDashboardToneClasses } from "@/components/dashboard/ui";
 import { AnalyticsDataTable } from "./analytics-data-table";
 import type { TimeSeriesDataPoint } from "@/lib/analytics/events";
 import { cn } from "@/lib/utils";
@@ -29,6 +30,7 @@ export function AnalyticsMetricCard({
 
   const showTrend = trend !== undefined && trend !== 0;
   const isPositive = trend !== undefined && trend > 0;
+  const trendTone = getDashboardToneClasses(isPositive ? "success" : "danger");
 
   const values = data.map((d) => d.value);
   const maxValue = Math.max(...values, 1);
@@ -42,7 +44,7 @@ export function AnalyticsMetricCard({
   const yAxisMid = Math.round(yAxisMax / 2);
 
   return (
-    <Card className={cn("", className)}>
+    <DashboardCard className={cn("", className)}>
       <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
         <div>
           <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
@@ -54,7 +56,7 @@ export function AnalyticsMetricCard({
               <span
                 className={cn(
                   "flex items-center text-xs font-medium",
-                  isPositive ? "text-emerald-600" : "text-red-500"
+                  trendTone.emphasis
                 )}
               >
                 {isPositive ? (
@@ -76,7 +78,7 @@ export function AnalyticsMetricCard({
             className={cn(
               "rounded p-1.5 transition-colors",
               viewMode === "chart"
-                ? "bg-background text-foreground shadow-sm"
+                ? "bg-background text-foreground shadow-xs"
                 : "text-muted-foreground hover:text-foreground"
             )}
             aria-label="Chart view"
@@ -89,7 +91,7 @@ export function AnalyticsMetricCard({
             className={cn(
               "rounded p-1.5 transition-colors",
               viewMode === "table"
-                ? "bg-background text-foreground shadow-sm"
+                ? "bg-background text-foreground shadow-xs"
                 : "text-muted-foreground hover:text-foreground"
             )}
             aria-label="Table view"
@@ -144,16 +146,16 @@ export function AnalyticsMetricCard({
                           )}
                           {/* Bar */}
                           <div
-                            className="w-full min-w-[4px] max-w-[16px] rounded-t-sm bg-[#5788FF] transition-all hover:bg-[#4070ee]"
+                            className="w-full min-w-[4px] max-w-[16px] rounded-t-sm bg-primary transition-all hover:bg-primary/80"
                             style={{
                               height: `${Math.max(barHeight, point.value > 0 ? 2 : 0)}%`,
                               minHeight: point.value > 0 ? "4px" : "0"
                             }}
                           />
                           {/* Tooltip on hover */}
-                          <div className="pointer-events-none absolute -top-10 left-1/2 z-10 hidden -translate-x-1/2 whitespace-nowrap rounded bg-gray-900 px-2 py-1 text-[10px] text-white shadow-lg group-hover:block">
+                          <div className="pointer-events-none absolute -top-10 left-1/2 z-10 hidden -translate-x-1/2 whitespace-nowrap rounded bg-foreground px-2 py-1 text-[10px] text-background shadow-lg group-hover:block">
                             <div className="font-medium">{point.value.toLocaleString()}</div>
-                            <div className="text-gray-300">{formatDateLabel(point.date)}</div>
+                            <div className="text-background/70">{formatDateLabel(point.date)}</div>
                           </div>
                         </div>
                       );
@@ -176,7 +178,7 @@ export function AnalyticsMetricCard({
           <AnalyticsDataTable data={data} valueLabel={title} className="mt-2" />
         )}
       </CardContent>
-    </Card>
+    </DashboardCard>
   );
 }
 

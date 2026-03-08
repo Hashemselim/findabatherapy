@@ -61,7 +61,7 @@ export default async function WebsiteFaqPage({ params }: FaqPageProps) {
         </div>
 
         <div
-          className="rounded-2xl border bg-white p-6 shadow-sm sm:p-8"
+          className="rounded-2xl border bg-white p-6 shadow-xs sm:p-8"
           style={{ borderColor: `${brandColor}20` }}
         >
           <FAQSearch categories={FAQ_CATEGORIES} />

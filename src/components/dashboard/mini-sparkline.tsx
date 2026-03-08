@@ -1,7 +1,6 @@
-"use client";
-
 import type { TimeSeriesDataPoint } from "@/lib/analytics/events";
 import { cn } from "@/lib/utils";
+import { useId } from "react";
 
 interface MiniSparklineProps {
   data: TimeSeriesDataPoint[];
@@ -15,9 +14,11 @@ export function MiniSparkline({
   data,
   width = 80,
   height = 24,
-  color = "#5788FF",
+  color = "hsl(var(--chart-1))",
   className,
 }: MiniSparklineProps) {
+  const gradientId = useId().replace(/:/g, "");
+
   if (data.length < 2) {
     return (
       <div
@@ -64,7 +65,7 @@ export function MiniSparkline({
       className={className}
     >
       <defs>
-        <linearGradient id={`gradient-${color.replace("#", "")}`} x1="0" y1="0" x2="0" y2="1">
+        <linearGradient id={`gradient-${gradientId}`} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor={color} stopOpacity={0.2} />
           <stop offset="100%" stopColor={color} stopOpacity={0} />
         </linearGradient>
@@ -73,7 +74,7 @@ export function MiniSparkline({
       {/* Fill area */}
       <path
         d={fillD}
-        fill={`url(#gradient-${color.replace("#", "")})`}
+        fill={`url(#gradient-${gradientId})`}
       />
 
       {/* Line */}

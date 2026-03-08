@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { getDashboardToneClasses } from "@/components/dashboard/ui";
 import { updateProfileBasics, updateListingDetails, updateBasicAttributes } from "@/lib/actions/onboarding";
 
 const onboardingSchema = z.object({
@@ -155,6 +156,7 @@ export function ListingOnboarding() {
 
   const nextStep = () => setCurrentStep((step) => Math.min(step + 1, steps.length - 1));
   const prevStep = () => setCurrentStep((step) => Math.max(step - 1, 0));
+  const successTone = getDashboardToneClasses("success");
 
   const onSubmit = (values: OnboardingValues) => {
     setError(null);
@@ -236,7 +238,7 @@ export function ListingOnboarding() {
           </div>
         )}
         {success && (
-          <div className="mt-2 rounded-md bg-green-500/10 p-3 text-sm text-green-600">
+          <div className={`mt-2 rounded-md p-3 text-sm ${successTone.icon} ${successTone.emphasis}`}>
             Listing saved successfully!
           </div>
         )}
@@ -254,7 +256,7 @@ export function ListingOnboarding() {
             <TabsContent
               key={step.title}
               value={`step-${index}`}
-              className="mt-6 focus-visible:outline-none"
+              className="mt-6 focus-visible:outline-hidden"
             >
               <div className="space-y-4 text-sm text-muted-foreground">
                 <p>{step.description}</p>

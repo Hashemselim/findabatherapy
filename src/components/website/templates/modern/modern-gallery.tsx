@@ -82,11 +82,11 @@ export function ModernGallery() {
               <button
                 key={url}
                 onClick={() => openLightbox(index)}
-                className={`group relative overflow-hidden rounded-2xl bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+                className={`group relative overflow-hidden rounded-2xl bg-gray-100 focus:outline-hidden focus:ring-2 focus:ring-offset-2 ${
                   photos.length === 3 && index === 0
-                    ? "col-span-2 aspect-[2/1] lg:col-span-2"
+                    ? "col-span-2 aspect-2/1 lg:col-span-2"
                     : photos.length >= 5 && index === 0
-                      ? "col-span-2 aspect-[2/1] lg:col-span-2"
+                      ? "col-span-2 aspect-2/1 lg:col-span-2"
                       : "aspect-square"
                 }`}
                 style={
@@ -122,7 +122,7 @@ export function ModernGallery() {
       {/* Lightbox */}
       {lightboxIndex !== null && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-xs"
           onClick={closeLightbox}
         >
           {/* Close button */}

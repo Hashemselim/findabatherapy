@@ -85,7 +85,7 @@ export function AnalyticsLocationFilter({
         variant="outline"
         size="sm"
         onClick={() => setIsOpen(!isOpen)}
-        className="h-9 gap-2"
+        className="h-9 gap-2 border-border/60 bg-card shadow-xs hover:bg-muted/60"
       >
         <MapPin className="h-4 w-4" />
         <span>{getDisplayText()}</span>

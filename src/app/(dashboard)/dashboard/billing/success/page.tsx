@@ -2,8 +2,9 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { CheckCircle2, ArrowRight, ExternalLink, Sparkles } from "lucide-react";
 
+import { DashboardCard } from "@/components/dashboard/ui";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ConfettiBurst } from "@/components/ui/confetti-burst";
 import { CheckoutTracker } from "@/components/analytics/checkout-tracker";
 import { getListing, type ListingWithRelations } from "@/lib/actions/listings";
@@ -91,66 +92,66 @@ export default async function BillingSuccessPage({ searchParams }: BillingSucces
       {!isDowngrade && <ConfettiBurst />}
       <CheckoutTracker type={checkoutType} />
 
-      <Card className="w-full max-w-lg">
+      <DashboardCard tone={isDowngrade ? "default" : "success"} className="w-full max-w-lg">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/10">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
             {isDowngrade ? (
-              <CheckCircle2 className="h-8 w-8 text-emerald-500" />
+              <CheckCircle2 className="h-8 w-8 text-primary" />
             ) : (
-              <Sparkles className="h-8 w-8 text-emerald-500" />
+              <Sparkles className="h-8 w-8 text-primary" />
             )}
           </div>
           <CardTitle className="text-2xl">{title}</CardTitle>
           <CardDescription className="text-base">{description}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-4">
-            <h3 className="font-medium text-emerald-900 dark:text-emerald-100">
+          <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
+            <h3 className="font-medium text-foreground">
               {isDowngrade ? "What happens next?" : "Next steps"}
             </h3>
-            <ul className="mt-2 space-y-2 text-sm text-emerald-800 dark:text-emerald-200">
+            <ul className="mt-2 space-y-2 text-sm text-muted-foreground">
               {isFeaturedLocation ? (
                 <>
                   <li className="flex items-start gap-2">
-                    <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
                     This featured location add-on is now active
                   </li>
                   <li className="flex items-start gap-2">
-                    <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
                     {locationName} will rank above non-featured locations in matching FindABATherapy.org searches
                   </li>
                   <li className="flex items-start gap-2">
-                    <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
                     Manage featured placements from billing or the locations page
                   </li>
                 </>
               ) : isAddon ? (
                 <>
                   <li className="flex items-start gap-2">
-                    <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
                     Your add-on is now active
                   </li>
                   <li className="flex items-start gap-2">
-                    <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
                     Updated limits are available immediately
                   </li>
                   <li className="flex items-start gap-2">
-                    <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
                     Manage add-ons anytime from the billing page
                   </li>
                 </>
               ) : (
                 <>
                   <li className="flex items-start gap-2">
-                    <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
                     Your listing is now published and searchable
                   </li>
                   <li className="flex items-start gap-2">
-                    <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
                     All Pro features are unlocked — branded pages, CRM, communications
                   </li>
                   <li className="flex items-start gap-2">
-                    <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
                     Families can contact you directly through your listing
                   </li>
                 </>
@@ -180,7 +181,7 @@ export default async function BillingSuccessPage({ searchParams }: BillingSucces
             You can manage your subscription anytime from the billing page.
           </p>
         </CardContent>
-      </Card>
+      </DashboardCard>
     </div>
   );
 }

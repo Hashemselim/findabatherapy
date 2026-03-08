@@ -4,9 +4,9 @@ import { useRef, useState, useEffect, useCallback } from "react";
 import { format } from "date-fns";
 import { MapPin, FileEdit } from "lucide-react";
 
-import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+import { DashboardCard, DashboardStatusBadge } from "@/components/dashboard/ui";
+import { CardHeader, CardTitle } from "@/components/ui/card";
 import { RelativeTime } from "@/components/ui/relative-time";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { Inquiry } from "@/lib/actions/inquiries";
 
@@ -134,7 +134,7 @@ export function InboxMessageList({
   const showScrollbar = thumbHeight > 0;
 
   return (
-    <Card className="flex h-full min-h-[300px] w-full flex-col border-border/60">
+    <DashboardCard className="flex h-full min-h-[300px] w-full flex-col">
       <CardHeader className="shrink-0 py-3">
         <CardTitle className="text-base">Messages</CardTitle>
       </CardHeader>
@@ -142,14 +142,14 @@ export function InboxMessageList({
         {/* Top fade indicator */}
         <div
           className={cn(
-            "pointer-events-none absolute inset-x-0 top-0 z-10 h-6 bg-gradient-to-b from-card to-transparent transition-opacity",
+            "pointer-events-none absolute inset-x-0 top-0 z-10 h-6 bg-linear-to-b from-card to-transparent transition-opacity",
             canScrollUp ? "opacity-100" : "opacity-0"
           )}
         />
         {/* Bottom fade indicator */}
         <div
           className={cn(
-            "pointer-events-none absolute inset-x-0 bottom-0 z-10 h-6 bg-gradient-to-t from-card to-transparent transition-opacity",
+            "pointer-events-none absolute inset-x-0 bottom-0 z-10 h-6 bg-linear-to-t from-card to-transparent transition-opacity",
             canScrollDown ? "opacity-100" : "opacity-0"
           )}
         />
@@ -173,9 +173,9 @@ export function InboxMessageList({
                 <button
                   key={inquiry.id}
                   onClick={() => onSelect(inquiry)}
-                  className={`w-full rounded-lg border p-3 text-left transition-colors ${
+                  className={`w-full rounded-xl border p-3 text-left transition-colors ${
                     selectedId === inquiry.id
-                      ? "border-[#5788FF] bg-[#5788FF]/5"
+                      ? "border-primary/20 bg-primary/5"
                       : "border-border/60 hover:bg-muted/50"
                   }`}
                 >
@@ -183,7 +183,7 @@ export function InboxMessageList({
                     <div className="flex-1 truncate">
                       <div className="flex items-center gap-2">
                         {inquiry.status === "unread" && (
-                          <span className="h-2 w-2 shrink-0 rounded-full bg-[#5788FF]" />
+                          <span className="h-2 w-2 shrink-0 rounded-full bg-primary" />
                         )}
                         <span className="truncate font-medium">{inquiry.familyName}</span>
                       </div>
@@ -204,10 +204,10 @@ export function InboxMessageList({
                       </div>
                     )}
                     {inquiry.source === "intake_standalone" && (
-                      <Badge variant="outline" className="gap-1 px-1.5 py-0 text-[10px] font-normal">
+                      <DashboardStatusBadge tone="premium" className="gap-1 px-1.5 py-0 text-[10px] font-normal">
                         <FileEdit className="h-2.5 w-2.5" />
                         Via Intake Form
-                      </Badge>
+                      </DashboardStatusBadge>
                     )}
                   </div>
                 </button>
@@ -240,6 +240,6 @@ export function InboxMessageList({
           </div>
         </div>
       </div>
-    </Card>
+    </DashboardCard>
   );
 }

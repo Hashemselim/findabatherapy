@@ -53,7 +53,7 @@ export function ModernReviews() {
 
         {/* Aggregate Rating Card */}
         <div className="mx-auto max-w-lg">
-          <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+          <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-xs">
             <div
               className="px-6 py-5 text-center"
               style={{

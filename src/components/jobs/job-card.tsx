@@ -106,7 +106,7 @@ export function JobCard({ job, index }: JobCardProps) {
       >
         <CardContent className="flex gap-4 p-4">
           {/* Logo */}
-          <div className="flex-shrink-0">
+          <div className="shrink-0">
             <Avatar className="h-14 w-14 border border-border/60 transition-all duration-300 ease-premium group-hover:border-emerald-500/30 group-hover:scale-[1.02]">
               {job.provider.logoUrl ? (
                 <AvatarImage src={job.provider.logoUrl} alt={job.provider.agencyName} />
