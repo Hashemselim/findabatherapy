@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { BrandedPageCard } from "@/components/dashboard/branded-page-card";
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
+import { SharePageHeaderActions } from "@/components/dashboard/share-page-header-actions";
 import { DashboardEmptyState, DashboardFeatureCard } from "@/components/dashboard/ui";
 import { getProfile, createClient } from "@/lib/supabase/server";
 import { getProviderWebsitePath } from "@/lib/utils/public-paths";
@@ -36,19 +37,23 @@ export default async function WebsitePage() {
   }
 
   const planTier = (profile as { plan_tier?: string }).plan_tier ?? "free";
+  const websitePath = getProviderWebsitePath(listingSlug);
 
   return (
     <div className="space-y-3">
       <DashboardPageHeader
         title="Website"
         description="Your auto-generated provider website with all your agency info, services, and forms in one place."
-      />
+      >
+        <SharePageHeaderActions relativePath={websitePath} />
+      </DashboardPageHeader>
 
       <BrandedPageCard
         title="Provider Website"
         sentence="A full website for your agency — automatically built from your profile, services, locations, and branding."
-        relativePath={getProviderWebsitePath(listingSlug)}
+        relativePath={websitePath}
         iconName="website"
+        showActions={false}
         defaultExpanded
         howItWorks={[
           "Your website is auto-generated from your dashboard data — no extra setup needed.",

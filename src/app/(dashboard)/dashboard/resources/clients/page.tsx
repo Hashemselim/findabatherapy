@@ -4,9 +4,11 @@ import { ArrowRight, BookOpen, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
+import { SharePageHeaderActions } from "@/components/dashboard/share-page-header-actions";
 import { DashboardEmptyState } from "@/components/dashboard/ui";
 import { ClientResourcesShareCard } from "@/components/dashboard/resources/client-resources-share-card";
 import { getProfile, createClient } from "@/lib/supabase/server";
+import { getProviderResourcesPath } from "@/lib/utils/public-paths";
 
 export default async function ClientResourcesPage() {
   const profile = await getProfile();
@@ -45,6 +47,7 @@ export default async function ClientResourcesPage() {
     .single();
 
   const listingSlug = listingResult.data?.slug ?? null;
+  const resourcesPath = listingSlug ? getProviderResourcesPath(listingSlug) : null;
 
   if (!listingSlug) {
     return (
@@ -79,7 +82,9 @@ export default async function ClientResourcesPage() {
       <DashboardPageHeader
         title="Client Resources"
         description="Share a branded parent education page with FAQ, glossary terms, and featured guides."
-      />
+      >
+        {resourcesPath && <SharePageHeaderActions relativePath={resourcesPath} />}
+      </DashboardPageHeader>
 
       <Card className="border-border/60 bg-muted/20">
         <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
@@ -92,7 +97,7 @@ export default async function ClientResourcesPage() {
         </CardContent>
       </Card>
 
-      <ClientResourcesShareCard listingSlug={listingSlug} />
+      <ClientResourcesShareCard listingSlug={listingSlug} showActions={false} />
 
     </div>
   );

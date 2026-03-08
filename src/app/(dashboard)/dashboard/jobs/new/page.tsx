@@ -43,14 +43,17 @@ export default async function NewJobPage() {
   if (!limits?.canCreate) {
     return (
       <div className="space-y-4 sm:space-y-6">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="sm" asChild>
+        <DashboardPageHeader
+          title="New Job Posting"
+          description="Create a new job listing on GoodABA Jobs"
+        >
+          <Button variant="ghost" size="sm" asChild className="w-full sm:w-auto">
             <Link href="/dashboard/jobs">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back
             </Link>
           </Button>
-        </div>
+        </DashboardPageHeader>
 
         <DashboardCallout
           title="Job Limit Reached"
@@ -75,19 +78,17 @@ export default async function NewJobPage() {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="sm" asChild>
+      <DashboardPageHeader
+        title="New Job Posting"
+        description="Create a new job listing on GoodABA Jobs"
+      >
+        <Button variant="ghost" size="sm" asChild className="w-full sm:w-auto">
           <Link href="/dashboard/jobs">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back
           </Link>
         </Button>
-      </div>
-
-      <DashboardPageHeader
-        title="New Job Posting"
-        description="Create a new job listing on GoodABA Jobs"
-      />
+      </DashboardPageHeader>
 
       <JobForm locations={locations} mode="create" />
     </div>

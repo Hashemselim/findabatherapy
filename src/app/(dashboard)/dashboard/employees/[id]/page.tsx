@@ -87,11 +87,11 @@ export default async function EmployeeApplicationPage({ params }: EmployeeApplic
       {/* Back Button */}
       <div className="flex items-center gap-4">
         <Link
-          href="/dashboard/employees"
+          href="/dashboard/team/applicants"
           className="inline-flex items-center gap-2 text-sm text-muted-foreground transition hover:text-foreground"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to Employees
+          Back to Applicants
         </Link>
       </div>
 

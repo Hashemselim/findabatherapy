@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { BrandedPageCard } from "@/components/dashboard/branded-page-card";
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
+import { SharePageHeaderActions } from "@/components/dashboard/share-page-header-actions";
 import { DashboardEmptyState } from "@/components/dashboard/ui";
 import { IntakeFieldConfig } from "@/components/dashboard/intake/intake-field-config";
 import { getProfile, createClient } from "@/lib/supabase/server";
@@ -33,10 +34,13 @@ export default async function IntakeFormPage() {
 
   // Load field config for the config panel
   const fieldsConfig = await getIntakeFieldsConfig(profile.id);
+  const intakePath = `/intake/${listingSlug}/client`;
 
   return (
     <div className="space-y-3">
-      <DashboardPageHeader title="Intake Form" description="Collect complete parent, child, and insurance details before the first call." />
+      <DashboardPageHeader title="Intake Form" description="Collect complete parent, child, and insurance details before the first call.">
+        <SharePageHeaderActions relativePath={intakePath} />
+      </DashboardPageHeader>
 
       <BrandedPageCard
         title="Client Intake Form"
@@ -45,8 +49,9 @@ export default async function IntakeFormPage() {
             ? "Collect complete parent, child, and insurance details before the first call."
             : "Enable this when you are ready to collect full onboarding details up front."
         }
-        relativePath={`/intake/${listingSlug}/client`}
+        relativePath={intakePath}
         iconName="intake"
+        showActions={false}
         defaultExpanded
         howItWorks={[
           "A family completes your detailed intake questionnaire.",

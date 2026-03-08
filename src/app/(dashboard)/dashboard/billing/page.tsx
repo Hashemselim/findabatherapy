@@ -178,7 +178,20 @@ export default async function DashboardBillingPage() {
       <DashboardPageHeader
         title="Plan & Billing"
         description="Manage your subscription, upgrade your plan, and access billing portal."
-      />
+      >
+        {!isFreePlan && profile?.stripe_customer_id ? (
+          <BillingPortalButton variant="outline" size="sm" className="w-full border-border/60 hover:bg-muted/60 sm:w-auto">
+            <ExternalLink className="mr-2 h-4 w-4" />
+            Manage Subscription
+          </BillingPortalButton>
+        ) : (
+          <Button asChild size="sm" className="w-full gap-2 sm:w-auto">
+            <Link href="/dashboard/onboarding/plan">
+              {hasIncompletePayment ? "Complete Upgrade" : "Go Live"}
+            </Link>
+          </Button>
+        )}
+      </DashboardPageHeader>
 
       {/* Current Plan Summary */}
       <DashboardCard className="overflow-hidden">
@@ -225,12 +238,6 @@ export default async function DashboardBillingPage() {
                 )}
               </div>
             </div>
-            {!isFreePlan && profile?.stripe_customer_id && (
-              <BillingPortalButton variant="outline" size="sm" className="w-full border-border/60 hover:bg-muted/60 sm:w-auto">
-                <ExternalLink className="mr-2 h-4 w-4" />
-                Manage Subscription
-              </BillingPortalButton>
-            )}
           </div>
         </CardHeader>
 

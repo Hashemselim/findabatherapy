@@ -174,7 +174,7 @@ export default async function DashboardOverviewPage({
           },
           {
             label: "Employees",
-            href: "/dashboard/team/applicants",
+            href: "/dashboard/team/employees",
             icon: Users,
           },
         ]}

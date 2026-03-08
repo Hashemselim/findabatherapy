@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { BrandedPageCard } from "@/components/dashboard/branded-page-card";
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
+import { SharePageHeaderActions } from "@/components/dashboard/share-page-header-actions";
 import { DashboardEmptyState } from "@/components/dashboard/ui";
 import { getProfile, createClient } from "@/lib/supabase/server";
 import { getProviderResourcesPath } from "@/lib/utils/public-paths";
@@ -29,15 +30,20 @@ export default async function FamilyResourcesPage() {
     return <NoListingState />;
   }
 
+  const resourcesPath = getProviderResourcesPath(listingSlug);
+
   return (
     <div className="space-y-3">
-      <DashboardPageHeader title="Family Resources" description="Share one trusted page with FAQs, glossary terms, and parent guides." />
+      <DashboardPageHeader title="Family Resources" description="Share one trusted page with FAQs, glossary terms, and parent guides.">
+        <SharePageHeaderActions relativePath={resourcesPath} />
+      </DashboardPageHeader>
 
       <BrandedPageCard
         title="Client Resources"
         sentence="Share one trusted page with FAQs, glossary terms, and parent guides."
-        relativePath={getProviderResourcesPath(listingSlug)}
+        relativePath={resourcesPath}
         iconName="resources"
+        showActions={false}
         defaultExpanded
         howItWorks={[
           "Share the link after inquiry or during onboarding.",

@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { format, isPast, isToday } from "date-fns";
 import {
   CheckCircle2,
@@ -69,6 +70,9 @@ interface TasksListProps {
 }
 
 export function TasksList({ initialTasks, clients = [] }: TasksListProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [tasks, setTasks] = useState(initialTasks);
   const [filter, setFilter] = useState<"all" | "active" | "completed">("all");
   const [isPending, startTransition] = useTransition();
@@ -76,6 +80,13 @@ export function TasksList({ initialTasks, clients = [] }: TasksListProps) {
   const [taskToDelete, setTaskToDelete] = useState<TaskWithClient | null>(null);
   const [editingTask, setEditingTask] = useState<TaskWithClient | null>(null);
   const [formDialogOpen, setFormDialogOpen] = useState(false);
+
+  useEffect(() => {
+    if (searchParams.get("new") !== "1") return;
+    setEditingTask(null);
+    setFormDialogOpen(true);
+    router.replace(pathname, { scroll: false });
+  }, [pathname, router, searchParams]);
 
   const filteredTasks = tasks.filter((task) => {
     if (filter === "active") return task.status !== "completed";

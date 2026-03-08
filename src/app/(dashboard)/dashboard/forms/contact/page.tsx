@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { BrandedPageCard } from "@/components/dashboard/branded-page-card";
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
+import { SharePageHeaderActions } from "@/components/dashboard/share-page-header-actions";
 import { DashboardEmptyState } from "@/components/dashboard/ui";
 import { getProfile, createClient } from "@/lib/supabase/server";
 import { getProviderContactPath } from "@/lib/utils/public-paths";
@@ -29,15 +30,20 @@ export default async function ContactFormPage() {
     return <NoListingState />;
   }
 
+  const contactPath = getProviderContactPath(listingSlug);
+
   return (
     <div className="space-y-3">
-      <DashboardPageHeader title="Contact Form" description="Capture new family inquiries with a fast, low-friction first step." />
+      <DashboardPageHeader title="Contact Form" description="Capture new family inquiries with a fast, low-friction first step.">
+        <SharePageHeaderActions relativePath={contactPath} />
+      </DashboardPageHeader>
 
       <BrandedPageCard
         title="Client Contact Form"
         sentence="Capture new family inquiries with a fast, low-friction first step."
-        relativePath={getProviderContactPath(listingSlug)}
+        relativePath={contactPath}
         iconName="contact"
+        showActions={false}
         defaultExpanded
         howItWorks={[
           "A family opens your contact page and enters basic details.",

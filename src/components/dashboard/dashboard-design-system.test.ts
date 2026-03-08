@@ -9,6 +9,7 @@ const MIGRATED_FILES = [
   "src/app/(dashboard)/dashboard/clients/communications/page.tsx",
   "src/app/(dashboard)/dashboard/company/page.tsx",
   "src/app/(dashboard)/dashboard/employees/page.tsx",
+  "src/app/(dashboard)/dashboard/team/applicants/page.tsx",
   "src/app/(dashboard)/dashboard/forms/agency/page.tsx",
   "src/app/(dashboard)/dashboard/forms/contact/page.tsx",
   "src/app/(dashboard)/dashboard/forms/resources/page.tsx",

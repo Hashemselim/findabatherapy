@@ -1,11 +1,12 @@
 import Link from "next/link";
-import { ClipboardList, ArrowRight } from "lucide-react";
+import { ClipboardList, ArrowRight, ImageIcon, Video } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { DashboardEmptyState } from "@/components/dashboard/ui";
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
 import { PhotoGalleryManager } from "@/components/dashboard/photo-gallery-manager";
 import { VideoEmbedForm } from "@/components/dashboard/video-embed-form";
+import { LockedButton } from "@/components/ui/preview-banner";
 import { getProfile } from "@/lib/supabase/server";
 
 // PRD 4.5.3: Media section
@@ -53,7 +54,24 @@ export default async function MediaPage() {
       <DashboardPageHeader
         title="Media"
         description="Showcase your practice with photos and video to help families get to know you."
-      />
+      >
+        <Button asChild variant="outline" size="sm" className="w-full gap-2 sm:w-auto">
+          <Link href="/dashboard/media?photos=edit">
+            <ImageIcon className="h-4 w-4" />
+            Add Photos
+          </Link>
+        </Button>
+        {effectivePlanTier === "free" ? (
+          <LockedButton label="Add Video" />
+        ) : (
+          <Button asChild size="sm" className="w-full gap-2 sm:w-auto">
+            <Link href="/dashboard/media?video=edit">
+              <Video className="h-4 w-4" />
+              Add Video
+            </Link>
+          </Button>
+        )}
+      </DashboardPageHeader>
 
       <div className="grid gap-4 sm:gap-6">
         <PhotoGalleryManager planTier={effectivePlanTier} />

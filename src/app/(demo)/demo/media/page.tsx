@@ -1,5 +1,7 @@
 "use client";
 
+import { Suspense } from "react";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DemoCTABanner } from "@/components/demo/demo-cta-banner";
 import { PhotoGalleryManager } from "@/components/dashboard/photo-gallery-manager";
@@ -26,20 +28,24 @@ export default function DemoMediaPage() {
       </div>
 
       <div className="grid gap-4 sm:gap-6">
-        <PhotoGalleryManager
-          planTier={DEMO_LISTING.profile.planTier}
-          isDemo={true}
-          demoPhotos={DEMO_PHOTOS}
-          onDemoAction={handleDemoAction}
-          dataTour="photo-gallery"
-        />
-        <VideoEmbedForm
-          planTier={DEMO_LISTING.profile.planTier}
-          isDemo={true}
-          demoVideoUrl={DEMO_LISTING.videoUrl}
-          onDemoAction={handleDemoAction}
-          dataTour="video-embed"
-        />
+        <Suspense fallback={null}>
+          <PhotoGalleryManager
+            planTier={DEMO_LISTING.profile.planTier}
+            isDemo={true}
+            demoPhotos={DEMO_PHOTOS}
+            onDemoAction={handleDemoAction}
+            dataTour="photo-gallery"
+          />
+        </Suspense>
+        <Suspense fallback={null}>
+          <VideoEmbedForm
+            planTier={DEMO_LISTING.profile.planTier}
+            isDemo={true}
+            demoVideoUrl={DEMO_LISTING.videoUrl}
+            onDemoAction={handleDemoAction}
+            dataTour="video-embed"
+          />
+        </Suspense>
       </div>
 
       {/* Tips Card */}

@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Upload, X, Loader2, ImageIcon, GripVertical, Pencil } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -46,6 +47,9 @@ export function PhotoGalleryManager({
   onDemoAction,
   dataTour,
 }: PhotoGalleryManagerProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [isEditing, setIsEditing] = useState(false);
   const [photos, setPhotos] = useState<Photo[]>(isDemo ? demoPhotos : []);
   const [isLoading, setIsLoading] = useState(!isDemo);
@@ -70,6 +74,16 @@ export function PhotoGalleryManager({
     }
     loadPhotos();
   }, [isDemo]);
+
+  useEffect(() => {
+    if (searchParams.get("photos") !== "edit") return;
+    if (isDemo && onDemoAction) {
+      onDemoAction();
+    } else {
+      setIsEditing(true);
+    }
+    router.replace(pathname, { scroll: false });
+  }, [isDemo, onDemoAction, pathname, router, searchParams]);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
