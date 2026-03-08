@@ -28,7 +28,7 @@ export const ADDON_INFO: Record<
   { label: string; unitLabel: string; unitsPerPack: number; pricePerPack: number; priceLabel: string }
 > = {
   extra_users: {
-    label: "Extra Users",
+    label: "Additional User Seats",
     unitLabel: "user",
     unitsPerPack: 1,
     pricePerPack: 20,

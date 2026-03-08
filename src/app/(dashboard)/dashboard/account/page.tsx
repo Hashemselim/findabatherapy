@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { CreditCard, Settings, User, ChevronRight } from "lucide-react";
+import { CreditCard, Settings, User, ChevronRight, Users } from "lucide-react";
 
 import { CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
-import { DashboardCard } from "@/components/dashboard/ui";
-import { getUser, getProfile } from "@/lib/supabase/server";
+import { DashboardCallout, DashboardCard } from "@/components/dashboard/ui";
+import { getCurrentMembership, getUser, getProfile } from "@/lib/supabase/server";
 import { getListing } from "@/lib/actions/listings";
 
 export default async function AccountPage() {
@@ -20,6 +20,7 @@ export default async function AccountPage() {
     getProfile(),
     getListing(),
   ]);
+  const membership = await getCurrentMembership();
 
   const listing = listingResult.success ? listingResult.data : null;
   const planTier = listing?.profile?.planTier || "free";
@@ -48,6 +49,11 @@ export default async function AccountPage() {
               {displayName || user.email}
             </p>
             <p className="text-sm text-muted-foreground">{user.email}</p>
+            {profile && membership && (
+              <p className="text-sm text-muted-foreground">
+                {String(profile.agency_name || "Workspace")} · {membership.role}
+              </p>
+            )}
           </div>
           <Badge variant={isPaidPlan ? "default" : "secondary"}>
             {isPaidPlan ? "Pro" : "Free Plan"}
@@ -55,9 +61,18 @@ export default async function AccountPage() {
         </CardContent>
       </DashboardCard>
 
+      {membership?.role !== "owner" && (
+        <DashboardCallout
+          title="Billing managed by owner"
+          description="Only the workspace owner can change the plan, purchase seats, or open the Stripe billing portal."
+          icon={CreditCard}
+          tone="default"
+        />
+      )}
+
       {/* Navigation Cards */}
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Link href="/dashboard/billing" className="group">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <Link href={membership?.role === "owner" ? "/dashboard/billing" : "/dashboard/settings/users"} className="group">
           <DashboardCard className="h-full transition-all hover:border-primary/50 hover:shadow-md">
             <CardHeader className="flex flex-row items-center gap-4 pb-2">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
@@ -65,17 +80,19 @@ export default async function AccountPage() {
               </div>
               <div className="flex-1">
                 <CardTitle className="text-base group-hover:text-primary">
-                  Plan & Billing
+                  {membership?.role === "owner" ? "Plan & Billing" : "Workspace Users"}
                 </CardTitle>
                 <CardDescription>
-                  Manage subscription and payment
+                  {membership?.role === "owner" ? "Manage subscription and payment" : "View shared account access"}
                 </CardDescription>
               </div>
               <ChevronRight className="h-5 w-5 text-muted-foreground transition-transform group-hover:translate-x-1" />
             </CardHeader>
             <CardContent className="pt-2">
               <p className="text-sm text-muted-foreground">
-                View your current plan, update payment methods, and manage your subscription.
+                {membership?.role === "owner"
+                  ? "View your current plan, update payment methods, and manage your subscription."
+                  : "See which users have access to the shared workspace and who can manage seats."}
               </p>
             </CardContent>
           </DashboardCard>
@@ -100,6 +117,30 @@ export default async function AccountPage() {
             <CardContent className="pt-2">
               <p className="text-sm text-muted-foreground">
                 View your account details, linked sign-in methods, and security information.
+              </p>
+            </CardContent>
+          </DashboardCard>
+        </Link>
+
+        <Link href="/dashboard/settings/users" className="group">
+          <DashboardCard className="h-full transition-all hover:border-primary/50 hover:shadow-md">
+            <CardHeader className="flex flex-row items-center gap-4 pb-2">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <Users className="h-5 w-5" />
+              </div>
+              <div className="flex-1">
+                <CardTitle className="text-base group-hover:text-primary">
+                  Users & Seats
+                </CardTitle>
+                <CardDescription>
+                  Shared account access
+                </CardDescription>
+              </div>
+              <ChevronRight className="h-5 w-5 text-muted-foreground transition-transform group-hover:translate-x-1" />
+            </CardHeader>
+            <CardContent className="pt-2">
+              <p className="text-sm text-muted-foreground">
+                Invite users, manage roles, and see how many account seats are in use.
               </p>
             </CardContent>
           </DashboardCard>

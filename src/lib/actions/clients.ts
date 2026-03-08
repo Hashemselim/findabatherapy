@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { createClient as createSupabaseClient, getUser } from "@/lib/supabase/server";
+import { createClient as createSupabaseClient, getCurrentProfileId, getUser } from "@/lib/supabase/server";
 import { z } from "zod";
 import {
   clientSchema,
@@ -105,7 +105,8 @@ export async function getClients(
   pageSize: number = 50
 ): Promise<ActionResult<{ clients: ClientListItem[]; counts: ClientCounts; total: number }>> {
   const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!user || !profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -135,7 +136,7 @@ export async function getClients(
         is_primary
       )
     `, { count: "exact" })
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .is("deleted_at", null)
     .order("created_at", { ascending: false });
 
@@ -167,7 +168,7 @@ export async function getClients(
   const { data: statusCounts } = await supabase
     .from("clients")
     .select("status")
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .is("deleted_at", null);
 
   const counts: ClientCounts = {
@@ -229,7 +230,8 @@ export async function getClients(
  */
 export async function getClientsList(): Promise<ActionResult<{ id: string; name: string }[]>> {
   const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!user || !profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -238,7 +240,7 @@ export async function getClientsList(): Promise<ActionResult<{ id: string; name:
   const { data: clients, error } = await supabase
     .from("clients")
     .select("id, child_first_name, child_last_name")
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .is("deleted_at", null)
     .order("child_first_name", { ascending: true });
 
@@ -263,7 +265,8 @@ export async function getClientById(
   clientId: string
 ): Promise<ActionResult<ClientDetail>> {
   const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!user || !profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -283,7 +286,7 @@ export async function getClientById(
       client_contacts (*)
     `)
     .eq("id", clientId)
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .is("deleted_at", null)
     .single();
 
@@ -363,7 +366,8 @@ export async function createClient(
   data: Partial<Client>
 ): Promise<ActionResult<{ id: string }>> {
   const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!user || !profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -386,13 +390,13 @@ export async function createClient(
   const { data: listing } = await supabase
     .from("listings")
     .select("id")
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .single();
 
   const { data: client, error } = await supabase
     .from("clients")
     .insert({
-      profile_id: user.id,
+      profile_id: profileId,
       listing_id: listing?.id || null,
       ...parsed.data,
       // Convert empty strings to null for proper DB storage
@@ -450,7 +454,8 @@ export async function updateClient(
   data: Partial<Client>
 ): Promise<ActionResult> {
   const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!user || !profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -466,7 +471,7 @@ export async function updateClient(
     .from("clients")
     .select("id, status, child_first_name, child_last_name")
     .eq("id", clientId)
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .is("deleted_at", null)
     .single();
 
@@ -513,7 +518,7 @@ export async function updateClient(
       .from("client_status_changes")
       .insert({
         client_id: clientId,
-        profile_id: user.id,
+        profile_id: profileId,
         from_status: existing.status,
         to_status: parsed.data.status,
       })
@@ -527,7 +532,7 @@ export async function updateClient(
     const clientName = [existing.child_first_name, existing.child_last_name].filter(Boolean).join(" ") || "Client";
     const { createNotification } = await import("@/lib/actions/notifications");
     createNotification({
-      profileId: user.id,
+      profileId: profileId,
       type: "status_change",
       title: `${clientName} moved to ${parsed.data.status.replace(/_/g, " ")}`,
       body: `Status changed from ${existing.status.replace(/_/g, " ")}`,
@@ -549,7 +554,8 @@ export async function updateClient(
  */
 export async function deleteClient(clientId: string): Promise<ActionResult> {
   const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!user || !profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -560,7 +566,7 @@ export async function deleteClient(clientId: string): Promise<ActionResult> {
     .from("clients")
     .select("id")
     .eq("id", clientId)
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .is("deleted_at", null)
     .single();
 
@@ -591,7 +597,8 @@ export async function updateClientStatus(
   status: ClientStatus
 ): Promise<ActionResult> {
   const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!user || !profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -602,7 +609,7 @@ export async function updateClientStatus(
     .from("clients")
     .select("status, child_first_name, child_last_name")
     .eq("id", clientId)
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .is("deleted_at", null)
     .single();
 
@@ -612,7 +619,7 @@ export async function updateClientStatus(
     .from("clients")
     .update({ status })
     .eq("id", clientId)
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .is("deleted_at", null);
 
   if (error) {
@@ -626,7 +633,7 @@ export async function updateClientStatus(
       .from("client_status_changes")
       .insert({
         client_id: clientId,
-        profile_id: user.id,
+        profile_id: profileId,
         from_status: previousStatus,
         to_status: status,
       })
@@ -639,7 +646,7 @@ export async function updateClientStatus(
     const clientName = [current?.child_first_name, current?.child_last_name].filter(Boolean).join(" ") || "Client";
     const { createNotification } = await import("@/lib/actions/notifications");
     createNotification({
-      profileId: user.id,
+      profileId: profileId,
       type: "status_change",
       title: `${clientName} moved to ${status.replace(/_/g, " ")}`,
       body: `Status changed from ${previousStatus.replace(/_/g, " ")}`,
@@ -665,7 +672,8 @@ export async function addClientParent(
   data: Partial<ClientParent>
 ): Promise<ActionResult<{ id: string }>> {
   const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!user || !profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -681,7 +689,7 @@ export async function addClientParent(
     .from("clients")
     .select("id")
     .eq("id", clientId)
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .is("deleted_at", null)
     .single();
 
@@ -720,7 +728,8 @@ export async function updateClientParent(
   data: Partial<ClientParent>
 ): Promise<ActionResult> {
   const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!user || !profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -739,7 +748,7 @@ export async function updateClientParent(
     .is("deleted_at", null)
     .single();
 
-  if (!parent || (parent.clients as unknown as { profile_id: string }).profile_id !== user.id) {
+  if (!parent || (parent.clients as unknown as { profile_id: string }).profile_id !== profileId) {
     return { success: false, error: "Parent not found" };
   }
 
@@ -769,7 +778,8 @@ export async function updateClientParent(
 
 export async function deleteClientParent(parentId: string): Promise<ActionResult> {
   const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!user || !profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -783,7 +793,7 @@ export async function deleteClientParent(parentId: string): Promise<ActionResult
     .is("deleted_at", null)
     .single();
 
-  if (!parent || (parent.clients as unknown as { profile_id: string }).profile_id !== user.id) {
+  if (!parent || (parent.clients as unknown as { profile_id: string }).profile_id !== profileId) {
     return { success: false, error: "Parent not found" };
   }
 
@@ -810,7 +820,8 @@ export async function addClientLocation(
   data: Partial<ClientLocation>
 ): Promise<ActionResult<{ id: string }>> {
   const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!user || !profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -826,7 +837,7 @@ export async function addClientLocation(
     .from("clients")
     .select("id")
     .eq("id", clientId)
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .is("deleted_at", null)
     .single();
 
@@ -868,7 +879,8 @@ export async function updateClientLocation(
   data: Partial<ClientLocation>
 ): Promise<ActionResult> {
   const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!user || !profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -887,7 +899,7 @@ export async function updateClientLocation(
     .is("deleted_at", null)
     .single();
 
-  if (!location || (location.clients as unknown as { profile_id: string }).profile_id !== user.id) {
+  if (!location || (location.clients as unknown as { profile_id: string }).profile_id !== profileId) {
     return { success: false, error: "Location not found" };
   }
 
@@ -920,7 +932,8 @@ export async function updateClientLocation(
 
 export async function deleteClientLocation(locationId: string): Promise<ActionResult> {
   const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!user || !profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -933,7 +946,7 @@ export async function deleteClientLocation(locationId: string): Promise<ActionRe
     .is("deleted_at", null)
     .single();
 
-  if (!location || (location.clients as unknown as { profile_id: string }).profile_id !== user.id) {
+  if (!location || (location.clients as unknown as { profile_id: string }).profile_id !== profileId) {
     return { success: false, error: "Location not found" };
   }
 
@@ -960,7 +973,8 @@ export async function addClientInsurance(
   data: Partial<ClientInsurance>
 ): Promise<ActionResult<{ id: string }>> {
   const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!user || !profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -975,7 +989,7 @@ export async function addClientInsurance(
     .from("clients")
     .select("id")
     .eq("id", clientId)
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .is("deleted_at", null)
     .single();
 
@@ -1023,7 +1037,8 @@ export async function updateClientInsurance(
   data: Partial<ClientInsurance>
 ): Promise<ActionResult> {
   const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!user || !profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -1041,7 +1056,7 @@ export async function updateClientInsurance(
     .is("deleted_at", null)
     .single();
 
-  if (!insurance || (insurance.clients as unknown as { profile_id: string }).profile_id !== user.id) {
+  if (!insurance || (insurance.clients as unknown as { profile_id: string }).profile_id !== profileId) {
     return { success: false, error: "Insurance not found" };
   }
 
@@ -1080,7 +1095,8 @@ export async function updateClientInsurance(
 
 export async function deleteClientInsurance(insuranceId: string): Promise<ActionResult> {
   const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!user || !profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -1093,7 +1109,7 @@ export async function deleteClientInsurance(insuranceId: string): Promise<Action
     .is("deleted_at", null)
     .single();
 
-  if (!insurance || (insurance.clients as unknown as { profile_id: string }).profile_id !== user.id) {
+  if (!insurance || (insurance.clients as unknown as { profile_id: string }).profile_id !== profileId) {
     return { success: false, error: "Insurance not found" };
   }
 
@@ -1120,7 +1136,8 @@ export async function addClientAuthorization(
   data: Partial<ClientAuthorization>
 ): Promise<ActionResult<{ id: string }>> {
   const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!user || !profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -1135,7 +1152,7 @@ export async function addClientAuthorization(
     .from("clients")
     .select("id")
     .eq("id", clientId)
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .is("deleted_at", null)
     .single();
 
@@ -1212,7 +1229,8 @@ export async function updateClientAuthorization(
   data: Partial<ClientAuthorization>
 ): Promise<ActionResult> {
   const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!user || !profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -1230,7 +1248,7 @@ export async function updateClientAuthorization(
     .is("deleted_at", null)
     .single();
 
-  if (!auth || (auth.clients as unknown as { profile_id: string }).profile_id !== user.id) {
+  if (!auth || (auth.clients as unknown as { profile_id: string }).profile_id !== profileId) {
     return { success: false, error: "Authorization not found" };
   }
 
@@ -1268,7 +1286,8 @@ export async function updateClientAuthorization(
 
 export async function deleteClientAuthorization(authId: string): Promise<ActionResult> {
   const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!user || !profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -1281,7 +1300,7 @@ export async function deleteClientAuthorization(authId: string): Promise<ActionR
     .is("deleted_at", null)
     .single();
 
-  if (!auth || (auth.clients as unknown as { profile_id: string }).profile_id !== user.id) {
+  if (!auth || (auth.clients as unknown as { profile_id: string }).profile_id !== profileId) {
     return { success: false, error: "Authorization not found" };
   }
 
@@ -1309,7 +1328,8 @@ export async function addAuthorizationService(
   data: Partial<ClientAuthorizationService>
 ): Promise<ActionResult<{ id: string }>> {
   const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!user || !profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -1328,7 +1348,7 @@ export async function addAuthorizationService(
     .is("deleted_at", null)
     .single();
 
-  if (!auth || (auth.clients as unknown as { profile_id: string }).profile_id !== user.id) {
+  if (!auth || (auth.clients as unknown as { profile_id: string }).profile_id !== profileId) {
     return { success: false, error: "Authorization not found" };
   }
 
@@ -1367,7 +1387,8 @@ export async function updateAuthorizationService(
   data: Partial<ClientAuthorizationService>
 ): Promise<ActionResult> {
   const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!user || !profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -1401,7 +1422,7 @@ export async function updateAuthorizationService(
     clients: { profile_id: string };
   };
 
-  if (clientAuth.clients.profile_id !== user.id) {
+  if (clientAuth.clients.profile_id !== profileId) {
     return { success: false, error: "Service not found" };
   }
 
@@ -1435,7 +1456,8 @@ export async function updateAuthorizationService(
 
 export async function deleteAuthorizationService(serviceId: string): Promise<ActionResult> {
   const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!user || !profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -1464,7 +1486,7 @@ export async function deleteAuthorizationService(serviceId: string): Promise<Act
     clients: { profile_id: string };
   };
 
-  if (clientAuth.clients.profile_id !== user.id) {
+  if (clientAuth.clients.profile_id !== profileId) {
     return { success: false, error: "Service not found" };
   }
 
@@ -1492,7 +1514,8 @@ export async function addClientDocument(
   data: Partial<ClientDocument>
 ): Promise<ActionResult<{ id: string }>> {
   const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!user || !profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -1507,7 +1530,7 @@ export async function addClientDocument(
     .from("clients")
     .select("id")
     .eq("id", clientId)
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .is("deleted_at", null)
     .single();
 
@@ -1543,7 +1566,8 @@ export async function uploadClientDocument(
   formData: FormData
 ): Promise<ActionResult<{ id: string }>> {
   const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!user || !profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -1600,7 +1624,7 @@ export async function uploadClientDocument(
     .from("clients")
     .select("id")
     .eq("id", clientId)
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .is("deleted_at", null)
     .single();
 
@@ -1623,7 +1647,7 @@ export async function uploadClientDocument(
   }
 
   // Generate storage path and upload
-  const storagePath = generateDocumentPath(user.id, clientId, file.name);
+  const storagePath = generateDocumentPath(profileId, clientId, file.name);
 
   const { error: uploadError } = await supabase.storage
     .from(STORAGE_BUCKETS.documents)
@@ -1676,7 +1700,8 @@ export async function getDocumentSignedUrl(
   documentId: string
 ): Promise<ActionResult<{ url: string }>> {
   const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!user || !profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -1689,7 +1714,7 @@ export async function getDocumentSignedUrl(
     .is("deleted_at", null)
     .single();
 
-  if (!doc || (doc.clients as unknown as { profile_id: string }).profile_id !== user.id) {
+  if (!doc || (doc.clients as unknown as { profile_id: string }).profile_id !== profileId) {
     return { success: false, error: "Document not found" };
   }
 
@@ -1713,7 +1738,8 @@ export async function downloadClientDocument(
   documentId: string
 ): Promise<ActionResult<{ url: string; fileName: string }>> {
   const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!user || !profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -1726,7 +1752,7 @@ export async function downloadClientDocument(
     .is("deleted_at", null)
     .single();
 
-  if (!doc || (doc.clients as unknown as { profile_id: string }).profile_id !== user.id) {
+  if (!doc || (doc.clients as unknown as { profile_id: string }).profile_id !== profileId) {
     return { success: false, error: "Document not found" };
   }
 
@@ -1753,7 +1779,8 @@ export async function updateClientDocument(
   data: Pick<Partial<ClientDocument>, "label" | "document_type" | "file_description" | "notes">
 ): Promise<ActionResult> {
   const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!user || !profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -1777,7 +1804,7 @@ export async function updateClientDocument(
     .is("deleted_at", null)
     .single();
 
-  if (!doc || (doc.clients as unknown as { profile_id: string }).profile_id !== user.id) {
+  if (!doc || (doc.clients as unknown as { profile_id: string }).profile_id !== profileId) {
     return { success: false, error: "Document not found" };
   }
 
@@ -1803,7 +1830,8 @@ export async function updateClientDocument(
 
 export async function deleteClientDocument(documentId: string): Promise<ActionResult> {
   const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!user || !profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -1816,7 +1844,7 @@ export async function deleteClientDocument(documentId: string): Promise<ActionRe
     .is("deleted_at", null)
     .single();
 
-  if (!doc || (doc.clients as unknown as { profile_id: string }).profile_id !== user.id) {
+  if (!doc || (doc.clients as unknown as { profile_id: string }).profile_id !== profileId) {
     return { success: false, error: "Document not found" };
   }
 
@@ -1856,7 +1884,8 @@ export async function addClientTask(
   data: Partial<ClientTask>
 ): Promise<ActionResult<{ id: string }>> {
   const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!user || !profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -1873,7 +1902,7 @@ export async function addClientTask(
       .from("clients")
       .select("id")
       .eq("id", clientId)
-      .eq("profile_id", user.id)
+      .eq("profile_id", profileId)
       .is("deleted_at", null)
       .single();
 
@@ -1886,7 +1915,7 @@ export async function addClientTask(
     .from("client_tasks")
     .insert({
       client_id: clientId || null,
-      profile_id: user.id,
+      profile_id: profileId,
       title: parsed.data.title,
       content: parsed.data.content || null,
       status: parsed.data.status || "pending",
@@ -1913,7 +1942,8 @@ export async function updateClientTask(
   data: Partial<ClientTask>
 ): Promise<ActionResult> {
   const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!user || !profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -1928,7 +1958,7 @@ export async function updateClientTask(
     .from("client_tasks")
     .select("id, client_id")
     .eq("id", taskId)
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .is("deleted_at", null)
     .single();
 
@@ -1961,7 +1991,8 @@ export async function updateClientTask(
 
 export async function completeClientTask(taskId: string): Promise<ActionResult> {
   const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!user || !profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -1971,7 +2002,7 @@ export async function completeClientTask(taskId: string): Promise<ActionResult> 
     .from("client_tasks")
     .select("id, client_id")
     .eq("id", taskId)
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .is("deleted_at", null)
     .single();
 
@@ -2001,7 +2032,8 @@ export async function completeClientTask(taskId: string): Promise<ActionResult> 
 
 export async function deleteClientTask(taskId: string): Promise<ActionResult> {
   const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!user || !profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -2011,7 +2043,7 @@ export async function deleteClientTask(taskId: string): Promise<ActionResult> {
     .from("client_tasks")
     .select("id, client_id")
     .eq("id", taskId)
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .is("deleted_at", null)
     .single();
 
@@ -2043,7 +2075,8 @@ export async function getTasks(
   filter?: { status?: "pending" | "completed"; clientId?: string }
 ): Promise<ActionResult<{ tasks: (ClientTask & { id: string; client_id: string | null; created_at: string; completed_at: string | null; client_name?: string })[] }>> {
   const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!user || !profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -2058,7 +2091,7 @@ export async function getTasks(
         child_last_name
       )
     `)
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .is("deleted_at", null)
     .order("due_date", { ascending: true, nullsFirst: false })
     .order("created_at", { ascending: false });
@@ -2100,7 +2133,8 @@ export async function getTasks(
  */
 export async function getActionableTaskCount(): Promise<ActionResult<number>> {
   const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!user || !profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -2110,7 +2144,7 @@ export async function getActionableTaskCount(): Promise<ActionResult<number>> {
   const { count, error } = await supabase
     .from("client_tasks")
     .select("id", { count: "exact", head: true })
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .in("status", ["pending", "in_progress"])
     .is("deleted_at", null)
     .or(`due_date.is.null,due_date.lte.${today}`);
@@ -2132,7 +2166,8 @@ export async function addClientContact(
   data: Partial<ClientContact>
 ): Promise<ActionResult<{ id: string }>> {
   const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!user || !profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -2147,7 +2182,7 @@ export async function addClientContact(
     .from("clients")
     .select("id")
     .eq("id", clientId)
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .is("deleted_at", null)
     .single();
 
@@ -2185,7 +2220,8 @@ export async function updateClientContact(
   data: Partial<ClientContact>
 ): Promise<ActionResult> {
   const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!user || !profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -2203,7 +2239,7 @@ export async function updateClientContact(
     .is("deleted_at", null)
     .single();
 
-  if (!contact || (contact.clients as unknown as { profile_id: string }).profile_id !== user.id) {
+  if (!contact || (contact.clients as unknown as { profile_id: string }).profile_id !== profileId) {
     return { success: false, error: "Contact not found" };
   }
 
@@ -2232,7 +2268,8 @@ export async function updateClientContact(
 
 export async function deleteClientContact(contactId: string): Promise<ActionResult> {
   const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!user || !profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -2245,7 +2282,7 @@ export async function deleteClientContact(contactId: string): Promise<ActionResu
     .is("deleted_at", null)
     .single();
 
-  if (!contact || (contact.clients as unknown as { profile_id: string }).profile_id !== user.id) {
+  if (!contact || (contact.clients as unknown as { profile_id: string }).profile_id !== profileId) {
     return { success: false, error: "Contact not found" };
   }
 
@@ -2274,7 +2311,8 @@ export async function convertInquiryToClient(
   inquiryId: string
 ): Promise<ActionResult<{ clientId: string; prefillData: Partial<ClientWithRelated> }>> {
   const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!user || !profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -2295,7 +2333,7 @@ export async function convertInquiryToClient(
   }
 
   // Verify ownership
-  if ((inquiry.listings as unknown as { profile_id: string }).profile_id !== user.id) {
+  if ((inquiry.listings as unknown as { profile_id: string }).profile_id !== profileId) {
     return { success: false, error: "Inquiry not found" };
   }
 
@@ -2346,7 +2384,8 @@ export async function convertInquiryToClient(
  */
 export async function markInquiryAsConverted(inquiryId: string): Promise<ActionResult> {
   const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!user || !profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -2359,7 +2398,7 @@ export async function markInquiryAsConverted(inquiryId: string): Promise<ActionR
     .eq("id", inquiryId)
     .single();
 
-  if (!inquiry || (inquiry.listings as unknown as { profile_id: string }).profile_id !== user.id) {
+  if (!inquiry || (inquiry.listings as unknown as { profile_id: string }).profile_id !== profileId) {
     return { success: false, error: "Inquiry not found" };
   }
 

@@ -5,13 +5,60 @@ import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 
 import { stripe } from "@/lib/stripe";
-import { createClient, createAdminClient, getUser } from "@/lib/supabase/server";
+import {
+  createClient,
+  createAdminClient,
+  getCurrentProfileId,
+  getUser,
+  requireProfileRole,
+} from "@/lib/supabase/server";
 import { CHECKOUT_URLS, BILLING_PORTAL_CONFIG, getPriceId, getFeaturedPriceId, type BillingInterval } from "./config";
 import { getRequestOrigin, getValidatedOrigin } from "@/lib/utils/domains";
+import { getWorkspaceSeatSummary } from "@/lib/actions/workspace-users";
 
 type ActionResult<T = void> =
   | { success: true; data?: T }
   | { success: false; error: string };
+
+async function requireBillingContext() {
+  const membership = await requireProfileRole("owner");
+  const user = await getUser();
+
+  if (!user) {
+    throw new Error("Not authenticated");
+  }
+
+  return {
+    membership,
+    user,
+    profileId: membership.profile_id,
+  };
+}
+
+export async function getBillingPortalRestriction(
+  profileId?: string
+): Promise<ActionResult<{ reason: string | null }>> {
+  const resolvedProfileId = profileId || (await getCurrentProfileId());
+  if (!resolvedProfileId) {
+    return { success: false, error: "Not authenticated" };
+  }
+
+  const seatSummaryResult = await getWorkspaceSeatSummary(resolvedProfileId);
+  if (!seatSummaryResult.success || !seatSummaryResult.data) {
+    return { success: false, error: "Failed to evaluate seat usage" };
+  }
+
+  if (seatSummaryResult.data.usedSeats > 1) {
+    return {
+      success: true,
+      data: {
+        reason: "Manage seats in-app before opening the Stripe portal. This workspace currently uses more than one seat.",
+      },
+    };
+  }
+
+  return { success: true, data: { reason: null } };
+}
 
 /**
  * Create a Stripe checkout session for a NEW subscription (no existing subscription)
@@ -24,8 +71,13 @@ export async function createCheckoutSession(
   billingInterval: BillingInterval = "month",
   returnTo?: string
 ): Promise<ActionResult<{ url: string }>> {
-  const user = await getUser();
-  if (!user) {
+  let user;
+  let profileId;
+  try {
+    const ctx = await requireBillingContext();
+    user = ctx.user;
+    profileId = ctx.profileId;
+  } catch {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -35,7 +87,7 @@ export async function createCheckoutSession(
   const { data: profile } = await supabase
     .from("profiles")
     .select("id, stripe_customer_id, stripe_subscription_id, plan_tier")
-    .eq("id", user.id)
+    .eq("id", profileId)
     .single();
 
   if (!profile) {
@@ -51,7 +103,7 @@ export async function createCheckoutSession(
   const { data: listing } = await supabase
     .from("listings")
     .select("id")
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .single();
 
   const priceId = getPriceId(planTier, billingInterval);
@@ -145,8 +197,11 @@ export async function upgradeSubscription(
   billingInterval: BillingInterval = "month",
   returnTo?: string
 ): Promise<ActionResult<{ url: string }>> {
-  const user = await getUser();
-  if (!user) {
+  let profileId;
+  try {
+    const ctx = await requireBillingContext();
+    profileId = ctx.profileId;
+  } catch {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -155,7 +210,7 @@ export async function upgradeSubscription(
   const { data: profile } = await supabase
     .from("profiles")
     .select("id, stripe_subscription_id, plan_tier, billing_interval")
-    .eq("id", user.id)
+    .eq("id", profileId)
     .single();
 
   if (!profile) {
@@ -178,7 +233,7 @@ export async function upgradeSubscription(
   const { data: listing } = await supabase
     .from("listings")
     .select("id")
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .single();
 
   try {
@@ -308,17 +363,27 @@ export async function upgradeSubscription(
  * Create a Stripe billing portal session for managing subscription
  */
 export async function createBillingPortalSession(): Promise<ActionResult<{ url: string }>> {
-  const user = await getUser();
-  if (!user) {
+  let profileId;
+  try {
+    const ctx = await requireBillingContext();
+    profileId = ctx.profileId;
+  } catch {
     return { success: false, error: "Not authenticated" };
   }
 
   const supabase = await createClient();
+  const restrictionResult = await getBillingPortalRestriction(profileId);
+  if (!restrictionResult.success) {
+    return { success: false, error: restrictionResult.error };
+  }
+  if (restrictionResult.data?.reason) {
+    return { success: false, error: restrictionResult.data.reason };
+  }
 
   const { data: profile } = await supabase
     .from("profiles")
     .select("stripe_customer_id")
-    .eq("id", user.id)
+    .eq("id", profileId)
     .single();
 
   if (!profile?.stripe_customer_id) {
@@ -357,8 +422,8 @@ export async function getSubscription(): Promise<
     cancelAtPeriodEnd: boolean;
   } | null>
 > {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -367,7 +432,7 @@ export async function getSubscription(): Promise<
   const { data: profile } = await supabase
     .from("profiles")
     .select("plan_tier, stripe_subscription_id, stripe_customer_id")
-    .eq("id", user.id)
+    .eq("id", profileId)
     .single();
 
   if (!profile) {
@@ -429,8 +494,8 @@ export async function getPendingDowngrade(): Promise<
     scheduleId: string;
   } | null>
 > {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -439,7 +504,7 @@ export async function getPendingDowngrade(): Promise<
   const { data: profile } = await supabase
     .from("profiles")
     .select("stripe_subscription_id")
-    .eq("id", user.id)
+    .eq("id", profileId)
     .single();
 
   if (!profile?.stripe_subscription_id) {
@@ -500,8 +565,11 @@ export async function getPendingDowngrade(): Promise<
  * Cancel a pending downgrade and keep the current plan
  */
 export async function cancelPendingDowngrade(): Promise<ActionResult> {
-  const user = await getUser();
-  if (!user) {
+  let profileId;
+  try {
+    const ctx = await requireBillingContext();
+    profileId = ctx.profileId;
+  } catch {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -510,7 +578,7 @@ export async function cancelPendingDowngrade(): Promise<ActionResult> {
   const { data: profile } = await supabase
     .from("profiles")
     .select("stripe_subscription_id")
-    .eq("id", user.id)
+    .eq("id", profileId)
     .single();
 
   if (!profile?.stripe_subscription_id) {
@@ -594,8 +662,8 @@ export async function redirectToBillingPortal(): Promise<void> {
 export async function verifyAndSyncCheckoutSession(
   sessionId: string
 ): Promise<ActionResult<{ planTier: string; subscriptionStatus: string }>> {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -606,8 +674,8 @@ export async function verifyAndSyncCheckoutSession(
     });
 
     // Verify the session belongs to this user
-    const profileId = session.metadata?.profile_id;
-    if (profileId !== user.id) {
+    const sessionProfileId = session.metadata?.profile_id;
+    if (sessionProfileId !== profileId) {
       return { success: false, error: "Session does not belong to this user" };
     }
 
@@ -637,7 +705,7 @@ export async function verifyAndSyncCheckoutSession(
         subscription_status: "active",
         updated_at: new Date().toISOString(),
       })
-      .eq("id", user.id);
+      .eq("id", profileId);
 
     if (profileError) {
       console.error("Error updating profile in verifyAndSyncCheckoutSession:", profileError);
@@ -693,8 +761,13 @@ export async function createFeaturedLocationCheckout(
   billingInterval: BillingInterval = "month",
   returnTo: "locations" | "billing" = "locations"
 ): Promise<ActionResult<{ url?: string; subscriptionId?: string; status?: string; directCharge?: boolean }>> {
-  const user = await getUser();
-  if (!user) {
+  let user;
+  let profileId;
+  try {
+    const ctx = await requireBillingContext();
+    user = ctx.user;
+    profileId = ctx.profileId;
+  } catch {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -740,7 +813,7 @@ export async function createFeaturedLocationCheckout(
   };
 
   // Verify user owns this location
-  if (listing.profile_id !== user.id) {
+  if (listing.profile_id !== profileId) {
     return { success: false, error: "Not authorized" };
   }
 
@@ -768,7 +841,7 @@ export async function createFeaturedLocationCheckout(
       const customer = await stripe.customers.create({
         email: user.email,
         metadata: {
-          profile_id: user.id,
+          profile_id: profileId,
         },
       });
       customerId = customer.id;
@@ -778,7 +851,7 @@ export async function createFeaturedLocationCheckout(
       await adminClient
         .from("profiles")
         .update({ stripe_customer_id: customerId })
-        .eq("id", user.id);
+        .eq("id", profileId);
     }
 
     // Create location label for display
@@ -831,7 +904,7 @@ export async function createFeaturedLocationCheckout(
         default_payment_method: paymentMethodId,
         metadata: {
           type: "featured_location",
-          profile_id: user.id,
+          profile_id: profileId,
           location_id: locationId,
           listing_id: listing.id,
           billing_interval: billingInterval,
@@ -867,7 +940,7 @@ export async function createFeaturedLocationCheckout(
       cancel_url: `${origin}${CHECKOUT_URLS.cancel}?featured_location=true&location_id=${locationId}&location_name=${encodeURIComponent(locationLabel)}&return_to=${returnTo}`,
       metadata: {
         type: "featured_location",
-        profile_id: user.id,
+        profile_id: profileId,
         location_id: locationId,
         listing_id: listing.id,
         billing_interval: billingInterval,
@@ -875,7 +948,7 @@ export async function createFeaturedLocationCheckout(
       subscription_data: {
         metadata: {
           type: "featured_location",
-          profile_id: user.id,
+          profile_id: profileId,
           location_id: locationId,
           listing_id: listing.id,
           billing_interval: billingInterval,
@@ -905,8 +978,11 @@ export async function createFeaturedLocationCheckout(
 export async function cancelFeaturedLocation(
   locationId: string
 ): Promise<ActionResult> {
-  const user = await getUser();
-  if (!user) {
+  let profileId;
+  try {
+    const ctx = await requireBillingContext();
+    profileId = ctx.profileId;
+  } catch {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -924,7 +1000,7 @@ export async function cancelFeaturedLocation(
   }
 
   // Verify user owns this subscription
-  if (featuredSub.profile_id !== user.id) {
+  if (featuredSub.profile_id !== profileId) {
     return { success: false, error: "Not authorized" };
   }
 
@@ -969,8 +1045,11 @@ export async function cancelFeaturedLocation(
 export async function reactivateFeaturedLocation(
   locationId: string
 ): Promise<ActionResult> {
-  const user = await getUser();
-  if (!user) {
+  let profileId;
+  try {
+    const ctx = await requireBillingContext();
+    profileId = ctx.profileId;
+  } catch {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -988,7 +1067,7 @@ export async function reactivateFeaturedLocation(
   }
 
   // Verify user owns this subscription
-  if (featuredSub.profile_id !== user.id) {
+  if (featuredSub.profile_id !== profileId) {
     return { success: false, error: "Not authorized" };
   }
 
@@ -1154,8 +1233,8 @@ export async function getFeaturedLocations(): Promise<
     }>;
   }>
 > {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -1177,7 +1256,7 @@ export async function getFeaturedLocations(): Promise<
         state
       )
     `)
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .in("status", ["active", "past_due"]);
 
   if (error) {

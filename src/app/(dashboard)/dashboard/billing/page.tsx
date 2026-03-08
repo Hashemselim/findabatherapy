@@ -46,15 +46,18 @@ import { FeaturedLocationAction } from "@/components/billing/featured-location-a
 import { AddonCard } from "@/components/billing/addon-card";
 import { DashboardCallout, DashboardCard, DashboardEmptyState, DashboardStatusBadge } from "@/components/dashboard/ui";
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
-import { getSubscription, getPendingDowngrade, getFeaturedAddonPrices, getFeaturedLocations } from "@/lib/stripe/actions";
+import { getSubscription, getPendingDowngrade, getFeaturedAddonPrices, getFeaturedLocations, getBillingPortalRestriction } from "@/lib/stripe/actions";
 import { getActiveAddons } from "@/lib/actions/addons";
+import { getWorkspaceSeatSummary } from "@/lib/actions/workspace-users";
 import { STRIPE_PLANS } from "@/lib/stripe/config";
-import { createClient, getUser } from "@/lib/supabase/server";
+import { createClient, getCurrentMembership, getCurrentProfileId, getUser } from "@/lib/supabase/server";
 
 export default async function DashboardBillingPage() {
   const user = await getUser();
+  const membership = await getCurrentMembership();
+  const profileId = await getCurrentProfileId();
 
-  if (!user) {
+  if (!user || !membership || !profileId) {
     return null;
   }
 
@@ -65,15 +68,17 @@ export default async function DashboardBillingPage() {
   const { data: profile } = await supabase
     .from("profiles")
     .select("plan_tier, stripe_customer_id, stripe_subscription_id, subscription_status, onboarding_completed_at")
-    .eq("id", user.id)
+    .eq("id", profileId)
     .single();
 
-  const [subscriptionResult, pendingDowngradeResult, featuredPricingResult, featuredLocationsResult, addonsResult] = await Promise.all([
+  const [subscriptionResult, pendingDowngradeResult, featuredPricingResult, featuredLocationsResult, addonsResult, seatSummaryResult, billingPortalRestrictionResult] = await Promise.all([
     getSubscription(),
     getPendingDowngrade(),
     getFeaturedAddonPrices(),
     getFeaturedLocations(),
-    getActiveAddons(user.id),
+    getActiveAddons(profileId),
+    getWorkspaceSeatSummary(profileId),
+    getBillingPortalRestriction(profileId),
   ]);
 
   const subscription = subscriptionResult.success ? subscriptionResult.data : null;
@@ -82,6 +87,10 @@ export default async function DashboardBillingPage() {
     ? featuredLocationsResult.data.locations
     : [];
   const activeAddons = addonsResult.success && addonsResult.data ? addonsResult.data : [];
+  const seatSummary = seatSummaryResult.success ? seatSummaryResult.data : null;
+  const billingPortalRestriction = billingPortalRestrictionResult.success
+    ? billingPortalRestrictionResult.data?.reason || null
+    : "Failed to validate billing portal availability";
 
   const planTier = profile?.plan_tier || "free";
 
@@ -99,7 +108,7 @@ export default async function DashboardBillingPage() {
     const { data: billingData } = await supabase
       .from("profiles")
       .select("billing_interval")
-      .eq("id", user.id)
+      .eq("id", profileId)
       .single();
     if (billingData?.billing_interval === "year") {
       billingInterval = "year";
@@ -179,12 +188,12 @@ export default async function DashboardBillingPage() {
         title="Plan & Billing"
         description="Manage your subscription, upgrade your plan, and access billing portal."
       >
-        {!isFreePlan && profile?.stripe_customer_id ? (
+        {!isFreePlan && membership.role === "owner" && profile?.stripe_customer_id && !billingPortalRestriction ? (
           <BillingPortalButton variant="outline" size="sm" className="w-full border-border/60 hover:bg-muted/60 sm:w-auto">
             <ExternalLink className="mr-2 h-4 w-4" />
             Manage Subscription
           </BillingPortalButton>
-        ) : (
+        ) : membership.role === "owner" ? (
           <Button asChild size="sm" className="w-full gap-2 sm:w-auto">
             <Link href="/dashboard/onboarding/plan">
               {hasIncompletePayment ? "Complete Upgrade" : "Go Live"}
@@ -192,6 +201,15 @@ export default async function DashboardBillingPage() {
           </Button>
         )}
       </DashboardPageHeader>
+
+      {membership.role !== "owner" && (
+        <DashboardCallout
+          tone="default"
+          icon={CreditCard}
+          title="Billing is managed by the workspace owner"
+          description="You can view plan details here, but only the owner can change the subscription, purchase seats, or open the Stripe billing portal."
+        />
+      )}
 
       {/* Current Plan Summary */}
       <DashboardCard className="overflow-hidden">
@@ -248,6 +266,16 @@ export default async function DashboardBillingPage() {
             icon={AlertCircle}
             title="Subscription Cancelling"
             description={`Your subscription will end on ${renewalDate}. You'll retain access to premium features until then.`}
+            className="rounded-none border-x-0 border-t-0 shadow-none"
+          />
+        )}
+
+        {membership.role === "owner" && billingPortalRestriction && (
+          <DashboardCallout
+            tone="warning"
+            icon={AlertCircle}
+            title="Billing portal temporarily unavailable"
+            description={billingPortalRestriction}
             className="rounded-none border-x-0 border-t-0 shadow-none"
           />
         )}
@@ -434,8 +462,47 @@ export default async function DashboardBillingPage() {
         </div>
       )}
 
+      {seatSummary && (
+        <DashboardCard>
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <div className="rounded-xl bg-muted p-2.5">
+                <Package className="h-6 w-6 text-muted-foreground" />
+              </div>
+              <div>
+                <CardTitle className="text-foreground">User Seats</CardTitle>
+                <CardDescription className="text-muted-foreground">
+                  Account users share the same workspace. Employees remain separate.
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="grid gap-4 sm:grid-cols-4">
+            <div>
+              <p className="text-sm text-muted-foreground">Total seats</p>
+              <p className="text-2xl font-semibold text-foreground">{seatSummary.maxSeats}</p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Used</p>
+              <p className="text-2xl font-semibold text-foreground">{seatSummary.usedSeats}</p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Pending invites</p>
+              <p className="text-2xl font-semibold text-foreground">{seatSummary.pendingSeats}</p>
+            </div>
+            <div className="flex flex-col gap-2">
+              <p className="text-sm text-muted-foreground">Available</p>
+              <p className="text-2xl font-semibold text-foreground">{seatSummary.availableSeats}</p>
+              <Button asChild variant="outline" size="sm" className="w-full sm:w-auto">
+                <Link href="/dashboard/settings/users">Manage Users</Link>
+              </Button>
+            </div>
+          </CardContent>
+        </DashboardCard>
+      )}
+
       {/* Featured Location Add-on */}
-      {!isFreePlan && (
+      {!isFreePlan && membership.role === "owner" && (
         <DashboardCard tone="premium">
           <CardHeader>
             <div className="flex items-center gap-3">
@@ -559,7 +626,7 @@ export default async function DashboardBillingPage() {
       )}
 
       {/* Add-ons */}
-      {isPro && (
+      {isPro && membership.role === "owner" && (
         <DashboardCard>
           <CardHeader>
             <div className="flex items-center gap-3">
@@ -569,7 +636,7 @@ export default async function DashboardBillingPage() {
               <div>
                 <CardTitle className="text-foreground">Add-ons</CardTitle>
                 <CardDescription className="text-muted-foreground">
-                  Add capacity packs and premium placement add-ons to your Pro plan
+                  Add capacity packs, user seats, and premium placement add-ons to your Pro plan
                 </CardDescription>
               </div>
             </div>
@@ -604,7 +671,11 @@ export default async function DashboardBillingPage() {
                   Payments are securely processed by Stripe
                 </p>
               </div>
-              <BillingPortalButton className="w-full sm:w-auto" />
+              {!billingPortalRestriction ? (
+                <BillingPortalButton className="w-full sm:w-auto" />
+              ) : (
+                <p className="text-sm text-muted-foreground">{billingPortalRestriction}</p>
+              )}
             </div>
           </CardContent>
         </DashboardCard>

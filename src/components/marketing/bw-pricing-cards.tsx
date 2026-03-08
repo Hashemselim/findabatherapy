@@ -146,7 +146,7 @@ const toolsReplaced = [
 /*  Add-ons                                                           */
 /* ------------------------------------------------------------------ */
 const addons = [
-  { name: "Extra team members", price: "$20/mo each", desc: "Invite staff to your account" },
+  { name: "User seats", price: "$20/mo each", desc: "Invite shared account users" },
   { name: "Location 5-pack", price: "$15/mo", desc: "5 additional service locations" },
   { name: "Job 5-pack", price: "$15/mo", desc: "5 additional job postings" },
   { name: "Storage 10 GB", price: "$5/mo", desc: "Extra file storage for documents" },

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { createClient, createAdminClient, getUser } from "@/lib/supabase/server";
+import { createClient, createAdminClient, getCurrentProfileId } from "@/lib/supabase/server";
 import { contactFormSchema, type ContactFormData, type InquiryStatus } from "@/lib/validations/contact";
 import { verifyTurnstileToken } from "@/lib/turnstile";
 import { sendProviderInquiryNotification, sendFamilyInquiryConfirmation } from "@/lib/email/notifications";
@@ -254,8 +254,8 @@ export async function submitInquiry(
 export async function getInquiries(
   filter?: { status?: InquiryStatus; locationIds?: string[] }
 ): Promise<ActionResult<{ inquiries: Inquiry[]; unreadCount: number }>> {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -265,7 +265,7 @@ export async function getInquiries(
   const { data: listing } = await supabase
     .from("listings")
     .select("id")
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .single();
 
   if (!listing) {
@@ -349,8 +349,8 @@ export async function getInquiries(
 export async function getInquiry(
   inquiryId: string
 ): Promise<ActionResult<Inquiry>> {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -360,7 +360,7 @@ export async function getInquiry(
   const { data: listing } = await supabase
     .from("listings")
     .select("id")
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .single();
 
   if (!listing) {
@@ -421,8 +421,8 @@ export async function getInquiry(
 export async function markInquiryAsRead(
   inquiryId: string
 ): Promise<ActionResult> {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -432,7 +432,7 @@ export async function markInquiryAsRead(
   const { data: listing } = await supabase
     .from("listings")
     .select("id")
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .single();
 
   if (!listing) {
@@ -464,8 +464,8 @@ export async function markInquiryAsRead(
 export async function markInquiryAsReplied(
   inquiryId: string
 ): Promise<ActionResult> {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -475,7 +475,7 @@ export async function markInquiryAsReplied(
   const { data: listing } = await supabase
     .from("listings")
     .select("id")
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .single();
 
   if (!listing) {
@@ -506,8 +506,8 @@ export async function markInquiryAsReplied(
 export async function archiveInquiry(
   inquiryId: string
 ): Promise<ActionResult> {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -517,7 +517,7 @@ export async function archiveInquiry(
   const { data: listing } = await supabase
     .from("listings")
     .select("id")
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .single();
 
   if (!listing) {
@@ -543,8 +543,8 @@ export async function archiveInquiry(
  * Get unread inquiry count (for sidebar badge)
  */
 export async function getUnreadInquiryCount(): Promise<ActionResult<number>> {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return { success: true, data: 0 };
   }
 
@@ -554,7 +554,7 @@ export async function getUnreadInquiryCount(): Promise<ActionResult<number>> {
   const { data: listing } = await supabase
     .from("listings")
     .select("id")
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .single();
 
   if (!listing) {

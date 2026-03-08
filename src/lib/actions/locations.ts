@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { createClient, createAdminClient, getUser } from "@/lib/supabase/server";
+import { createClient, createAdminClient, getCurrentProfileId } from "@/lib/supabase/server";
 import { geocodeAddress } from "@/lib/geo/geocode";
 import { stripe } from "@/lib/stripe";
 import { getEffectivePlanTier } from "@/lib/plans/features";
@@ -59,8 +59,8 @@ const LOCATION_LIMITS: Record<string, number> = {
  * Get all locations for the current user's listing
  */
 export async function getLocations(): Promise<ActionResult<LocationData[]>> {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -70,7 +70,7 @@ export async function getLocations(): Promise<ActionResult<LocationData[]>> {
   const { data: listing } = await supabase
     .from("listings")
     .select("id")
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .single();
 
   if (!listing) {
@@ -172,8 +172,8 @@ export async function addLocation(data: {
   contactWebsite?: string;
   useCompanyContact?: boolean;
 }): Promise<ActionResult<{ id: string; geocoded: boolean }>> {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -183,7 +183,7 @@ export async function addLocation(data: {
   const { data: listing } = await supabase
     .from("listings")
     .select("id")
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .single();
 
   if (!listing) {
@@ -193,7 +193,7 @@ export async function addLocation(data: {
   const { data: profile } = await supabase
     .from("profiles")
     .select("plan_tier, subscription_status")
-    .eq("id", user.id)
+    .eq("id", profileId)
     .single();
 
   if (!profile) {
@@ -210,7 +210,7 @@ export async function addLocation(data: {
     profile.plan_tier,
     profile.subscription_status
   );
-  const limitsResult = await getEffectiveLimits(user.id);
+  const limitsResult = await getEffectiveLimits(profileId);
   const limit = limitsResult.success && limitsResult.data
     ? limitsResult.data.maxLocations
     : LOCATION_LIMITS[effectiveTier] || 1;
@@ -321,8 +321,8 @@ export async function updateLocation(
     useCompanyContact?: boolean;
   }
 ): Promise<ActionResult<{ geocoded: boolean }>> {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -340,7 +340,7 @@ export async function updateLocation(
   }
 
   const listing = location.listings as unknown as { profile_id: string };
-  if (listing.profile_id !== user.id) {
+  if (listing.profile_id !== profileId) {
     return { success: false, error: "Not authorized" };
   }
 
@@ -428,8 +428,8 @@ export async function updateLocation(
  * Delete a location
  */
 export async function deleteLocation(locationId: string): Promise<ActionResult> {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -447,7 +447,7 @@ export async function deleteLocation(locationId: string): Promise<ActionResult> 
   }
 
   const listing = location.listings as unknown as { profile_id: string };
-  if (listing.profile_id !== user.id) {
+  if (listing.profile_id !== profileId) {
     return { success: false, error: "Not authorized" };
   }
 
@@ -515,8 +515,8 @@ export async function deleteLocation(locationId: string): Promise<ActionResult> 
  * Set a location as the primary location
  */
 export async function setPrimaryLocation(locationId: string): Promise<ActionResult> {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -534,7 +534,7 @@ export async function setPrimaryLocation(locationId: string): Promise<ActionResu
   }
 
   const listing = location.listings as unknown as { profile_id: string };
-  if (listing.profile_id !== user.id) {
+  if (listing.profile_id !== profileId) {
     return { success: false, error: "Not authorized" };
   }
 
@@ -563,8 +563,8 @@ export async function setPrimaryLocation(locationId: string): Promise<ActionResu
  * Get location limit for the current user's plan
  */
 export async function getLocationLimit(): Promise<ActionResult<{ limit: number; current: number }>> {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -573,7 +573,7 @@ export async function getLocationLimit(): Promise<ActionResult<{ limit: number; 
   const { data: profile } = await supabase
     .from("profiles")
     .select("plan_tier")
-    .eq("id", user.id)
+    .eq("id", profileId)
     .single();
 
   if (!profile) {
@@ -583,7 +583,7 @@ export async function getLocationLimit(): Promise<ActionResult<{ limit: number; 
   const { data: listing } = await supabase
     .from("listings")
     .select("id")
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .single();
 
   if (!listing) {

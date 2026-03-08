@@ -1,7 +1,15 @@
 import { NextResponse } from "next/server";
 
-import { createClient, createAdminClient } from "@/lib/supabase/server";
+import {
+  createClient,
+  getCurrentProfileId,
+  getWorkspaceInviteCookie,
+} from "@/lib/supabase/server";
 import { sendAdminNewSignupNotification } from "@/lib/email/notifications";
+import {
+  acceptWorkspaceInvitation,
+  createWorkspaceForUser,
+} from "@/lib/workspace/memberships";
 
 type SignupIntent = "therapy" | "jobs" | "both";
 
@@ -48,6 +56,47 @@ export async function GET(request: Request) {
     }
 
     if (data.user) {
+      const pendingInviteToken = await getWorkspaceInviteCookie();
+      if (pendingInviteToken) {
+        try {
+          const result = await acceptWorkspaceInvitation({
+            token: pendingInviteToken,
+            user: data.user,
+          });
+
+          const { data: invitedProfile } = await supabase
+            .from("profiles")
+            .select("onboarding_completed_at")
+            .eq("id", result.profileId)
+            .single();
+
+          if (!invitedProfile?.onboarding_completed_at) {
+            return NextResponse.redirect(`${origin}/dashboard/onboarding`);
+          }
+
+          return NextResponse.redirect(`${origin}${next}`);
+        } catch (error) {
+          return NextResponse.redirect(
+            `${origin}/auth/sign-in?error=${encodeURIComponent(error instanceof Error ? error.message : "Failed to accept workspace invitation")}`
+          );
+        }
+      }
+
+      const currentProfileId = (await getCurrentProfileId()) || data.user.id;
+      if (currentProfileId !== data.user.id) {
+        const { data: invitedWorkspace } = await supabase
+          .from("profiles")
+          .select("onboarding_completed_at")
+          .eq("id", currentProfileId)
+          .single();
+
+        if (!invitedWorkspace?.onboarding_completed_at) {
+          return NextResponse.redirect(`${origin}/dashboard/onboarding`);
+        }
+
+        return NextResponse.redirect(`${origin}${next}`);
+      }
+
       // Check if profile exists
       const { data: existingProfile } = await supabase
         .from("profiles")
@@ -57,8 +106,6 @@ export async function GET(request: Request) {
 
       // Create profile if it doesn't exist
       if (!existingProfile) {
-        const adminClient = await createAdminClient();
-
         // Get user metadata for agency name
         const agencyName =
           data.user.user_metadata?.agency_name ||
@@ -74,20 +121,14 @@ export async function GET(request: Request) {
           data.user.user_metadata?.selected_intent || selectedIntent
         );
 
-        const { error: profileError } = await adminClient
-          .from("profiles")
-          .insert({
-            id: data.user.id,
-            agency_name: agencyName,
-            contact_email: data.user.email!,
-            plan_tier: userPlan,
-            billing_interval: userInterval,
-            primary_intent: userIntent,
-          });
-
-        if (profileError) {
-          console.error("Profile creation error:", profileError);
-        }
+        await createWorkspaceForUser({
+          userId: data.user.id,
+          email: data.user.email!,
+          agencyName,
+          planTier: userPlan,
+          billingInterval: userInterval,
+          primaryIntent: userIntent,
+        });
 
         // Send admin notification for new signup
         // Determine signup method from OAuth provider

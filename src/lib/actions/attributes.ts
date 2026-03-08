@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { createClient, getUser } from "@/lib/supabase/server";
+import { createClient, getCurrentProfileId } from "@/lib/supabase/server";
 
 type ActionResult<T = void> =
   | { success: true; data?: T }
@@ -23,8 +23,8 @@ export interface ListingAttributes {
  * Get all attributes for the current user's listing
  */
 export async function getAttributes(): Promise<ActionResult<ListingAttributes>> {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -34,7 +34,7 @@ export async function getAttributes(): Promise<ActionResult<ListingAttributes>> 
   const { data: listing } = await supabase
     .from("listings")
     .select("id")
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .single();
 
   if (!listing) {
@@ -96,8 +96,8 @@ export async function getAttributes(): Promise<ActionResult<ListingAttributes>> 
 export async function setAttributes(
   attributes: Partial<ListingAttributes>
 ): Promise<ActionResult> {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -107,7 +107,7 @@ export async function setAttributes(
   const { data: listing } = await supabase
     .from("listings")
     .select("id")
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .single();
 
   if (!listing) {
@@ -236,8 +236,8 @@ export async function setAttribute(
  * Clear specific attributes
  */
 export async function clearAttributes(keys: string[]): Promise<ActionResult> {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -247,7 +247,7 @@ export async function clearAttributes(keys: string[]): Promise<ActionResult> {
   const { data: listing } = await supabase
     .from("listings")
     .select("id")
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .single();
 
   if (!listing) {
@@ -273,8 +273,8 @@ export async function clearAttributes(keys: string[]): Promise<ActionResult> {
  * Clear all attributes for the listing
  */
 export async function clearAllAttributes(): Promise<ActionResult> {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -284,7 +284,7 @@ export async function clearAllAttributes(): Promise<ActionResult> {
   const { data: listing } = await supabase
     .from("listings")
     .select("id")
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .single();
 
   if (!listing) {

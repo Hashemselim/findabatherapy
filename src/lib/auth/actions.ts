@@ -4,10 +4,19 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 
-import { createClient, createAdminClient } from "@/lib/supabase/server";
+import {
+  createClient,
+  getCurrentProfileId,
+  getWorkspaceInviteCookie,
+  setWorkspaceInviteCookie,
+} from "@/lib/supabase/server";
 import { verifyTurnstileToken } from "@/lib/turnstile";
 import { sendAdminNewSignupNotification } from "@/lib/email/notifications";
 import { getRequestOrigin } from "@/lib/utils/domains";
+import {
+  acceptWorkspaceInvitation,
+  createWorkspaceForUser,
+} from "@/lib/workspace/memberships";
 
 export type AuthError = {
   error: string;
@@ -42,6 +51,7 @@ export async function signInWithEmail(formData: FormData): Promise<AuthResult> {
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
   const turnstileToken = formData.get("turnstileToken") as string | null;
+  const inviteToken = formData.get("inviteToken") as string | null;
 
   if (!email || !password) {
     return {
@@ -80,10 +90,27 @@ export async function signInWithEmail(formData: FormData): Promise<AuthResult> {
   let redirectTo = "/dashboard/clients/pipeline";
 
   if (user) {
+    const pendingInviteToken = inviteToken || (await getWorkspaceInviteCookie());
+    let profileId = (await getCurrentProfileId()) || user.id;
+    if (pendingInviteToken) {
+      try {
+        const result = await acceptWorkspaceInvitation({
+          token: pendingInviteToken,
+          user,
+        });
+        profileId = result.profileId;
+      } catch (error) {
+        return {
+          error: "auth_error",
+          message: error instanceof Error ? error.message : "Failed to accept workspace invitation",
+        };
+      }
+    }
+
     const { data: profile } = await supabase
       .from("profiles")
       .select("onboarding_completed_at")
-      .eq("id", user.id)
+      .eq("id", profileId)
       .single();
 
     if (!profile || !profile.onboarding_completed_at) {
@@ -107,6 +134,7 @@ export async function signUpWithEmail(formData: FormData): Promise<AuthResult> {
   const billingInterval = (formData.get("billingInterval") as string) || "monthly";
   const selectedIntent = normalizeSignupIntent(formData.get("selectedIntent") as string | null);
   const turnstileToken = formData.get("turnstileToken") as string;
+  const inviteToken = formData.get("inviteToken") as string | null;
 
   // Verify Turnstile token
   if (!turnstileToken) {
@@ -146,6 +174,9 @@ export async function signUpWithEmail(formData: FormData): Promise<AuthResult> {
 
   const headersList = await headers();
   const origin = getRequestOrigin(headersList, "goodaba");
+  if (inviteToken) {
+    await setWorkspaceInviteCookie(inviteToken);
+  }
 
   const supabase = await createClient();
 
@@ -180,16 +211,22 @@ export async function signUpWithEmail(formData: FormData): Promise<AuthResult> {
 
   // If user was created and confirmed (e.g., in development), create profile
   if (data.user) {
-    const adminClient = await createAdminClient();
     const finalAgencyName = agencyName || email.split("@")[0];
-    await adminClient.from("profiles").insert({
-      id: data.user.id,
-      agency_name: finalAgencyName,
-        contact_email: email,
-        plan_tier: planTier,
-        billing_interval: interval,
-        primary_intent: selectedIntent,
+    if (inviteToken) {
+      await acceptWorkspaceInvitation({
+        token: inviteToken,
+        user: data.user,
       });
+    } else {
+      await createWorkspaceForUser({
+        userId: data.user.id,
+        email,
+        agencyName: finalAgencyName,
+        planTier,
+        billingInterval: interval,
+        primaryIntent: selectedIntent,
+      });
+    }
 
     // Send admin notification for new signup
     await sendAdminNewSignupNotification({
@@ -213,7 +250,8 @@ export async function signInWithOAuth(
   provider: "google" | "azure",
   selectedPlan?: string,
   billingInterval?: string,
-  selectedIntent?: string
+  selectedIntent?: string,
+  inviteToken?: string
 ): Promise<{ url: string } | AuthError> {
   const headersList = await headers();
   const origin = getRequestOrigin(headersList, "goodaba");
@@ -224,6 +262,9 @@ export async function signInWithOAuth(
   const planTier = selectedPlan && validPlans.includes(selectedPlan) ? selectedPlan : "free";
   const interval = billingInterval === "annual" || billingInterval === "year" ? "year" : "month";
   const intent = normalizeSignupIntent(selectedIntent);
+  if (inviteToken) {
+    await setWorkspaceInviteCookie(inviteToken);
+  }
 
   const supabase = await createClient();
 

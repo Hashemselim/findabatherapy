@@ -1,13 +1,12 @@
 "use server";
 
-import { createClient, getUser } from "@/lib/supabase/server";
+import { createClient, getCurrentProfileId } from "@/lib/supabase/server";
 
 import { evaluateOnboardingFlow, type OnboardingFlowSnapshot } from "./flow";
 
 export async function getOnboardingFlow(): Promise<OnboardingFlowSnapshot> {
-  const user = await getUser();
-
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return evaluateOnboardingFlow({
       onboardingCompleted: false,
       selectedPlan: "free",
@@ -27,12 +26,12 @@ export async function getOnboardingFlow(): Promise<OnboardingFlowSnapshot> {
       .select(
         "agency_name, contact_email, plan_tier, billing_interval, onboarding_completed_at, subscription_status"
       )
-      .eq("id", user.id)
+      .eq("id", profileId)
       .single(),
     supabase
       .from("listings")
       .select("id, description")
-      .eq("profile_id", user.id)
+      .eq("profile_id", profileId)
       .single(),
   ]);
 

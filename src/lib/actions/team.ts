@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { createClient as createSupabaseClient, getUser } from "@/lib/supabase/server";
+import { createClient as createSupabaseClient, getCurrentProfileId } from "@/lib/supabase/server";
 import { guardCredentialTracking } from "@/lib/plans/guards";
 import {
   teamMemberSchema,
@@ -86,8 +86,8 @@ export interface TeamTask {
  * List all team members for the current user
  */
 export async function getTeamMembers(): Promise<ActionResult<TeamMember[]>> {
-  const user = await getUser();
-  if (!user) return { success: false, error: "Not authenticated" };
+  const profileId = await getCurrentProfileId();
+  if (!profileId) return { success: false, error: "Not authenticated" };
 
   const guard = await guardCredentialTracking();
   if (!guard.allowed) return { success: false, error: guard.reason };
@@ -97,7 +97,7 @@ export async function getTeamMembers(): Promise<ActionResult<TeamMember[]>> {
   const { data, error } = await supabase
     .from("team_members")
     .select("*")
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .is("deleted_at", null)
     .order("first_name", { ascending: true });
 
@@ -161,8 +161,8 @@ export async function getTeamMember(
     tasks: TeamTask[];
   }>
 > {
-  const user = await getUser();
-  if (!user) return { success: false, error: "Not authenticated" };
+  const profileId = await getCurrentProfileId();
+  if (!profileId) return { success: false, error: "Not authenticated" };
 
   const supabase = await createSupabaseClient();
 
@@ -170,7 +170,7 @@ export async function getTeamMember(
     .from("team_members")
     .select("*")
     .eq("id", memberId)
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .is("deleted_at", null)
     .single();
 
@@ -184,7 +184,7 @@ export async function getTeamMember(
       .from("employee_credentials")
       .select("*")
       .eq("team_member_id", memberId)
-      .eq("profile_id", user.id)
+      .eq("profile_id", profileId)
       .is("deleted_at", null)
       .order("expiration_date", { ascending: true, nullsFirst: false }),
     supabase
@@ -197,7 +197,7 @@ export async function getTeamMember(
       .from("client_tasks")
       .select("*")
       .eq("team_member_id", memberId)
-      .eq("profile_id", user.id)
+      .eq("profile_id", profileId)
       .is("deleted_at", null)
       .order("due_date", { ascending: true, nullsFirst: false }),
   ]);
@@ -219,8 +219,8 @@ export async function getTeamMember(
 export async function createTeamMember(
   data: Record<string, unknown>
 ): Promise<ActionResult<{ id: string }>> {
-  const user = await getUser();
-  if (!user) return { success: false, error: "Not authenticated" };
+  const profileId = await getCurrentProfileId();
+  if (!profileId) return { success: false, error: "Not authenticated" };
 
   const guard = await guardCredentialTracking();
   if (!guard.allowed) return { success: false, error: guard.reason };
@@ -235,7 +235,7 @@ export async function createTeamMember(
   const { data: member, error } = await supabase
     .from("team_members")
     .insert({
-      profile_id: user.id,
+      profile_id: profileId,
       first_name: parsed.data.first_name,
       last_name: parsed.data.last_name || null,
       email: parsed.data.email || null,
@@ -265,8 +265,8 @@ export async function updateTeamMember(
   memberId: string,
   data: Record<string, unknown>
 ): Promise<ActionResult> {
-  const user = await getUser();
-  if (!user) return { success: false, error: "Not authenticated" };
+  const profileId = await getCurrentProfileId();
+  if (!profileId) return { success: false, error: "Not authenticated" };
 
   const parsed = teamMemberSchema.partial().safeParse(data);
   if (!parsed.success) {
@@ -288,7 +288,7 @@ export async function updateTeamMember(
       hired_date: parsed.data.hired_date || null,
     })
     .eq("id", memberId)
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .is("deleted_at", null);
 
   if (error) {
@@ -305,8 +305,8 @@ export async function updateTeamMember(
  * Soft delete a team member
  */
 export async function deleteTeamMember(memberId: string): Promise<ActionResult> {
-  const user = await getUser();
-  if (!user) return { success: false, error: "Not authenticated" };
+  const profileId = await getCurrentProfileId();
+  if (!profileId) return { success: false, error: "Not authenticated" };
 
   const supabase = await createSupabaseClient();
 
@@ -314,7 +314,7 @@ export async function deleteTeamMember(memberId: string): Promise<ActionResult> 
     .from("team_members")
     .update({ deleted_at: new Date().toISOString() })
     .eq("id", memberId)
-    .eq("profile_id", user.id);
+    .eq("profile_id", profileId);
 
   if (error) {
     console.error("[TEAM] Failed to delete team member:", error);
@@ -333,8 +333,8 @@ export async function addTeamCredential(
   teamMemberId: string,
   data: Record<string, unknown>
 ): Promise<ActionResult<{ id: string }>> {
-  const user = await getUser();
-  if (!user) return { success: false, error: "Not authenticated" };
+  const profileId = await getCurrentProfileId();
+  if (!profileId) return { success: false, error: "Not authenticated" };
 
   const parsed = teamCredentialSchema.safeParse(data);
   if (!parsed.success) {
@@ -348,7 +348,7 @@ export async function addTeamCredential(
     .from("team_members")
     .select("id, first_name, last_name")
     .eq("id", teamMemberId)
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .is("deleted_at", null)
     .single();
 
@@ -359,7 +359,7 @@ export async function addTeamCredential(
   const { data: cred, error } = await supabase
     .from("employee_credentials")
     .insert({
-      profile_id: user.id,
+      profile_id: profileId,
       team_member_id: teamMemberId,
       employee_name: employeeName,
       credential_name: parsed.data.credential_name,
@@ -382,8 +382,8 @@ export async function updateTeamCredential(
   credentialId: string,
   data: Record<string, unknown>
 ): Promise<ActionResult> {
-  const user = await getUser();
-  if (!user) return { success: false, error: "Not authenticated" };
+  const profileId = await getCurrentProfileId();
+  if (!profileId) return { success: false, error: "Not authenticated" };
 
   const parsed = teamCredentialSchema.partial().safeParse(data);
   if (!parsed.success) {
@@ -400,7 +400,7 @@ export async function updateTeamCredential(
       notes: parsed.data.notes || null,
     })
     .eq("id", credentialId)
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .is("deleted_at", null);
 
   if (error) {
@@ -413,8 +413,8 @@ export async function updateTeamCredential(
 }
 
 export async function deleteTeamCredential(credentialId: string): Promise<ActionResult> {
-  const user = await getUser();
-  if (!user) return { success: false, error: "Not authenticated" };
+  const profileId = await getCurrentProfileId();
+  if (!profileId) return { success: false, error: "Not authenticated" };
 
   const supabase = await createSupabaseClient();
 
@@ -422,7 +422,7 @@ export async function deleteTeamCredential(credentialId: string): Promise<Action
     .from("employee_credentials")
     .update({ deleted_at: new Date().toISOString() })
     .eq("id", credentialId)
-    .eq("profile_id", user.id);
+    .eq("profile_id", profileId);
 
   if (error) {
     console.error("[TEAM] Failed to delete credential:", error);
@@ -441,8 +441,8 @@ export async function addTeamDocument(
   teamMemberId: string,
   data: Record<string, unknown>
 ): Promise<ActionResult<{ id: string }>> {
-  const user = await getUser();
-  if (!user) return { success: false, error: "Not authenticated" };
+  const profileId = await getCurrentProfileId();
+  if (!profileId) return { success: false, error: "Not authenticated" };
 
   const parsed = teamDocumentSchema.safeParse(data);
   if (!parsed.success) {
@@ -456,7 +456,7 @@ export async function addTeamDocument(
     .from("team_members")
     .select("id")
     .eq("id", teamMemberId)
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .is("deleted_at", null)
     .single();
 
@@ -484,8 +484,8 @@ export async function addTeamDocument(
 }
 
 export async function deleteTeamDocument(documentId: string): Promise<ActionResult> {
-  const user = await getUser();
-  if (!user) return { success: false, error: "Not authenticated" };
+  const profileId = await getCurrentProfileId();
+  if (!profileId) return { success: false, error: "Not authenticated" };
 
   const supabase = await createSupabaseClient();
 
@@ -502,7 +502,7 @@ export async function deleteTeamDocument(documentId: string): Promise<ActionResu
     .from("team_members")
     .select("id")
     .eq("id", doc.team_member_id)
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .single();
 
   if (!member) return { success: false, error: "Not authorized" };
@@ -528,8 +528,8 @@ export async function deleteTeamDocument(documentId: string): Promise<ActionResu
 export async function getTeamMemberTasks(
   teamMemberId: string
 ): Promise<ActionResult<TeamTask[]>> {
-  const user = await getUser();
-  if (!user) return { success: false, error: "Not authenticated" };
+  const profileId = await getCurrentProfileId();
+  if (!profileId) return { success: false, error: "Not authenticated" };
 
   const supabase = await createSupabaseClient();
 
@@ -537,7 +537,7 @@ export async function getTeamMemberTasks(
     .from("client_tasks")
     .select("*")
     .eq("team_member_id", teamMemberId)
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .is("deleted_at", null)
     .order("due_date", { ascending: true, nullsFirst: false })
     .order("created_at", { ascending: false });
@@ -554,8 +554,8 @@ export async function createTeamTask(
   teamMemberId: string,
   data: Record<string, unknown>
 ): Promise<ActionResult<{ id: string }>> {
-  const user = await getUser();
-  if (!user) return { success: false, error: "Not authenticated" };
+  const profileId = await getCurrentProfileId();
+  if (!profileId) return { success: false, error: "Not authenticated" };
 
   const parsed = teamTaskSchema.safeParse(data);
   if (!parsed.success) {
@@ -569,7 +569,7 @@ export async function createTeamTask(
     .from("team_members")
     .select("id")
     .eq("id", teamMemberId)
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .is("deleted_at", null)
     .single();
 
@@ -580,7 +580,7 @@ export async function createTeamTask(
     .insert({
       client_id: null,
       team_member_id: teamMemberId,
-      profile_id: user.id,
+      profile_id: profileId,
       title: parsed.data.title,
       content: parsed.data.content || null,
       status: parsed.data.status || "pending",

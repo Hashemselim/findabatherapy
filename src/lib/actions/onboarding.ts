@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { isDevOnboardingPreviewEnabled } from "@/lib/onboarding-preview";
-import { createClient, getUser } from "@/lib/supabase/server";
+import { createClient, getCurrentProfileId } from "@/lib/supabase/server";
 import type {
   CompanyBasics,
   CompanyDetails,
@@ -42,8 +42,8 @@ function generateSlug(agencyName: string): string {
 export async function updateProfileBasics(
   data: CompanyBasics
 ): Promise<ActionResult> {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return unauthenticatedResult();
   }
 
@@ -52,14 +52,14 @@ export async function updateProfileBasics(
   const { error } = await supabase
     .from("profiles")
     .upsert({
-      id: user.id,
+      id: profileId,
       agency_name: data.agencyName,
       contact_email: data.contactEmail,
       contact_phone: data.contactPhone || null,
       website: data.website || null,
       updated_at: new Date().toISOString(),
     })
-    .eq("id", user.id);
+    .eq("id", profileId);
 
   if (error) {
     return { success: false, error: error.message };
@@ -75,8 +75,8 @@ export async function updateProfileBasics(
 export async function updateProfilePlan(
   plan: "free" | "pro"
 ): Promise<ActionResult> {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return unauthenticatedResult();
   }
 
@@ -90,7 +90,7 @@ export async function updateProfilePlan(
         plan_tier: plan,
         updated_at: new Date().toISOString(),
       })
-      .eq("id", user.id);
+      .eq("id", profileId);
 
     if (error) {
       return { success: false, error: error.message };
@@ -105,8 +105,8 @@ export async function updateProfilePlan(
  * Update onboarding intent preference.
  */
 export async function updateProfileIntent(intent: OnboardingIntent): Promise<ActionResult> {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return unauthenticatedResult();
   }
 
@@ -117,7 +117,7 @@ export async function updateProfileIntent(intent: OnboardingIntent): Promise<Act
       primary_intent: intent,
       updated_at: new Date().toISOString(),
     })
-    .eq("id", user.id);
+    .eq("id", profileId);
 
   if (error) {
     return { success: false, error: error.message };
@@ -133,8 +133,8 @@ export async function updateProfileIntent(intent: OnboardingIntent): Promise<Act
 export async function updateListingDetails(
   data: CompanyDetails & { contactPhone?: string; website?: string; servicesOffered?: string[] }
 ): Promise<ActionResult<{ listingId: string }>> {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return unauthenticatedResult();
   }
 
@@ -144,7 +144,7 @@ export async function updateListingDetails(
   const { data: existingListing } = await supabase
     .from("listings")
     .select("id")
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .single();
 
   if (existingListing) {
@@ -185,7 +185,7 @@ export async function updateListingDetails(
   const { data: profile } = await supabase
     .from("profiles")
     .select("agency_name, plan_tier")
-    .eq("id", user.id)
+    .eq("id", profileId)
     .single();
 
   if (!profile) {
@@ -216,7 +216,7 @@ export async function updateListingDetails(
   const { data: newListing, error } = await supabase
     .from("listings")
     .insert({
-      profile_id: user.id,
+      profile_id: profileId,
       slug,
       headline: data.headline,
       description: data.description,
@@ -249,8 +249,8 @@ export async function updateListingDetails(
 export async function updateListingLocation(
   data: LocationData
 ): Promise<ActionResult> {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return unauthenticatedResult();
   }
 
@@ -260,7 +260,7 @@ export async function updateListingLocation(
   const { data: listing } = await supabase
     .from("listings")
     .select("id")
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .single();
 
   if (!listing) {
@@ -317,8 +317,8 @@ export async function updateListingLocation(
 export async function updateListingLocationWithServices(
   data: LocationWithServicesData
 ): Promise<ActionResult> {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return unauthenticatedResult();
   }
 
@@ -328,7 +328,7 @@ export async function updateListingLocationWithServices(
   const { data: listing } = await supabase
     .from("listings")
     .select("id")
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .single();
 
   if (!listing) {
@@ -405,8 +405,8 @@ export async function updateListingLocationWithServices(
 export async function updateBasicAttributes(
   data: { insurances: string[]; isAcceptingClients?: boolean }
 ): Promise<ActionResult> {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return unauthenticatedResult();
   }
 
@@ -416,7 +416,7 @@ export async function updateBasicAttributes(
   const { data: listing } = await supabase
     .from("listings")
     .select("id")
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .single();
 
   if (!listing) {
@@ -460,8 +460,8 @@ export async function updateBasicAttributes(
 export async function updateListingAttributes(
   data: ServicesData
 ): Promise<ActionResult> {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return unauthenticatedResult();
   }
 
@@ -471,7 +471,7 @@ export async function updateListingAttributes(
   const { data: listing } = await supabase
     .from("listings")
     .select("id")
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .single();
 
   if (!listing) {
@@ -532,8 +532,8 @@ export async function updateListingAttributes(
 export async function completeOnboarding(
   publish: boolean = false
 ): Promise<ActionResult<{ redirectTo: string }>> {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return unauthenticatedResult();
   }
 
@@ -543,13 +543,13 @@ export async function completeOnboarding(
   const { data: profile } = await supabase
     .from("profiles")
     .select("plan_tier, billing_interval")
-    .eq("id", user.id)
+    .eq("id", profileId)
     .single();
 
   const { data: listing } = await supabase
     .from("listings")
     .select("id, slug")
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .single();
 
   if (!listing) {
@@ -563,7 +563,7 @@ export async function completeOnboarding(
       onboarding_completed_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     })
-    .eq("id", user.id);
+    .eq("id", profileId);
 
   if (profileError) {
     return { success: false, error: profileError.message };
@@ -625,8 +625,8 @@ export async function updatePremiumAttributes(data: {
   videoUrl?: string;
   contactFormEnabled?: boolean;
 }): Promise<ActionResult> {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return unauthenticatedResult();
   }
 
@@ -636,7 +636,7 @@ export async function updatePremiumAttributes(data: {
   const { data: listing } = await supabase
     .from("listings")
     .select("id")
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .single();
 
   if (!listing) {
@@ -766,8 +766,8 @@ export async function getOnboardingData(): Promise<
     attributes: Record<string, unknown>;
   }>
 > {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return unauthenticatedResult({
       profile: null,
       listing: null,
@@ -782,14 +782,14 @@ export async function getOnboardingData(): Promise<
   const { data: profile } = await supabase
     .from("profiles")
     .select("agency_name, contact_email, contact_phone, website, plan_tier, billing_interval, primary_intent, intake_form_settings")
-    .eq("id", user.id)
+    .eq("id", profileId)
     .single();
 
   // Get listing
   const { data: listing } = await supabase
     .from("listings")
     .select("id, slug, headline, description, service_modes, is_accepting_clients, video_url, logo_url")
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .single();
 
   // Get primary location
@@ -907,8 +907,8 @@ export async function saveOnboardingDraft(data: {
   videoUrl?: string;
   contactFormEnabled?: boolean;
 }): Promise<ActionResult> {
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return unauthenticatedResult();
   }
 
@@ -923,14 +923,14 @@ export async function saveOnboardingDraft(data: {
 
   if (Object.keys(profileUpdates).length > 0) {
     profileUpdates.updated_at = new Date().toISOString();
-    await supabase.from("profiles").update(profileUpdates).eq("id", user.id);
+    await supabase.from("profiles").update(profileUpdates).eq("id", profileId);
   }
 
   // Get or create listing
   let { data: listing } = await supabase
     .from("listings")
     .select("id")
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .single();
 
   // If no listing exists and we have enough data, create one
@@ -939,7 +939,7 @@ export async function saveOnboardingDraft(data: {
     const { data: newListing } = await supabase
       .from("listings")
       .insert({
-        profile_id: user.id,
+        profile_id: profileId,
         slug,
         headline: data.headline || null,
         description: data.description || null,

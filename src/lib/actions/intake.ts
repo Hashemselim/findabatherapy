@@ -338,11 +338,11 @@ export async function getClientResourcesPageData(
 export async function updateIntakeFormSettings(
   settings: Partial<IntakeFormSettings>
 ): Promise<ActionResult> {
-  const { getUser } = await import("@/lib/supabase/server");
+  const { getCurrentProfileId } = await import("@/lib/supabase/server");
   const supabase = await createAdminClient();
 
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -350,7 +350,7 @@ export async function updateIntakeFormSettings(
   const { data: profile } = await supabase
     .from("profiles")
     .select("intake_form_settings")
-    .eq("id", user.id)
+    .eq("id", profileId)
     .single();
 
   const currentSettings = (profile?.intake_form_settings as IntakeFormSettings) || {
@@ -368,7 +368,7 @@ export async function updateIntakeFormSettings(
   const { error } = await supabase
     .from("profiles")
     .update({ intake_form_settings: newSettings })
-    .eq("id", user.id);
+    .eq("id", profileId);
 
   if (error) {
     return { success: false, error: "Failed to update settings" };
@@ -388,11 +388,11 @@ export async function updateIntakeFormSettings(
 export async function updateIntakeFieldsConfig(
   fieldsConfig: IntakeFieldsConfig,
 ): Promise<ActionResult> {
-  const { getUser } = await import("@/lib/supabase/server");
+  const { getCurrentProfileId } = await import("@/lib/supabase/server");
   const supabase = await createAdminClient();
 
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -400,7 +400,7 @@ export async function updateIntakeFieldsConfig(
   const { data: profile } = await supabase
     .from("profiles")
     .select("intake_form_settings")
-    .eq("id", user.id)
+    .eq("id", profileId)
     .single();
 
   const current = (profile?.intake_form_settings as IntakeFormSettings) || {
@@ -417,7 +417,7 @@ export async function updateIntakeFieldsConfig(
   const { error } = await supabase
     .from("profiles")
     .update({ intake_form_settings: updated })
-    .eq("id", user.id);
+    .eq("id", profileId);
 
   if (error) {
     return { success: false, error: "Failed to save field configuration" };
@@ -468,11 +468,11 @@ export interface PrefillData {
 export async function createIntakeToken(
   clientId: string,
 ): Promise<ActionResult<{ url: string; token: string }>> {
-  const { getUser } = await import("@/lib/supabase/server");
+  const { getCurrentProfileId } = await import("@/lib/supabase/server");
   const supabase = await createAdminClient();
 
-  const user = await getUser();
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -481,7 +481,7 @@ export async function createIntakeToken(
     .from("clients")
     .select("id, profile_id")
     .eq("id", clientId)
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .single();
 
   if (!client) {
@@ -492,7 +492,7 @@ export async function createIntakeToken(
   const { data: listing } = await supabase
     .from("listings")
     .select("slug")
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .eq("status", "published")
     .single();
 
@@ -504,7 +504,7 @@ export async function createIntakeToken(
 
   const { error } = await supabase.from("intake_tokens").insert({
     client_id: clientId,
-    profile_id: user.id,
+    profile_id: profileId,
     token,
   });
 

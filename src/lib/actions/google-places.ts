@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getCurrentProfileId } from "@/lib/supabase/server";
 
 // Types for Google Places listing data
 export interface GooglePlacesListing {
@@ -89,11 +89,8 @@ export async function getClaimEligibility(googlePlacesListingId: string): Promis
   listingSlug?: string;
 }> {
   const supabase = await createClient();
-
-  // Get current user
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return { status: "signed_out" };
   }
 
@@ -101,7 +98,7 @@ export async function getClaimEligibility(googlePlacesListingId: string): Promis
   const { data: listing } = await supabase
     .from("listings")
     .select("id, slug")
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .eq("status", "published")
     .single();
 
@@ -114,7 +111,7 @@ export async function getClaimEligibility(googlePlacesListingId: string): Promis
     .from("removal_requests")
     .select("id, status")
     .eq("google_places_listing_id", googlePlacesListingId)
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .order("created_at", { ascending: false })
     .limit(1)
     .single();
@@ -134,11 +131,8 @@ export async function submitRemovalRequest(
   reason?: string
 ): Promise<ActionResult<{ id: string }>> {
   const supabase = await createClient();
-
-  // Get current user
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
@@ -146,7 +140,7 @@ export async function submitRemovalRequest(
   const { data: listing } = await supabase
     .from("listings")
     .select("id")
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .eq("status", "published")
     .single();
 
@@ -159,7 +153,7 @@ export async function submitRemovalRequest(
     .from("removal_requests")
     .select("id")
     .eq("google_places_listing_id", googlePlacesListingId)
-    .eq("profile_id", user.id)
+    .eq("profile_id", profileId)
     .eq("status", "pending")
     .single();
 
@@ -172,7 +166,7 @@ export async function submitRemovalRequest(
     .from("removal_requests")
     .insert({
       google_places_listing_id: googlePlacesListingId,
-      profile_id: user.id,
+      profile_id: profileId,
       listing_id: listing.id,
       reason: reason || null,
     })
