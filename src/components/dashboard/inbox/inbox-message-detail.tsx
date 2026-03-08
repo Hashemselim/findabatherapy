@@ -18,10 +18,9 @@ import {
   UserPlus,
 } from "lucide-react";
 
+import { DashboardCard, DashboardStatusBadge } from "@/components/dashboard/ui";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
-  Card,
   CardContent,
   CardDescription,
   CardHeader,
@@ -143,21 +142,21 @@ export function InboxMessageDetail({
 
   if (!inquiry) {
     return (
-      <Card className="flex min-h-0 flex-1 items-center justify-center border-border/60">
+      <DashboardCard className="flex min-h-0 flex-1 items-center justify-center">
         <CardContent className="py-12 text-center">
           <Mail className="mx-auto h-12 w-12 text-muted-foreground" />
           <p className="mt-4 text-muted-foreground">
             Select a message to view details
           </p>
         </CardContent>
-      </Card>
+      </DashboardCard>
     );
   }
 
   const locationName = getLocationDisplayName(inquiry);
 
   return (
-    <Card className="flex min-h-0 flex-1 flex-col border-border/60">
+    <DashboardCard className="flex min-h-0 flex-1 flex-col">
       <CardHeader className="shrink-0">
         {/* Back button for mobile */}
         {showBackButton && onBack && (
@@ -178,25 +177,24 @@ export function InboxMessageDetail({
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {inquiry.source === "intake_standalone" && (
-              <Badge variant="outline" className="gap-1">
+              <DashboardStatusBadge tone="premium" className="gap-1">
                 <FileEdit className="h-3 w-3" />
                 Via Intake Form
-              </Badge>
+              </DashboardStatusBadge>
             )}
-            <Badge
-              variant={
+            <DashboardStatusBadge
+              tone={
                 inquiry.status === "unread"
-                  ? "default"
+                  ? "info"
                   : inquiry.status === "replied"
-                    ? "secondary"
+                    ? "success"
                     : inquiry.status === "converted"
-                      ? "secondary"
-                      : "outline"
+                      ? "success"
+                      : "default"
               }
-              className={inquiry.status === "converted" ? "bg-green-500/10 text-green-600 hover:bg-green-500/20" : ""}
             >
               {inquiry.status === "converted" ? "Converted to Client" : inquiry.status}
-            </Badge>
+            </DashboardStatusBadge>
           </div>
         </div>
       </CardHeader>
@@ -208,7 +206,7 @@ export function InboxMessageDetail({
               <Phone className="h-4 w-4 shrink-0 text-muted-foreground" />
               <a
                 href={`tel:${inquiry.familyPhone}`}
-                className="text-sm text-[#5788FF] hover:underline"
+                className="text-sm text-primary hover:underline"
               >
                 {inquiry.familyPhone}
               </a>
@@ -232,7 +230,7 @@ export function InboxMessageDetail({
         {/* Location */}
         {locationName && (
           <div className="flex items-center gap-2 rounded-lg bg-muted/50 p-3">
-            <MapPin className="h-4 w-4 text-[#5788FF]" />
+            <MapPin className="h-4 w-4 text-primary" />
             <span className="text-sm">
               Inquiring about: <strong>{locationName}</strong>
             </span>
@@ -283,7 +281,7 @@ export function InboxMessageDetail({
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => handleCopyEmail(inquiry.familyEmail)}>
                 {copiedEmail ? (
-                  <Check className="mr-2 h-4 w-4 text-green-500" />
+                  <Check className="mr-2 h-4 w-4 text-primary" />
                 ) : (
                   <Copy className="mr-2 h-4 w-4" />
                 )}
@@ -308,7 +306,7 @@ export function InboxMessageDetail({
               variant="outline"
               onClick={handleConvertToClient}
               disabled={isConverting}
-              className="text-[#5788FF] hover:bg-[#5788FF]/10 hover:text-[#5788FF]"
+              className="text-primary hover:bg-primary/10 hover:text-primary"
             >
               {isConverting ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -341,6 +339,6 @@ export function InboxMessageDetail({
           </AlertDialog>
         </div>
       </CardContent>
-    </Card>
+    </DashboardCard>
   );
 }

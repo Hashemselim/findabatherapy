@@ -14,9 +14,9 @@ import {
 import { useEffect, useState } from "react";
 import { useDebounce } from "use-debounce";
 
+import { DashboardFilterButton, DashboardFilterGroup } from "@/components/dashboard/ui";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
 import type { ClientStatus } from "@/lib/validations/clients";
 import type { ClientCounts } from "@/lib/actions/clients";
 
@@ -35,16 +35,15 @@ const filterConfig: {
   label: string;
   icon: typeof Users;
   countKey: keyof ClientCounts;
-  activeColor?: string;
 }[] = [
   { key: "all", label: "All", icon: Users, countKey: "total" },
-  { key: "inquiry", label: "Inquiry", icon: UserPlus, countKey: "inquiry", activeColor: "text-blue-500" },
-  { key: "intake_pending", label: "Intake", icon: ClipboardList, countKey: "intake_pending", activeColor: "text-purple-500" },
-  { key: "waitlist", label: "Waitlist", icon: Clock, countKey: "waitlist", activeColor: "text-amber-500" },
-  { key: "assessment", label: "Assessment", icon: ClipboardList, countKey: "assessment", activeColor: "text-orange-500" },
-  { key: "active", label: "Active", icon: UserCheck, countKey: "active", activeColor: "text-green-500" },
-  { key: "on_hold", label: "On Hold", icon: Pause, countKey: "on_hold", activeColor: "text-yellow-500" },
-  { key: "discharged", label: "Discharged", icon: UserX, countKey: "discharged", activeColor: "text-gray-500" },
+  { key: "inquiry", label: "Inquiry", icon: UserPlus, countKey: "inquiry" },
+  { key: "intake_pending", label: "Intake", icon: ClipboardList, countKey: "intake_pending" },
+  { key: "waitlist", label: "Waitlist", icon: Clock, countKey: "waitlist" },
+  { key: "assessment", label: "Assessment", icon: ClipboardList, countKey: "assessment" },
+  { key: "active", label: "Active", icon: UserCheck, countKey: "active" },
+  { key: "on_hold", label: "On Hold", icon: Pause, countKey: "on_hold" },
+  { key: "discharged", label: "Discharged", icon: UserX, countKey: "discharged" },
 ];
 
 export function ClientsFilters({
@@ -92,8 +91,8 @@ export function ClientsFilters({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         {/* Status filters - horizontal scrollable on mobile */}
         <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 sm:overflow-visible">
-          <div className="flex items-center gap-1.5 pb-2 sm:pb-0 sm:flex-wrap">
-            {filterConfig.map(({ key, label, icon: Icon, countKey, activeColor }) => {
+          <DashboardFilterGroup>
+            {filterConfig.map(({ key, label, icon: Icon, countKey }) => {
               const isActive = filter === key;
               const count = counts[countKey];
 
@@ -101,28 +100,18 @@ export function ClientsFilters({
               if (key !== "all" && count === 0) return null;
 
               return (
-                <Button
+                <DashboardFilterButton
                   key={key}
-                  variant={isActive ? "default" : "outline"}
-                  size="sm"
                   onClick={() => onFilterChange(key)}
-                  className={cn(
-                    "h-9 gap-1.5 px-3 text-xs shrink-0",
-                    !isActive && activeColor
-                  )}
+                  active={isActive}
+                  icon={<Icon className="h-3.5 w-3.5" />}
+                  count={count}
                 >
-                  <Icon className="h-3.5 w-3.5" />
-                  <span>{label}</span>
-                  <span className={cn(
-                    "tabular-nums",
-                    isActive ? "text-primary-foreground/80" : "text-muted-foreground"
-                  )}>
-                    {count}
-                  </span>
-                </Button>
+                  {label}
+                </DashboardFilterButton>
               );
             })}
-          </div>
+          </DashboardFilterGroup>
         </div>
 
         {/* Search - inline on desktop */}

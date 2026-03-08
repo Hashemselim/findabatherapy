@@ -11,6 +11,8 @@ import { getClients } from "@/lib/actions/clients";
 import { getCurrentPlanTier } from "@/lib/plans/guards";
 import { DEMO_CLIENTS, DEMO_CLIENT_COUNTS } from "@/lib/demo/data";
 import { ClientsList } from "@/components/dashboard/clients";
+import { DashboardCard, DashboardEmptyState } from "@/components/dashboard/ui";
+import { Users } from "lucide-react";
 
 export const metadata = {
   title: "Clients | Dashboard",
@@ -33,18 +35,13 @@ export default async function ClientsPage() {
     return (
       <div className="space-y-3">
         <DashboardPageHeader title="Clients" />
-        <div className="rounded-2xl border border-border/50 bg-white p-5 shadow-sm dark:bg-zinc-950 sm:p-6">
-          <div className="flex h-full items-center justify-center">
-            <div className="text-center">
-              <h2 className="text-lg font-medium text-muted-foreground">
-                Failed to load clients
-              </h2>
-              <p className="text-sm text-muted-foreground/80 mt-1">
-                Please try refreshing the page
-              </p>
-            </div>
-          </div>
-        </div>
+        <DashboardCard className="p-5 sm:p-6">
+          <DashboardEmptyState
+            icon={Users}
+            title="Failed to load clients"
+            description="Please try refreshing the page."
+          />
+        </DashboardCard>
       </div>
     );
   }
@@ -88,12 +85,12 @@ export default async function ClientsPage() {
         )}
       </DashboardPageHeader>
       <PreviewOverlay isPreview={isPreview}>
-        <div className="rounded-2xl border border-border/50 bg-white p-5 shadow-sm dark:bg-zinc-950 sm:p-6">
+        <DashboardCard className="p-5 sm:p-6">
           <ClientsList
             initialClients={clients}
             initialCounts={counts}
           />
-        </div>
+        </DashboardCard>
       </PreviewOverlay>
     </div>
   );

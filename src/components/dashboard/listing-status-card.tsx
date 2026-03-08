@@ -17,6 +17,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { DashboardCallout } from "@/components/dashboard/ui";
 import { publishListing, unpublishListing } from "@/lib/actions/listings";
 
 interface ListingStatusCardProps {
@@ -76,18 +77,12 @@ export function ListingStatusCard({
 
   if (isSuspended) {
     return (
-      <Card className="border-destructive/30 bg-destructive/5">
-        <CardHeader className="flex flex-row items-center gap-3">
-          <AlertCircle className="h-5 w-5 text-destructive" aria-hidden />
-          <div>
-            <CardTitle className="text-destructive">Listing Suspended</CardTitle>
-            <CardDescription>
-              Your listing has been suspended and is not visible to families.
-              Please contact support for assistance.
-            </CardDescription>
-          </div>
-        </CardHeader>
-      </Card>
+      <DashboardCallout
+        tone="danger"
+        icon={AlertCircle}
+        title="Listing Suspended"
+        description="Your listing has been suspended and is not visible to families. Please contact support for assistance."
+      />
     );
   }
 
@@ -97,8 +92,8 @@ export function ListingStatusCard({
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
             {isPublished ? (
-              <div className="hidden rounded-lg bg-emerald-500/10 p-2 sm:block">
-                <Globe className="h-5 w-5 text-emerald-600" />
+              <div className="hidden rounded-lg bg-primary/10 p-2 sm:block">
+                <Globe className="h-5 w-5 text-primary" />
               </div>
             ) : (
               <div className="hidden rounded-lg bg-muted p-2 sm:block">
@@ -117,7 +112,7 @@ export function ListingStatusCard({
                       href={`/provider/${slug}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-[#5788FF] hover:underline break-all"
+                      className="break-all text-primary hover:underline"
                     >
                       /provider/{slug}
                     </a>

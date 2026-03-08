@@ -21,7 +21,7 @@ export function UpgradeBanner({
   disabled = false,
 }: UpgradeBannerProps) {
   return (
-    <div className="rounded-xl border border-primary/20 bg-gradient-to-r from-primary/5 to-primary/10 p-6">
+    <div className="rounded-xl border border-primary/20 bg-linear-to-r from-primary/5 to-primary/10 p-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="space-y-1">
           <h3 className="flex items-center gap-2 text-lg font-medium text-foreground">

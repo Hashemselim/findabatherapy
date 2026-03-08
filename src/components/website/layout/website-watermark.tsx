@@ -35,7 +35,7 @@ export function WebsiteWatermark() {
         </div>
         <Link
           href="https://www.goodaba.com/pricing"
-          className="rounded-full px-3 py-1 text-xs font-medium text-white shadow-sm transition-all hover:scale-[1.02] hover:shadow-md"
+          className="rounded-full px-3 py-1 text-xs font-medium text-white shadow-xs transition-all hover:scale-[1.02] hover:shadow-md"
           style={{ backgroundColor: brandColor }}
         >
           Build with GoodABA

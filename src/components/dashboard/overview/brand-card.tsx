@@ -3,7 +3,7 @@ import { ArrowRight, Briefcase, Heart, LucideIcon, Users } from "lucide-react";
 
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { DashboardStatusBadge } from "@/components/dashboard/ui";
 import { brandColors } from "@/config/brands";
 
 interface BrandCardProps {
@@ -51,7 +51,7 @@ export function BrandCard({
     return (
       <Card className="relative overflow-hidden border-border/60">
         <div
-          className={`absolute inset-0 bg-gradient-to-br ${config.gradient} opacity-50`}
+          className={`absolute inset-0 bg-linear-to-br ${config.gradient} opacity-50`}
         />
         <CardHeader className="relative flex flex-row items-start justify-between space-y-0 pb-2">
           <div className="flex items-center gap-2">
@@ -63,12 +63,12 @@ export function BrandCard({
             </div>
             <div>
               <h3 className="font-semibold text-foreground">{title}</h3>
-              <Badge
-                variant="outline"
-                className="mt-0.5 bg-purple-50 text-[10px] text-purple-600"
+              <DashboardStatusBadge
+                tone="premium"
+                className="mt-0.5 text-[10px]"
               >
                 Coming Soon
-              </Badge>
+              </DashboardStatusBadge>
             </div>
           </div>
         </CardHeader>
@@ -85,7 +85,7 @@ export function BrandCard({
   return (
     <Card className="relative overflow-hidden border-border/60 transition-shadow hover:shadow-md">
       <div
-        className={`absolute inset-0 bg-gradient-to-br ${config.gradient} opacity-30`}
+        className={`absolute inset-0 bg-linear-to-br ${config.gradient} opacity-30`}
       />
       <CardHeader className="relative flex flex-row items-start justify-between space-y-0 pb-2">
         <div className="flex items-center gap-2">

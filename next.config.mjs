@@ -1,7 +1,16 @@
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Enable React strict mode for better development experience
   reactStrictMode: true,
+
+  turbopack: {
+    root: __dirname,
+  },
 
   // Increase body size limit for Server Actions (photo uploads)
   experimental: {

@@ -135,7 +135,7 @@ export function ClinicalInfoEditDialog({
                 <Button
                   key={diagnosis}
                   type="button"
-                  variant={selectedDiagnoses.includes(diagnosis) ? "default" : "outline"}
+                  variant={selectedDiagnoses.includes(diagnosis) ? "default" : "outline-solid"}
                   size="sm"
                   onClick={() => toggleDiagnosis(diagnosis)}
                   className={cn(

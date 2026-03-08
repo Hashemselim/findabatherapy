@@ -103,7 +103,7 @@ function SignInForm() {
   return (
     <Card>
       <CardHeader className="space-y-4 text-center">
-        <Badge className="mx-auto rounded-full border border-border/60 bg-gradient-to-r from-[#5788FF]/10 via-transparent to-[#10B981]/10 px-4 py-1.5 text-sm font-medium text-muted-foreground shadow-sm">
+        <Badge className="mx-auto rounded-full border border-border/60 bg-linear-to-r from-[#5788FF]/10 via-transparent to-[#10B981]/10 px-4 py-1.5 text-sm font-medium text-muted-foreground shadow-xs">
           For ABA Providers
         </Badge>
         <CardTitle className="text-3xl">Sign in to your account</CardTitle>
@@ -266,7 +266,7 @@ function SignInSkeleton() {
   return (
     <Card>
       <CardHeader className="space-y-4 text-center">
-        <Badge className="mx-auto rounded-full border border-border/60 bg-gradient-to-r from-[#5788FF]/10 via-transparent to-[#10B981]/10 px-4 py-1.5 text-sm font-medium text-muted-foreground shadow-sm">
+        <Badge className="mx-auto rounded-full border border-border/60 bg-linear-to-r from-[#5788FF]/10 via-transparent to-[#10B981]/10 px-4 py-1.5 text-sm font-medium text-muted-foreground shadow-xs">
           For ABA Providers
         </Badge>
         <CardTitle className="text-3xl">Sign in to your account</CardTitle>

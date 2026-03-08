@@ -59,6 +59,8 @@ const proFeatureGroups = [
       "**Inquiry inbox** with instant email notifications",
       "**Referral source tracking** to see where families find you",
     ],
+    ctaLabel: "Start Free Preview",
+    ctaStyle: "outline-solid" as const,
   },
   {
     label: "Manage Every Client",

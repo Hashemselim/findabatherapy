@@ -195,7 +195,7 @@ export function DemoTour() {
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 z-[9998] bg-black/50"
+        className="fixed inset-0 z-9998 bg-black/50"
         onClick={handleSkip}
       />
 
@@ -211,7 +211,7 @@ export function DemoTour() {
 
       {/* Tooltip */}
       <div
-        className="fixed z-[10000] w-[calc(100vw-32px)] rounded-xl border border-border bg-background p-4 shadow-2xl sm:w-80"
+        className="fixed z-10000 w-[calc(100vw-32px)] rounded-xl border border-border bg-background p-4 shadow-2xl sm:w-80"
         style={{ top: position.top, left: position.left }}
       >
         {/* Close button */}

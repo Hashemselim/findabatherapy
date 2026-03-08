@@ -158,7 +158,7 @@ export function ListingForm({ initialData }: ListingFormProps) {
         </CardHeader>
         <CardContent className="space-y-6">
           {success && (
-            <div className="flex items-center gap-2 rounded-lg bg-emerald-500/10 p-3 text-sm text-emerald-600">
+            <div className="flex items-center gap-2 rounded-lg bg-primary/10 p-3 text-sm text-primary">
               <CheckCircle2 className="h-4 w-4" />
               Changes saved successfully
             </div>

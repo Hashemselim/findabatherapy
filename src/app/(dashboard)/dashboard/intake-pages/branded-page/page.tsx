@@ -1,9 +1,9 @@
 import Link from "next/link";
-import { ExternalLink, Copy, Eye, ArrowRight, Lock } from "lucide-react";
+import { ExternalLink, Eye, ArrowRight, Lock } from "lucide-react";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { DashboardCard, DashboardStatusBadge } from "@/components/dashboard/ui";
 import { getListingSlug } from "@/lib/actions/listings";
 import { getCurrentPlanTier } from "@/lib/plans/guards";
 import { getProviderBrochurePath } from "@/lib/utils/public-paths";
@@ -53,14 +53,14 @@ export default async function BrandedPageManagement() {
                   <CardTitle className="flex items-center gap-2">
                     Your Page URL
                     {isPremium ? (
-                      <Badge variant="outline" className="gap-1 border-emerald-500/50 bg-emerald-50 text-emerald-700">
+                      <DashboardStatusBadge tone="success" className="gap-1">
                         Live
-                      </Badge>
+                      </DashboardStatusBadge>
                     ) : (
-                      <Badge variant="outline" className="gap-1 border-amber-500/50 bg-amber-50 text-amber-700">
+                      <DashboardStatusBadge tone="warning" className="gap-1">
                         <Lock className="h-3 w-3" />
                         Basic
-                      </Badge>
+                      </DashboardStatusBadge>
                     )}
                   </CardTitle>
                   <CardDescription className="mt-1">
@@ -131,7 +131,7 @@ export default async function BrandedPageManagement() {
 
           {/* Upgrade prompt for free users */}
           {!isPremium && (
-            <Card className="border-[#5788FF]/20 bg-[#5788FF]/[0.03]">
+            <DashboardCard tone="premium">
               <CardContent className="py-6">
                 <div className="flex flex-col items-center text-center sm:flex-row sm:items-start sm:text-left gap-4">
                   <div className="flex-1">
@@ -152,7 +152,7 @@ export default async function BrandedPageManagement() {
                   </Button>
                 </div>
               </CardContent>
-            </Card>
+            </DashboardCard>
           )}
         </div>
       )}

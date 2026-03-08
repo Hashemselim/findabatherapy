@@ -108,7 +108,7 @@ export function IntakeSettingsCard({
             <Button
               onClick={handleCopyLink}
               className="shrink-0 gap-2"
-              variant={copied ? "outline" : "default"}
+              variant={copied ? "outline-solid" : "default"}
             >
               {copied ? (
                 <>

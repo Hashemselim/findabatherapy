@@ -133,7 +133,7 @@ export function FAQSearch({ categories }: FAQSearchProps) {
 
                       <div className="space-y-3">
                         {category.faqs.map((faq, index) => (
-                          <Card key={index} className="border-[#5788FF]/20 bg-[#5788FF]/[0.02]">
+                          <Card key={index} className="border-[#5788FF]/20 bg-[#5788FF]/2">
                             <CardHeader className="pb-2">
                               <CardTitle className="text-base font-medium">
                                 <HighlightText text={faq.question} query={searchQuery} />
@@ -191,7 +191,7 @@ export function FAQSearch({ categories }: FAQSearchProps) {
               <a
                 key={category.id}
                 href={`#${category.id}`}
-                className="rounded-lg bg-white px-3 py-1.5 text-sm font-medium text-foreground shadow-sm transition-colors hover:bg-primary hover:text-primary-foreground"
+                className="rounded-lg bg-white px-3 py-1.5 text-sm font-medium text-foreground shadow-xs transition-colors hover:bg-primary hover:text-primary-foreground"
               >
                 {category.title}
               </a>

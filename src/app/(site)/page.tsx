@@ -98,7 +98,7 @@ export default async function HomePage() {
         <BubbleBackground
           interactive
           transition={{ stiffness: 100, damping: 50, mass: 0.5 }}
-          className="w-full bg-gradient-to-br from-white via-yellow-50/50 to-blue-50/50 py-8 sm:py-16"
+          className="w-full bg-linear-to-br from-white via-yellow-50/50 to-blue-50/50 py-8 sm:py-16"
           colors={{
             first: "255,255,255",
             second: "255,236,170",
@@ -122,7 +122,7 @@ export default async function HomePage() {
               </div>
               <h1 className="text-[28px] font-semibold leading-[1.2] text-foreground sm:text-[48px]">
                 Find Local ABA Therapy Providers{" "}
-                <span className="bg-gradient-to-r from-[#5788FF] to-[#7BA3FF] bg-clip-text text-transparent sm:whitespace-nowrap">Who Take Your Insurance</span>
+                <span className="bg-linear-to-r from-[#5788FF] to-[#7BA3FF] bg-clip-text text-transparent sm:whitespace-nowrap">Who Take Your Insurance</span>
               </h1>
               <p className="mx-auto hidden max-w-2xl text-lg text-muted-foreground sm:block">
                 Connect with verified ABA providers in your area. Compare services, check insurance coverage, and find the right fit for your family.
@@ -134,7 +134,7 @@ export default async function HomePage() {
       </section>
 
       {/* Social Proof Bar */}
-      <section className="border-y border-border/60 bg-gradient-to-r from-white via-yellow-50/30 to-white py-5 !mt-0">
+      <section className="border-y border-border/60 bg-linear-to-r from-white via-yellow-50/30 to-white py-5 mt-0!">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-center gap-x-10 gap-y-4 px-4 text-sm sm:px-6">
           <div className="group flex items-center gap-2.5 transition-all duration-300 ease-premium hover:scale-[1.02]">
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#5788FF]/10 transition-all duration-300 ease-premium group-hover:bg-[#5788FF]/15 group-hover:scale-[1.05]">
@@ -157,7 +157,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="bg-white px-4 py-14 !mt-0 sm:px-6">
+      <section className="bg-white px-4 py-14 mt-0! sm:px-6">
         <div className="mx-auto max-w-5xl">
           <header className="text-center">
             <div className="mb-4 flex justify-center">
@@ -178,7 +178,7 @@ export default async function HomePage() {
               <Link
                 key={carrier.slug}
                 href={`/insurance/${carrier.slug}`}
-                className="group rounded-2xl border border-border/60 bg-white p-6 text-center transition-all duration-300 ease-premium hover:-translate-y-[2px] hover:border-violet-500/30 hover:bg-violet-500/[0.03] hover:shadow-[0_8px_30px_rgba(139,92,246,0.12)] active:translate-y-0 active:shadow-none"
+                className="group rounded-2xl border border-border/60 bg-white p-6 text-center transition-all duration-300 ease-premium hover:-translate-y-[2px] hover:border-violet-500/30 hover:bg-violet-500/3 hover:shadow-[0_8px_30px_rgba(139,92,246,0.12)] active:translate-y-0 active:shadow-none"
               >
                 <div className="flex flex-col items-center gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-full bg-violet-500/10 transition-all duration-300 ease-premium group-hover:bg-violet-500/15 group-hover:scale-[1.05]">
@@ -203,7 +203,7 @@ export default async function HomePage() {
 
       {/* Featured Providers - Show marquee for 4+ providers, static grid for 1-3 */}
       {featuredProviders.length > 0 && (
-        <section className="py-14 !mt-0 overflow-hidden" style={{ backgroundColor: SPONSORED_SECTION_BG }}>
+        <section className="py-14 mt-0! overflow-hidden" style={{ backgroundColor: SPONSORED_SECTION_BG }}>
           <div className="mx-auto max-w-5xl px-4 sm:px-6">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-start gap-4">
@@ -236,7 +236,7 @@ export default async function HomePage() {
                     href={`/provider/${provider.slug}`}
                     className="group"
                   >
-                    <Card className="h-full border border-border/60 bg-white shadow-sm transition-all duration-300 ease-premium hover:-translate-y-[2px] hover:border-[#5788FF]/30 hover:shadow-[0_8px_30px_rgba(87,136,255,0.1)]">
+                    <Card className="h-full border border-border/60 bg-white shadow-xs transition-all duration-300 ease-premium hover:-translate-y-[2px] hover:border-[#5788FF]/30 hover:shadow-[0_8px_30px_rgba(87,136,255,0.1)]">
                       <CardHeader className="pb-3">
                         <div className="flex items-center gap-3">
                           <Avatar className="h-12 w-12 border-2 border-[#FEE720]/50 transition-all duration-300 ease-premium group-hover:border-[#FEE720] group-hover:scale-[1.03]">
@@ -274,9 +274,9 @@ export default async function HomePage() {
                   <Link
                     key={`${provider.id}-${idx}`}
                     href={`/provider/${provider.slug}`}
-                    className="group flex-shrink-0"
+                    className="group shrink-0"
                   >
-                    <Card className="w-72 border border-border/60 bg-white shadow-sm transition-all duration-300 ease-premium hover:-translate-y-[2px] hover:border-[#5788FF]/30 hover:shadow-[0_8px_30px_rgba(87,136,255,0.1)]">
+                    <Card className="w-72 border border-border/60 bg-white shadow-xs transition-all duration-300 ease-premium hover:-translate-y-[2px] hover:border-[#5788FF]/30 hover:shadow-[0_8px_30px_rgba(87,136,255,0.1)]">
                       <CardHeader className="pb-3">
                         <div className="flex items-center gap-3">
                           <Avatar className="h-12 w-12 border-2 border-[#FEE720]/50 transition-all duration-300 ease-premium group-hover:border-[#FEE720] group-hover:scale-[1.03]">
@@ -310,7 +310,7 @@ export default async function HomePage() {
         </section>
       )}
 
-      <section className="bg-white py-14 !mt-0">
+      <section className="bg-white py-14 mt-0!">
         <div className="mx-auto max-w-5xl px-4 sm:px-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-start gap-4">
@@ -325,7 +325,7 @@ export default async function HomePage() {
               </div>
             </div>
           </div>
-          <div className="relative mt-8 overflow-hidden rounded-3xl border border-border/80 bg-white shadow-sm transition-all duration-500 ease-premium hover:shadow-[0_8px_30px_rgba(0,0,0,0.08)]">
+          <div className="relative mt-8 overflow-hidden rounded-3xl border border-border/80 bg-white shadow-xs transition-all duration-500 ease-premium hover:shadow-[0_8px_30px_rgba(0,0,0,0.08)]">
             <table className="w-full text-left text-sm">
               <thead className="border-b border-border/60 bg-muted/30 text-muted-foreground">
                 <tr>
@@ -339,7 +339,7 @@ export default async function HomePage() {
                 {previewRows.map((row, idx) => (
                   <tr
                     key={row.name}
-                    className={`group border-t border-border/40 bg-white transition-all duration-300 ease-premium hover:bg-[#5788FF]/[0.02] ${idx === 0 ? "border-t-0" : ""}`}
+                    className={`group border-t border-border/40 bg-white transition-all duration-300 ease-premium hover:bg-[#5788FF]/2 ${idx === 0 ? "border-t-0" : ""}`}
                   >
                     <td className="px-6 py-4">
                       <span className="font-medium text-foreground transition-colors duration-300 group-hover:text-[#5788FF]">{row.name}</span>
@@ -369,7 +369,7 @@ export default async function HomePage() {
                 ))}
               </tbody>
             </table>
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-white via-white/90 to-transparent" />
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-linear-to-t from-white via-white/90 to-transparent" />
             <div className="absolute inset-x-0 bottom-6 flex justify-center">
               <Button
                 asChild
@@ -386,7 +386,7 @@ export default async function HomePage() {
       </section>
 
       {/* Learn About ABA Section */}
-      <section className="bg-gradient-to-br from-emerald-50/40 via-white to-blue-50/40 py-14 !mt-0">
+      <section className="bg-linear-to-br from-emerald-50/40 via-white to-blue-50/40 py-14 mt-0!">
         <div className="mx-auto max-w-5xl px-4 sm:px-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-start gap-4">
@@ -467,7 +467,7 @@ export default async function HomePage() {
       </section>
 
       <section className="mx-auto max-w-5xl px-4 sm:px-6">
-        <Card className="overflow-hidden border border-border/80 bg-white shadow-sm transition-all duration-500 ease-premium hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)]">
+        <Card className="overflow-hidden border border-border/80 bg-white shadow-xs transition-all duration-500 ease-premium hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)]">
           <CardContent className="p-6 sm:p-8">
             <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-start gap-4">
@@ -497,7 +497,7 @@ export default async function HomePage() {
                   <Link
                     key={state.value}
                     href={`/${state.value}`}
-                    className="group flex items-center gap-3 rounded-2xl border border-border/60 bg-white px-4 py-3 transition-all duration-300 ease-premium hover:-translate-y-[2px] hover:border-[#5788FF]/30 hover:bg-[#5788FF]/[0.02] hover:shadow-[0_4px_20px_rgba(87,136,255,0.1)] active:translate-y-0 active:shadow-none"
+                    className="group flex items-center gap-3 rounded-2xl border border-border/60 bg-white px-4 py-3 transition-all duration-300 ease-premium hover:-translate-y-[2px] hover:border-[#5788FF]/30 hover:bg-[#5788FF]/2 hover:shadow-[0_4px_20px_rgba(87,136,255,0.1)] active:translate-y-0 active:shadow-none"
                   >
                     <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#FFF5C2] text-[#5788FF] transition-all duration-300 ease-premium group-hover:scale-[1.05] group-hover:bg-[#5788FF] group-hover:text-white group-hover:shadow-[0_2px_10px_rgba(87,136,255,0.4)]">
                       {Icon ? (
@@ -520,7 +520,7 @@ export default async function HomePage() {
       </section>
 
       <section className="mx-auto max-w-5xl px-4 sm:px-6">
-        <Card className="group relative overflow-hidden border border-[#5788FF]/20 bg-gradient-to-br from-[#5788FF]/[0.03] via-white to-[#5788FF]/[0.06] transition-all duration-500 ease-premium hover:border-[#5788FF]/30 hover:shadow-[0_8px_30px_rgba(87,136,255,0.12)]">
+        <Card className="group relative overflow-hidden border border-[#5788FF]/20 bg-linear-to-br from-[#5788FF]/3 via-white to-[#5788FF]/6 transition-all duration-500 ease-premium hover:border-[#5788FF]/30 hover:shadow-[0_8px_30px_rgba(87,136,255,0.12)]">
           {/* Decorative elements */}
           <div className="pointer-events-none absolute -right-20 -top-20 h-40 w-40 rounded-full bg-[#5788FF]/5 transition-transform duration-700 ease-premium group-hover:scale-150" />
           <div className="pointer-events-none absolute -bottom-16 -left-16 h-32 w-32 rounded-full bg-primary/10 transition-transform duration-700 ease-premium group-hover:scale-150" />

@@ -174,7 +174,7 @@ export default async function CareersPage({ params }: CareersPageProps) {
   const orgSchema = generateJobsSiteOrganizationSchema();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white via-emerald-50/30 to-slate-50">
+    <div className="min-h-screen bg-linear-to-br from-white via-emerald-50/30 to-slate-50">
       <JsonLd data={orgSchema} />
 
       {/* Hero Section */}

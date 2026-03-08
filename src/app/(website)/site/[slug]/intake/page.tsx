@@ -75,7 +75,7 @@ export default async function WebsiteIntakePage({
           </p>
         </div>
 
-        <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm sm:p-8">
+        <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-xs sm:p-8">
           <ClientIntakeForm
             listingId={listing.id}
             profileId={listing.profileId}

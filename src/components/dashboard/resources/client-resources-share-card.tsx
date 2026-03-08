@@ -4,8 +4,10 @@ import { useEffect, useState } from "react";
 import { BookOpen, Check, Copy, ExternalLink, GraduationCap, Link2, Search, Share2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getProviderResourcesPath } from "@/lib/utils/public-paths";
+import { DashboardCard } from "@/components/dashboard/ui";
+import { DashboardCard } from "@/components/dashboard/ui";
 
 interface ClientResourcesShareCardProps {
   listingSlug: string;
@@ -42,12 +44,12 @@ export function ClientResourcesShareCard({ listingSlug }: ClientResourcesShareCa
 
   return (
     <div className="space-y-6">
-      <Card className="border-blue-200 bg-gradient-to-br from-blue-50/50 to-white">
+      <DashboardCard tone="info">
         <CardHeader>
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#5788FF]">
-                <Link2 className="h-5 w-5 text-white" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <Link2 className="h-5 w-5" />
               </div>
               <div>
                 <CardTitle className="text-foreground">Your Branded Parent Resources Page</CardTitle>
@@ -60,14 +62,14 @@ export function ClientResourcesShareCard({ listingSlug }: ClientResourcesShareCa
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-col gap-3 sm:flex-row">
-            <div className="flex-1 rounded-lg border border-blue-200 bg-white px-4 py-3">
+            <div className="flex-1 rounded-lg border border-border/60 bg-background px-4 py-3">
               <p className="truncate font-mono text-sm text-muted-foreground">{resourcesUrl}</p>
             </div>
             <div className="flex gap-2">
               <Button
                 onClick={handleCopyLink}
                 className="shrink-0 gap-2"
-                variant={copied ? "outline" : "default"}
+                variant={copied ? "outline-solid" : "default"}
               >
                 {copied ? (
                   <>
@@ -90,31 +92,31 @@ export function ClientResourcesShareCard({ listingSlug }: ClientResourcesShareCa
             </div>
           </div>
 
-          <div className="rounded-lg border border-blue-200 bg-white p-4">
+          <div className="rounded-lg border border-border/60 bg-background p-4">
             <p className="mb-3 text-sm font-medium text-foreground">What families can use on this page:</p>
             <div className="grid gap-2 sm:grid-cols-2">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Search className="h-4 w-4 text-[#5788FF]" />
+                <Search className="h-4 w-4 text-primary" />
                 Searchable ABA FAQ
               </div>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <BookOpen className="h-4 w-4 text-[#5788FF]" />
+                <BookOpen className="h-4 w-4 text-primary" />
                 Glossary of ABA terms
               </div>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <GraduationCap className="h-4 w-4 text-[#5788FF]" />
+                <GraduationCap className="h-4 w-4 text-primary" />
                 Featured education guides
               </div>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Share2 className="h-4 w-4 text-[#5788FF]" />
+                <Share2 className="h-4 w-4 text-primary" />
                 Easy section toggles for readability
               </div>
             </div>
           </div>
         </CardContent>
-      </Card>
+      </DashboardCard>
 
-      <Card className="border-border/60 bg-white">
+      <DashboardCard>
         <CardHeader>
           <CardTitle className="text-foreground">Ways to Use This Page</CardTitle>
           <CardDescription>
@@ -149,7 +151,7 @@ export function ClientResourcesShareCard({ listingSlug }: ClientResourcesShareCa
             </div>
           </div>
         </CardContent>
-      </Card>
+      </DashboardCard>
     </div>
   );
 }

@@ -58,6 +58,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { FeaturedBadge } from "@/components/ui/featured-badge";
+import { DashboardCard, DashboardStatusBadge } from "@/components/dashboard/ui";
 import {
   addLocation,
   updateLocation,
@@ -592,7 +593,7 @@ export function LocationsManager({
     <div className="space-y-4">
       {/* Success/Error Messages */}
       {success && (
-        <div className="flex items-center gap-2 rounded-lg bg-emerald-500/10 p-3 text-sm text-emerald-600">
+        <div className="flex items-center gap-2 rounded-lg bg-primary/10 p-3 text-sm text-primary">
           <CheckCircle2 className="h-4 w-4" />
           {success}
         </div>
@@ -658,10 +659,10 @@ export function LocationsManager({
                           )}
                         </div>
                         <div className="flex items-center gap-2">
-                          {type.value === "in_home" && <Home className="h-4 w-4 text-[#5788FF]" />}
-                          {type.value === "in_center" && <Building2 className="h-4 w-4 text-[#5788FF]" />}
-                          {type.value === "telehealth" && <Video className="h-4 w-4 text-[#5788FF]" />}
-                          {type.value === "school_based" && <GraduationCap className="h-4 w-4 text-[#5788FF]" />}
+                          {type.value === "in_home" && <Home className="h-4 w-4 text-primary" />}
+                          {type.value === "in_center" && <Building2 className="h-4 w-4 text-primary" />}
+                          {type.value === "telehealth" && <Video className="h-4 w-4 text-primary" />}
+                          {type.value === "school_based" && <GraduationCap className="h-4 w-4 text-primary" />}
                           <span className="font-medium">{type.label}</span>
                         </div>
                       </button>
@@ -716,7 +717,7 @@ export function LocationsManager({
                         .join(", ")}
                     </p>
                     {form.watch("latitude") && form.watch("longitude") ? (
-                      <p className="flex items-center gap-1 text-xs text-emerald-600">
+                      <p className="flex items-center gap-1 text-xs text-primary">
                         <CheckCircle2 className="h-3 w-3" />
                         Coordinates verified
                       </p>
@@ -939,9 +940,9 @@ export function LocationsManager({
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex items-start gap-3">
                       <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${
-                        isFeatured ? "border border-[#FEE720] bg-[#FFF5C2]" : "bg-[#5788FF]/10"
+                        isFeatured ? "border border-primary/20 bg-primary/10" : "bg-primary/10"
                       }`}>
-                        <MapPin className={`h-5 w-5 ${isFeatured ? "text-[#5788FF]" : "text-[#5788FF]"}`} />
+                        <MapPin className="h-5 w-5 text-primary" />
                       </div>
                       <div>
                         <CardTitle className="text-base">{locationName}</CardTitle>
@@ -957,12 +958,9 @@ export function LocationsManager({
                           {location.isPrimary && (
                             <Badge variant="secondary">Primary</Badge>
                           )}
-                          <Badge
-                            variant={location.isAcceptingClients ? "default" : "secondary"}
-                            className={location.isAcceptingClients ? "bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20" : ""}
-                          >
+                          <DashboardStatusBadge tone={location.isAcceptingClients ? "success" : "default"}>
                             {location.isAcceptingClients ? "Accepting Clients" : "Not Accepting"}
-                          </Badge>
+                          </DashboardStatusBadge>
                         </div>
                       </div>
                     </div>
@@ -1025,7 +1023,7 @@ export function LocationsManager({
                   {/* Geocoding and Google status */}
                   <div className="flex items-center gap-4">
                     {location.latitude && location.longitude ? (
-                      <p className="flex items-center gap-1 text-xs text-emerald-600">
+                      <p className="flex items-center gap-1 text-xs text-primary">
                         <CheckCircle2 className="h-3 w-3" />
                         Address verified
                       </p>
@@ -1072,7 +1070,7 @@ export function LocationsManager({
                             setGoogleReviewsLocation(location);
                             setGoogleReviewsModalOpen(true);
                           }}
-                          className="text-xs text-[#5788FF] underline-offset-2 hover:underline"
+                          className="text-xs text-primary underline-offset-2 hover:underline"
                         >
                           {location.showGoogleReviews ? "Manage Reviews" : "Show Reviews"}
                         </button>
@@ -1084,7 +1082,7 @@ export function LocationsManager({
                           setGoogleLinkLocation(location);
                           setGoogleLinkModalOpen(true);
                         }}
-                        className="flex items-center gap-1.5 text-xs text-[#5788FF] underline-offset-2 hover:underline"
+                        className="flex items-center gap-1.5 text-xs text-primary underline-offset-2 hover:underline"
                       >
                         <Star className="h-3 w-3" />
                         Show your Google rating
@@ -1108,8 +1106,8 @@ export function LocationsManager({
                       <>
                         {isFeatured && location.featuredSubscription ? (
                           <div className="flex items-center gap-2">
-                            <TrendingUp className="h-4 w-4 shrink-0 text-[#5788FF]" />
-                            <span className="text-sm text-[#5788FF]">
+                            <TrendingUp className="h-4 w-4 shrink-0 text-primary" />
+                            <span className="text-sm text-primary">
                               Appearing at top of {location.state} searches
                             </span>
                           </div>
@@ -1192,23 +1190,23 @@ export function LocationsManager({
 
       {/* Free plan upgrade upsell */}
       {isFreePlan && locations.length > 0 && (
-        <Card className="border-slate-200 bg-gradient-to-br from-slate-50 via-white to-slate-50">
+        <DashboardCard className="bg-linear-to-br from-muted/40 via-card to-muted/20">
           <CardContent className="flex flex-col gap-4 py-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
-              <div className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600 sm:flex">
+              <div className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground sm:flex">
                 <MapPin className="h-5 w-5" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <p className="text-sm font-medium text-slate-900">
+                  <p className="text-sm font-medium text-foreground">
                     Add more locations
                   </p>
-                  <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-600">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
                     <Sparkles className="h-3 w-3" />
                     Pro
                   </span>
                 </div>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-muted-foreground">
                   Free plan includes up to 3 locations. Upgrade to Pro for up to 10 locations and featured placement.
                 </p>
               </div>
@@ -1219,7 +1217,7 @@ export function LocationsManager({
               </Link>
             </Button>
           </CardContent>
-        </Card>
+        </DashboardCard>
       )}
     </div>
 

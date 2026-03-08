@@ -411,7 +411,7 @@ export function BwLifecycle() {
 
       {/* +Grow Your Team bonus strip */}
       <BwMotion variant="fade-up" delay={0.1} className="mt-20">
-        <div className="overflow-hidden rounded-2xl border border-amber-200/40 bg-gradient-to-r from-[#10B981]/5 via-white to-[#5788FF]/5 shadow-sm">
+        <div className="overflow-hidden rounded-2xl border border-amber-200/40 bg-linear-to-r from-[#10B981]/5 via-white to-[#5788FF]/5 shadow-xs">
           <div className="flex flex-col items-center gap-5 p-8 sm:flex-row sm:gap-8 sm:p-10">
             <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#10B981]/10 ring-4 ring-[#10B981]/10">
               <TrendingUp className="h-6 w-6 text-[#10B981]" />

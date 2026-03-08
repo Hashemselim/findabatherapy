@@ -127,7 +127,7 @@ const plans = [
       "Company profile page",
     ],
     cta: "Post Free Job",
-    ctaVariant: "outline" as const,
+    ctaVariant: "outline-solid" as const,
   },
   {
     name: "Pro",
@@ -218,7 +218,7 @@ export default function PostJobPage() {
         <BubbleBackground
           interactive
           transition={{ stiffness: 100, damping: 50, mass: 0.5 }}
-          className="w-full bg-gradient-to-br from-white via-emerald-50/50 to-teal-50/50 py-16 sm:py-24"
+          className="w-full bg-linear-to-br from-white via-emerald-50/50 to-teal-50/50 py-16 sm:py-24"
           colors={{
             first: "255,255,255",
             second: "167,243,208",
@@ -230,12 +230,12 @@ export default function PostJobPage() {
         >
           <div className="mx-auto flex max-w-4xl flex-col gap-8 px-4 sm:px-6">
             <div className="space-y-6 text-center">
-              <Badge className="mx-auto rounded-full border border-emerald-500/40 bg-gradient-to-r from-emerald-500/15 to-emerald-500/5 px-4 py-1.5 text-sm font-semibold text-emerald-700 shadow-sm transition-all duration-300 ease-premium hover:shadow-md">
+              <Badge className="mx-auto rounded-full border border-emerald-500/40 bg-linear-to-r from-emerald-500/15 to-emerald-500/5 px-4 py-1.5 text-sm font-semibold text-emerald-700 shadow-xs transition-all duration-300 ease-premium hover:shadow-md">
                 For Employers
               </Badge>
               <h1 className="text-[32px] font-semibold leading-tight text-foreground sm:text-[48px] sm:leading-tight">
                 Hire BCBAs, RBTs & Behavior Analysts{" "}
-                <span className="bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">faster</span>
+                <span className="bg-linear-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">faster</span>
               </h1>
               <p className="mx-auto max-w-2xl text-lg text-muted-foreground sm:text-xl">
                 Post job openings and connect with thousands of qualified ABA professionals actively
@@ -257,7 +257,7 @@ export default function PostJobPage() {
                     asChild
                     size="lg"
                     variant="outline"
-                    className="rounded-full px-8 text-base transition-all duration-300 ease-premium hover:-translate-y-[1px] hover:border-emerald-500/50 hover:shadow-[0_4px_12px_rgba(16,185,129,0.15)]"
+                    className="rounded-full px-8 text-base transition-all duration-300 ease-premium hover:-translate-y-px hover:border-emerald-500/50 hover:shadow-[0_4px_12px_rgba(16,185,129,0.15)]"
                   >
                     <Link href="#pricing">View pricing</Link>
                   </Button>
@@ -273,7 +273,7 @@ export default function PostJobPage() {
               {stats.map((stat, index) => (
                 <div
                   key={stat.label}
-                  className="group rounded-2xl border border-border/60 bg-white/80 px-4 py-4 text-center backdrop-blur-sm transition-all duration-300 ease-premium hover:-translate-y-[2px] hover:border-emerald-500/30 hover:shadow-[0_8px_30px_rgba(16,185,129,0.1)]"
+                  className="group rounded-2xl border border-border/60 bg-white/80 px-4 py-4 text-center backdrop-blur-xs transition-all duration-300 ease-premium hover:-translate-y-[2px] hover:border-emerald-500/30 hover:shadow-[0_8px_30px_rgba(16,185,129,0.1)]"
                   style={{ animationDelay: `${index * 100}ms` }}
                 >
                   <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500/10 transition-all duration-300 group-hover:scale-[1.05]">
@@ -289,7 +289,7 @@ export default function PostJobPage() {
       </section>
 
       {/* Social Proof Bar */}
-      <section className="border-y border-border/60 bg-gradient-to-r from-white via-emerald-50/30 to-white py-6">
+      <section className="border-y border-border/60 bg-linear-to-r from-white via-emerald-50/30 to-white py-6">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-center gap-x-8 gap-y-4 px-4 text-sm text-muted-foreground sm:px-6">
           <span className="flex items-center gap-2 transition-all duration-300 hover:text-foreground">
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/10">
@@ -313,7 +313,7 @@ export default function PostJobPage() {
       </section>
 
       {/* Pricing Section */}
-      <section id="pricing" className="scroll-mt-8 bg-gradient-to-b from-emerald-50/50 to-white py-16 sm:py-24">
+      <section id="pricing" className="scroll-mt-8 bg-linear-to-b from-emerald-50/50 to-white py-16 sm:py-24">
         <div className="mx-auto max-w-[1080px] px-4 sm:px-6">
           <header className="text-center">
             <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/10">
@@ -333,7 +333,7 @@ export default function PostJobPage() {
               <Card
                 key={plan.name}
                 className={cn(
-                  "group relative flex flex-col border-2 bg-white shadow-sm transition-all duration-300 ease-premium hover:-translate-y-[2px]",
+                  "group relative flex flex-col border-2 bg-white shadow-xs transition-all duration-300 ease-premium hover:-translate-y-[2px]",
                   plan.popular
                     ? "border-emerald-500 shadow-[0_8px_30px_rgba(16,185,129,0.15)] hover:shadow-[0_12px_40px_rgba(16,185,129,0.2)]"
                     : "border-border/60 hover:border-emerald-500/30 hover:shadow-[0_8px_30px_rgba(16,185,129,0.1)]"
@@ -461,7 +461,7 @@ export default function PostJobPage() {
                       <Button
                         asChild
                         variant="outline"
-                        className="w-full rounded-full text-base font-semibold transition-all duration-300 ease-premium hover:-translate-y-[1px] hover:border-emerald-500/50 hover:shadow-[0_4px_12px_rgba(16,185,129,0.15)]"
+                        className="w-full rounded-full text-base font-semibold transition-all duration-300 ease-premium hover:-translate-y-px hover:border-emerald-500/50 hover:shadow-[0_4px_12px_rgba(16,185,129,0.15)]"
                       >
                         <Link href="/auth/sign-up?plan=free&intent=jobs">{plan.cta}</Link>
                       </Button>
@@ -470,7 +470,7 @@ export default function PostJobPage() {
                         <Button
                           asChild
                           className={cn(
-                            "w-full rounded-full text-base font-semibold transition-all duration-300 ease-premium hover:-translate-y-[1px]",
+                            "w-full rounded-full text-base font-semibold transition-all duration-300 ease-premium hover:-translate-y-px",
                             plan.popular
                               ? "bg-emerald-600 text-white shadow-[0_4px_14px_rgba(16,185,129,0.4)] hover:bg-emerald-700 hover:shadow-[0_8px_20px_rgba(16,185,129,0.5)]"
                               : "bg-emerald-600 text-white shadow-[0_4px_14px_rgba(16,185,129,0.3)] hover:bg-emerald-700 hover:shadow-[0_8px_20px_rgba(16,185,129,0.4)]"
@@ -483,7 +483,7 @@ export default function PostJobPage() {
                         <Button
                           asChild
                           variant="outline"
-                          className="w-full rounded-full text-base font-semibold transition-all duration-300 ease-premium hover:-translate-y-[1px] hover:border-emerald-500/50 hover:shadow-[0_4px_12px_rgba(16,185,129,0.15)]"
+                          className="w-full rounded-full text-base font-semibold transition-all duration-300 ease-premium hover:-translate-y-px hover:border-emerald-500/50 hover:shadow-[0_4px_12px_rgba(16,185,129,0.15)]"
                         >
                           <Link href={`/auth/sign-up?plan=${plan.tier}&interval=monthly&intent=jobs`}>
                             Start Monthly
@@ -553,7 +553,7 @@ export default function PostJobPage() {
             {features.map((feature, index) => (
               <Card
                 key={feature.title}
-                className="group w-full border border-border/60 bg-white shadow-sm transition-all duration-300 ease-premium hover:-translate-y-[2px] hover:border-emerald-500/30 hover:shadow-[0_8px_30px_rgba(16,185,129,0.1)] sm:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)]"
+                className="group w-full border border-border/60 bg-white shadow-xs transition-all duration-300 ease-premium hover:-translate-y-[2px] hover:border-emerald-500/30 hover:shadow-[0_8px_30px_rgba(16,185,129,0.1)] sm:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)]"
                 style={{ animationDelay: `${index * 100}ms` }}
               >
                 <CardHeader>
@@ -575,7 +575,7 @@ export default function PostJobPage() {
       </section>
 
       {/* Testimonials Section */}
-      <section className="bg-gradient-to-b from-white to-emerald-50/30 py-16 sm:py-24">
+      <section className="bg-linear-to-b from-white to-emerald-50/30 py-16 sm:py-24">
         <div className="mx-auto max-w-5xl px-4 sm:px-6">
           <header className="text-center">
             <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/10">
@@ -592,7 +592,7 @@ export default function PostJobPage() {
             {testimonials.map((testimonial, index) => (
               <Card
                 key={testimonial.name}
-                className="group border border-border/60 bg-white shadow-sm transition-all duration-300 ease-premium hover:-translate-y-[2px] hover:border-emerald-500/30 hover:shadow-[0_8px_30px_rgba(16,185,129,0.1)]"
+                className="group border border-border/60 bg-white shadow-xs transition-all duration-300 ease-premium hover:-translate-y-[2px] hover:border-emerald-500/30 hover:shadow-[0_8px_30px_rgba(16,185,129,0.1)]"
                 style={{ animationDelay: `${index * 100}ms` }}
               >
                 <CardContent className="flex flex-col gap-4 p-6">
@@ -689,7 +689,7 @@ export default function PostJobPage() {
       </section>
 
       {/* FAQ Section */}
-      <section className="bg-gradient-to-b from-emerald-50/30 to-white py-16 sm:py-24">
+      <section className="bg-linear-to-b from-emerald-50/30 to-white py-16 sm:py-24">
         <div className="mx-auto max-w-3xl px-4 sm:px-6">
           <header className="text-center">
             <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-teal-500/10">
@@ -720,7 +720,7 @@ export default function PostJobPage() {
       {/* Final CTA */}
       <section className="bg-white py-16 sm:py-24">
         <div className="mx-auto max-w-4xl px-4 sm:px-6">
-          <div className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-emerald-50 to-teal-50/50 p-8 text-center shadow-lg transition-all duration-500 ease-premium hover:shadow-[0_20px_50px_rgba(16,185,129,0.15)] sm:p-12">
+          <div className="relative overflow-hidden rounded-3xl border border-border bg-linear-to-br from-emerald-50 to-teal-50/50 p-8 text-center shadow-lg transition-all duration-500 ease-premium hover:shadow-[0_20px_50px_rgba(16,185,129,0.15)] sm:p-12">
             {/* Decorative background elements */}
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(16,185,129,0.08),transparent_40%)]" />
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_80%,rgba(20,184,166,0.08),transparent_40%)]" />

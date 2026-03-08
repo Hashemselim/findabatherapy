@@ -43,14 +43,14 @@ export function DashboardShell({
 
   if (isOnboardingRoute) {
     return (
-      <div className="min-h-screen overflow-x-hidden bg-[#f7f2e8] text-foreground">
+      <div className="min-h-screen overflow-x-hidden bg-background text-foreground">
         {children}
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#F5F5F0] text-foreground dark:bg-zinc-900">
+    <div className="dashboard-theme min-h-screen bg-muted/30 text-foreground">
       {demoBanner}
       {/* Fixed header - mobile only (hidden on lg+) */}
       <div className="fixed left-0 right-0 top-0 z-40 lg:hidden">
@@ -81,7 +81,7 @@ export function DashboardShell({
       <div className="flex min-h-screen pt-[calc(3.5rem+1px+2.5rem+1rem)] sm:pt-[calc(4rem+1px+2.5rem+1.5rem)] lg:pt-0">
         {/* Fixed sidebar */}
         <div className="hidden w-[250px] flex-none lg:block">
-          <div className="fixed left-0 top-0 h-screen w-[250px] border-r border-border/40 bg-white dark:bg-zinc-950">
+          <div className="fixed left-0 top-0 h-screen w-[250px] border-r border-border/60 bg-card/95 backdrop-blur-sm">
             <DashboardSidebar
               isOnboardingComplete={isOnboardingComplete}
               isDemo={isDemo}
@@ -96,7 +96,7 @@ export function DashboardShell({
         </div>
 
         {/* Scrolling main content */}
-        <main className="min-w-0 flex-1 px-4 py-3 sm:px-6 sm:py-4">
+        <main className="min-w-0 flex-1 bg-[radial-gradient(circle_at_top,hsl(var(--accent))_0%,transparent_28%)] px-4 py-3 sm:px-6 sm:py-4">
           <div className="mx-auto max-w-6xl">
             {children}
           </div>

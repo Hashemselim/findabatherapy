@@ -259,7 +259,7 @@ function MockupAgencyPage() {
   return (
     <div className="space-y-4">
       {/* Hero banner */}
-      <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-[#8B5CF6]/10 to-[#8B5CF6]/5 p-4">
+      <div className="relative overflow-hidden rounded-xl bg-linear-to-r from-[#8B5CF6]/10 to-[#8B5CF6]/5 p-4">
         <div className="flex items-center gap-3">
           <div className="h-12 w-12 rounded-2xl bg-[#8B5CF6]/20" />
           <div>
@@ -469,7 +469,7 @@ function MockupBrandedEmails() {
   return (
     <div className="mx-auto max-w-sm">
       {/* Email chrome */}
-      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xs">
         {/* Email header */}
         <div className="space-y-1 border-b border-slate-100 bg-slate-50/80 px-4 py-3">
           <div className="flex items-center gap-2">
@@ -640,7 +640,7 @@ export function BwBrandedPages() {
                 className={cn(
                   "inline-flex items-center gap-1.5 rounded-full border px-3.5 py-2 text-xs font-bold transition-all",
                   isActive
-                    ? "border-amber-300 bg-white shadow-sm shadow-amber-100/50 text-[#1A2744]"
+                    ? "border-amber-300 bg-white shadow-xs shadow-amber-100/50 text-[#1A2744]"
                     : "border-transparent bg-white/50 text-slate-400 hover:bg-white/80 hover:text-slate-600"
                 )}
               >

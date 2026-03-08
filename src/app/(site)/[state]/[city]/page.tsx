@@ -434,7 +434,7 @@ export default async function CityPage({ params }: CityPageProps) {
         </section>
 
         {/* CTA Card */}
-        <Card className="border-dashed border-primary/50 bg-primary/[0.04]">
+        <Card className="border-dashed border-primary/50 bg-primary/4">
           <CardHeader>
             <CardTitle className="text-lg font-semibold">
               Are you an ABA provider in {city.name}?

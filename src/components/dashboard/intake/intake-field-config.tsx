@@ -81,7 +81,7 @@ export function IntakeFieldConfig({ initialConfig }: IntakeFieldConfigProps) {
             <span className="text-muted-foreground">Saving...</span>
           )}
           {saveStatus === "saved" && (
-            <span className="text-green-600">Saved</span>
+            <span className="text-primary">Saved</span>
           )}
           {saveStatus === "error" && (
             <span className="text-destructive">Failed to save</span>
@@ -132,7 +132,7 @@ export function IntakeFieldConfig({ initialConfig }: IntakeFieldConfigProps) {
                           className={cn(
                             "inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[11px] font-medium transition-colors",
                             fc.required
-                              ? "bg-amber-100 text-amber-700"
+                              ? "bg-primary/10 text-primary"
                               : "bg-muted text-muted-foreground hover:bg-muted/80",
                           )}
                         >

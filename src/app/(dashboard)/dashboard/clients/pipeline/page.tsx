@@ -21,10 +21,15 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { BubbleBackground } from "@/components/ui/bubble-background";
 import { DashboardTracker } from "@/components/analytics/dashboard-tracker";
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
+import {
+  DashboardCard,
+  DashboardEmptyState,
+  DashboardStatusBadge,
+  getDashboardToneClasses,
+  type DashboardTone,
+} from "@/components/dashboard/ui";
 import { PreviewBanner } from "@/components/ui/preview-banner";
 import { PreviewOverlay } from "@/components/ui/preview-overlay";
 import { getProfile } from "@/lib/supabase/server";
@@ -33,16 +38,15 @@ import { runTaskAutomation } from "@/lib/actions/task-automation";
 import { getCurrentPlanFeatures, getCurrentPlanTier } from "@/lib/plans/guards";
 import { DEMO_PIPELINE_STATS } from "@/lib/demo/data";
 
-// Stage configuration matching client-status-badge.tsx colors
 const STAGES = [
-  { key: "inquiry", label: "Inquiry", color: "bg-blue-500", bgColor: "bg-blue-50", textColor: "text-blue-700", borderColor: "border-blue-200" },
-  { key: "intake_pending", label: "Intake Pending", color: "bg-purple-500", bgColor: "bg-purple-50", textColor: "text-purple-700", borderColor: "border-purple-200" },
-  { key: "waitlist", label: "Waitlist", color: "bg-amber-500", bgColor: "bg-amber-50", textColor: "text-amber-700", borderColor: "border-amber-200" },
-  { key: "assessment", label: "Assessment", color: "bg-orange-500", bgColor: "bg-orange-50", textColor: "text-orange-700", borderColor: "border-orange-200" },
-  { key: "authorization", label: "Authorization", color: "bg-cyan-500", bgColor: "bg-cyan-50", textColor: "text-cyan-700", borderColor: "border-cyan-200" },
-  { key: "active", label: "Active", color: "bg-green-500", bgColor: "bg-green-50", textColor: "text-green-700", borderColor: "border-green-200" },
-  { key: "on_hold", label: "On Hold", color: "bg-yellow-500", bgColor: "bg-yellow-50", textColor: "text-yellow-700", borderColor: "border-yellow-200" },
-  { key: "discharged", label: "Discharged", color: "bg-gray-400", bgColor: "bg-gray-50", textColor: "text-gray-600", borderColor: "border-gray-200" },
+  { key: "inquiry", label: "Inquiry", tone: "info" },
+  { key: "intake_pending", label: "Intake Pending", tone: "premium" },
+  { key: "waitlist", label: "Waitlist", tone: "warning" },
+  { key: "assessment", label: "Assessment", tone: "info" },
+  { key: "authorization", label: "Authorization", tone: "info" },
+  { key: "active", label: "Active", tone: "success" },
+  { key: "on_hold", label: "On Hold", tone: "warning" },
+  { key: "discharged", label: "Discharged", tone: "default" },
 ] as const;
 
 const ATTENTION_ICONS = {
@@ -59,11 +63,11 @@ const ACTIVITY_ICONS = {
   task_completed: CheckCircle2,
 } as const;
 
-const ACTIVITY_COLORS = {
-  new_client: "text-blue-500 bg-blue-50",
-  status_change: "text-purple-500 bg-purple-50",
-  communication_sent: "text-emerald-500 bg-emerald-50",
-  task_completed: "text-green-500 bg-green-50",
+const ACTIVITY_TONES = {
+  new_client: "info",
+  status_change: "premium",
+  communication_sent: "success",
+  task_completed: "success",
 } as const;
 
 export default async function PipelinePage() {
@@ -83,40 +87,20 @@ export default async function PipelinePage() {
           description="Complete your onboarding to start managing your client pipeline."
         />
 
-        <Card className="overflow-hidden border-slate-200">
-          <BubbleBackground
-            interactive={false}
-            size="default"
-            className="bg-gradient-to-br from-white via-yellow-50/50 to-blue-50/50"
-            colors={{
-              first: "255,255,255",
-              second: "255,236,170",
-              third: "135,176,255",
-              fourth: "255,248,210",
-              fifth: "190,210,255",
-              sixth: "240,248,255",
-            }}
-          >
-            <CardContent className="flex flex-col items-center px-6 py-12 text-center">
-              <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#5788FF] shadow-lg shadow-[#5788FF]/25">
-                <ClipboardList className="h-8 w-8 text-white" />
-              </div>
-              <p className="text-xl font-semibold text-slate-900">
-                Complete Your Onboarding
-              </p>
-              <p className="mt-3 max-w-md text-sm text-slate-600">
-                Set up your practice profile to start tracking your client
-                pipeline.
-              </p>
-              <Button asChild size="lg" className="mt-8">
-                <Link href="/dashboard/onboarding" className="gap-2">
-                  Continue Onboarding
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-              </Button>
-            </CardContent>
-          </BubbleBackground>
-        </Card>
+        <DashboardEmptyState
+          icon={ClipboardList}
+          title="Complete Your Onboarding"
+          description="Set up your practice profile to start tracking your client pipeline."
+          benefits={["Track new inquiries", "Manage follow-up", "Monitor active clients"]}
+          action={(
+            <Button asChild size="lg">
+              <Link href="/dashboard/onboarding" className="gap-2">
+                Continue Onboarding
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
+          )}
+        />
       </div>
     );
   }
@@ -219,20 +203,19 @@ export default async function PipelinePage() {
 
       {/* Stage Cards — Horizontal Row */}
       <PreviewOverlay isPreview={isPreview}>
-        <div className="rounded-2xl border border-border/50 bg-white shadow-sm dark:bg-zinc-950 p-5 sm:p-6">
+        <DashboardCard className="p-5 sm:p-6">
           <div className="grid grid-cols-4 gap-2 sm:gap-3 lg:grid-cols-8">
             {STAGES.map((stage) => {
               const count = counts[stage.key] || 0;
+              const toneClasses = getDashboardToneClasses(stage.tone);
               return (
                 <Link
                   key={stage.key}
                   href={`/dashboard/clients?status=${stage.key}`}
-                  className={`rounded-lg border ${stage.borderColor} p-2 sm:p-3 hover:shadow-sm transition-shadow cursor-pointer min-w-0`}
+                  className="rounded-lg border border-border/60 bg-background/80 p-2 transition-colors hover:bg-muted/40 sm:p-3"
                 >
-                  <div className={`h-1 w-8 rounded-full ${stage.color} mb-2`} />
-                  <p className={`text-xl sm:text-2xl font-bold ${stage.textColor}`}>
-                    {count}
-                  </p>
+                  <div className={`mb-2 h-1 w-8 rounded-full ${toneClasses.icon}`} />
+                  <p className={`text-xl font-bold sm:text-2xl ${toneClasses.emphasis}`}>{count}</p>
                   <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 leading-tight truncate">
                     {stage.label}
                   </p>
@@ -240,23 +223,20 @@ export default async function PipelinePage() {
               );
             })}
           </div>
-        </div>
+        </DashboardCard>
       </PreviewOverlay>
 
       {/* Attention Items */}
       {attentionItems.length > 0 && (
         <PreviewOverlay isPreview={isPreview} showLabel={false}>
-        <Card className="border-l-4 border-l-amber-400">
+        <DashboardCard tone="warning" className="border-l-4 border-l-amber-500">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-base">
-              <AlertTriangle className="h-4 w-4 text-amber-500" />
+              <AlertTriangle className="h-4 w-4 text-foreground" />
               Needs Attention
-              <Badge
-                variant="secondary"
-                className="bg-amber-100 text-amber-700 text-xs"
-              >
+              <DashboardStatusBadge tone="warning" className="text-xs">
                 {attentionItems.length}
-              </Badge>
+              </DashboardStatusBadge>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -271,7 +251,7 @@ export default async function PipelinePage() {
                     key={`${item.type}-${item.clientId}-${i}`}
                     className="flex items-center gap-3 py-2.5 border-b last:border-b-0"
                   >
-                    <Icon className="h-4 w-4 text-amber-500 shrink-0" />
+                    <Icon className="h-4 w-4 shrink-0 text-foreground" />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm">
                         <Link
@@ -300,7 +280,7 @@ export default async function PipelinePage() {
               })}
             </div>
           </CardContent>
-        </Card>
+        </DashboardCard>
         </PreviewOverlay>
       )}
 
@@ -326,17 +306,18 @@ export default async function PipelinePage() {
                   ACTIVITY_ICONS[
                     item.type as keyof typeof ACTIVITY_ICONS
                   ] || CheckCircle2;
-                const colorClass =
-                  ACTIVITY_COLORS[
-                    item.type as keyof typeof ACTIVITY_COLORS
-                  ] || "text-gray-500 bg-gray-50";
+                const tone =
+                  ACTIVITY_TONES[
+                    item.type as keyof typeof ACTIVITY_TONES
+                  ] || "default";
+                const toneClasses = getDashboardToneClasses(tone as DashboardTone);
                 return (
                   <div
                     key={`${item.type}-${item.clientId}-${i}`}
                     className="flex items-start gap-3 py-3 border-b last:border-b-0"
                   >
                     <div
-                      className={`flex h-7 w-7 items-center justify-center rounded-full ${colorClass} shrink-0 mt-0.5`}
+                      className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${toneClasses.icon}`}
                     >
                       <Icon className="h-3.5 w-3.5" />
                     </div>

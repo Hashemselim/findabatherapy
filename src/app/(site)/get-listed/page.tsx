@@ -92,7 +92,7 @@ const plans = [
       "Analytics dashboard",
     ],
     cta: "Start Free Preview",
-    ctaVariant: "outline" as const,
+    ctaVariant: "outline-solid" as const,
   },
   {
     name: PLAN_CONFIGS.pro.displayName,
@@ -180,7 +180,7 @@ export default function GetListedPage() {
         <BubbleBackground
           interactive
           transition={{ stiffness: 100, damping: 50, mass: 0.5 }}
-          className="w-full bg-gradient-to-br from-white via-yellow-50/50 to-blue-50/50 py-16 sm:py-24"
+          className="w-full bg-linear-to-br from-white via-yellow-50/50 to-blue-50/50 py-16 sm:py-24"
           colors={{
             first: "255,255,255",
             second: "255,236,170",
@@ -204,7 +204,7 @@ export default function GetListedPage() {
               </div>
               <h1 className="text-[28px] font-semibold leading-[1.2] text-foreground sm:text-[48px]">
                 Get found by families{" "}
-                <span className="bg-gradient-to-r from-[#5788FF] to-[#4a77e8] bg-clip-text text-transparent sm:whitespace-nowrap">
+                <span className="bg-linear-to-r from-[#5788FF] to-[#4a77e8] bg-clip-text text-transparent sm:whitespace-nowrap">
                   searching for ABA care
                 </span>
               </h1>
@@ -230,7 +230,7 @@ export default function GetListedPage() {
                   asChild
                   size="lg"
                   variant="outline"
-                  className="rounded-full px-8 text-base transition-all duration-300 ease-premium hover:-translate-y-[1px] hover:border-[#5788FF]/50 hover:shadow-[0_4px_12px_rgba(87,136,255,0.15)]"
+                  className="rounded-full px-8 text-base transition-all duration-300 ease-premium hover:-translate-y-px hover:border-[#5788FF]/50 hover:shadow-[0_4px_12px_rgba(87,136,255,0.15)]"
                 >
                   <Link href="#pricing">View pricing</Link>
                 </Button>
@@ -248,7 +248,7 @@ export default function GetListedPage() {
       </section>
 
       {/* Social Proof Bar */}
-      <section className="!mt-0 border-y border-border/60 bg-gradient-to-r from-white via-[#FFF5C2]/30 to-white py-5">
+      <section className="mt-0! border-y border-border/60 bg-linear-to-r from-white via-[#FFF5C2]/30 to-white py-5">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-center gap-x-10 gap-y-4 px-4 text-sm sm:px-6">
           <div className="group flex items-center gap-2.5 transition-all duration-300 ease-premium hover:scale-[1.02]">
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#5788FF]/10 transition-all duration-300 ease-premium group-hover:scale-[1.05] group-hover:bg-[#5788FF]/15">
@@ -298,7 +298,7 @@ export default function GetListedPage() {
               <Card
                 key={plan.name}
                 className={cn(
-                  "group relative flex flex-col border-2 bg-white shadow-sm transition-all duration-300 ease-premium hover:-translate-y-[2px]",
+                  "group relative flex flex-col border-2 bg-white shadow-xs transition-all duration-300 ease-premium hover:-translate-y-[2px]",
                   plan.popular
                     ? "border-[#5788FF] shadow-[0_8px_30px_rgba(87,136,255,0.15)] hover:shadow-[0_12px_40px_rgba(87,136,255,0.2)]"
                     : "border-border/60 hover:border-[#5788FF]/30 hover:shadow-[0_8px_30px_rgba(87,136,255,0.1)]"
@@ -449,7 +449,7 @@ export default function GetListedPage() {
                       <Button
                         asChild
                         variant="outline"
-                        className="w-full rounded-full text-base font-semibold transition-all duration-300 ease-premium hover:-translate-y-[1px] hover:border-[#5788FF]/50 hover:shadow-[0_4px_12px_rgba(87,136,255,0.15)]"
+                        className="w-full rounded-full text-base font-semibold transition-all duration-300 ease-premium hover:-translate-y-px hover:border-[#5788FF]/50 hover:shadow-[0_4px_12px_rgba(87,136,255,0.15)]"
                       >
                         <Link href="/auth/sign-up?plan=free&intent=therapy">{plan.cta}</Link>
                       </Button>
@@ -458,7 +458,7 @@ export default function GetListedPage() {
                         <Button
                           asChild
                           className={cn(
-                            "w-full rounded-full text-base font-semibold transition-all duration-300 ease-premium hover:-translate-y-[1px]",
+                            "w-full rounded-full text-base font-semibold transition-all duration-300 ease-premium hover:-translate-y-px",
                             plan.popular
                               ? "border border-[#FEE720] bg-[#FEE720] text-[#333333] shadow-[0_4px_14px_rgba(254,231,32,0.4)] hover:bg-[#FFF5C2] hover:shadow-[0_8px_20px_rgba(254,231,32,0.5)]"
                               : "bg-[#5788FF] text-white shadow-[0_4px_14px_rgba(87,136,255,0.3)] hover:bg-[#4a77e8] hover:shadow-[0_8px_20px_rgba(87,136,255,0.4)]"
@@ -471,7 +471,7 @@ export default function GetListedPage() {
                         <Button
                           asChild
                           variant="outline"
-                          className="w-full rounded-full text-base font-semibold transition-all duration-300 ease-premium hover:-translate-y-[1px] hover:border-[#5788FF]/50 hover:shadow-[0_4px_12px_rgba(87,136,255,0.15)]"
+                          className="w-full rounded-full text-base font-semibold transition-all duration-300 ease-premium hover:-translate-y-px hover:border-[#5788FF]/50 hover:shadow-[0_4px_12px_rgba(87,136,255,0.15)]"
                         >
                           <Link href={`/auth/sign-up?plan=${plan.tier}&interval=monthly&intent=therapy`}>
                             Start Monthly
@@ -515,7 +515,7 @@ export default function GetListedPage() {
           </p>
 
           {/* Try the Demo Section */}
-          <div className="mt-12 overflow-hidden rounded-2xl border-2 border-[#5788FF]/20 bg-gradient-to-br from-[#5788FF]/5 via-white to-[#5788FF]/5 p-6 transition-all duration-300 ease-premium hover:border-[#5788FF]/40 hover:shadow-[0_8px_30px_rgba(87,136,255,0.1)] sm:p-8">
+          <div className="mt-12 overflow-hidden rounded-2xl border-2 border-[#5788FF]/20 bg-linear-to-br from-[#5788FF]/5 via-white to-[#5788FF]/5 p-6 transition-all duration-300 ease-premium hover:border-[#5788FF]/40 hover:shadow-[0_8px_30px_rgba(87,136,255,0.1)] sm:p-8">
             <div className="flex flex-col items-center gap-6 sm:flex-row sm:justify-between">
               <div className="text-center sm:text-left">
                 <div className="flex items-center justify-center gap-2 sm:justify-start">
@@ -606,7 +606,7 @@ export default function GetListedPage() {
             {features.map((feature, index) => (
               <Card
                 key={feature.title}
-                className="group w-full border border-border/60 bg-white shadow-sm transition-all duration-300 ease-premium hover:-translate-y-[2px] hover:border-[#5788FF]/30 hover:shadow-[0_8px_30px_rgba(87,136,255,0.1)] sm:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)]"
+                className="group w-full border border-border/60 bg-white shadow-xs transition-all duration-300 ease-premium hover:-translate-y-[2px] hover:border-[#5788FF]/30 hover:shadow-[0_8px_30px_rgba(87,136,255,0.1)] sm:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)]"
                 style={{ animationDelay: `${index * 100}ms` }}
               >
                 <CardHeader>
@@ -645,7 +645,7 @@ export default function GetListedPage() {
             {testimonials.map((testimonial, index) => (
               <Card
                 key={testimonial.name}
-                className="group border border-border/60 bg-white shadow-sm transition-all duration-300 ease-premium hover:-translate-y-[2px] hover:border-[#5788FF]/30 hover:shadow-[0_8px_30px_rgba(87,136,255,0.1)]"
+                className="group border border-border/60 bg-white shadow-xs transition-all duration-300 ease-premium hover:-translate-y-[2px] hover:border-[#5788FF]/30 hover:shadow-[0_8px_30px_rgba(87,136,255,0.1)]"
                 style={{ animationDelay: `${index * 100}ms` }}
               >
                 <CardContent className="flex flex-col gap-4 p-6">

@@ -158,7 +158,7 @@ export default async function WebsiteJobDetailPage({
         </Link>
 
         {/* Job Header Card */}
-        <div className="mb-8 overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+        <div className="mb-8 overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-xs">
           <div
             className="px-6 py-6 sm:px-8"
             style={{
@@ -242,7 +242,7 @@ export default async function WebsiteJobDetailPage({
           {/* Main Content */}
           <div className="space-y-8 lg:col-span-2">
             {/* Description */}
-            <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm sm:p-8">
+            <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-xs sm:p-8">
               <h2 className="mb-4 text-lg font-semibold text-gray-900">
                 Job Description
               </h2>
@@ -260,7 +260,7 @@ export default async function WebsiteJobDetailPage({
 
             {/* Requirements */}
             {job.requirements && (
-              <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm sm:p-8">
+              <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-xs sm:p-8">
                 <h2 className="mb-4 text-lg font-semibold text-gray-900">
                   Requirements
                 </h2>
@@ -272,7 +272,7 @@ export default async function WebsiteJobDetailPage({
 
             {/* Benefits */}
             {benefitLabels.length > 0 && (
-              <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm sm:p-8">
+              <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-xs sm:p-8">
                 <h2 className="mb-4 text-lg font-semibold text-gray-900">
                   Benefits
                 </h2>
@@ -283,7 +283,7 @@ export default async function WebsiteJobDetailPage({
                       className="flex items-center gap-2.5 text-sm text-gray-700"
                     >
                       <CheckCircle
-                        className="h-4 w-4 flex-shrink-0"
+                        className="h-4 w-4 shrink-0"
                         style={{ color: brandColor }}
                       />
                       {label}

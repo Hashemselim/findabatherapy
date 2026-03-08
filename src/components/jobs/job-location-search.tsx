@@ -375,7 +375,7 @@ export function InlineJobLocationSearch({
         onPlaceSelect={handlePlaceSelect}
         placeholder={placeholder}
         showIcon={false}
-        inputClassName="w-full rounded-lg border border-border/60 bg-white py-2.5 pl-10 pr-4 text-sm outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+        inputClassName="w-full rounded-lg border border-border/60 bg-white py-2.5 pl-10 pr-4 text-sm outline-hidden transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
       />
     </div>
   );

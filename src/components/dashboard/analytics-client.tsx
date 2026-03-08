@@ -8,6 +8,7 @@ import { AnalyticsTimeFilter } from "@/components/dashboard/analytics-time-filte
 import { AnalyticsLocationFilter, type LocationOption } from "@/components/dashboard/analytics-location-filter";
 import { AnalyticsMetricCard } from "@/components/dashboard/analytics-metric-card";
 import { ClickThroughRateCard } from "@/components/dashboard/click-through-rate-card";
+import { getDashboardToneClasses } from "@/components/dashboard/ui";
 import { TrafficSources, TrafficSourcesSkeleton } from "@/components/dashboard/traffic-sources";
 import { LocationAnalyticsSection } from "@/components/dashboard/location-analytics-section";
 import { getListingAnalytics, getLocationAnalytics } from "@/lib/actions/analytics";
@@ -246,6 +247,7 @@ function OverviewCards({ current, previous }: OverviewCardsProps) {
           : 0;
         const isPositive = change > 0;
         const isNeutral = change === 0;
+        const changeTone = getDashboardToneClasses(isPositive ? "success" : "danger");
 
         return (
           <Card key={metric.title}>
@@ -268,7 +270,7 @@ function OverviewCards({ current, previous }: OverviewCardsProps) {
                 <p
                   className={cn(
                     "mt-1 flex items-center gap-1 text-xs",
-                    isPositive ? "text-emerald-600" : "text-red-600"
+                    changeTone.emphasis
                   )}
                 >
                   {isPositive ? (

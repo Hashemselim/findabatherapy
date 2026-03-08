@@ -106,7 +106,7 @@ export default async function EmployersPage({ searchParams }: EmployersPageProps
           <BubbleBackground
             interactive
             transition={{ stiffness: 100, damping: 50, mass: 0.5 }}
-            className="w-full bg-gradient-to-br from-white via-emerald-50/50 to-teal-50/50 py-8 sm:py-16"
+            className="w-full bg-linear-to-br from-white via-emerald-50/50 to-teal-50/50 py-8 sm:py-16"
             colors={{
               first: "255,255,255",
               second: "167,243,208",
@@ -132,7 +132,7 @@ export default async function EmployersPage({ searchParams }: EmployersPageProps
                 </div>
                 <h1 className="text-[28px] font-semibold leading-[1.2] text-foreground sm:text-[48px]">
                   Browse ABA{" "}
-                  <span className="bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent sm:whitespace-nowrap">
+                  <span className="bg-linear-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent sm:whitespace-nowrap">
                     Employers
                   </span>
                 </h1>
@@ -147,7 +147,7 @@ export default async function EmployersPage({ searchParams }: EmployersPageProps
         </section>
 
         {/* Social Proof Bar */}
-        <section className="!mt-0 border-y border-border/60 bg-gradient-to-r from-white via-emerald-50/30 to-white py-5">
+        <section className="mt-0! border-y border-border/60 bg-linear-to-r from-white via-emerald-50/30 to-white py-5">
           <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-center gap-x-10 gap-y-4 px-4 text-sm sm:px-6">
             <div className="group flex items-center gap-2.5 transition-all duration-300 ease-premium hover:scale-[1.02]">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/10 transition-all duration-300 ease-premium group-hover:scale-[1.05] group-hover:bg-emerald-500/15">
@@ -177,7 +177,7 @@ export default async function EmployersPage({ searchParams }: EmployersPageProps
         </section>
 
         {/* Employers Grid */}
-        <section className="!mt-0 bg-white px-4 py-14 sm:px-6">
+        <section className="mt-0! bg-white px-4 py-14 sm:px-6">
           <div className="mx-auto max-w-5xl">
             <header className="mb-8">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -282,7 +282,7 @@ export default async function EmployersPage({ searchParams }: EmployersPageProps
 
         {/* CTA Section */}
         <section className="mx-auto max-w-5xl px-4 sm:px-6">
-          <Card className="group relative overflow-hidden border border-emerald-500/20 bg-gradient-to-br from-emerald-500/[0.03] via-white to-emerald-500/[0.06] transition-all duration-500 ease-premium hover:border-emerald-500/30 hover:shadow-[0_8px_30px_rgba(16,185,129,0.12)]">
+          <Card className="group relative overflow-hidden border border-emerald-500/20 bg-linear-to-br from-emerald-500/3 via-white to-emerald-500/6 transition-all duration-500 ease-premium hover:border-emerald-500/30 hover:shadow-[0_8px_30px_rgba(16,185,129,0.12)]">
             {/* Decorative elements */}
             <div className="pointer-events-none absolute -right-20 -top-20 h-40 w-40 rounded-full bg-emerald-500/5 transition-transform duration-700 ease-premium group-hover:scale-150" />
             <div className="pointer-events-none absolute -bottom-16 -left-16 h-32 w-32 rounded-full bg-emerald-500/10 transition-transform duration-700 ease-premium group-hover:scale-150" />

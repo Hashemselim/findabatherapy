@@ -6,7 +6,7 @@ const ACCENT_YELLOW = "#FFDC33";
 type LogoSize = "xs" | "sm" | "md" | "lg" | "xl";
 
 const sizeClasses: Record<LogoSize, { text: string; bar: string }> = {
-  xs: { text: "text-base", bar: "bottom-[1px] -right-1.5 h-[2px]" },
+  xs: { text: "text-base", bar: "bottom-px -right-1.5 h-[2px]" },
   sm: { text: "text-lg", bar: "bottom-[2px] -right-2 h-[3px]" },
   md: { text: "text-2xl", bar: "bottom-[3px] -right-3 h-[4px]" },
   lg: { text: "text-3xl", bar: "bottom-[3px] -right-3 h-[4px]" },

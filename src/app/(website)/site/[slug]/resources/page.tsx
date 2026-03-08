@@ -107,7 +107,7 @@ export default async function WebsiteResourcesPage({
                 href={card.href(slug)}
                 className="group"
               >
-                <div className="h-full rounded-2xl border border-gray-100 bg-white p-6 shadow-sm transition-all duration-300 hover:border-gray-200 hover:shadow-md">
+                <div className="h-full rounded-2xl border border-gray-100 bg-white p-6 shadow-xs transition-all duration-300 hover:border-gray-200 hover:shadow-md">
                   <div
                     className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-xl"
                     style={{

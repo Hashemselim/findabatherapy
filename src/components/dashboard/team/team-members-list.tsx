@@ -6,20 +6,14 @@ import { useRouter } from "next/navigation";
 import {
   Plus,
   Users,
-  Mail,
-  Phone,
-  Award,
   MoreHorizontal,
   Pencil,
   Trash2,
   Loader2,
-  AlertTriangle,
   Search,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -56,6 +50,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DashboardEmptyState,
+  DashboardStatusBadge,
+  DashboardTable,
+  DashboardTableBody,
+  DashboardTableCard,
+  DashboardTableCell,
+  DashboardTableHead,
+  DashboardTableHeader,
+  DashboardTableRow,
+} from "@/components/dashboard/ui";
 
 import {
   type TeamMember,
@@ -109,8 +114,12 @@ export function TeamMembersList({ initialMembers }: TeamMembersListProps) {
     );
   });
 
-  const activeMembers = filtered.filter((m) => m.status === "active");
-  const inactiveMembers = filtered.filter((m) => m.status === "inactive");
+  const sortedMembers = [...filtered].sort((a, b) => {
+    if (a.status === b.status) {
+      return `${a.first_name} ${a.last_name ?? ""}`.localeCompare(`${b.first_name} ${b.last_name ?? ""}`);
+    }
+    return a.status === "active" ? -1 : 1;
+  });
 
   const handleAdd = () => {
     if (!formData.first_name.trim()) {
@@ -153,18 +162,18 @@ export function TeamMembersList({ initialMembers }: TeamMembersListProps) {
 
   if (members.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 text-center">
-        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-purple-100">
-          <Users className="h-8 w-8 text-purple-600" />
-        </div>
-        <h3 className="text-lg font-semibold">No team members yet</h3>
-        <p className="mt-1 max-w-sm text-sm text-muted-foreground">
-          Add your first team member to start tracking credentials, tasks, and documents.
-        </p>
-        <Button onClick={() => setAddDialogOpen(true)} className="mt-6 gap-2">
-          <Plus className="h-4 w-4" />
-          Add Team Member
-        </Button>
+      <div className="py-6">
+        <DashboardEmptyState
+          icon={Users}
+          title="No team members yet"
+          description="Add your first team member to start tracking credentials, tasks, and documents."
+          action={(
+            <Button onClick={() => setAddDialogOpen(true)} className="gap-2">
+              <Plus className="h-4 w-4" />
+              Add Team Member
+            </Button>
+          )}
+        />
         <AddMemberDialog
           open={addDialogOpen}
           onOpenChange={setAddDialogOpen}
@@ -197,49 +206,115 @@ export function TeamMembersList({ initialMembers }: TeamMembersListProps) {
         </Button>
       </div>
 
-      {/* Active Members */}
-      {activeMembers.length > 0 && (
-        <div className="space-y-2">
-          {inactiveMembers.length > 0 && (
-            <h3 className="text-sm font-medium text-muted-foreground">
-              Active ({activeMembers.length})
-            </h3>
-          )}
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {activeMembers.map((member) => (
-              <TeamMemberCard
-                key={member.id}
-                member={member}
-                onDelete={() => setDeleteTarget(member)}
-              />
-            ))}
-          </div>
-        </div>
-      )}
+      <DashboardTableCard>
+        <DashboardTable>
+          <DashboardTableHeader>
+            <DashboardTableRow>
+              <DashboardTableHead className="pl-5 normal-case tracking-normal">Team member</DashboardTableHead>
+              <DashboardTableHead className="hidden normal-case tracking-normal md:table-cell">Role</DashboardTableHead>
+              <DashboardTableHead className="hidden normal-case tracking-normal lg:table-cell">Contact</DashboardTableHead>
+              <DashboardTableHead className="hidden normal-case tracking-normal sm:table-cell">Credentials</DashboardTableHead>
+              <DashboardTableHead className="hidden normal-case tracking-normal sm:table-cell">Status</DashboardTableHead>
+              <DashboardTableHead className="pr-5 text-right normal-case tracking-normal">Actions</DashboardTableHead>
+            </DashboardTableRow>
+          </DashboardTableHeader>
+          <DashboardTableBody>
+            {sortedMembers.length === 0 ? (
+              <DashboardTableRow>
+                <DashboardTableCell colSpan={6} className="py-10 text-center text-sm text-muted-foreground">
+                  No team members match &quot;{search}&quot;
+                </DashboardTableCell>
+              </DashboardTableRow>
+            ) : (
+              sortedMembers.map((member) => {
+                const name = [member.first_name, member.last_name].filter(Boolean).join(" ");
+                const roleLabel = ROLE_LABELS[member.role || ""] || member.role || "-";
+                const hasExpiringCreds = (member.expiring_credential_count ?? 0) > 0;
 
-      {/* Inactive Members */}
-      {inactiveMembers.length > 0 && (
-        <div className="space-y-2">
-          <h3 className="text-sm font-medium text-muted-foreground">
-            Inactive ({inactiveMembers.length})
-          </h3>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {inactiveMembers.map((member) => (
-              <TeamMemberCard
-                key={member.id}
-                member={member}
-                onDelete={() => setDeleteTarget(member)}
-              />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {filtered.length === 0 && search && (
-        <div className="py-8 text-center text-sm text-muted-foreground">
-          No team members match &quot;{search}&quot;
-        </div>
-      )}
+                return (
+                  <DashboardTableRow key={member.id}>
+                    <DashboardTableCell className="pl-5">
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-10 w-10 shrink-0 border">
+                          <AvatarFallback className="bg-primary/10 text-sm font-semibold text-primary">
+                            {getInitials(member.first_name, member.last_name)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="min-w-0">
+                          <Link href={`/dashboard/team/employees/${member.id}`} className="font-medium text-foreground hover:underline">
+                            {name}
+                          </Link>
+                          <p className="text-sm text-muted-foreground">
+                            {member.email || member.phone || "No contact details"}
+                          </p>
+                        </div>
+                      </div>
+                    </DashboardTableCell>
+                    <DashboardTableCell className="hidden md:table-cell text-sm text-muted-foreground">
+                      {roleLabel}
+                    </DashboardTableCell>
+                    <DashboardTableCell className="hidden lg:table-cell">
+                      <div className="space-y-1 text-sm text-muted-foreground">
+                        <p>{member.email || "-"}</p>
+                        <p>{member.phone || "-"}</p>
+                      </div>
+                    </DashboardTableCell>
+                    <DashboardTableCell className="hidden sm:table-cell">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground">
+                          {member.credential_count ?? 0} credential{(member.credential_count ?? 0) === 1 ? "" : "s"}
+                        </span>
+                        {hasExpiringCreds && (
+                          <DashboardStatusBadge tone="warning" className="text-[10px]">
+                            {member.expiring_credential_count} expiring
+                          </DashboardStatusBadge>
+                        )}
+                      </div>
+                    </DashboardTableCell>
+                    <DashboardTableCell className="hidden sm:table-cell">
+                      <DashboardStatusBadge tone={member.status === "active" ? "success" : "default"}>
+                        {member.status}
+                      </DashboardStatusBadge>
+                    </DashboardTableCell>
+                    <DashboardTableCell className="pr-5 text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="relative z-10 h-8 w-8 shrink-0"
+                          >
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem asChild>
+                            <Link href={`/dashboard/team/employees/${member.id}`}>
+                              <Pencil className="mr-2 h-4 w-4" />
+                              View / Edit
+                            </Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              setDeleteTarget(member);
+                            }}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Remove
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </DashboardTableCell>
+                  </DashboardTableRow>
+                );
+              })
+            )}
+          </DashboardTableBody>
+        </DashboardTable>
+      </DashboardTableCard>
 
       {/* Add Dialog */}
       <AddMemberDialog
@@ -285,125 +360,6 @@ export function TeamMembersList({ initialMembers }: TeamMembersListProps) {
         </AlertDialogContent>
       </AlertDialog>
     </div>
-  );
-}
-
-// =============================================================================
-// TEAM MEMBER CARD
-// =============================================================================
-
-function TeamMemberCard({
-  member,
-  onDelete,
-}: {
-  member: TeamMember;
-  onDelete: () => void;
-}) {
-  const name = [member.first_name, member.last_name].filter(Boolean).join(" ");
-  const roleLabel = ROLE_LABELS[member.role || ""] || member.role;
-  const hasExpiringCreds = (member.expiring_credential_count ?? 0) > 0;
-
-  return (
-    <Card className="group relative transition-colors hover:border-purple-200">
-      <Link
-        href={`/dashboard/team/employees/${member.id}`}
-        className="absolute inset-0 z-0"
-        aria-label={`View ${name}`}
-      />
-      <CardContent className="p-4">
-        <div className="flex items-start gap-3">
-          <Avatar className="h-10 w-10 shrink-0 border">
-            <AvatarFallback className="bg-purple-50 text-sm font-semibold text-purple-700">
-              {getInitials(member.first_name, member.last_name)}
-            </AvatarFallback>
-          </Avatar>
-
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
-              <span className="truncate font-medium text-foreground">
-                {name}
-              </span>
-              {member.status === "inactive" && (
-                <Badge variant="secondary" className="text-xs">
-                  Inactive
-                </Badge>
-              )}
-            </div>
-
-            {roleLabel && (
-              <p className="text-xs text-muted-foreground">{roleLabel}</p>
-            )}
-
-            {/* Contact info */}
-            <div className="mt-2 space-y-0.5">
-              {member.email && (
-                <p className="flex items-center gap-1.5 text-xs text-muted-foreground truncate">
-                  <Mail className="h-3 w-3 shrink-0" />
-                  <span className="truncate">{member.email}</span>
-                </p>
-              )}
-              {member.phone && (
-                <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <Phone className="h-3 w-3 shrink-0" />
-                  {member.phone}
-                </p>
-              )}
-            </div>
-
-            {/* Credential status */}
-            {(member.credential_count ?? 0) > 0 && (
-              <div className="mt-2 flex items-center gap-1.5">
-                <Award className="h-3.5 w-3.5 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground">
-                  {member.credential_count} credential{(member.credential_count ?? 0) !== 1 ? "s" : ""}
-                </span>
-                {hasExpiringCreds && (
-                  <Badge
-                    variant="outline"
-                    className="ml-1 border-amber-200 bg-amber-50 text-amber-700 text-[10px] px-1.5 py-0"
-                  >
-                    <AlertTriangle className="mr-0.5 h-2.5 w-2.5" />
-                    {member.expiring_credential_count} expiring
-                  </Badge>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Actions dropdown */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="relative z-10 h-8 w-8 shrink-0 opacity-0 group-hover:opacity-100"
-              >
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem asChild>
-                <Link href={`/dashboard/team/employees/${member.id}`}>
-                  <Pencil className="mr-2 h-4 w-4" />
-                  View / Edit
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                className="text-destructive focus:text-destructive"
-                onClick={(e) => {
-                  e.preventDefault();
-                  onDelete();
-                }}
-              >
-                <Trash2 className="mr-2 h-4 w-4" />
-                Remove
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </CardContent>
-    </Card>
   );
 }
 

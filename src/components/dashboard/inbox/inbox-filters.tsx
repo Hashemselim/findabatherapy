@@ -2,10 +2,9 @@
 
 import { Mail, MailOpen, Reply, Inbox } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
+import { DashboardFilterButton, DashboardFilterGroup } from "@/components/dashboard/ui";
 import { AnalyticsLocationFilter, type LocationOption } from "@/components/dashboard/analytics-location-filter";
 import type { InquiryStatus } from "@/lib/validations/contact";
-import { cn } from "@/lib/utils";
 
 export type InboxFilter = InquiryStatus | "all";
 
@@ -23,9 +22,9 @@ interface InboxFiltersProps {
 
 const filterConfig = [
   { key: "all" as const, label: "All", icon: Inbox, countKey: "totalCount" as const },
-  { key: "unread" as const, label: "Unread", icon: Mail, countKey: "unreadCount" as const, activeColor: "text-[#5788FF]" },
+  { key: "unread" as const, label: "Unread", icon: Mail, countKey: "unreadCount" as const },
   { key: "read" as const, label: "Read", icon: MailOpen, countKey: "readCount" as const },
-  { key: "replied" as const, label: "Replied", icon: Reply, countKey: "repliedCount" as const, activeColor: "text-emerald-500" },
+  { key: "replied" as const, label: "Replied", icon: Reply, countKey: "repliedCount" as const },
 ];
 
 export function InboxFilters({
@@ -43,31 +42,25 @@ export function InboxFilters({
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      {filterConfig.map(({ key, label, icon: Icon, countKey, activeColor }) => {
-        const isActive = filter === key;
-        const count = counts[countKey];
-        return (
-          <Button
-            key={key}
-            variant={isActive ? "default" : "outline"}
-            size="sm"
-            onClick={() => onFilterChange(key)}
-            className={cn(
-              "h-8 gap-1.5 px-2.5 text-xs",
-              !isActive && activeColor
-            )}
-          >
-            <Icon className="h-3.5 w-3.5" />
-            {label}
-            <span className={cn(
-              "ml-0.5 tabular-nums",
-              isActive ? "text-primary-foreground/80" : "text-muted-foreground"
-            )}>
-              {count}
-            </span>
-          </Button>
-        );
-      })}
+      <DashboardFilterGroup className="min-w-0">
+        {filterConfig.map(({ key, label, icon: Icon, countKey }) => {
+          const isActive = filter === key;
+          const count = counts[countKey];
+
+          return (
+            <DashboardFilterButton
+              key={key}
+              onClick={() => onFilterChange(key)}
+              active={isActive}
+              className="h-9"
+              icon={<Icon className="h-3.5 w-3.5" />}
+              count={count}
+            >
+              {label}
+            </DashboardFilterButton>
+          );
+        })}
+      </DashboardFilterGroup>
 
       {/* Location Filter */}
       {locations && locations.length > 1 && selectedLocationIds && onLocationChange && (

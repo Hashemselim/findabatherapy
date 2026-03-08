@@ -108,7 +108,7 @@ export function LogoUploader({
       )}
       <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center">
         {/* Logo Preview */}
-        <div className="relative h-24 w-24 flex-shrink-0 overflow-hidden rounded-lg border-2 border-dashed border-border bg-muted/30">
+        <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-lg border-2 border-dashed border-border bg-muted/30">
           {logoUrl ? (
             <Image
               src={logoUrl}

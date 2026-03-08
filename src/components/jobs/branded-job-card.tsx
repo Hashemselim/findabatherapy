@@ -107,7 +107,7 @@ export function BrandedJobCard({ job, providerSlug, index, brandColor = "#10B981
                 className="text-xl font-semibold text-foreground transition-colors duration-300"
                 style={{ "--hover-color": brandColor } as React.CSSProperties}
               >
-                <span className="group-hover:text-[var(--brand-color)]">{job.title}</span>
+                <span className="group-hover:text-(--brand-color)">{job.title}</span>
               </h3>
 
               {/* Meta info row */}

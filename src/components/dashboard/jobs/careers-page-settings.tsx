@@ -117,7 +117,7 @@ export function CareersPageSettings({
       <CardContent className="space-y-6">
         {/* Upgrade Banner for Free Users */}
         {isFreeUser && (
-          <div className="rounded-xl border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 p-4">
+          <div className="rounded-xl border border-amber-200 bg-linear-to-r from-amber-50 to-orange-50 p-4">
             <div className="flex items-start gap-3">
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-100">
                 <Sparkles className="h-5 w-5 text-amber-600" />

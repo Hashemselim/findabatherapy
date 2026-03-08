@@ -45,7 +45,7 @@ export function LocationSection({
 
   return (
     <div
-      className="rounded-2xl border border-[#5788FF]/20 bg-[#5788FF]/[0.03] p-5 transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] hover:border-[#5788FF]/30 hover:bg-[#5788FF]/[0.05] hover:shadow-[0_8px_30px_rgba(87,136,255,0.1)]"
+      className="rounded-2xl border border-[#5788FF]/20 bg-[#5788FF]/3 p-5 transition-all duration-500 ease-premium hover:border-[#5788FF]/30 hover:bg-[#5788FF]/5 hover:shadow-[0_8px_30px_rgba(87,136,255,0.1)]"
     >
       <div className="mb-3 flex items-center gap-2">
         <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#5788FF]/10">

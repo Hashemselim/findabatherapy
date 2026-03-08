@@ -67,7 +67,7 @@ export function AgencyPageCta({
             <Button
               asChild
               size="lg"
-              variant={contactFormEnabled ? "outline" : "default"}
+              variant={contactFormEnabled ? "outline-solid" : "default"}
               className="w-full rounded-full text-base sm:w-auto"
               style={contactFormEnabled ? { borderColor: brandColor, color: brandColor } : { backgroundColor: brandColor }}
             >
@@ -96,7 +96,7 @@ export function AgencyPageCta({
               <Button
                 asChild
                 size="lg"
-                variant={contactPhone ? "outline" : "default"}
+                variant={contactPhone ? "outline-solid" : "default"}
                 className="w-full rounded-full text-base sm:w-auto"
                 style={contactPhone ? { borderColor: brandColor, color: brandColor } : { backgroundColor: brandColor }}
               >

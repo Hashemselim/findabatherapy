@@ -248,7 +248,7 @@ export default async function PositionJobsPage({ params }: PositionJobsPageProps
       <JsonLd data={breadcrumbSchema} />
 
       {/* Hero Section */}
-      <section className="border-b bg-gradient-to-br from-emerald-50 via-white to-slate-50 py-12 sm:py-16">
+      <section className="border-b bg-linear-to-br from-emerald-50 via-white to-slate-50 py-12 sm:py-16">
         <div className="mx-auto max-w-5xl px-4 sm:px-6">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Link href="/" className="hover:text-emerald-600">Home</Link>

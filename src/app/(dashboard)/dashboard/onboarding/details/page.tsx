@@ -352,7 +352,7 @@ export default function OnboardingDetailsPage() {
 
           {/* Mobile branded preview — below continue button */}
           <motion.div variants={fadeUp} className="min-w-0 xl:hidden">
-            <div className="overflow-hidden rounded-2xl border border-amber-200/60 bg-white shadow-sm">
+            <div className="overflow-hidden rounded-2xl border border-amber-200/60 bg-white shadow-xs">
               <div className="border-b border-amber-200/60 bg-[#FFFBF0] px-4 py-2.5">
                 <div className="flex items-center gap-2">
                   <div className="h-2 w-2 rounded-full bg-emerald-400" />
@@ -368,7 +368,7 @@ export default function OnboardingDetailsPage() {
                     backgroundImage: "linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 50%)",
                   }}
                 >
-                  <div className="rounded-lg bg-white p-3 shadow-sm sm:p-4">
+                  <div className="rounded-lg bg-white p-3 shadow-xs sm:p-4">
                     <div className="flex items-center gap-3">
                       <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[#FFFBF0] sm:h-12 sm:w-12">
                         {logoUrl ? (
@@ -439,7 +439,7 @@ export default function OnboardingDetailsPage() {
           variants={fadeUp}
           className="hidden xl:sticky xl:top-24 xl:block xl:self-start"
         >
-          <div className="overflow-hidden rounded-2xl border border-amber-200/60 bg-white shadow-sm">
+          <div className="overflow-hidden rounded-2xl border border-amber-200/60 bg-white shadow-xs">
             <div className="border-b border-amber-200/60 bg-[#FFFBF0] px-5 py-3">
               <div className="flex items-center gap-2">
                 <div className="h-2 w-2 rounded-full bg-emerald-400" />
@@ -456,7 +456,7 @@ export default function OnboardingDetailsPage() {
                   backgroundImage: "linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 50%)",
                 }}
               >
-                <div className="rounded-lg bg-white p-4 shadow-sm">
+                <div className="rounded-lg bg-white p-4 shadow-xs">
                   <div className="flex items-center gap-3">
                     <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[#FFFBF0]">
                       {logoUrl ? (

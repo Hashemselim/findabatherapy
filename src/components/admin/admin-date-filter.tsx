@@ -65,7 +65,7 @@ export function AdminDateFilter({ value, customRange, onChange }: AdminDateFilte
       {presets.map((preset) => (
         <Button
           key={preset.value}
-          variant={value === preset.value ? "default" : "outline"}
+          variant={value === preset.value ? "default" : "outline-solid"}
           size="sm"
           onClick={() => handlePresetClick(preset.value)}
         >
@@ -76,7 +76,7 @@ export function AdminDateFilter({ value, customRange, onChange }: AdminDateFilte
       <Popover open={isCustomOpen} onOpenChange={setIsCustomOpen}>
         <PopoverTrigger asChild>
           <Button
-            variant={value === "custom" ? "default" : "outline"}
+            variant={value === "custom" ? "default" : "outline-solid"}
             size="sm"
             className="min-w-[120px]"
           >

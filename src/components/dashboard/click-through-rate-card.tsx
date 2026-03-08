@@ -1,7 +1,7 @@
 "use client";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { DashboardStatusBadge, getDashboardToneClasses } from "@/components/dashboard/ui";
 
 interface ClickThroughRateCardProps {
   currentCTR: number;
@@ -24,6 +24,8 @@ export function ClickThroughRateCard({
   // Calculate performance vs industry average
   const vsAverage = ((currentCTR - industryAverage) / industryAverage) * 100;
   const aboveAverage = vsAverage > 0;
+  const changeTone = getDashboardToneClasses(isPositive ? "success" : "danger");
+  const averageTone = getDashboardToneClasses(aboveAverage ? "success" : "warning");
 
   return (
     <Card className={className}>
@@ -37,13 +39,10 @@ export function ClickThroughRateCard({
         <div className="flex items-baseline gap-2">
           <span className="text-4xl font-bold">{currentCTR.toFixed(1)}%</span>
           {changePercent !== null && (
-            <Badge
-              variant="secondary"
-              className={isPositive ? "text-emerald-600" : "text-red-600"}
-            >
+            <DashboardStatusBadge tone={isPositive ? "success" : "danger"}>
               {isPositive ? "+" : ""}
               {changePercent}% vs last period
-            </Badge>
+            </DashboardStatusBadge>
           )}
         </div>
         <p className="mt-2 text-sm text-muted-foreground">
@@ -51,7 +50,7 @@ export function ClickThroughRateCard({
           {aboveAverage ? (
             <>
               Your listing is performing{" "}
-              <strong className="text-emerald-600">
+              <strong className={changeTone.emphasis}>
                 {Math.abs(vsAverage).toFixed(0)}% above average
               </strong>
               .
@@ -59,7 +58,7 @@ export function ClickThroughRateCard({
           ) : (
             <>
               Your listing is{" "}
-              <strong className="text-amber-600">
+              <strong className={averageTone.emphasis}>
                 {Math.abs(vsAverage).toFixed(0)}% below average
               </strong>
               .

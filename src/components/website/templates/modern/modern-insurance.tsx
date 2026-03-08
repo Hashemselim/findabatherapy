@@ -41,10 +41,10 @@ export function ModernInsurance() {
             {insurances.map((insurance) => (
               <div
                 key={insurance}
-                className="flex items-center gap-2.5 rounded-xl border border-gray-100 bg-white p-3.5 shadow-sm transition-all duration-200 hover:shadow-md"
+                className="flex items-center gap-2.5 rounded-xl border border-gray-100 bg-white p-3.5 shadow-xs transition-all duration-200 hover:shadow-md"
               >
                 <Shield
-                  className="h-4 w-4 flex-shrink-0"
+                  className="h-4 w-4 shrink-0"
                   style={{ color: brandColor }}
                 />
                 <span className="text-sm font-medium text-gray-700 truncate">

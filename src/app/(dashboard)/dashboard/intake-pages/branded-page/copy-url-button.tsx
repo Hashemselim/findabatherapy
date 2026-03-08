@@ -31,7 +31,7 @@ export function CopyUrlButton({ url }: CopyUrlButtonProps) {
     >
       {copied ? (
         <>
-          <Check className="mr-1.5 h-3.5 w-3.5 text-emerald-600" />
+          <Check className="mr-1.5 h-3.5 w-3.5 text-primary" />
           Copied
         </>
       ) : (

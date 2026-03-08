@@ -80,10 +80,10 @@ export function ArticleList() {
         {/* Category Pills */}
         <div className="flex flex-wrap gap-2">
           <Button
-            variant={selectedCategory === "all" ? "default" : "outline"}
+            variant={selectedCategory === "all" ? "default" : "outline-solid"}
             size="sm"
             onClick={() => setSelectedCategory("all")}
-            className={`rounded-full transition-all duration-300 ease-premium hover:-translate-y-[1px] ${
+            className={`rounded-full transition-all duration-300 ease-premium hover:-translate-y-px ${
               selectedCategory === "all"
                 ? "bg-[#5788FF] text-white shadow-[0_4px_14px_rgba(87,136,255,0.3)] hover:bg-[#4A7AEE] hover:shadow-[0_6px_20px_rgba(87,136,255,0.35)]"
                 : "border-border/60 hover:border-[#5788FF]/30 hover:bg-[#5788FF]/5 hover:shadow-[0_4px_12px_rgba(87,136,255,0.1)]"
@@ -103,10 +103,10 @@ export function ArticleList() {
             return (
               <Button
                 key={category}
-                variant={isSelected ? "default" : "outline"}
+                variant={isSelected ? "default" : "outline-solid"}
                 size="sm"
                 onClick={() => setSelectedCategory(category)}
-                className={`rounded-full transition-all duration-300 ease-premium hover:-translate-y-[1px] ${
+                className={`rounded-full transition-all duration-300 ease-premium hover:-translate-y-px ${
                   isSelected
                     ? "bg-[#5788FF] text-white shadow-[0_4px_14px_rgba(87,136,255,0.3)] hover:bg-[#4A7AEE] hover:shadow-[0_6px_20px_rgba(87,136,255,0.35)]"
                     : "border-border/60 hover:border-[#5788FF]/30 hover:bg-[#5788FF]/5 hover:shadow-[0_4px_12px_rgba(87,136,255,0.1)]"
@@ -211,7 +211,7 @@ export function ArticleList() {
             <Button
               variant="outline"
               onClick={clearFilters}
-              className="mt-5 rounded-full border-border/60 transition-all duration-300 ease-premium hover:-translate-y-[1px] hover:border-[#5788FF]/30 hover:bg-[#5788FF]/5 hover:shadow-[0_4px_12px_rgba(87,136,255,0.1)]"
+              className="mt-5 rounded-full border-border/60 transition-all duration-300 ease-premium hover:-translate-y-px hover:border-[#5788FF]/30 hover:bg-[#5788FF]/5 hover:shadow-[0_4px_12px_rgba(87,136,255,0.1)]"
             >
               Clear filters
             </Button>

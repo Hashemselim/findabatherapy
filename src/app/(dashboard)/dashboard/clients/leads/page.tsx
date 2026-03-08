@@ -6,6 +6,7 @@ import { getCurrentPlanTier } from "@/lib/plans/guards";
 import { DEMO_LEADS } from "@/lib/demo/data";
 import { ClientsList } from "@/components/dashboard/clients";
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
+import { DashboardCard } from "@/components/dashboard/ui";
 import { PreviewBanner } from "@/components/ui/preview-banner";
 import { PreviewOverlay } from "@/components/ui/preview-overlay";
 
@@ -30,7 +31,7 @@ export default async function LeadsPage() {
     return (
       <div className="space-y-3">
         <DashboardPageHeader title="Leads" description="Contacts and intake form submissions waiting to be reviewed." />
-        <div className="rounded-2xl border border-border/50 bg-white p-5 shadow-sm dark:bg-zinc-950 sm:p-6">
+        <DashboardCard className="p-5 sm:p-6">
           <div className="flex h-full items-center justify-center">
             <div className="text-center">
               <h2 className="text-lg font-medium text-muted-foreground">
@@ -41,7 +42,7 @@ export default async function LeadsPage() {
               </p>
             </div>
           </div>
-        </div>
+        </DashboardCard>
       </div>
     );
   }
@@ -71,12 +72,12 @@ export default async function LeadsPage() {
       )}
       <DashboardPageHeader title="Leads" description="Contacts and intake form submissions waiting to be reviewed." />
       <PreviewOverlay isPreview={isPreview}>
-        <div className="rounded-2xl border border-border/50 bg-white p-5 shadow-sm dark:bg-zinc-950 sm:p-6">
+        <DashboardCard className="p-5 sm:p-6">
           <ClientsList
             initialClients={leads}
             initialCounts={leadCounts}
           />
-        </div>
+        </DashboardCard>
       </PreviewOverlay>
     </div>
   );

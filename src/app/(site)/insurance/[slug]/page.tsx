@@ -105,7 +105,7 @@ export default async function InsurancePage({ params }: InsurancePageProps) {
         <BubbleBackground
           interactive
           transition={{ stiffness: 100, damping: 50, mass: 0.5 }}
-          className="w-full bg-gradient-to-br from-white via-yellow-50/50 to-blue-50/50 py-8 sm:py-12"
+          className="w-full bg-linear-to-br from-white via-yellow-50/50 to-blue-50/50 py-8 sm:py-12"
           colors={{
             first: "255,255,255",
             second: "255,236,170",
@@ -258,7 +258,7 @@ export default async function InsurancePage({ params }: InsurancePageProps) {
         </section>
 
         {/* CTA */}
-        <Card className="border-dashed border-primary/50 bg-primary/[0.04]">
+        <Card className="border-dashed border-primary/50 bg-primary/4">
           <CardHeader>
             <CardTitle>Are you an ABA therapy provider?</CardTitle>
           </CardHeader>

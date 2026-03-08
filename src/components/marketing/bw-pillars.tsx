@@ -58,9 +58,9 @@ export function BwPillars() {
               <div className="group flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white transition-shadow hover:shadow-lg">
                 {/* Screenshot placeholder */}
                 <div
-                  className={`flex h-44 items-center justify-center bg-gradient-to-b ${pillar.gradient} px-6`}
+                  className={`flex h-44 items-center justify-center bg-linear-to-b ${pillar.gradient} px-6`}
                 >
-                  <div className="w-full rounded-lg border border-slate-200 bg-white/80 px-4 py-6 text-center shadow-sm backdrop-blur">
+                  <div className="w-full rounded-lg border border-slate-200 bg-white/80 px-4 py-6 text-center shadow-xs backdrop-blur-sm">
                     <Icon className="mx-auto h-8 w-8 text-slate-300" />
                     <p className="mt-2 text-xs text-slate-400">
                       {pillar.placeholder}

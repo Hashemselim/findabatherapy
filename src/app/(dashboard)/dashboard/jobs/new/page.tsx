@@ -3,7 +3,8 @@ import { redirect } from "next/navigation";
 import { ArrowLeft, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
+import { DashboardCallout } from "@/components/dashboard/ui";
 import { JobForm } from "@/components/jobs/job-form";
 import { getProfile } from "@/lib/supabase/server";
 import { getJobCountAndLimit } from "@/lib/actions/jobs";
@@ -51,29 +52,23 @@ export default async function NewJobPage() {
           </Button>
         </div>
 
-        <Card className="border-amber-200 bg-amber-50">
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-amber-600" />
-              <CardTitle>Job Limit Reached</CardTitle>
-            </div>
-            <CardDescription className="text-amber-700">
-              You&apos;ve reached the maximum number of job postings for your plan.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-sm text-amber-800">
-              {effectivePlanTier === "free"
-                ? "Preview accounts cannot post real jobs. Go Live to publish jobs on GoodABA Jobs."
-                : `You&apos;ve used ${limits.count} of ${limits.limit} job postings. Add more capacity from billing to publish another one.`}
-            </p>
+        <DashboardCallout
+          title="Job Limit Reached"
+          description={
+            effectivePlanTier === "free"
+              ? "Preview accounts cannot post real jobs. Go Live to publish jobs on GoodABA Jobs."
+              : `You've used ${limits.count} of ${limits.limit} job postings. Add more capacity from billing to publish another one.`
+          }
+          icon={Sparkles}
+          tone="warning"
+          action={(
             <Button asChild>
               <Link href="/dashboard/billing">
                 {effectivePlanTier === "free" ? "Go Live" : "Manage Billing"}
               </Link>
             </Button>
-          </CardContent>
-        </Card>
+          )}
+        />
       </div>
     );
   }
@@ -87,13 +82,12 @@ export default async function NewJobPage() {
             Back
           </Link>
         </Button>
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">New Job Posting</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Create a new job listing on GoodABA Jobs
-          </p>
-        </div>
       </div>
+
+      <DashboardPageHeader
+        title="New Job Posting"
+        description="Create a new job listing on GoodABA Jobs"
+      />
 
       <JobForm locations={locations} mode="create" />
     </div>

@@ -4,7 +4,7 @@ import { BwFadeUp } from "@/components/marketing/bw-fade-up";
 
 export function BwIdentityBanner() {
   return (
-    <section className="border-y border-teal-100 bg-gradient-to-r from-teal-50/80 via-white to-teal-50/80 py-10 sm:py-12 lg:py-14">
+    <section className="border-y border-teal-100 bg-linear-to-r from-teal-50/80 via-white to-teal-50/80 py-10 sm:py-12 lg:py-14">
       <div className="mx-auto max-w-6xl px-5 sm:px-6 lg:px-8">
         <BwFadeUp>
           <div className="text-center">

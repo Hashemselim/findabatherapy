@@ -3,9 +3,8 @@
 import { useState, useTransition } from "react";
 import { Bell, CheckCheck, Inbox } from "lucide-react";
 
+import { DashboardFilterButton, DashboardFilterGroup } from "@/components/dashboard/ui";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
 import {
   markAllNotificationsAsRead,
   type Notification,
@@ -137,29 +136,22 @@ export function NotificationList({
 
       {/* Filter tabs */}
       {activeTabs.length > 2 && (
-        <div className="flex flex-wrap gap-1.5">
+        <div className="overflow-x-auto">
+          <DashboardFilterGroup className="min-w-max">
           {activeTabs.map((tab) => {
             const count = getTabUnreadCount(tab.value);
             return (
-              <button
+              <DashboardFilterButton
                 key={tab.value}
                 onClick={() => setActiveTab(tab.value)}
-                className={cn(
-                  "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
-                  activeTab === tab.value
-                    ? "bg-foreground text-background"
-                    : "bg-muted text-muted-foreground hover:bg-muted/80"
-                )}
+                active={activeTab === tab.value}
+                count={count > 0 ? count : undefined}
               >
                 {tab.label}
-                {count > 0 && (
-                  <Badge variant="secondary" className="h-4 min-w-4 px-1 text-[10px]">
-                    {count}
-                  </Badge>
-                )}
-              </button>
+              </DashboardFilterButton>
             );
           })}
+          </DashboardFilterGroup>
         </div>
       )}
 

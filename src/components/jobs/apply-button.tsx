@@ -16,7 +16,7 @@ interface ApplyButtonProps {
   jobId: string;
   jobTitle: string;
   providerName: string;
-  variant?: "default" | "outline" | "secondary" | "ghost" | "link" | "destructive";
+  variant?: "default" | "outline-solid" | "secondary" | "ghost" | "link" | "destructive";
   size?: "default" | "sm" | "lg" | "icon";
   className?: string;
   style?: React.CSSProperties;

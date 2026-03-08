@@ -152,7 +152,7 @@ export default function DemoLocationsPage() {
       </div>
 
       {/* Featured Upsell */}
-      <Card className="border-[#FEE720] bg-gradient-to-r from-[#FFF5C2]/50 to-[#FFF5C2]/30">
+      <Card className="border-[#FEE720] bg-linear-to-r from-[#FFF5C2]/50 to-[#FFF5C2]/30">
         <CardHeader>
           <div className="flex items-center gap-2">
             <Star className="h-5 w-5 fill-[#5788FF] text-[#5788FF]" />

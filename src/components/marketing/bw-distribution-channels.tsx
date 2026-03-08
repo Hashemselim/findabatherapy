@@ -79,16 +79,16 @@ export function BwDistributionChannels() {
               href={channel.href}
               target="_blank"
               rel="noopener noreferrer"
-              className="group flex h-full flex-col overflow-hidden rounded-2xl border border-amber-200/40 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-amber-100/50"
+              className="group flex h-full flex-col overflow-hidden rounded-2xl border border-amber-200/40 bg-white shadow-xs transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-amber-100/50"
             >
               {/* Gradient header */}
               <div
-                className={`bg-gradient-to-r ${channel.gradient} px-6 py-5 sm:px-8`}
+                className={`bg-linear-to-r ${channel.gradient} px-6 py-5 sm:px-8`}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     {channel.logoType === "image" ? (
-                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 backdrop-blur-xs">
                         <Image
                           src="/logo-icon.png"
                           alt="FindABATherapy"
@@ -98,7 +98,7 @@ export function BwDistributionChannels() {
                         />
                       </div>
                     ) : (
-                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 backdrop-blur-xs">
                         <Briefcase className="h-5 w-5 text-white" />
                       </div>
                     )}

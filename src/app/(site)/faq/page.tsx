@@ -260,7 +260,7 @@ export default function FAQPage() {
           <BubbleBackground
             interactive
             transition={{ stiffness: 100, damping: 50, mass: 0.5 }}
-            className="w-full bg-gradient-to-br from-white via-yellow-50/50 to-blue-50/50 py-8 sm:py-12"
+            className="w-full bg-linear-to-br from-white via-yellow-50/50 to-blue-50/50 py-8 sm:py-12"
             colors={{
               first: "255,255,255",
               second: "255,236,170",
@@ -301,7 +301,7 @@ export default function FAQPage() {
 
           {/* CTA Section */}
           <div className="mt-12 grid gap-6 sm:grid-cols-2">
-            <Card className="border-[#5788FF]/20 bg-[#5788FF]/[0.03]">
+            <Card className="border-[#5788FF]/20 bg-[#5788FF]/3">
               <CardContent className="flex flex-col items-center gap-4 p-6 text-center">
                 <Search className="h-8 w-8 text-[#5788FF]" />
                 <div>
@@ -319,7 +319,7 @@ export default function FAQPage() {
               </CardContent>
             </Card>
 
-            <Card className="border-emerald-500/20 bg-emerald-500/[0.03]">
+            <Card className="border-emerald-500/20 bg-emerald-500/3">
               <CardContent className="flex flex-col items-center gap-4 p-6 text-center">
                 <BookOpen className="h-8 w-8 text-emerald-600" />
                 <div>
@@ -339,7 +339,7 @@ export default function FAQPage() {
           </div>
 
           {/* Still have questions */}
-          <Card className="mt-8 border-dashed border-primary/50 bg-primary/[0.04]">
+          <Card className="mt-8 border-dashed border-primary/50 bg-primary/4">
             <CardContent className="flex flex-col items-center gap-4 p-6 text-center sm:flex-row sm:text-left">
               <div className="flex-1">
                 <h3 className="font-semibold">Still have questions?</h3>

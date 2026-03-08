@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { DashboardCallout } from "@/components/dashboard/ui";
 import { JobStatusBadge } from "@/components/jobs/job-status-badge";
 import { getProfile } from "@/lib/supabase/server";
 import { getJobPosting } from "@/lib/actions/jobs";
@@ -155,7 +156,7 @@ export default async function JobViewPage({ params }: JobViewPageProps) {
                   </span>
                 )}
                 {job.remoteOption && (
-                  <span className="flex items-center gap-1 text-blue-600">
+                  <span className="flex items-center gap-1 text-primary">
                     <Globe className="h-4 w-4" />
                     Remote Available
                   </span>
@@ -173,7 +174,7 @@ export default async function JobViewPage({ params }: JobViewPageProps) {
               </div>
 
               <div className="mt-4 flex flex-wrap gap-2">
-                <Badge variant="secondary" className="bg-[#5788FF]/10 text-[#5788FF]">
+                <Badge variant="secondary" className="bg-primary/10 text-primary">
                   <Briefcase className="mr-1 h-3 w-3" />
                   {positionLabel}
                 </Badge>
@@ -185,7 +186,7 @@ export default async function JobViewPage({ params }: JobViewPageProps) {
               </div>
 
               {salary && (
-                <div className="mt-4 flex items-center gap-2 text-lg font-semibold text-[#5788FF]">
+                <div className="mt-4 flex items-center gap-2 text-lg font-semibold text-primary">
                   <DollarSign className="h-5 w-5" />
                   {salary}
                 </div>
@@ -238,7 +239,7 @@ export default async function JobViewPage({ params }: JobViewPageProps) {
                       key={label}
                       className="flex items-center gap-2 text-sm"
                     >
-                      <CheckCircle className="h-4 w-4 text-[#5788FF]" />
+                      <CheckCircle className="h-4 w-4 text-primary" />
                       {label}
                     </div>
                   ))}
@@ -251,36 +252,25 @@ export default async function JobViewPage({ params }: JobViewPageProps) {
         {/* Sidebar */}
         <div className="space-y-6">
           {/* Status Card */}
-          <Card className={job.status === "published" ? "border-green-200 bg-green-50/50" : "border-amber-200 bg-amber-50/50"}>
-            <CardContent className="p-6">
-              <div className="flex items-center gap-3">
-                <div className={`flex h-10 w-10 items-center justify-center rounded-full ${job.status === "published" ? "bg-green-100" : "bg-amber-100"}`}>
-                  {job.status === "published" ? (
-                    <CheckCircle className="h-5 w-5 text-green-600" />
-                  ) : (
-                    <Pencil className="h-5 w-5 text-amber-600" />
-                  )}
-                </div>
-                <div>
-                  <p className={`font-semibold ${job.status === "published" ? "text-green-900" : "text-amber-900"}`}>
-                    {job.status === "published" ? "Live on Job Board" : "Draft"}
-                  </p>
-                  <p className={`text-sm ${job.status === "published" ? "text-green-700" : "text-amber-700"}`}>
-                    {job.status === "published"
-                      ? "Candidates can view and apply"
-                      : "Not visible to candidates"}
-                  </p>
-                </div>
-              </div>
-              {job.status === "draft" && (
-                <Button asChild className="mt-4 w-full">
+          <DashboardCallout
+            icon={job.status === "published" ? CheckCircle : Pencil}
+            tone={job.status === "published" ? "success" : "warning"}
+            title={job.status === "published" ? "Live on Job Board" : "Draft"}
+            description={
+              job.status === "published"
+                ? "Candidates can view and apply."
+                : "This job is not visible to candidates yet."
+            }
+            action={
+              job.status === "draft" ? (
+                <Button asChild className="w-full sm:w-auto">
                   <Link href={`/dashboard/jobs/${id}/edit`}>
                     Finish & Publish
                   </Link>
                 </Button>
-              )}
-            </CardContent>
-          </Card>
+              ) : undefined
+            }
+          />
 
           {/* Job Summary */}
           <Card>
@@ -305,14 +295,14 @@ export default async function JobViewPage({ params }: JobViewPageProps) {
                 )}
                 <div className="flex justify-between">
                   <dt className="text-muted-foreground">Remote</dt>
-                  <dd className={`font-medium ${job.remoteOption ? "text-blue-600" : ""}`}>
+                  <dd className={`font-medium ${job.remoteOption ? "text-primary" : ""}`}>
                     {job.remoteOption ? "Available" : "No"}
                   </dd>
                 </div>
                 {salary && (
                   <div className="flex justify-between">
                     <dt className="text-muted-foreground">Salary</dt>
-                    <dd className="font-medium text-[#5788FF]">{salary}</dd>
+                    <dd className="font-medium text-primary">{salary}</dd>
                   </div>
                 )}
                 <div className="flex justify-between">

@@ -70,7 +70,7 @@ export default async function WebsiteGuidesPage({ params }: GuidesPageProps) {
               href={getProviderWebsitePath(slug, `/resources/guides/${guide.slug}`)}
               className="group"
             >
-              <div className="h-full rounded-2xl border border-gray-100 bg-white p-6 shadow-sm transition-all hover:border-gray-200 hover:shadow-md">
+              <div className="h-full rounded-2xl border border-gray-100 bg-white p-6 shadow-xs transition-all hover:border-gray-200 hover:shadow-md">
                 <div className="mb-3 flex items-center justify-between gap-2">
                   <Badge
                     className="border-0"

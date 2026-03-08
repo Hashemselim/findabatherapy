@@ -44,7 +44,7 @@ export function UpgradeModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md gap-0 overflow-hidden p-0">
         {/* Header */}
-        <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent px-6 pb-4 pt-6">
+        <div className="bg-linear-to-br from-primary/10 via-primary/5 to-transparent px-6 pb-4 pt-6">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-xl">
               <Sparkles className="h-5 w-5 text-primary" />
@@ -67,7 +67,7 @@ export function UpgradeModal({
               className={cn(
                 "flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
                 interval === "month"
-                  ? "bg-background text-foreground shadow-sm"
+                  ? "bg-background text-foreground shadow-xs"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
@@ -79,7 +79,7 @@ export function UpgradeModal({
               className={cn(
                 "flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
                 interval === "year"
-                  ? "bg-background text-foreground shadow-sm"
+                  ? "bg-background text-foreground shadow-xs"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
@@ -119,7 +119,7 @@ export function UpgradeModal({
                 key={feature}
                 className="flex items-center gap-2.5 text-sm text-foreground"
               >
-                <Check className="h-4 w-4 flex-shrink-0 text-emerald-500" />
+                <Check className="h-4 w-4 shrink-0 text-emerald-500" />
                 {feature}
               </li>
             ))}

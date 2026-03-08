@@ -33,20 +33,19 @@ function renderFeature(feature: string) {
   return feature;
 }
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { BubbleBackground } from "@/components/ui/bubble-background";
 import { BillingPortalButton } from "@/components/billing/billing-portal-button";
 import { CancelDowngradeButton } from "@/components/billing/cancel-downgrade-button";
 import { FeaturedLocationAction } from "@/components/billing/featured-location-action";
 import { AddonCard } from "@/components/billing/addon-card";
+import { DashboardCallout, DashboardCard, DashboardEmptyState, DashboardStatusBadge } from "@/components/dashboard/ui";
+import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
 import { getSubscription, getPendingDowngrade, getFeaturedAddonPrices, getFeaturedLocations } from "@/lib/stripe/actions";
 import { getActiveAddons } from "@/lib/actions/addons";
 import { STRIPE_PLANS } from "@/lib/stripe/config";
@@ -151,122 +150,83 @@ export default async function DashboardBillingPage() {
   if (!profile?.onboarding_completed_at) {
     return (
       <div className="space-y-4 sm:space-y-6">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">Plan & Billing</h1>
-          <p className="mt-1 text-sm text-muted-foreground sm:mt-2">
-            Manage your subscription, upgrade your plan, and access billing portal.
-          </p>
-        </div>
+        <DashboardPageHeader
+          title="Plan & Billing"
+          description="Manage your subscription, upgrade your plan, and access billing portal."
+        />
 
-        <Card className="overflow-hidden border-slate-200">
-          <BubbleBackground
-            interactive={false}
-            size="default"
-            className="bg-gradient-to-br from-white via-yellow-50/50 to-blue-50/50"
-            colors={{
-              first: "255,255,255",
-              second: "255,236,170",
-              third: "135,176,255",
-              fourth: "255,248,210",
-              fifth: "190,210,255",
-              sixth: "240,248,255",
-            }}
-          >
-            <CardContent className="flex flex-col items-center py-12 px-6 text-center">
-              <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#5788FF] shadow-lg shadow-[#5788FF]/25">
-                <ClipboardList className="h-8 w-8 text-white" />
-              </div>
-
-              <h3 className="text-xl font-semibold text-slate-900">
-                Complete Onboarding to Access Plan & Billing
-              </h3>
-
-              <p className="mt-3 max-w-md text-sm text-slate-600">
-                Finish setting up your practice profile to unlock all dashboard features.
-              </p>
-
-              <div className="mt-6 flex flex-wrap justify-center gap-3">
-                {["View plans", "Upgrade account", "Manage billing"].map((benefit) => (
-                  <span
-                    key={benefit}
-                    className="inline-flex items-center gap-1.5 rounded-full bg-white/80 px-3 py-1.5 text-xs font-medium text-slate-600"
-                  >
-                    <CheckCircle2 className="h-3.5 w-3.5 text-[#5788FF]" />
-                    {benefit}
-                  </span>
-                ))}
-              </div>
-
-              <Button asChild size="lg" className="mt-8">
-                <Link href="/dashboard/onboarding" className="gap-2">
-                  Continue Onboarding
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-              </Button>
-            </CardContent>
-          </BubbleBackground>
-        </Card>
+        <DashboardEmptyState
+          icon={ClipboardList}
+          title="Complete Onboarding to Access Plan & Billing"
+          description="Finish setting up your practice profile to unlock all dashboard features."
+          benefits={["View plans", "Upgrade account", "Manage billing"]}
+          action={(
+            <Button asChild size="lg">
+              <Link href="/dashboard/onboarding" className="gap-2">
+                Continue Onboarding
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
+          )}
+        />
       </div>
     );
   }
 
   return (
     <div className="space-y-6 sm:space-y-8">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">Plan & Billing</h1>
-        <p className="mt-1 text-sm text-muted-foreground sm:mt-2">
-          Manage your subscription, upgrade your plan, and access billing portal.
-        </p>
-      </div>
+      <DashboardPageHeader
+        title="Plan & Billing"
+        description="Manage your subscription, upgrade your plan, and access billing portal."
+      />
 
       {/* Current Plan Summary */}
-      <Card className="overflow-hidden border-slate-200 bg-white">
-        <CardHeader className="border-b border-slate-100 bg-slate-50/50 pb-4">
+      <DashboardCard className="overflow-hidden">
+        <CardHeader className="border-b border-border/60 bg-muted/30 pb-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
-              <div className="rounded-xl bg-slate-100 p-2.5">
+              <div className="rounded-xl bg-muted p-2.5">
                 {isPro ? (
-                  <Sparkles className="h-6 w-6 text-slate-600" />
+                  <Sparkles className="h-6 w-6 text-primary" />
                 ) : (
-                  <Shield className="h-6 w-6 text-slate-500" />
+                  <Shield className="h-6 w-6 text-muted-foreground" />
                 )}
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h2 className="text-lg font-semibold text-slate-900 capitalize">
+                  <h2 className="text-lg font-semibold text-foreground capitalize">
                     {effectivePlanTier} Plan
                   </h2>
                   {!isFreePlan && subscription?.status === "active" && (
-                    <Badge className="bg-emerald-500 hover:bg-emerald-600">Active</Badge>
+                    <DashboardStatusBadge tone="success">Active</DashboardStatusBadge>
                   )}
                   {!isFreePlan && subscription?.status === "trialing" && (
-                    <Badge className="bg-blue-500 hover:bg-blue-600">Trial</Badge>
+                    <DashboardStatusBadge tone="info">Trial</DashboardStatusBadge>
                   )}
                   {subscription?.cancelAtPeriodEnd && (
-                    <Badge variant="destructive">Cancelling</Badge>
+                    <DashboardStatusBadge tone="warning">Cancelling</DashboardStatusBadge>
                   )}
                   {subscription?.status === "past_due" && (
-                    <Badge variant="destructive">Past Due</Badge>
+                    <DashboardStatusBadge tone="danger">Past Due</DashboardStatusBadge>
                   )}
                   {hasIncompletePayment && (
-                    <Badge variant="outline" className="border-amber-300 bg-amber-50 text-amber-700">Payment Required</Badge>
+                    <DashboardStatusBadge tone="warning">Payment Required</DashboardStatusBadge>
                   )}
                 </div>
-                <p className="text-sm text-slate-500">
+                <p className="text-sm text-muted-foreground">
                   {isFreePlan
                     ? "Preview mode with up to 3 locations and demo-only premium tools"
                     : `$${planPrice}/mo${isAnnual ? " (billed annually)" : ""} • ${renewalDate ? `Renews ${renewalDate}` : "Active subscription"}`}
                 </p>
                 {!isFreePlan && isAnnual && (
-                  <Badge className="mt-1 border-green-200 bg-green-50 text-green-700 text-xs">
+                  <DashboardStatusBadge tone="success" className="mt-1 text-xs">
                     Saving 40% (${annualSavings}/year) with annual billing
-                  </Badge>
+                  </DashboardStatusBadge>
                 )}
               </div>
             </div>
             {!isFreePlan && profile?.stripe_customer_id && (
-              <BillingPortalButton variant="outline" size="sm" className="w-full border-slate-200 hover:bg-slate-50 sm:w-auto">
+              <BillingPortalButton variant="outline" size="sm" className="w-full border-border/60 hover:bg-muted/60 sm:w-auto">
                 <ExternalLink className="mr-2 h-4 w-4" />
                 Manage Subscription
               </BillingPortalButton>
@@ -276,53 +236,40 @@ export default async function DashboardBillingPage() {
 
         {/* Warnings */}
         {subscription?.cancelAtPeriodEnd && (
-          <div className="border-b border-amber-200 bg-amber-50 px-6 py-4">
-            <div className="flex items-start gap-3">
-              <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-600" />
-              <div>
-                <p className="font-medium text-amber-800">Subscription Cancelling</p>
-                <p className="mt-1 text-sm text-amber-700">
-                  Your subscription will end on {renewalDate}. You&apos;ll retain access to premium features until then.
-                </p>
-              </div>
-            </div>
-          </div>
+          <DashboardCallout
+            tone="warning"
+            icon={AlertCircle}
+            title="Subscription Cancelling"
+            description={`Your subscription will end on ${renewalDate}. You'll retain access to premium features until then.`}
+            className="rounded-none border-x-0 border-t-0 shadow-none"
+          />
         )}
 
         {subscription?.status === "past_due" && (
-          <div className="border-b border-red-200 bg-red-50 px-6 py-4">
-            <div className="flex items-start gap-3">
-              <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-red-600" />
-              <div>
-                <p className="font-medium text-red-800">Payment Past Due</p>
-                <p className="mt-1 text-sm text-red-700">
-                  Your last payment failed. Please update your payment method to avoid service interruption.
-                </p>
-              </div>
-            </div>
-          </div>
+          <DashboardCallout
+            tone="danger"
+            icon={AlertCircle}
+            title="Payment Past Due"
+            description="Your last payment failed. Please update your payment method to avoid service interruption."
+            className="rounded-none border-x-0 border-t-0 shadow-none"
+          />
         )}
 
         {hasIncompletePayment && (
-          <div className="border-b border-amber-200 bg-amber-50 px-6 py-4">
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex items-start gap-3">
-                <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-600" />
-                <div>
-                  <p className="font-medium text-amber-800">Payment Not Completed</p>
-                  <p className="mt-1 text-sm text-amber-700">
-                    You selected the {planTier} plan but haven&apos;t completed payment yet.
-                    Your listing is currently on the Free plan. Complete checkout to unlock premium features.
-                  </p>
-                </div>
-              </div>
-              <Button asChild size="sm" className="shrink-0">
+          <DashboardCallout
+            tone="warning"
+            icon={AlertCircle}
+            title="Payment Not Completed"
+            description={`You selected the ${planTier} plan but haven't completed payment yet. Your listing is currently on the Free plan. Complete checkout to unlock premium features.`}
+            action={(
+              <Button asChild size="sm" className="w-full sm:w-auto">
                 <Link href={`/dashboard/billing/checkout?plan=${planTier}&interval=${billingInterval}`}>
                   Complete Payment
                 </Link>
               </Button>
-            </div>
-          </div>
+            )}
+            className="rounded-none border-x-0 border-t-0 shadow-none"
+          />
         )}
 
         {pendingDowngrade && (() => {
@@ -337,49 +284,41 @@ export default async function DashboardBillingPage() {
           }
 
           return (
-            <div className="border-b border-blue-200 bg-blue-50 px-6 py-4">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex items-start gap-3">
-                  <Clock className="mt-0.5 h-5 w-5 flex-shrink-0 text-blue-600" />
-                  <div>
-                    <p className="font-medium text-blue-800">
-                      {isPlanChanging ? "Downgrade Scheduled" : "Billing Change Scheduled"}
-                    </p>
-                    <p className="mt-1 text-sm text-blue-700">
-                      {isPlanChanging ? (
-                        <>
-                          Your plan will change to{" "}
-                          <span className="font-medium capitalize">{pendingDowngrade.pendingPlanTier}</span> on{" "}
-                          {new Date(pendingDowngrade.effectiveDate).toLocaleDateString("en-US", {
-                            month: "long",
-                            day: "numeric",
-                            year: "numeric",
-                          })}
-                          . You&apos;ll keep your current features until then.
-                        </>
-                      ) : (
-                        <>
-                          Your billing will change to{" "}
-                          <span className="font-medium">{pendingDowngrade.pendingBillingInterval === "year" ? "annual" : "monthly"}</span> on{" "}
-                          {new Date(pendingDowngrade.effectiveDate).toLocaleDateString("en-US", {
-                            month: "long",
-                            day: "numeric",
-                            year: "numeric",
-                          })}
-                          .
-                        </>
-                      )}
-                    </p>
-                  </div>
-                </div>
-                <CancelDowngradeButton className="shrink-0" />
-              </div>
-            </div>
+            <DashboardCallout
+              tone="info"
+              icon={Clock}
+              title={isPlanChanging ? "Downgrade Scheduled" : "Billing Change Scheduled"}
+              description={isPlanChanging ? (
+                <>
+                  Your plan will change to{" "}
+                  <span className="font-medium capitalize">{pendingDowngrade.pendingPlanTier}</span> on{" "}
+                  {new Date(pendingDowngrade.effectiveDate).toLocaleDateString("en-US", {
+                    month: "long",
+                    day: "numeric",
+                    year: "numeric",
+                  })}
+                  . You&apos;ll keep your current features until then.
+                </>
+              ) : (
+                <>
+                  Your billing will change to{" "}
+                  <span className="font-medium">{pendingDowngrade.pendingBillingInterval === "year" ? "annual" : "monthly"}</span> on{" "}
+                  {new Date(pendingDowngrade.effectiveDate).toLocaleDateString("en-US", {
+                    month: "long",
+                    day: "numeric",
+                    year: "numeric",
+                  })}
+                  .
+                </>
+              )}
+              action={<CancelDowngradeButton className="w-full sm:w-auto" />}
+              className="rounded-none border-x-0 border-t-0 shadow-none"
+            />
           );
         })()}
 
         <CardContent className="pt-6">
-          <h3 className="text-sm font-medium text-slate-700 mb-3">
+          <h3 className="mb-3 text-sm font-medium text-foreground">
             Your plan includes:
           </h3>
           <ul className="grid gap-2 sm:grid-cols-2">
@@ -392,48 +331,48 @@ export default async function DashboardBillingPage() {
               "Demo CRM and job workflows",
               "SEO-boosting backlink",
             ]).map((feature, idx) => (
-              <li key={idx} className="flex items-center gap-2 text-sm text-slate-600">
-                <CheckCircle2 className="h-4 w-4 flex-shrink-0 text-emerald-500" />
+              <li key={idx} className="flex items-center gap-2 text-sm text-muted-foreground">
+                <CheckCircle2 className="h-4 w-4 shrink-0 text-primary" />
                 {renderFeature(feature)}
               </li>
             ))}
           </ul>
         </CardContent>
-      </Card>
+      </DashboardCard>
 
       {/* Switch to Annual Billing - for monthly subscribers */}
       {!isFreePlan && !isAnnual && (
-        <Card className="overflow-hidden border-green-200 bg-gradient-to-br from-green-50 to-white">
+        <DashboardCard tone="success" className="overflow-hidden">
           <CardContent className="flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-start gap-4">
-              <div className="rounded-xl bg-green-100 p-3">
-                <Sparkles className="h-6 w-6 text-green-600" />
+              <div className="rounded-xl bg-primary/10 p-3">
+                <Sparkles className="h-6 w-6 text-primary" />
               </div>
               <div>
-                <h3 className="font-semibold text-slate-900">Switch to Annual Billing</h3>
-                <p className="mt-1 text-sm text-slate-600">
-                  Save <span className="font-semibold text-green-600">40% (${STRIPE_PLANS.pro.annual.savings}/year)</span> by switching to annual billing.
+                <h3 className="font-semibold text-foreground">Switch to Annual Billing</h3>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Save <span className="font-semibold text-foreground">40% (${STRIPE_PLANS.pro.annual.savings}/year)</span> by switching to annual billing.
                   Pay ${STRIPE_PLANS.pro.annual.price}/mo instead of ${STRIPE_PLANS.pro.monthly.price}/mo.
                 </p>
               </div>
             </div>
-            <Button asChild className="w-full shrink-0 rounded-full bg-green-600 hover:bg-green-700 sm:w-auto">
+            <Button asChild className="w-full shrink-0 rounded-full sm:w-auto">
               <Link href={`/dashboard/billing/checkout?plan=${planTier}&interval=annual`}>
                 Switch to Annual
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>
           </CardContent>
-        </Card>
+        </DashboardCard>
       )}
 
       {/* Plan Comparison / Upgrade Section */}
       {isFreePlan && (
         <div className="space-y-4">
-          <h2 className="text-lg font-semibold text-slate-900">Go Live with Pro</h2>
+          <h2 className="text-lg font-semibold text-foreground">Go Live with Pro</h2>
           <div className="grid gap-4">
             {/* Pro Plan */}
-            <Card className="relative overflow-hidden border-slate-200 bg-white shadow-sm">
+            <DashboardCard tone="premium" className="relative overflow-hidden">
               <div className="absolute right-0 top-0 rounded-bl-lg bg-primary px-3 py-1">
                 <span className="text-xs font-semibold text-primary-foreground">Most Popular</span>
               </div>
@@ -443,28 +382,28 @@ export default async function DashboardBillingPage() {
                     <Sparkles className="h-6 w-6 text-primary" />
                   </div>
                   <div>
-                    <CardTitle className="text-slate-900">Pro</CardTitle>
-                    <CardDescription className="text-slate-500">Branded pages, full CRM & growth tools</CardDescription>
+                    <CardTitle className="text-foreground">Pro</CardTitle>
+                    <CardDescription className="text-muted-foreground">Branded pages, full CRM & growth tools</CardDescription>
                   </div>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-1">
                   <div>
-                    <span className="text-3xl font-bold text-slate-900">${STRIPE_PLANS.pro.annual.price}</span>
-                    <span className="text-slate-500">/mo</span>
+                    <span className="text-3xl font-bold text-foreground">${STRIPE_PLANS.pro.annual.price}</span>
+                    <span className="text-muted-foreground">/mo</span>
                   </div>
-                  <p className="text-sm text-slate-500">billed annually (${STRIPE_PLANS.pro.annual.totalPrice}/yr)</p>
-                  <p className="text-sm text-slate-500">or ${STRIPE_PLANS.pro.monthly.price}/mo monthly</p>
-                  <Badge className="mt-1 border-green-200 bg-green-50 text-green-700">
+                  <p className="text-sm text-muted-foreground">billed annually (${STRIPE_PLANS.pro.annual.totalPrice}/yr)</p>
+                  <p className="text-sm text-muted-foreground">or ${STRIPE_PLANS.pro.monthly.price}/mo monthly</p>
+                  <DashboardStatusBadge tone="success" className="mt-1">
                     Save 40% (${STRIPE_PLANS.pro.annual.savings}/year)
-                  </Badge>
+                  </DashboardStatusBadge>
                 </div>
                 <ul className="space-y-2">
                   {STRIPE_PLANS.pro.features.map((feature, idx) => (
                     <li key={idx} className="flex items-start gap-2 text-sm">
-                      <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-emerald-500" />
-                      <span className="text-slate-600">{renderFeature(feature)}</span>
+                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                      <span className="text-muted-foreground">{renderFeature(feature)}</span>
                     </li>
                   ))}
                 </ul>
@@ -475,14 +414,14 @@ export default async function DashboardBillingPage() {
                       Go Live — ${STRIPE_PLANS.pro.annual.price}/mo
                     </Link>
                   </Button>
-                  <Button asChild variant="outline" className="w-full rounded-full border-slate-200">
+                  <Button asChild variant="outline" className="w-full rounded-full border-border/60">
                     <Link href="/dashboard/billing/checkout?plan=pro&interval=monthly">
                       Start Monthly (${STRIPE_PLANS.pro.monthly.price}/mo)
                     </Link>
                   </Button>
                 </div>
               </CardContent>
-            </Card>
+            </DashboardCard>
 
           </div>
         </div>
@@ -490,25 +429,25 @@ export default async function DashboardBillingPage() {
 
       {/* Featured Location Add-on */}
       {!isFreePlan && (
-        <Card className="border-slate-200 bg-white">
+        <DashboardCard tone="premium">
           <CardHeader>
             <div className="flex items-center gap-3">
-              <div className="rounded-xl border border-[#FEE720] bg-[#FFF5C2] p-2.5">
-                <Star className="h-6 w-6 fill-[#5788FF] text-[#5788FF]" />
+              <div className="rounded-xl border border-primary/20 bg-primary/10 p-2.5">
+                <Star className="h-6 w-6 fill-primary text-primary" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
                   <CardTitle className="text-foreground">Featured Location Placement</CardTitle>
-                  <Badge variant="outline" className="border-slate-200 text-slate-600">
+                  <DashboardStatusBadge tone="default">
                     Add-on
-                  </Badge>
+                  </DashboardStatusBadge>
                   {featuredLocations.length > 0 && (
-                    <Badge className="border-[#FEE720] bg-[#FFF5C2] text-foreground">
+                    <DashboardStatusBadge tone="premium">
                       {featuredLocations.length} active
-                    </Badge>
+                    </DashboardStatusBadge>
                   )}
                 </div>
-                <CardDescription className="text-slate-500">
+                <CardDescription className="text-muted-foreground">
                   Boost individual locations to the top of matching FindABATherapy.org state search results
                 </CardDescription>
               </div>
@@ -518,35 +457,35 @@ export default async function DashboardBillingPage() {
             {/* Active Featured Subscriptions */}
             {featuredLocations.length > 0 && (
               <div className="space-y-3">
-                <h3 className="text-sm font-medium text-slate-700">Active Featured Locations</h3>
+                <h3 className="text-sm font-medium text-foreground">Active Featured Locations</h3>
                 <div className="space-y-2">
                   {featuredLocations.map((loc) => (
                     <div
                       key={loc.id}
-                      className="flex items-center justify-between rounded-lg border border-[#FEE720] bg-gradient-to-r from-[#FFF5C2]/50 to-white p-3"
+                      className="flex items-center justify-between rounded-lg border border-primary/20 bg-primary/5 p-3"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="rounded-lg border border-[#FEE720] bg-[#FFF5C2] p-2">
-                          <MapPin className="h-4 w-4 text-[#5788FF]" />
+                        <div className="rounded-lg border border-primary/20 bg-primary/10 p-2">
+                          <MapPin className="h-4 w-4 text-primary" />
                         </div>
                         <div>
                           <p className="font-medium text-foreground">{loc.locationLabel}</p>
                           <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <TrendingUp className="h-3 w-3 text-[#5788FF]" />
+                            <TrendingUp className="h-3 w-3 text-primary" />
                             <span>Featured in FindABATherapy.org {loc.state} searches</span>
-                            <span className="text-slate-400">•</span>
+                            <span className="text-muted-foreground/60">•</span>
                             <span>
                               ${loc.billingInterval === "year" ? featuredPricing.annual.price : featuredPricing.monthly.price}/mo ({loc.billingInterval === "year" ? "annual" : "monthly"})
                             </span>
                             {loc.cancelAtPeriodEnd && (
-                              <Badge variant="outline" className="ml-1 px-1.5 py-0 text-[10px] border-orange-300 bg-orange-50 text-orange-700">
+                              <DashboardStatusBadge tone="warning" className="ml-1 px-1.5 py-0 text-[10px]">
                                 Ends {loc.currentPeriodEnd ? new Date(loc.currentPeriodEnd).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "soon"}
-                              </Badge>
+                              </DashboardStatusBadge>
                             )}
                             {loc.status === "past_due" && (
-                              <Badge variant="outline" className="ml-1 px-1.5 py-0 text-[10px] border-red-300 bg-red-50 text-red-700">
+                              <DashboardStatusBadge tone="danger" className="ml-1 px-1.5 py-0 text-[10px]">
                                 Past due
-                              </Badge>
+                              </DashboardStatusBadge>
                             )}
                           </div>
                         </div>
@@ -572,34 +511,34 @@ export default async function DashboardBillingPage() {
             {/* Pricing info and CTA */}
             <div className="grid gap-6 md:grid-cols-2">
               <div className="space-y-3">
-                <p className="text-2xl font-bold text-slate-900">
+                <p className="text-2xl font-bold text-foreground">
                   ${featuredPricing.monthly.price}
-                  <span className="text-base font-normal text-slate-500">/month per location</span>
+                  <span className="text-base font-normal text-muted-foreground">/month per location</span>
                 </p>
                 {featuredPricing.annual.savingsPercent > 0 && (
-                  <p className="text-sm text-slate-500">
+                  <p className="text-sm text-muted-foreground">
                     or ${featuredPricing.annual.price}/mo billed annually — save {featuredPricing.annual.savingsPercent}% (${featuredPricing.annual.savings}/yr)
                   </p>
                 )}
                 <ul className="space-y-2">
                   {FEATURED_FEATURES.map((feature, idx) => (
                     <li key={idx} className="flex items-start gap-2 text-sm">
-                      <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-emerald-500" />
-                      <span className="text-slate-600">{feature}</span>
+                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                      <span className="text-muted-foreground">{feature}</span>
                     </li>
                   ))}
                 </ul>
               </div>
-              <div className="flex flex-col items-center justify-center rounded-xl border border-[#FEE720] bg-[#FFF5C2]/50 p-6">
+              <div className="flex flex-col items-center justify-center rounded-xl border border-primary/20 bg-primary/5 p-6">
                 <div className="text-center">
-                  <Star className="mx-auto h-8 w-8 fill-[#5788FF] text-[#5788FF]" />
+                  <Star className="mx-auto h-8 w-8 fill-primary text-primary" />
                   <p className="mt-2 font-medium text-foreground">
                     {featuredLocations.length > 0 ? "Feature More Locations" : "Feature Individual Locations"}
                   </p>
                   <p className="mt-1 text-sm text-muted-foreground">
                     Go to your Locations page to feature specific locations on FindABATherapy.org
                   </p>
-                  <Button asChild size="sm" className="mt-4 gap-2 border border-[#FEE720] bg-[#FEE720] text-[#333333] hover:bg-[#FFF5C2]">
+                  <Button asChild size="sm" className="mt-4 gap-2">
                     <Link href="/dashboard/locations">
                       Manage Locations
                       <ArrowRight className="h-4 w-4" />
@@ -609,20 +548,20 @@ export default async function DashboardBillingPage() {
               </div>
             </div>
           </CardContent>
-        </Card>
+        </DashboardCard>
       )}
 
       {/* Add-ons */}
       {isPro && (
-        <Card className="border-slate-200 bg-white">
+        <DashboardCard>
           <CardHeader>
             <div className="flex items-center gap-3">
-              <div className="rounded-xl bg-slate-100 p-2.5">
-                <Package className="h-6 w-6 text-slate-600" />
+              <div className="rounded-xl bg-muted p-2.5">
+                <Package className="h-6 w-6 text-muted-foreground" />
               </div>
               <div>
-                <CardTitle className="text-slate-900">Add-ons</CardTitle>
-                <CardDescription className="text-slate-500">
+                <CardTitle className="text-foreground">Add-ons</CardTitle>
+                <CardDescription className="text-muted-foreground">
                   Add capacity packs and premium placement add-ons to your Pro plan
                 </CardDescription>
               </div>
@@ -631,41 +570,41 @@ export default async function DashboardBillingPage() {
           <CardContent>
             <AddonCard addons={activeAddons} />
           </CardContent>
-        </Card>
+        </DashboardCard>
       )}
 
       {/* Billing Portal Card */}
       {!isFreePlan && profile?.stripe_customer_id && (
-        <Card className="border-slate-200 bg-white">
+        <DashboardCard>
           <CardHeader>
             <div className="flex items-center gap-3">
-              <div className="rounded-xl bg-slate-100 p-2.5">
-                <CreditCard className="h-6 w-6 text-slate-600" />
+              <div className="rounded-xl bg-muted p-2.5">
+                <CreditCard className="h-6 w-6 text-muted-foreground" />
               </div>
               <div>
-                <CardTitle className="text-slate-900">Billing Portal</CardTitle>
-                <CardDescription className="text-slate-500">
+                <CardTitle className="text-foreground">Billing Portal</CardTitle>
+                <CardDescription className="text-muted-foreground">
                   View invoices, update payment methods, and manage your subscription through Stripe
                 </CardDescription>
               </div>
             </div>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-col gap-4 rounded-xl border border-slate-200 bg-slate-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-4 rounded-xl border border-border/60 bg-muted/30 p-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-3">
-                <Shield className="h-5 w-5 text-slate-400" />
-                <p className="text-sm text-slate-500">
+                <Shield className="h-5 w-5 text-muted-foreground" />
+                <p className="text-sm text-muted-foreground">
                   Payments are securely processed by Stripe
                 </p>
               </div>
               <BillingPortalButton className="w-full sm:w-auto" />
             </div>
           </CardContent>
-        </Card>
+        </DashboardCard>
       )}
 
       {/* Payment Security Note */}
-      <div className="flex items-center justify-center gap-2 text-xs text-slate-400">
+      <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
         <Shield className="h-4 w-4" />
         <span>All payments are secured with 256-bit SSL encryption via Stripe</span>
       </div>

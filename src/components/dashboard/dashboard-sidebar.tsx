@@ -37,6 +37,7 @@ import { getActionableTaskCount } from "@/lib/actions/clients";
 import { getUnreadNotificationCount } from "@/lib/actions/notifications";
 import { signOut } from "@/lib/auth/actions";
 import { cn } from "@/lib/utils";
+import { DashboardStatusBadge } from "@/components/dashboard/ui";
 import type { NavItem } from "./nav-section";
 import {
   mainNavItems,
@@ -114,21 +115,10 @@ interface DashboardSidebarProps {
   inSheet?: boolean;
 }
 
-// ---------------------------------------------------------------------------
-// Brand color
-// ---------------------------------------------------------------------------
-
-const BRAND_BLUE = "#5788FF";
-
-// ---------------------------------------------------------------------------
-// Component
-// ---------------------------------------------------------------------------
-
 export function DashboardSidebar({
   isOnboardingComplete,
   isDemo = false,
   companyProfile,
-  userProfile,
   staticUnreadCount,
   customNavItems,
   dataTour,
@@ -231,7 +221,7 @@ export function DashboardSidebar({
       data-tour={dataTour}
       className={cn(
         "flex h-full w-full flex-col justify-between overflow-y-auto",
-        !inSheet && "bg-white dark:bg-zinc-950"
+        !inSheet && "border-r border-border/60 bg-card"
       )}
     >
       {/* Top: Logo */}
@@ -275,24 +265,18 @@ export function DashboardSidebar({
                     "group relative flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
                     hasActiveChild && !isOpen
                       ? "text-foreground"
-                      : "text-zinc-600 dark:text-zinc-400 hover:text-foreground"
+                      : "text-muted-foreground hover:text-foreground"
                   )}
                 >
                   {/* Active indicator bar (left side) - show when section has active child */}
                   {hasActiveChild && !isOpen && (
-                    <span
-                      className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full"
-                      style={{ backgroundColor: BRAND_BLUE }}
-                    />
+                    <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-primary" />
                   )}
                   <SectionIcon className="h-[18px] w-[18px] shrink-0" aria-hidden />
                   <span className="flex-1 text-left">{section.label}</span>
                   <div className="flex items-center gap-1.5">
                     {!isOpen && sectionBadgeTotal > 0 && (
-                      <span
-                        className="flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] font-semibold text-white"
-                        style={{ backgroundColor: BRAND_BLUE }}
-                      >
+                      <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[11px] font-semibold text-primary-foreground">
                         {sectionBadgeTotal > 99 ? "99+" : sectionBadgeTotal}
                       </span>
                     )}
@@ -328,9 +312,9 @@ export function DashboardSidebar({
               href={`https://www.findabatherapy.org/provider/${providerSlug}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="group flex items-center gap-2.5 rounded-lg px-2 py-2 text-xs text-zinc-600 transition-colors hover:bg-accent/50 hover:text-foreground dark:text-zinc-400"
+              className="group flex items-center gap-2.5 rounded-lg px-2 py-2 text-xs text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
             >
-              <Heart className="h-3.5 w-3.5 shrink-0 text-[#5788FF]" aria-hidden />
+              <Heart className="h-3.5 w-3.5 shrink-0 text-primary" aria-hidden />
               <span className="flex-1 truncate">findabatherapy.org</span>
               <ExternalLink className="h-3 w-3 shrink-0 text-muted-foreground/40 transition-colors group-hover:text-muted-foreground" aria-hidden />
             </a>
@@ -338,9 +322,9 @@ export function DashboardSidebar({
               href={`https://www.goodaba.com${getJobsEmployersPath(`/${providerSlug}`)}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="group flex items-center gap-2.5 rounded-lg px-2 py-2 text-xs text-zinc-600 transition-colors hover:bg-accent/50 hover:text-foreground dark:text-zinc-400"
+              className="group flex items-center gap-2.5 rounded-lg px-2 py-2 text-xs text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
             >
-              <Briefcase className="h-3.5 w-3.5 shrink-0 text-[#10B981]" aria-hidden />
+              <Briefcase className="h-3.5 w-3.5 shrink-0 text-emerald-600" aria-hidden />
               <span className="flex-1 truncate">goodaba.com/jobs</span>
               <ExternalLink className="h-3 w-3 shrink-0 text-muted-foreground/40 transition-colors group-hover:text-muted-foreground" aria-hidden />
             </a>
@@ -367,10 +351,7 @@ export function DashboardSidebar({
                     className="object-cover"
                   />
                 ) : (
-                  <div
-                    className="flex h-full w-full items-center justify-center text-xs font-bold text-white"
-                    style={{ backgroundColor: BRAND_BLUE }}
-                  >
+                  <div className="flex h-full w-full items-center justify-center bg-primary/10 text-xs font-bold text-primary">
                     {companyProfile?.name
                       ?.split(" ")
                       .map((w) => w[0])
@@ -392,9 +373,9 @@ export function DashboardSidebar({
                 </p>
                 {!(companyProfile?.planTier === "pro" &&
                   (companyProfile?.subscriptionStatus === "active" || companyProfile?.subscriptionStatus === "trialing")) && (
-                  <span className="mt-0.5 inline-flex w-fit items-center rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+                  <DashboardStatusBadge tone="warning" className="mt-0.5 w-fit px-2 py-0.5 text-[10px] font-semibold">
                     Preview Mode
-                  </span>
+                  </DashboardStatusBadge>
                 )}
               </div>
               <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground/50" />
@@ -472,22 +453,19 @@ function renderNavLink(
       className={cn(
         "group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
         isActive
-          ? "bg-[#5788FF]/[0.08] text-foreground"
-          : "text-zinc-600 dark:text-zinc-400 hover:bg-accent/50 hover:text-foreground",
+          ? "bg-primary/10 text-foreground"
+          : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
         isLocked && "pointer-events-none opacity-50"
       )}
     >
       {/* Active indicator bar */}
       {isActive && (
-        <span
-          className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full"
-          style={{ backgroundColor: BRAND_BLUE }}
-        />
+        <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-primary" />
       )}
       <Icon
         className={cn(
           "h-[18px] w-[18px] shrink-0",
-          isActive && "text-[#5788FF]"
+          isActive && "text-primary"
         )}
         aria-hidden
       />
@@ -498,8 +476,8 @@ function renderNavLink(
             className={cn(
               "rounded px-1.5 py-0.5 text-[10px] font-semibold",
               isActive
-                ? "bg-[#5788FF]/20 text-[#5788FF]"
-                : "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+                ? "bg-primary/15 text-primary"
+                : "bg-primary/10 text-primary"
             )}
           >
             Pro
@@ -507,10 +485,7 @@ function renderNavLink(
         )}
       </span>
       {badgeCount > 0 && (
-        <span
-          className="flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] font-semibold text-white"
-          style={{ backgroundColor: BRAND_BLUE }}
-        >
+        <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[11px] font-semibold text-primary-foreground">
           {badgeCount > 99 ? "99+" : badgeCount}
         </span>
       )}

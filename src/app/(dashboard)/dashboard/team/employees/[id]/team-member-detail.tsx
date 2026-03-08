@@ -64,6 +64,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
+import { DashboardStatusBadge, type DashboardTone } from "@/components/dashboard/ui";
 
 import {
   type TeamMember,
@@ -105,16 +106,16 @@ function formatDate(dateStr: string | null | undefined): string {
 
 function getCredentialStatus(expirationDate: string | null): {
   label: string;
-  color: string;
+  tone: DashboardTone;
 } {
-  if (!expirationDate) return { label: "No expiration", color: "bg-gray-100 text-gray-600" };
+  if (!expirationDate) return { label: "No expiration", tone: "default" };
   const now = new Date();
   const exp = new Date(expirationDate);
   const daysUntil = Math.ceil((exp.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
-  if (daysUntil < 0) return { label: "Expired", color: "bg-red-100 text-red-700 border-red-200" };
-  if (daysUntil <= 30) return { label: `${daysUntil}d left`, color: "bg-amber-100 text-amber-700 border-amber-200" };
-  return { label: "Current", color: "bg-green-100 text-green-700 border-green-200" };
+  if (daysUntil < 0) return { label: "Expired", tone: "danger" };
+  if (daysUntil <= 30) return { label: `${daysUntil}d left`, tone: "warning" };
+  return { label: "Current", tone: "success" };
 }
 
 // =============================================================================
@@ -135,8 +136,8 @@ function SectionHeader({
   return (
     <div className="flex items-center justify-between">
       <div className="flex items-center gap-2">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-100">
-          <Icon className="h-4 w-4 text-purple-600" />
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted">
+          <Icon className="h-4 w-4 text-primary" />
         </div>
         <h3 className="font-semibold">{title}</h3>
         {count !== undefined && count > 0 && (
@@ -439,7 +440,7 @@ export function TeamMemberDetail({
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-4">
           <Avatar className="h-14 w-14 border-2">
-            <AvatarFallback className="bg-purple-50 text-lg font-semibold text-purple-700">
+            <AvatarFallback className="bg-primary/10 text-lg font-semibold text-primary">
               {getInitials(member.first_name, member.last_name)}
             </AvatarFallback>
           </Avatar>
@@ -649,9 +650,9 @@ export function TeamMemberDetail({
                               Expires: {formatDate(cred.expiration_date)}
                             </span>
                           )}
-                          <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${status.color}`}>
+                          <DashboardStatusBadge tone={status.tone} className="text-[10px] px-1.5 py-0">
                             {status.label}
-                          </Badge>
+                          </DashboardStatusBadge>
                         </div>
                         {cred.notes && (
                           <p className="text-xs text-muted-foreground mt-1">{cred.notes}</p>
@@ -822,7 +823,7 @@ export function TeamMemberDetail({
                           href={doc.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex items-center gap-1 text-xs text-purple-600 hover:underline truncate"
+                          className="flex items-center gap-1 truncate text-xs text-primary hover:underline"
                         >
                           <ExternalLink className="h-3 w-3 shrink-0" />
                           <span className="truncate">{doc.url}</span>
@@ -1055,9 +1056,9 @@ function TaskRow({
               checked={isCompleted}
               className={
                 task.status === "in_progress"
-                  ? "border-blue-500 data-[state=checked]:bg-blue-500"
+                  ? "border-primary data-[state=checked]:bg-primary"
                   : isCompleted
-                    ? "border-green-500 data-[state=checked]:bg-green-500"
+                    ? "border-primary data-[state=checked]:bg-primary"
                     : ""
               }
             />
@@ -1089,13 +1090,13 @@ function TaskRow({
             </Badge>
           )}
           {task.status === "in_progress" && (
-            <Badge variant="outline" className="border-blue-200 bg-blue-50 text-blue-700 text-[10px] px-1.5 py-0">
+            <DashboardStatusBadge tone="info" className="text-[10px] px-1.5 py-0">
               In Progress
-            </Badge>
+            </DashboardStatusBadge>
           )}
         </div>
         {task.due_date && (
-          <p className={`flex items-center gap-1 text-xs ${isOverdue ? "text-red-600 font-medium" : "text-muted-foreground"}`}>
+          <p className={`flex items-center gap-1 text-xs ${isOverdue ? "font-medium text-destructive" : "text-muted-foreground"}`}>
             <Clock className="h-3 w-3" />
             {isOverdue ? "Overdue: " : "Due: "}
             {formatDate(task.due_date)}

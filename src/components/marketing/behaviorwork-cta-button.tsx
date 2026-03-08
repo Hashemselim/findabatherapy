@@ -9,7 +9,7 @@ interface BehaviorWorkCtaButtonProps {
   href: string;
   label: string;
   section: string;
-  variant?: "default" | "outline" | "secondary";
+  variant?: "default" | "outline-solid" | "secondary";
   size?: "default" | "sm" | "lg";
   className?: string;
 }

@@ -32,7 +32,6 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { RelativeTime } from "@/components/ui/relative-time";
-import { cn } from "@/lib/utils";
 import {
   calculateAge,
   getClientDisplayName,
@@ -44,6 +43,7 @@ import {
 } from "@/lib/validations/clients";
 import type { ClientDetail as ClientDetailType } from "@/lib/actions/clients";
 import { TaskFormDialog } from "@/components/dashboard/tasks";
+import { DashboardStatusBadge, type DashboardTone } from "@/components/dashboard/ui";
 
 import { ClientStatusBadge } from "./client-status-badge";
 import { ClientQuickActions } from "./client-quick-actions";
@@ -74,7 +74,7 @@ function CopyButton({ value, label }: { value: string; label: string }) {
             onClick={handleCopy}
           >
             {copied ? (
-              <Check className="h-3.5 w-3.5 text-green-500" />
+              <Check className="h-3.5 w-3.5 text-primary" />
             ) : (
               <Copy className="h-3.5 w-3.5" />
             )}
@@ -103,11 +103,28 @@ function FieldRow({
     <div className="group flex flex-col gap-0.5 py-1.5 sm:flex-row sm:items-start sm:justify-between sm:gap-2">
       <span className="text-xs sm:text-sm text-muted-foreground shrink-0">{label}</span>
       <div className="flex items-center gap-1">
-        <span className="text-sm break-words sm:text-right">{value}</span>
+        <span className="text-sm wrap-break-word sm:text-right">{value}</span>
         {copyable && <CopyButton value={value} label={label.toLowerCase()} />}
       </div>
     </div>
   );
+}
+
+function dashboardToneFromColor(color?: string): DashboardTone {
+  switch (color) {
+    case "green":
+      return "success";
+    case "yellow":
+    case "orange":
+    case "amber":
+      return "warning";
+    case "blue":
+      return "info";
+    case "red":
+      return "danger";
+    default:
+      return "default";
+  }
 }
 
 export function ClientDetailPanel({
@@ -329,16 +346,9 @@ export function ClientDetailPanel({
                             )}
                           </p>
                           {statusOption && (
-                            <span
-                              className={cn(
-                                "text-xs",
-                                statusOption.color === "green" && "text-green-600",
-                                statusOption.color === "gray" && "text-gray-500",
-                                statusOption.color === "yellow" && "text-yellow-600"
-                              )}
-                            >
+                            <DashboardStatusBadge tone={dashboardToneFromColor(statusOption.color)} className="text-xs">
                               {statusOption.label}
-                            </span>
+                            </DashboardStatusBadge>
                           )}
                         </div>
                       </div>
@@ -417,34 +427,15 @@ export function ClientDetailPanel({
                             {auth.treatment_requested || auth.service_type || "Authorization"}
                           </p>
                           {statusOption && (
-                            <span
-                              className={cn(
-                                "text-xs",
-                                statusOption.color === "green" && "text-green-600",
-                                statusOption.color === "red" && "text-red-600",
-                                statusOption.color === "blue" && "text-blue-600",
-                                statusOption.color === "orange" && "text-orange-600",
-                                statusOption.color === "amber" && "text-amber-600",
-                                statusOption.color === "gray" && "text-gray-500"
-                              )}
-                            >
+                            <DashboardStatusBadge tone={dashboardToneFromColor(statusOption.color)} className="text-xs">
                               {statusOption.label}
-                            </span>
+                            </DashboardStatusBadge>
                           )}
                         </div>
                         {daysRemaining !== null && (
-                          <span
-                            className={cn(
-                              "text-xs font-medium px-2 py-0.5 rounded",
-                              daysColor === "red" && "bg-red-100 text-red-700",
-                              daysColor === "orange" && "bg-orange-100 text-orange-700",
-                              daysColor === "amber" && "bg-amber-100 text-amber-700",
-                              daysColor === "green" && "bg-green-100 text-green-700",
-                              daysColor === "gray" && "bg-gray-100 text-gray-700"
-                            )}
-                          >
+                          <DashboardStatusBadge tone={dashboardToneFromColor(daysColor)} className="text-xs font-medium">
                             {daysRemaining <= 0 ? "Expired" : `${daysRemaining} days`}
-                          </span>
+                          </DashboardStatusBadge>
                         )}
                       </div>
                       <div className="mt-2 space-y-1">
@@ -620,7 +611,7 @@ export function ClientDetailPanel({
         {client.notes && (
           <div className="rounded-lg border p-2 sm:p-3">
             <p className="text-sm font-medium mb-2">Notes</p>
-            <p className="text-sm whitespace-pre-wrap text-muted-foreground break-words">{client.notes}</p>
+            <p className="text-sm whitespace-pre-wrap text-muted-foreground wrap-break-word">{client.notes}</p>
           </div>
         )}
 

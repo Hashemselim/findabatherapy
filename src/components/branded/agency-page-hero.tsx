@@ -21,7 +21,7 @@ export function AgencyPageHero({
   const defaultHeadline = "Compassionate ABA Therapy for Your Family";
 
   return (
-    <section className="w-full bg-gradient-to-br from-[#5788FF]/[0.06] via-white to-[#5788FF]/[0.04] py-12 sm:py-16">
+    <section className="w-full bg-linear-to-br from-[#5788FF]/6 via-white to-[#5788FF]/4 py-12 sm:py-16">
       <div className="mx-auto max-w-4xl px-4 sm:px-6">
         <div className="flex flex-col items-center text-center">
           <ProviderLogo

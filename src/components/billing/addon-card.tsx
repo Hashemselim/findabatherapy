@@ -267,7 +267,7 @@ function AddonRow({
 
               {addon.cancelAtPeriodEnd && (
                 <div className="flex items-start gap-2 rounded-lg border border-orange-200 bg-orange-50 p-3">
-                  <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-orange-600" />
+                  <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-orange-600" />
                   <p className="text-sm text-orange-800">
                     This add-on will expire at the end of the current billing period unless you reactivate it.
                   </p>

@@ -5,6 +5,7 @@ import { ChevronDown, MapPin } from "lucide-react";
 
 import { MiniSparkline } from "./mini-sparkline";
 import type { LocationAnalytics } from "@/lib/analytics/events";
+import { getDashboardToneClasses } from "@/components/dashboard/ui";
 import { cn } from "@/lib/utils";
 
 interface LocationAnalyticsRowProps {
@@ -14,6 +15,7 @@ interface LocationAnalyticsRowProps {
 
 export function LocationAnalyticsRow({ location, className }: LocationAnalyticsRowProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const infoTone = getDashboardToneClasses("info");
 
   const displayName = location.label || `${location.city}, ${location.state}`;
   const subtitle = location.label ? `${location.city}, ${location.state}` : null;
@@ -27,8 +29,8 @@ export function LocationAnalyticsRow({ location, className }: LocationAnalyticsR
         className="flex w-full flex-col gap-4 p-4 text-left transition-colors hover:bg-muted/30 sm:flex-row sm:items-center sm:justify-between"
       >
         <div className="flex items-center gap-3 min-w-0">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#5788FF]/10">
-            <MapPin className="h-5 w-5 text-[#5788FF]" />
+          <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-lg", infoTone.icon)}>
+            <MapPin className="h-5 w-5" />
           </div>
           <div className="min-w-0 flex-1">
             <p className="truncate font-medium text-foreground">{displayName}</p>
@@ -38,7 +40,7 @@ export function LocationAnalyticsRow({ location, className }: LocationAnalyticsR
           </div>
           <ChevronDown
             className={cn(
-              "h-4 w-4 flex-shrink-0 text-muted-foreground transition-transform sm:hidden",
+              "h-4 w-4 shrink-0 text-muted-foreground transition-transform sm:hidden",
               isExpanded && "rotate-180"
             )}
           />
@@ -72,7 +74,7 @@ export function LocationAnalyticsRow({ location, className }: LocationAnalyticsR
           </div>
           <ChevronDown
             className={cn(
-              "hidden h-4 w-4 flex-shrink-0 self-center text-muted-foreground transition-transform sm:block",
+              "hidden h-4 w-4 shrink-0 self-center text-muted-foreground transition-transform sm:block",
               isExpanded && "rotate-180"
             )}
           />
@@ -88,7 +90,7 @@ export function LocationAnalyticsRow({ location, className }: LocationAnalyticsR
               <p className="text-xs font-medium text-muted-foreground">Views Trend</p>
               <MiniSparkline
                 data={location.timeSeries.views}
-                color="#3b82f6"
+                color="hsl(var(--chart-1))"
                 width={200}
                 height={80}
               />
@@ -99,7 +101,7 @@ export function LocationAnalyticsRow({ location, className }: LocationAnalyticsR
               <p className="text-xs font-medium text-muted-foreground">Impressions Trend</p>
               <MiniSparkline
                 data={location.timeSeries.impressions}
-                color="#9333ea"
+                color="hsl(var(--chart-4))"
                 width={200}
                 height={80}
               />
@@ -110,7 +112,7 @@ export function LocationAnalyticsRow({ location, className }: LocationAnalyticsR
               <p className="text-xs font-medium text-muted-foreground">Clicks Trend</p>
               <MiniSparkline
                 data={location.timeSeries.clicks}
-                color="#10b981"
+                color="hsl(var(--chart-2))"
                 width={200}
                 height={80}
               />

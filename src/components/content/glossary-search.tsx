@@ -117,7 +117,7 @@ export function GlossarySearch({ terms }: GlossarySearchProps) {
       )}
 
       {/* Alphabet Navigation */}
-      <nav className="sticky top-4 z-10 rounded-xl border border-border bg-white/95 p-3 shadow-sm backdrop-blur">
+      <nav className="sticky top-4 z-10 rounded-xl border border-border bg-white/95 p-3 shadow-xs backdrop-blur-sm">
         <div className="flex flex-wrap justify-center gap-1">
           {Array.from({ length: 26 }, (_, i) =>
             String.fromCharCode(65 + i)
@@ -170,7 +170,7 @@ export function GlossarySearch({ terms }: GlossarySearchProps) {
         <div className="space-y-10">
           {(isSearching ? currentAvailableLetters : availableLetters).map((letter) => (
             <section key={letter} id={`letter-${letter}`}>
-              <div className="sticky top-20 z-[5] -mx-4 mb-4 bg-white/95 px-4 py-2 backdrop-blur">
+              <div className="sticky top-20 z-5 -mx-4 mb-4 bg-white/95 px-4 py-2 backdrop-blur-sm">
                 <h2 className="text-3xl font-bold text-[#5788FF]">{letter}</h2>
               </div>
 

@@ -146,14 +146,14 @@ export function ApplicationsMessageList({
         {/* Top fade indicator */}
         <div
           className={cn(
-            "pointer-events-none absolute inset-x-0 top-0 z-10 h-6 bg-gradient-to-b from-card to-transparent transition-opacity",
+            "pointer-events-none absolute inset-x-0 top-0 z-10 h-6 bg-linear-to-b from-card to-transparent transition-opacity",
             canScrollUp ? "opacity-100" : "opacity-0"
           )}
         />
         {/* Bottom fade indicator */}
         <div
           className={cn(
-            "pointer-events-none absolute inset-x-0 bottom-0 z-10 h-6 bg-gradient-to-t from-card to-transparent transition-opacity",
+            "pointer-events-none absolute inset-x-0 bottom-0 z-10 h-6 bg-linear-to-t from-card to-transparent transition-opacity",
             canScrollDown ? "opacity-100" : "opacity-0"
           )}
         />
@@ -177,20 +177,20 @@ export function ApplicationsMessageList({
                     onClick={() => onSelect(application)}
                     className={`w-full rounded-lg border p-3 text-left transition-colors ${
                       selectedId === application.id
-                        ? "border-emerald-500 bg-emerald-500/5"
+                        ? "border-primary/30 bg-primary/5"
                         : "border-border/60 hover:bg-muted/50"
                     }`}
                   >
                     <div className="flex items-start gap-3">
                       <Avatar className="h-10 w-10 shrink-0 border border-border">
-                        <AvatarFallback className="bg-emerald-50 text-sm font-medium text-emerald-700">
+                        <AvatarFallback className="bg-primary/10 text-sm font-medium text-primary">
                           {getInitials(application.applicantName)}
                         </AvatarFallback>
                       </Avatar>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
                           {application.status === "new" && (
-                            <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-500" />
+                            <span className="h-2 w-2 shrink-0 rounded-full bg-primary" />
                           )}
                           <span className="truncate font-medium">
                             {application.applicantName}

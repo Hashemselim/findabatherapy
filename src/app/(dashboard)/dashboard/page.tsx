@@ -12,11 +12,8 @@ import {
   Users,
 } from "lucide-react";
 
-import { BubbleBackground } from "@/components/ui/bubble-background";
 import { Button } from "@/components/ui/button";
 import {
-  Card,
-  CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
@@ -29,13 +26,17 @@ import {
 import { DashboardTracker } from "@/components/analytics/dashboard-tracker";
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
 import {
+  DashboardCallout,
+  DashboardCard,
+  DashboardEmptyState,
+} from "@/components/dashboard/ui";
+import {
   getProviderCareersPath,
   getJobsEmployersPath,
 } from "@/lib/utils/public-paths";
 import { getListing } from "@/lib/actions/listings";
 import { getAnalyticsSummary } from "@/lib/actions/analytics";
 import { getUnreadInquiryCount } from "@/lib/actions/inquiries";
-import { getJobCountAndLimit } from "@/lib/actions/jobs";
 import { getNewApplicationCount } from "@/lib/actions/applications";
 import { getProfile } from "@/lib/supabase/server";
 
@@ -71,54 +72,20 @@ export default async function DashboardOverviewPage({
           description="Complete your onboarding to set up your practice profile and start connecting with families."
         />
 
-        <Card className="overflow-hidden border-slate-200">
-          <BubbleBackground
-            interactive={false}
-            size="default"
-            className="bg-gradient-to-br from-white via-yellow-50/50 to-blue-50/50"
-            colors={{
-              first: "255,255,255",
-              second: "255,236,170",
-              third: "135,176,255",
-              fourth: "255,248,210",
-              fifth: "190,210,255",
-              sixth: "240,248,255",
-            }}
-          >
-            <CardContent className="flex flex-col items-center py-12 px-6 text-center">
-              <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#5788FF] shadow-lg shadow-[#5788FF]/25">
-                <ClipboardList className="h-8 w-8 text-white" />
-              </div>
-
-              <p className="text-xl font-semibold text-slate-900">
-                Complete Your Onboarding
-              </p>
-
-              <p className="mt-3 max-w-md text-sm text-slate-600">
-                Set up your practice profile, add your services, and start appearing in search results.
-              </p>
-
-              <div className="mt-6 flex flex-wrap justify-center gap-3">
-                {["Manage your listing", "Track analytics", "Connect with families"].map((benefit) => (
-                  <span
-                    key={benefit}
-                    className="inline-flex items-center gap-1.5 rounded-full bg-white/80 px-3 py-1.5 text-xs font-medium text-slate-600"
-                  >
-                    <CheckCircle2 className="h-3.5 w-3.5 text-[#5788FF]" />
-                    {benefit}
-                  </span>
-                ))}
-              </div>
-
-              <Button asChild size="lg" className="mt-8">
-                <Link href="/dashboard/onboarding" className="gap-2">
-                  Continue Onboarding
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-              </Button>
-            </CardContent>
-          </BubbleBackground>
-        </Card>
+        <DashboardEmptyState
+          icon={ClipboardList}
+          title="Complete your onboarding"
+          description="Set up your practice profile, add your services, and start appearing in search results."
+          benefits={["Manage your listing", "Track analytics", "Connect with families"]}
+          action={(
+            <Button asChild size="lg">
+              <Link href="/dashboard/onboarding" className="gap-2">
+                Continue Onboarding
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
+          )}
+        />
       </div>
     );
   }
@@ -132,10 +99,9 @@ export default async function DashboardOverviewPage({
   const isPaidPlan = listing.profile.planTier !== "free" && isActiveSubscription;
 
   // Fetch additional data in parallel
-  const [analyticsResult, inquiryResult, jobCountResult, applicationCountResult] = await Promise.all([
+  const [analyticsResult, inquiryResult, applicationCountResult] = await Promise.all([
     isPaidPlan ? getAnalyticsSummary() : Promise.resolve(null),
     isPaidPlan ? getUnreadInquiryCount() : Promise.resolve(null),
-    getJobCountAndLimit(),
     getNewApplicationCount(),
   ]);
 
@@ -148,17 +114,12 @@ export default async function DashboardOverviewPage({
     <div className="space-y-3">
       <DashboardTracker section="overview" />
       {showWelcome && (
-        <Card className="border-emerald-500/30 bg-emerald-500/5">
-          <CardContent className="flex items-start gap-3 py-4">
-            <CheckCircle2 className="mt-0.5 h-5 w-5 text-emerald-500" />
-            <div>
-              <p className="font-medium text-emerald-900">You&apos;re in.</p>
-              <p className="text-sm text-emerald-800">
-                Your onboarding is complete. Your FindABATherapy presence is live, and the rest of your GoodABA dashboard is ready to use or preview based on your plan.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+        <DashboardCallout
+          tone="success"
+          icon={CheckCircle2}
+          title="You're in."
+          description="Your onboarding is complete. Your FindABATherapy presence is live, and the rest of your GoodABA dashboard is ready to use or preview based on your plan."
+        />
       )}
       <DashboardPageHeader
         title="Overview"
@@ -266,11 +227,11 @@ export default async function DashboardOverviewPage({
 
       {/* Published Listing Banner */}
       {isPublished && (
-        <Card className="border-emerald-500/30 bg-emerald-500/5">
+        <DashboardCard tone="success">
           <CardHeader className="flex flex-row items-center gap-3 py-4">
-            <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+            <CheckCircle2 className="h-5 w-5 text-primary" />
             <div>
-              <CardTitle className="text-base text-emerald-900">
+              <CardTitle className="text-base text-foreground">
                 Your listing is live!
               </CardTitle>
               <CardDescription>
@@ -278,14 +239,14 @@ export default async function DashboardOverviewPage({
                 <Link
                   href={`/provider/${listing.slug}`}
                   target="_blank"
-                  className="break-all text-[#5788FF] hover:underline"
+                  className="break-all text-primary hover:underline"
                 >
                   findabatherapy.org/provider/{listing.slug}
                 </Link>
               </CardDescription>
             </div>
           </CardHeader>
-        </Card>
+        </DashboardCard>
       )}
 
       {/* Onboarding Checklist */}

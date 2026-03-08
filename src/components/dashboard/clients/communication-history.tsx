@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useTransition } from "react";
+import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import {
   Mail,
@@ -13,18 +13,26 @@ import {
   Loader2,
 } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { DashboardStatusBadge, type DashboardTone } from "@/components/dashboard/ui";
 import { cn } from "@/lib/utils";
 import {
   getClientCommunications,
   type ClientCommunication,
 } from "@/lib/actions/communications";
 
-const STATUS_CONFIG: Record<string, { icon: typeof CheckCircle2; color: string; label: string }> = {
-  sent: { icon: CheckCircle2, color: "text-green-600", label: "Sent" },
-  failed: { icon: XCircle, color: "text-red-600", label: "Failed" },
-  bounced: { icon: AlertCircle, color: "text-amber-600", label: "Bounced" },
+const STATUS_CONFIG: Record<string, { icon: typeof CheckCircle2; tone: DashboardTone; label: string }> = {
+  sent: { icon: CheckCircle2, tone: "success", label: "Sent" },
+  failed: { icon: XCircle, tone: "danger", label: "Failed" },
+  bounced: { icon: AlertCircle, tone: "warning", label: "Bounced" },
+};
+
+const STATUS_ICON_CLASSES: Record<DashboardTone, string> = {
+  default: "text-muted-foreground",
+  info: "text-primary",
+  success: "text-primary",
+  warning: "text-amber-700",
+  danger: "text-destructive",
+  premium: "text-primary",
 };
 
 interface CommunicationHistoryProps {
@@ -45,15 +53,6 @@ export function CommunicationHistory({ clientId }: CommunicationHistoryProps) {
       setIsLoading(false);
     });
   }, [clientId]);
-
-  // Provide a refresh function that the parent can call
-  const refresh = () => {
-    getClientCommunications(clientId).then((result) => {
-      if (result.success && result.data) {
-        setCommunications(result.data);
-      }
-    });
-  };
 
   if (isLoading) {
     return (
@@ -90,7 +89,7 @@ export function CommunicationHistory({ clientId }: CommunicationHistoryProps) {
               onClick={() => setExpandedId(isExpanded ? null : comm.id)}
               className="w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-muted/50 transition-colors"
             >
-              <StatusIcon className={cn("h-4 w-4 shrink-0", statusConfig.color)} />
+              <StatusIcon className={cn("h-4 w-4 shrink-0", STATUS_ICON_CLASSES[statusConfig.tone])} />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate">{comm.subject}</p>
                 <p className="text-xs text-muted-foreground">
@@ -117,21 +116,13 @@ export function CommunicationHistory({ clientId }: CommunicationHistoryProps) {
                     <Clock className="h-3 w-3" />
                     {format(new Date(comm.sent_at), "PPP 'at' p")}
                   </span>
-                  <Badge
-                    variant="secondary"
-                    className={cn(
-                      "text-xs",
-                      comm.status === "sent" && "bg-green-100 text-green-700",
-                      comm.status === "failed" && "bg-red-100 text-red-700",
-                      comm.status === "bounced" && "bg-amber-100 text-amber-700"
-                    )}
-                  >
+                  <DashboardStatusBadge tone={statusConfig.tone} className="text-xs">
                     {statusConfig.label}
-                  </Badge>
+                  </DashboardStatusBadge>
                   {comm.template_slug && (
-                    <Badge variant="outline" className="text-xs">
+                    <DashboardStatusBadge tone="default" className="text-xs">
                       Template: {comm.template_slug}
-                    </Badge>
+                    </DashboardStatusBadge>
                   )}
                 </div>
                 <div

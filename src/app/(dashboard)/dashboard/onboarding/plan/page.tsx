@@ -237,7 +237,7 @@ export default function OnboardingPlanPage() {
                 onClick={() => setBillingInterval("month")}
                 className={`rounded-full px-4 py-1.5 text-sm font-medium transition-all ${
                   billingInterval === "month"
-                    ? "bg-[#1A2744] text-white shadow-sm"
+                    ? "bg-[#1A2744] text-white shadow-xs"
                     : "text-slate-600 hover:text-[#1A2744]"
                 }`}
               >
@@ -248,7 +248,7 @@ export default function OnboardingPlanPage() {
                 onClick={() => setBillingInterval("year")}
                 className={`rounded-full px-4 py-1.5 text-sm font-medium transition-all ${
                   billingInterval === "year"
-                    ? "bg-[#1A2744] text-white shadow-sm"
+                    ? "bg-[#1A2744] text-white shadow-xs"
                     : "text-slate-600 hover:text-[#1A2744]"
                 }`}
               >

@@ -42,7 +42,7 @@ export function BrandSection({
   return (
     <Card className="relative overflow-hidden border-border/60">
       <div
-        className={`absolute inset-0 bg-gradient-to-br ${config.gradient}`}
+        className={`absolute inset-0 bg-linear-to-br ${config.gradient}`}
       />
       <CardHeader className="relative pb-3">
         <div className="flex items-start gap-3">

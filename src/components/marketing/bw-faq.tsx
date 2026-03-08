@@ -79,7 +79,7 @@ export function BwFaq({ pageLocation = "goodaba-lander" }: { pageLocation?: stri
                     pageLocation,
                   })
                 }
-                className="text-left text-base font-semibold text-[#1A2744] hover:no-underline [&[data-state=open]]:text-amber-700"
+                className="text-left text-base font-semibold text-[#1A2744] hover:no-underline data-[state=open]:text-amber-700"
               >
                 {faq.question}
               </AccordionTrigger>

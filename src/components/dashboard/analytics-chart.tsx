@@ -49,7 +49,7 @@ export function AnalyticsChart({ views, impressions, clicks }: AnalyticsChartPro
             {(Object.keys(METRIC_CONFIG) as MetricKey[]).map((key) => (
               <Button
                 key={key}
-                variant={selectedMetric === key ? "default" : "outline"}
+                variant={selectedMetric === key ? "default" : "outline-solid"}
                 size="sm"
                 onClick={() => setSelectedMetric(key)}
               >

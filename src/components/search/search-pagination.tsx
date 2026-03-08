@@ -66,7 +66,7 @@ export function SearchPagination({
           return (
             <Button
               key={page}
-              variant={page === currentPage ? "default" : "outline"}
+              variant={page === currentPage ? "default" : "outline-solid"}
               size="icon"
               onClick={() => goToPage(page)}
               className={cn(

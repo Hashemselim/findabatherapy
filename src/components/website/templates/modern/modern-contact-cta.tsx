@@ -81,7 +81,7 @@ export function ModernContactCta() {
               asChild
               variant="outline"
               size="lg"
-              className="rounded-full border-2 px-8 text-base font-semibold backdrop-blur-sm transition-all hover:scale-[1.02]"
+              className="rounded-full border-2 px-8 text-base font-semibold backdrop-blur-xs transition-all hover:scale-[1.02]"
               style={{
                 borderColor: `${contrastColor}40`,
                 color: contrastColor,

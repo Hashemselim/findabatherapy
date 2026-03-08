@@ -67,7 +67,7 @@ interface FeedbackListProps {
 
 const statusConfig: Record<
   FeedbackStatus,
-  { label: string; variant: "default" | "secondary" | "outline"; icon: typeof Mail }
+  { label: string; variant: "default" | "secondary" | "outline-solid"; icon: typeof Mail }
 > = {
   unread: { label: "New", variant: "default", icon: Mail },
   read: { label: "Read", variant: "secondary", icon: MailOpen },
@@ -190,14 +190,14 @@ export function FeedbackList({ initialFeedback, initialUnreadCount }: FeedbackLi
         {/* Status Filter Tabs */}
         <div className="flex flex-wrap gap-2">
           <Button
-            variant={statusFilter === "all" ? "default" : "outline"}
+            variant={statusFilter === "all" ? "default" : "outline-solid"}
             size="sm"
             onClick={() => setStatusFilter("all")}
           >
             All ({feedbackItems.length})
           </Button>
           <Button
-            variant={statusFilter === "unread" ? "default" : "outline"}
+            variant={statusFilter === "unread" ? "default" : "outline-solid"}
             size="sm"
             onClick={() => setStatusFilter("unread")}
           >
@@ -205,7 +205,7 @@ export function FeedbackList({ initialFeedback, initialUnreadCount }: FeedbackLi
             New ({unreadCount})
           </Button>
           <Button
-            variant={statusFilter === "read" ? "default" : "outline"}
+            variant={statusFilter === "read" ? "default" : "outline-solid"}
             size="sm"
             onClick={() => setStatusFilter("read")}
           >
@@ -213,7 +213,7 @@ export function FeedbackList({ initialFeedback, initialUnreadCount }: FeedbackLi
             Read
           </Button>
           <Button
-            variant={statusFilter === "replied" ? "default" : "outline"}
+            variant={statusFilter === "replied" ? "default" : "outline-solid"}
             size="sm"
             onClick={() => setStatusFilter("replied")}
           >
@@ -278,7 +278,7 @@ export function FeedbackList({ initialFeedback, initialUnreadCount }: FeedbackLi
                 onClick={() => handleViewFeedback(feedback)}
               >
                 <CardContent className="flex items-center gap-4 p-4">
-                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-muted">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted">
                     <StatusIcon className="h-5 w-5 text-muted-foreground" />
                   </div>
 
@@ -309,7 +309,7 @@ export function FeedbackList({ initialFeedback, initialUnreadCount }: FeedbackLi
                     </p>
                   </div>
 
-                  <ChevronRight className="h-5 w-5 flex-shrink-0 text-muted-foreground" />
+                  <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground" />
                 </CardContent>
               </Card>
             );

@@ -152,7 +152,7 @@ export function UnifiedPricingTable({ defaultInterval = "annual" }: UnifiedPrici
                   <Button
                     asChild
                     className="w-full rounded-full"
-                    variant={plan === "free" ? "outline" : "default"}
+                    variant={plan === "free" ? "outline-solid" : "default"}
                     onClick={() => handleClickPlanCta(plan, href)}
                   >
                     <Link href={href}>
@@ -233,7 +233,7 @@ export function UnifiedPricingTable({ defaultInterval = "annual" }: UnifiedPrici
         </div>
       </div>
 
-      <div className="rounded-xl border border-border/70 bg-gradient-to-r from-white via-emerald-50/40 to-blue-50/40 p-5">
+      <div className="rounded-xl border border-border/70 bg-linear-to-r from-white via-emerald-50/40 to-blue-50/40 p-5">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-base font-semibold text-foreground">Ready to launch both growth engines?</p>

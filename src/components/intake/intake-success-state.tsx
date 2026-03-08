@@ -43,7 +43,7 @@ export function IntakeSuccessState({ agencyName, websiteUrl }: IntakeSuccessStat
         <Button
           asChild
           variant="outline"
-          className="group rounded-full px-6 transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-[2px] hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)] active:translate-y-0"
+          className="group rounded-full px-6 transition-all duration-300 ease-premium hover:-translate-y-[2px] hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)] active:translate-y-0"
         >
           <a href={websiteUrl} target="_blank" rel="noopener noreferrer">
             <ArrowLeft className="mr-2 h-4 w-4 transition-transform duration-200 group-hover:-translate-x-1" />

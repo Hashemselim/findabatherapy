@@ -57,9 +57,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
@@ -91,6 +88,7 @@ import {
 import type { ClientDetail } from "@/lib/actions/clients";
 import { TASK_STATUS_OPTIONS, DOCUMENT_TYPE_OPTIONS, type ClientTask } from "@/lib/validations/clients";
 import { formatFileSize, getDocumentIconName } from "@/lib/storage/config";
+import { DashboardStatusBadge } from "@/components/dashboard/ui";
 
 import { ClientStatusBadge } from "@/components/dashboard/clients/client-status-badge";
 import { TaskFormDialog } from "@/components/dashboard/tasks";
@@ -112,9 +110,6 @@ import { DocumentEditDialog } from "@/components/dashboard/clients/edit/document
 interface ClientFullDetailProps {
   client: ClientDetail;
 }
-
-// Brand color for section headers
-const SECTION_COLOR = "#8B5CF6"; // CRM purple
 
 // Helper to get display label from option arrays
 function getOptionLabel<T extends readonly { value: string; label: string }[]>(
@@ -147,7 +142,7 @@ function CopyButton({ value, label }: { value: string; label: string }) {
             onClick={handleCopy}
           >
             {copied ? (
-              <Check className="h-3 w-3 text-green-500" />
+              <Check className="h-3 w-3 text-primary" />
             ) : (
               <Copy className="h-3 w-3 text-muted-foreground" />
             )}
@@ -182,23 +177,12 @@ function SectionHeader({
   rightContent,
 }: SectionHeaderProps) {
   return (
-    <div
-      className="flex items-center justify-between px-4 py-3 -mx-6 -mt-6 mb-4 rounded-t-lg"
-      style={{ backgroundColor: `${SECTION_COLOR}15` }}
-    >
+    <div className="-mx-6 mb-4 -mt-6 flex items-center justify-between rounded-t-lg bg-primary/10 px-4 py-3">
       <div className="flex items-center gap-2.5">
-        <div
-          className="flex h-7 w-7 items-center justify-center rounded-lg"
-          style={{ backgroundColor: SECTION_COLOR }}
-        >
+        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary">
           <Icon className="h-4 w-4 text-white" />
         </div>
-        <span
-          className="text-base font-semibold"
-          style={{ color: SECTION_COLOR }}
-        >
-          {title}
-        </span>
+        <span className="text-base font-semibold text-foreground">{title}</span>
         {badgeCount !== undefined && badgeCount > 0 && (
           <Badge variant="secondary" className="ml-1">
             {badgeLabel ? `${badgeCount} ${badgeLabel}` : badgeCount}
@@ -240,7 +224,7 @@ function Field({
     <div className={cn("group py-2", className)}>
       <p className="text-xs text-muted-foreground mb-0.5">{label}</p>
       <div className="flex items-center gap-1">
-        <p className="text-sm font-medium break-words">{value}</p>
+        <p className="text-sm font-medium wrap-break-word">{value}</p>
         <CopyButton value={value} label={label.toLowerCase()} />
       </div>
     </div>
@@ -307,7 +291,6 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
   const childName = [client.child_first_name, client.child_last_name].filter(Boolean).join(" ") || "Client";
   const activeTasks = client.tasks?.filter((t) => t.status !== "completed") || [];
   const completedTasks = client.tasks?.filter((t) => t.status === "completed") || [];
-  const primaryParent = client.parents?.find((p) => p.is_primary) || client.parents?.[0];
   const recipientsWithEmail = (client.parents || [])
     .filter((p) => p.email)
     .map((p) => ({
@@ -845,7 +828,7 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
                                       <div
                                         className={cn(
                                           "h-full rounded-full transition-all",
-                                          usagePercent >= 90 ? "bg-destructive" : usagePercent >= 75 ? "bg-amber-500" : "bg-primary"
+                                          usagePercent >= 90 ? "bg-destructive" : usagePercent >= 75 ? "bg-primary/60" : "bg-primary"
                                         )}
                                         style={{ width: `${usagePercent}%` }}
                                       />
@@ -931,7 +914,7 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
                               tabIndex={-1}
                               className={cn(
                                 "pointer-events-none",
-                                task.status === "in_progress" && "border-blue-500 data-[state=checked]:bg-blue-500"
+                                task.status === "in_progress" && "border-primary data-[state=checked]:bg-primary"
                               )}
                             />
                           </div>
@@ -950,18 +933,14 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
                       </DropdownMenu>
                       <div className="flex-1 min-w-0">
                         <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
-                          <p className="text-sm font-medium break-words">{task.title}</p>
+                          <p className="text-sm font-medium wrap-break-word">{task.title}</p>
                           <div className="flex items-center gap-1">
-                            <Badge
-                              variant="secondary"
-                              className={cn(
-                                "text-xs shrink-0",
-                                task.status === "pending" && "bg-gray-100 text-gray-700",
-                                task.status === "in_progress" && "bg-blue-100 text-blue-700"
-                              )}
+                            <DashboardStatusBadge
+                              tone={task.status === "in_progress" ? "info" : "default"}
+                              className="text-xs shrink-0"
                             >
                               {statusOption?.label}
-                            </Badge>
+                            </DashboardStatusBadge>
                             <CopyButton value={task.title} label="task" />
                           </div>
                         </div>
@@ -1022,7 +1001,7 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
                                 isPending && "pointer-events-none opacity-50"
                               )}
                             >
-                              <Checkbox checked tabIndex={-1} className="pointer-events-none data-[state=checked]:bg-green-500 border-green-500" />
+                              <Checkbox checked tabIndex={-1} className="pointer-events-none border-primary data-[state=checked]:bg-primary" />
                             </div>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="start">
@@ -1194,11 +1173,11 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
                           {/* File type icon */}
                           <div className="shrink-0 mt-0.5">
                             {iconType === "pdf" ? (
-                              <FileText className="h-5 w-5 text-red-500" />
+                              <FileText className="h-5 w-5 text-primary" />
                             ) : iconType === "image" ? (
-                              <FileImage className="h-5 w-5 text-blue-500" />
+                              <FileImage className="h-5 w-5 text-primary" />
                             ) : iconType === "doc" ? (
-                              <FileText className="h-5 w-5 text-blue-600" />
+                              <FileText className="h-5 w-5 text-primary" />
                             ) : hasFile ? (
                               <File className="h-5 w-5 text-muted-foreground" />
                             ) : (
@@ -1367,7 +1346,7 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
                           {intakeLinkLoading ? (
                             <Loader2 className="h-4 w-4 mr-1 animate-spin" />
                           ) : intakeLinkCopied ? (
-                            <Check className="h-4 w-4 mr-1 text-green-600" />
+                            <Check className="h-4 w-4 mr-1 text-primary" />
                           ) : (
                             <ClipboardList className="h-4 w-4 mr-1" />
                           )}

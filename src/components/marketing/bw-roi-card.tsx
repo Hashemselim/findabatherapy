@@ -32,8 +32,8 @@ function RoiMetric({
     <div
       className={
         highlight
-          ? "rounded-2xl bg-[#FFDC33]/15 p-4 text-center backdrop-blur-sm ring-1 ring-[#FFDC33]/20"
-          : "rounded-2xl bg-white/10 p-4 text-center backdrop-blur-sm"
+          ? "rounded-2xl bg-[#FFDC33]/15 p-4 text-center backdrop-blur-xs ring-1 ring-[#FFDC33]/20"
+          : "rounded-2xl bg-white/10 p-4 text-center backdrop-blur-xs"
       }
     >
       <p

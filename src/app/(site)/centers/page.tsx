@@ -122,7 +122,7 @@ export default async function CentersPage() {
           <BubbleBackground
             interactive
             transition={{ stiffness: 100, damping: 50, mass: 0.5 }}
-            className="w-full bg-gradient-to-br from-white via-yellow-50/50 to-blue-50/50 py-8 sm:py-12"
+            className="w-full bg-linear-to-br from-white via-yellow-50/50 to-blue-50/50 py-8 sm:py-12"
             colors={{
               first: "255,255,255",
               second: "255,236,170",
@@ -278,7 +278,7 @@ export default async function CentersPage() {
           </section>
 
           {/* CTA Section */}
-          <section className="rounded-2xl bg-gradient-to-r from-primary/10 via-primary/5 to-transparent p-8 text-center">
+          <section className="rounded-2xl bg-linear-to-r from-primary/10 via-primary/5 to-transparent p-8 text-center">
             <h2 className="text-2xl font-semibold">List Your ABA Center</h2>
             <p className="mx-auto mt-2 max-w-xl text-muted-foreground">
               Are you an ABA provider offering center-based services? Get your clinic listed

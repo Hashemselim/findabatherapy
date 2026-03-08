@@ -97,7 +97,7 @@ export default async function JobsHomePage() {
           <BubbleBackground
             interactive
             transition={{ stiffness: 100, damping: 50, mass: 0.5 }}
-            className="w-full bg-gradient-to-br from-white via-emerald-50/50 to-teal-50/50 py-8 sm:py-16"
+            className="w-full bg-linear-to-br from-white via-emerald-50/50 to-teal-50/50 py-8 sm:py-16"
             colors={{
               first: "255,255,255",
               second: "167,243,208",
@@ -121,7 +121,7 @@ export default async function JobsHomePage() {
                 </div>
                 <h1 className="text-[28px] font-semibold leading-[1.2] text-foreground sm:text-[48px]">
                   Find Your Next ABA Career{" "}
-                  <span className="bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent sm:whitespace-nowrap">Opportunity</span>
+                  <span className="bg-linear-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent sm:whitespace-nowrap">Opportunity</span>
                 </h1>
                 <p className="mx-auto hidden max-w-2xl text-lg text-muted-foreground sm:block">
                   Search thousands of BCBA, RBT, and behavior technician positions from top ABA providers nationwide.
@@ -145,7 +145,7 @@ export default async function JobsHomePage() {
         </section>
 
         {/* Social Proof Bar */}
-        <section className="border-y border-border/60 bg-gradient-to-r from-white via-emerald-50/30 to-white py-5 !mt-0">
+        <section className="border-y border-border/60 bg-linear-to-r from-white via-emerald-50/30 to-white py-5 mt-0!">
           <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-center gap-x-10 gap-y-4 px-4 text-sm sm:px-6">
             <div className="group flex items-center gap-2.5 transition-all duration-300 ease-premium hover:scale-[1.02]">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/10 transition-all duration-300 ease-premium group-hover:bg-emerald-500/15 group-hover:scale-[1.05]">
@@ -169,7 +169,7 @@ export default async function JobsHomePage() {
         </section>
 
         {/* Browse by Position */}
-        <section className="bg-white px-4 py-14 !mt-0 sm:px-6">
+        <section className="bg-white px-4 py-14 mt-0! sm:px-6">
           <div className="mx-auto max-w-5xl">
             <header className="text-center">
               <div className="mb-4 flex justify-center">
@@ -190,7 +190,7 @@ export default async function JobsHomePage() {
                 <Link
                   key={position.value}
                   href={position.href}
-                  className="group rounded-2xl border border-border/60 bg-white p-6 text-center transition-all duration-300 ease-premium hover:-translate-y-[2px] hover:border-emerald-500/30 hover:bg-emerald-500/[0.03] hover:shadow-[0_8px_30px_rgba(16,185,129,0.12)] active:translate-y-0 active:shadow-none"
+                  className="group rounded-2xl border border-border/60 bg-white p-6 text-center transition-all duration-300 ease-premium hover:-translate-y-[2px] hover:border-emerald-500/30 hover:bg-emerald-500/3 hover:shadow-[0_8px_30px_rgba(16,185,129,0.12)] active:translate-y-0 active:shadow-none"
                 >
                   <div className="flex flex-col items-center gap-3">
                     <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500/10 transition-all duration-300 ease-premium group-hover:bg-emerald-500/15 group-hover:scale-[1.05]">
@@ -216,7 +216,7 @@ export default async function JobsHomePage() {
 
         {/* Featured Jobs */}
         {featuredJobs.length > 0 && (
-          <section className="py-14 !mt-0 overflow-hidden bg-gradient-to-br from-emerald-50/40 via-white to-teal-50/40">
+          <section className="py-14 mt-0! overflow-hidden bg-linear-to-br from-emerald-50/40 via-white to-teal-50/40">
             <div className="mx-auto max-w-5xl px-4 sm:px-6">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-start gap-4">
@@ -246,7 +246,7 @@ export default async function JobsHomePage() {
         )}
 
         {/* Job Preview Table */}
-        <section className="bg-white py-14 !mt-0">
+        <section className="bg-white py-14 mt-0!">
           <div className="mx-auto max-w-5xl px-4 sm:px-6">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-start gap-4">
@@ -261,7 +261,7 @@ export default async function JobsHomePage() {
                 </div>
               </div>
             </div>
-            <div className="relative mt-8 overflow-hidden rounded-3xl border border-border/80 bg-white shadow-sm transition-all duration-500 ease-premium hover:shadow-[0_8px_30px_rgba(0,0,0,0.08)]">
+            <div className="relative mt-8 overflow-hidden rounded-3xl border border-border/80 bg-white shadow-xs transition-all duration-500 ease-premium hover:shadow-[0_8px_30px_rgba(0,0,0,0.08)]">
               <table className="w-full text-left text-sm">
                 <thead className="border-b border-border/60 bg-muted/30 text-muted-foreground">
                   <tr>
@@ -275,7 +275,7 @@ export default async function JobsHomePage() {
                   {previewRows.map((row, idx) => (
                     <tr
                       key={row.title}
-                      className={`group border-t border-border/40 bg-white transition-all duration-300 ease-premium hover:bg-emerald-500/[0.02] ${idx === 0 ? "border-t-0" : ""}`}
+                      className={`group border-t border-border/40 bg-white transition-all duration-300 ease-premium hover:bg-emerald-500/2 ${idx === 0 ? "border-t-0" : ""}`}
                     >
                       <td className="px-6 py-4">
                         <span className="font-medium text-foreground transition-colors duration-300 group-hover:text-emerald-600">{row.title}</span>
@@ -297,7 +297,7 @@ export default async function JobsHomePage() {
                   ))}
                 </tbody>
               </table>
-              <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-white via-white/90 to-transparent" />
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-linear-to-t from-white via-white/90 to-transparent" />
               <div className="absolute inset-x-0 bottom-6 flex justify-center">
                 <Button
                   asChild
@@ -315,7 +315,7 @@ export default async function JobsHomePage() {
 
         {/* Browse by State */}
         <section className="mx-auto max-w-5xl px-4 sm:px-6">
-          <Card className="overflow-hidden border border-border/80 bg-white shadow-sm transition-all duration-500 ease-premium hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)]">
+          <Card className="overflow-hidden border border-border/80 bg-white shadow-xs transition-all duration-500 ease-premium hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)]">
             <CardContent className="p-6 sm:p-8">
               <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-start gap-4">
@@ -337,7 +337,7 @@ export default async function JobsHomePage() {
                     <Link
                       key={state.value}
                       href={`/jobs/${state.value}`}
-                      className="group flex items-center gap-3 rounded-2xl border border-border/60 bg-white px-4 py-3 transition-all duration-300 ease-premium hover:-translate-y-[2px] hover:border-emerald-500/30 hover:bg-emerald-500/[0.02] hover:shadow-[0_4px_20px_rgba(16,185,129,0.1)] active:translate-y-0 active:shadow-none"
+                      className="group flex items-center gap-3 rounded-2xl border border-border/60 bg-white px-4 py-3 transition-all duration-300 ease-premium hover:-translate-y-[2px] hover:border-emerald-500/30 hover:bg-emerald-500/2 hover:shadow-[0_4px_20px_rgba(16,185,129,0.1)] active:translate-y-0 active:shadow-none"
                     >
                       <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 transition-all duration-300 ease-premium group-hover:scale-[1.05] group-hover:bg-emerald-600 group-hover:text-white group-hover:shadow-[0_2px_10px_rgba(16,185,129,0.4)]">
                         {Icon ? (
@@ -361,7 +361,7 @@ export default async function JobsHomePage() {
 
         {/* Employer CTA */}
         <section className="mx-auto max-w-5xl px-4 sm:px-6">
-          <Card className="group relative overflow-hidden border border-emerald-500/20 bg-gradient-to-br from-emerald-500/[0.03] via-white to-emerald-500/[0.06] transition-all duration-500 ease-premium hover:border-emerald-500/30 hover:shadow-[0_8px_30px_rgba(16,185,129,0.12)]">
+          <Card className="group relative overflow-hidden border border-emerald-500/20 bg-linear-to-br from-emerald-500/3 via-white to-emerald-500/6 transition-all duration-500 ease-premium hover:border-emerald-500/30 hover:shadow-[0_8px_30px_rgba(16,185,129,0.12)]">
             {/* Decorative elements */}
             <div className="pointer-events-none absolute -right-20 -top-20 h-40 w-40 rounded-full bg-emerald-500/5 transition-transform duration-700 ease-premium group-hover:scale-150" />
             <div className="pointer-events-none absolute -bottom-16 -left-16 h-32 w-32 rounded-full bg-emerald-500/10 transition-transform duration-700 ease-premium group-hover:scale-150" />

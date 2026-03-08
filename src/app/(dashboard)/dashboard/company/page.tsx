@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Lock, ExternalLink, Eye, EyeOff, AlertCircle, ClipboardList, ArrowRight, CheckCircle2, MapPin, ImageIcon, Video, Shield, Building2, Home, Monitor, GraduationCap } from "lucide-react";
+import { Lock, ExternalLink, Eye, EyeOff, AlertCircle, ClipboardList, ArrowRight, MapPin, ImageIcon, Video, Shield, Building2, Home, Monitor, GraduationCap } from "lucide-react";
 
 import { getListing } from "@/lib/actions/listings";
 import { getLocations } from "@/lib/actions/locations";
@@ -10,8 +10,8 @@ import { CompanyContactCard } from "@/components/dashboard/company-contact-card"
 import { ServicesAttributesCard } from "@/components/dashboard/services-attributes-card";
 import { ContactFormCard } from "@/components/dashboard/contact-form-card";
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
+import { DashboardCallout, DashboardEmptyState, DashboardStatusBadge, getDashboardToneClasses } from "@/components/dashboard/ui";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { BubbleBackground } from "@/components/ui/bubble-background";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
@@ -35,54 +35,20 @@ export default async function DashboardListingPage() {
           description="Update your company information, service offerings, and locations."
         />
 
-        <Card className="overflow-hidden border-slate-200">
-          <BubbleBackground
-            interactive={false}
-            size="default"
-            className="bg-gradient-to-br from-white via-yellow-50/50 to-blue-50/50"
-            colors={{
-              first: "255,255,255",
-              second: "255,236,170",
-              third: "135,176,255",
-              fourth: "255,248,210",
-              fifth: "190,210,255",
-              sixth: "240,248,255",
-            }}
-          >
-            <CardContent className="flex flex-col items-center py-12 px-6 text-center">
-              <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#5788FF] shadow-lg shadow-[#5788FF]/25">
-                <ClipboardList className="h-8 w-8 text-white" />
-              </div>
-
-              <p className="text-xl font-semibold text-slate-900">
-                Complete Onboarding to Access Company Details
-              </p>
-
-              <p className="mt-3 max-w-md text-sm text-slate-600">
-                Finish setting up your practice profile to unlock all dashboard features.
-              </p>
-
-              <div className="mt-6 flex flex-wrap justify-center gap-3">
-                {["Edit company info", "Manage services", "Update locations"].map((benefit) => (
-                  <span
-                    key={benefit}
-                    className="inline-flex items-center gap-1.5 rounded-full bg-white/80 px-3 py-1.5 text-xs font-medium text-slate-600"
-                  >
-                    <CheckCircle2 className="h-3.5 w-3.5 text-[#5788FF]" />
-                    {benefit}
-                  </span>
-                ))}
-              </div>
-
-              <Button asChild size="lg" className="mt-8">
-                <Link href="/dashboard/onboarding" className="gap-2">
-                  Continue Onboarding
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-              </Button>
-            </CardContent>
-          </BubbleBackground>
-        </Card>
+        <DashboardEmptyState
+          icon={ClipboardList}
+          title="Complete Onboarding to Access Company Details"
+          description="Finish setting up your practice profile to unlock all dashboard features."
+          benefits={["Edit company info", "Manage services", "Update locations"]}
+          action={(
+            <Button asChild size="lg">
+              <Link href="/dashboard/onboarding" className="gap-2">
+                Continue Onboarding
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
+          )}
+        />
       </div>
     );
   }
@@ -116,6 +82,8 @@ export default async function DashboardListingPage() {
   // Count media items
   const photoCount = listing.photoUrls?.length || 0;
   const hasVideo = !!listing.attributes?.videoUrl;
+  const infoTone = getDashboardToneClasses("info");
+  const successTone = getDashboardToneClasses("success");
 
   // Aggregate location data for summary
   const acceptingCount = locations.filter(l => l.isAcceptingClients).length;
@@ -128,10 +96,7 @@ export default async function DashboardListingPage() {
           title="Company Details"
           description="Update your company information and manage your service locations."
         >
-          <Badge
-            variant={isPublished ? "default" : "secondary"}
-            className="px-3 py-1"
-          >
+          <DashboardStatusBadge tone={isPublished ? "success" : "warning"} className="px-3 py-1">
             {isPublished ? (
               <>
                 <Eye className="mr-1 h-3 w-3" />
@@ -143,7 +108,7 @@ export default async function DashboardListingPage() {
                 Draft
               </>
             )}
-          </Badge>
+          </DashboardStatusBadge>
           {isPublished && (
             <>
               <Button variant="outline" size="sm" className="hidden sm:inline-flex" asChild>
@@ -213,8 +178,8 @@ export default async function DashboardListingPage() {
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#5788FF]/10">
-                  <MapPin className="h-5 w-5 text-[#5788FF]" />
+                <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${infoTone.icon}`}>
+                  <MapPin className="h-5 w-5" />
                 </div>
                 <div>
                   <CardTitle className="text-base">Service Locations</CardTitle>
@@ -225,7 +190,7 @@ export default async function DashboardListingPage() {
                         ? "1 location"
                         : `${locations.length} locations`}
                     {locations.length > 0 && acceptingCount > 0 && (
-                      <span className="text-emerald-600"> · {acceptingCount} accepting clients</span>
+                      <span className="text-primary"> · {acceptingCount} accepting clients</span>
                     )}
                   </CardDescription>
                 </div>
@@ -277,12 +242,12 @@ export default async function DashboardListingPage() {
                         })}
                       </div>
                       {/* Accepting status */}
-                      <Badge
-                        variant={location.isAcceptingClients ? "default" : "secondary"}
-                        className={`text-[10px] px-1.5 py-0 ${location.isAcceptingClients ? "bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20" : ""}`}
+                      <DashboardStatusBadge
+                        tone={location.isAcceptingClients ? "success" : "default"}
+                        className="text-[10px] px-1.5 py-0"
                       >
                         {location.isAcceptingClients ? "Accepting" : "Full"}
-                      </Badge>
+                      </DashboardStatusBadge>
                     </div>
                   </div>
                 ))}
@@ -373,8 +338,8 @@ export default async function DashboardListingPage() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/10">
-                  <ImageIcon className="h-5 w-5 text-emerald-600" />
+                <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${successTone.icon}`}>
+                  <ImageIcon className="h-5 w-5" />
                 </div>
                 <div>
                   <CardTitle className="text-base">Photos & Video</CardTitle>
@@ -417,37 +382,27 @@ export default async function DashboardListingPage() {
 
         {/* Premium Features Teaser */}
         {!isPaidPlan && (
-          <Card className="border-primary/20 bg-primary/5">
-            <CardHeader className="flex flex-row items-center gap-3">
-              <Lock className="h-5 w-5 text-primary" aria-hidden />
-              <div>
-                <CardTitle>Upgrade to unlock more features</CardTitle>
-                <CardDescription>
-                  Pro plans include video embeds, contact forms, Google ratings, and priority placement in search results.
-                </CardDescription>
-              </div>
-            </CardHeader>
-            <CardContent>
+          <DashboardCallout
+            tone="premium"
+            icon={Lock}
+            title="Upgrade to unlock more features"
+            description="Pro plans include video embeds, contact forms, Google ratings, and priority placement in search results."
+            action={(
               <Button asChild>
                 <Link href="/dashboard/billing">View Upgrade Options</Link>
               </Button>
-            </CardContent>
-          </Card>
+            )}
+          />
         )}
 
         {/* Validation Warnings */}
         {listing.status === "draft" && (
-          <Card className="border-amber-500/30 bg-amber-500/5">
-            <CardHeader className="flex flex-row items-center gap-3">
-              <AlertCircle className="h-5 w-5 text-[#5788FF]" aria-hidden />
-              <div>
-                <CardTitle className="text-amber-900">Listing not yet published</CardTitle>
-                <CardDescription>
-                  Your listing is currently in draft mode and not visible to families. Publish your listing to appear in search results.
-                </CardDescription>
-              </div>
-            </CardHeader>
-          </Card>
+          <DashboardCallout
+            tone="warning"
+            icon={AlertCircle}
+            title="Listing not yet published"
+            description="Your listing is currently in draft mode and not visible to families. Publish your listing to appear in search results."
+          />
         )}
     </div>
   );

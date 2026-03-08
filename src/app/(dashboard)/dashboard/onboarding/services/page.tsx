@@ -227,7 +227,7 @@ export default function OnboardingServicesPage() {
 
             <div className="flex items-center gap-3">
               <select
-                className="h-11 flex-1 rounded-xl border border-amber-200/60 bg-[#FFFBF0] px-3 text-sm text-[#1A2744] focus:border-[#1A2744]/30 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1A2744]/5"
+                className="h-11 flex-1 rounded-xl border border-amber-200/60 bg-[#FFFBF0] px-3 text-sm text-[#1A2744] focus:border-[#1A2744]/30 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#1A2744]/5"
                 value={formData.agesServedMin}
                 onChange={(event) =>
                   setFormData((prev) => ({ ...prev, agesServedMin: Number(event.target.value) }))
@@ -241,7 +241,7 @@ export default function OnboardingServicesPage() {
               </select>
               <span className="text-sm font-medium text-slate-400">to</span>
               <select
-                className="h-11 flex-1 rounded-xl border border-amber-200/60 bg-[#FFFBF0] px-3 text-sm text-[#1A2744] focus:border-[#1A2744]/30 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1A2744]/5"
+                className="h-11 flex-1 rounded-xl border border-amber-200/60 bg-[#FFFBF0] px-3 text-sm text-[#1A2744] focus:border-[#1A2744]/30 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#1A2744]/5"
                 value={formData.agesServedMax}
                 onChange={(event) =>
                   setFormData((prev) => ({ ...prev, agesServedMax: Number(event.target.value) }))
@@ -352,7 +352,7 @@ export default function OnboardingServicesPage() {
                   key={specialty}
                   className={`flex cursor-pointer items-center gap-2.5 rounded-xl border px-3 py-2.5 text-sm transition-all ${
                     isSelected
-                      ? "border-[#1A2744]/15 bg-[#1A2744]/[0.03] text-[#1A2744]"
+                      ? "border-[#1A2744]/15 bg-[#1A2744]/3 text-[#1A2744]"
                       : "border-amber-200/60 bg-[#FFFBF0] text-slate-500 hover:border-amber-200/70"
                   }`}
                 >

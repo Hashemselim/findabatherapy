@@ -271,7 +271,7 @@ function LocationResultCard({ location, position, searchQuery }: LocationResultC
       >
         <CardContent className="flex gap-4 p-4">
           {/* Logo */}
-          <div className="flex-shrink-0">
+          <div className="shrink-0">
             <ProviderLogo
               name={location.agencyName}
               logoUrl={location.logoUrl ?? undefined}
@@ -391,7 +391,7 @@ function LocationResultCard({ location, position, searchQuery }: LocationResultC
 
           {/* Featured badge on right side for desktop */}
           {location.isFeatured && (
-            <div className="hidden flex-shrink-0 sm:block">
+            <div className="hidden shrink-0 sm:block">
               <FeaturedBadge withHover />
             </div>
           )}
@@ -426,7 +426,7 @@ function SearchResultCard({ listing, position, searchQuery }: SearchResultCardPr
       >
         <CardContent className="flex gap-4 p-4">
           {/* Logo */}
-          <div className="flex-shrink-0">
+          <div className="shrink-0">
             <ProviderLogo
               name={listing.profile.agencyName}
               logoUrl={listing.logoUrl ?? undefined}
@@ -519,7 +519,7 @@ export function SearchResultsSkeleton({ count = 5 }: SearchResultsSkeletonProps)
       {Array.from({ length: count }).map((_, i) => (
         <Card key={i} className="animate-pulse">
           <CardContent className="flex gap-4 p-4">
-            <div className="h-16 w-16 flex-shrink-0 rounded-xl bg-muted" />
+            <div className="h-16 w-16 shrink-0 rounded-xl bg-muted" />
             <div className="flex-1 space-y-2">
               <div className="h-5 w-1/3 rounded bg-muted" />
               <div className="h-4 w-1/4 rounded bg-muted" />
@@ -550,7 +550,7 @@ function GooglePlacesResultCard({ listing, position, searchQuery }: GooglePlaces
       <Card className="border-dashed border-muted-foreground/30 transition-all duration-300 ease-premium hover:-translate-y-[2px] hover:border-[#5788FF]/40 hover:shadow-[0_8px_30px_rgba(87,136,255,0.08)] active:translate-y-0 active:shadow-none">
         <CardContent className="flex gap-4 p-4">
           {/* Logo */}
-          <div className="flex-shrink-0">
+          <div className="shrink-0">
             <ProviderLogo
               name={listing.name}
               size="md"

@@ -795,30 +795,30 @@ In the JSX next-steps list, add an add-on variant. Replace the existing `<ul>` b
   {isAddon ? (
     <>
       <li className="flex items-start gap-2">
-        <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0" />
+        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
         Your add-on is now active
       </li>
       <li className="flex items-start gap-2">
-        <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0" />
+        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
         Updated limits are available immediately
       </li>
       <li className="flex items-start gap-2">
-        <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0" />
+        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
         Manage add-ons anytime from the billing page
       </li>
     </>
   ) : (
     <>
       <li className="flex items-start gap-2">
-        <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0" />
+        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
         Your listing is now published and searchable
       </li>
       <li className="flex items-start gap-2">
-        <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0" />
+        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
         All Pro features are unlocked — branded pages, CRM, communications
       </li>
       <li className="flex items-start gap-2">
-        <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0" />
+        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
         Families can contact you directly through your listing
       </li>
     </>

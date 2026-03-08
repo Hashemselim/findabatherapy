@@ -15,9 +15,10 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getProviderCareersPath } from "@/lib/utils/public-paths";
+import { DashboardCard, DashboardStatusBadge } from "@/components/dashboard/ui";
+import { DashboardCard, DashboardStatusBadge } from "@/components/dashboard/ui";
 
 interface CareersPageShareCardProps {
   listingSlug: string;
@@ -59,12 +60,12 @@ export function CareersPageShareCard({
   return (
     <div className="space-y-6">
       {/* Main Share Card */}
-      <Card className="border-emerald-200 bg-gradient-to-br from-emerald-50/50 to-white">
+      <DashboardCard tone="success">
         <CardHeader>
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-600">
-                <Link2 className="h-5 w-5 text-white" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <Link2 className="h-5 w-5" />
               </div>
               <div>
                 <CardTitle className="text-foreground">Your Branded Careers Page</CardTitle>
@@ -73,23 +74,23 @@ export function CareersPageShareCard({
                 </CardDescription>
               </div>
             </div>
-            <Badge variant="secondary" className="bg-emerald-100 text-emerald-700">
+            <DashboardStatusBadge tone="success">
               <Briefcase className="mr-1 h-3 w-3" />
               {jobCount} {jobCount === 1 ? "job" : "jobs"} listed
-            </Badge>
+            </DashboardStatusBadge>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
           {/* URL Display and Copy */}
           <div className="flex flex-col gap-3 sm:flex-row">
-            <div className="flex-1 rounded-lg border border-emerald-200 bg-white px-4 py-3">
+            <div className="flex-1 rounded-lg border border-border/60 bg-background px-4 py-3">
               <p className="truncate font-mono text-sm text-muted-foreground">{careersUrl}</p>
             </div>
             <div className="flex gap-2">
               <Button
                 onClick={handleCopyLink}
                 className="shrink-0 gap-2"
-                variant={copied ? "outline" : "default"}
+                variant={copied ? "outline-solid" : "default"}
               >
                 {copied ? (
                   <>
@@ -113,32 +114,32 @@ export function CareersPageShareCard({
           </div>
 
           {/* What's included */}
-          <div className="rounded-lg border border-emerald-200 bg-white p-4">
+          <div className="rounded-lg border border-border/60 bg-background p-4">
             <p className="mb-3 text-sm font-medium text-foreground">What&apos;s on your careers page:</p>
             <div className="grid gap-2 sm:grid-cols-2">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Building2 className="h-4 w-4 text-emerald-600" />
+                <Building2 className="h-4 w-4 text-primary" />
                 Your company logo and name
               </div>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Briefcase className="h-4 w-4 text-emerald-600" />
+                <Briefcase className="h-4 w-4 text-primary" />
                 All your published job listings
               </div>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Users className="h-4 w-4 text-emerald-600" />
+                <Users className="h-4 w-4 text-primary" />
                 Direct application forms
               </div>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Globe className="h-4 w-4 text-emerald-600" />
+                <Globe className="h-4 w-4 text-primary" />
                 Link to your company website
               </div>
             </div>
           </div>
         </CardContent>
-      </Card>
+      </DashboardCard>
 
       {/* Use Cases Card */}
-      <Card className="border-border/60 bg-white">
+      <DashboardCard>
         <CardHeader>
           <CardTitle className="text-foreground">Ways to Use Your Careers Page</CardTitle>
           <CardDescription>
@@ -149,7 +150,7 @@ export function CareersPageShareCard({
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="rounded-lg border border-border/60 bg-muted/30 p-4">
               <div className="mb-2 flex items-center gap-2">
-                <Globe className="h-4 w-4 text-emerald-600" />
+                <Globe className="h-4 w-4 text-primary" />
                 <p className="text-sm font-medium text-foreground">Company Website</p>
               </div>
               <p className="text-sm text-muted-foreground">
@@ -159,7 +160,7 @@ export function CareersPageShareCard({
 
             <div className="rounded-lg border border-border/60 bg-muted/30 p-4">
               <div className="mb-2 flex items-center gap-2">
-                <Briefcase className="h-4 w-4 text-emerald-600" />
+                <Briefcase className="h-4 w-4 text-primary" />
                 <p className="text-sm font-medium text-foreground">Job Board Posts</p>
               </div>
               <p className="text-sm text-muted-foreground">
@@ -169,7 +170,7 @@ export function CareersPageShareCard({
 
             <div className="rounded-lg border border-border/60 bg-muted/30 p-4">
               <div className="mb-2 flex items-center gap-2">
-                <Users className="h-4 w-4 text-emerald-600" />
+                <Users className="h-4 w-4 text-primary" />
                 <p className="text-sm font-medium text-foreground">Employee Referrals</p>
               </div>
               <p className="text-sm text-muted-foreground">
@@ -179,7 +180,7 @@ export function CareersPageShareCard({
 
             <div className="rounded-lg border border-border/60 bg-muted/30 p-4">
               <div className="mb-2 flex items-center gap-2">
-                <Mail className="h-4 w-4 text-emerald-600" />
+                <Mail className="h-4 w-4 text-primary" />
                 <p className="text-sm font-medium text-foreground">Email Signature</p>
               </div>
               <p className="text-sm text-muted-foreground">
@@ -188,10 +189,10 @@ export function CareersPageShareCard({
             </div>
           </div>
         </CardContent>
-      </Card>
+      </DashboardCard>
 
       {/* Preview Card */}
-      <Card className="border-border/60 bg-white">
+      <DashboardCard>
         <CardHeader>
           <CardTitle className="text-foreground">Page Preview</CardTitle>
           <CardDescription>
@@ -199,12 +200,12 @@ export function CareersPageShareCard({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="rounded-xl border border-border/60 bg-gradient-to-br from-slate-50 to-white p-6">
+          <div className="rounded-xl border border-border/60 bg-muted/20 p-6">
             <div className="mx-auto max-w-md space-y-4">
               {/* Mock Header */}
               <div className="flex flex-col items-center text-center">
-                <div className="h-16 w-16 rounded-full bg-emerald-100 flex items-center justify-center">
-                  <span className="text-lg font-bold text-emerald-700">
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+                  <span className="text-lg font-bold text-primary">
                     {companyName.split(" ").map(w => w[0]).slice(0, 2).join("")}
                   </span>
                 </div>
@@ -230,7 +231,7 @@ export function CareersPageShareCard({
 
               {jobCount === 0 && (
                 <p className="text-center text-sm text-muted-foreground">
-                  No jobs posted yet. <Link href="/dashboard/jobs/new" className="text-emerald-600 hover:underline">Create your first job</Link> to see it here.
+                  No jobs posted yet. <Link href="/dashboard/jobs/new" className="text-primary hover:underline">Create your first job</Link> to see it here.
                 </p>
               )}
             </div>
@@ -245,14 +246,14 @@ export function CareersPageShareCard({
             </Button>
           </div>
         </CardContent>
-      </Card>
+      </DashboardCard>
 
       {/* No Jobs CTA */}
       {jobCount === 0 && (
-        <Card className="border-amber-200 bg-amber-50/50">
+        <DashboardCard tone="warning">
           <CardContent className="flex items-center justify-between py-4">
             <div className="flex items-center gap-3">
-              <Briefcase className="h-5 w-5 text-amber-600" />
+              <Briefcase className="h-5 w-5 text-foreground" />
               <div>
                 <p className="font-medium text-foreground">No jobs to display yet</p>
                 <p className="text-sm text-muted-foreground">
@@ -266,7 +267,7 @@ export function CareersPageShareCard({
               </Link>
             </Button>
           </CardContent>
-        </Card>
+        </DashboardCard>
       )}
     </div>
   );

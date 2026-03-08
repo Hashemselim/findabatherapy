@@ -130,7 +130,7 @@ export function CompactSearchBar({
       )}
 
       {/* Compact search card */}
-      <div className="rounded-2xl border border-border/50 bg-white/80 p-3 shadow-sm backdrop-blur-sm transition-all duration-300 ease-premium hover:shadow-[0_4px_20px_rgba(0,0,0,0.06)] sm:p-4">
+      <div className="rounded-2xl border border-border/50 bg-white/80 p-3 shadow-xs backdrop-blur-xs transition-all duration-300 ease-premium hover:shadow-[0_4px_20px_rgba(0,0,0,0.06)] sm:p-4">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
           {/* Location input */}
           <div className="relative flex-[1.3] sm:min-w-[200px]">
@@ -156,7 +156,7 @@ export function CompactSearchBar({
             <PopoverTrigger asChild>
               <button
                 type="button"
-                className="flex h-10 w-full items-center gap-2 rounded-xl border border-border bg-white px-3 text-left text-sm transition-all duration-300 ease-premium hover:border-[#5788FF]/40 focus:border-[#5788FF]/50 focus:outline-none sm:flex-[1.1] sm:min-w-[150px]"
+                className="flex h-10 w-full items-center gap-2 rounded-xl border border-border bg-white px-3 text-left text-sm transition-all duration-300 ease-premium hover:border-[#5788FF]/40 focus:border-[#5788FF]/50 focus:outline-hidden sm:flex-[1.1] sm:min-w-[150px]"
               >
               <Building2 className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
               <div className="flex min-w-0 flex-1 items-center gap-1 overflow-hidden">
@@ -207,7 +207,7 @@ export function CompactSearchBar({
           <PopoverTrigger asChild>
             <button
               type="button"
-              className="flex h-10 w-full items-center gap-2 rounded-xl border border-border bg-white px-3 text-left text-sm transition-all duration-300 ease-premium hover:border-[#5788FF]/40 focus:border-[#5788FF]/50 focus:outline-none sm:flex-[0.9] sm:min-w-[130px]"
+              className="flex h-10 w-full items-center gap-2 rounded-xl border border-border bg-white px-3 text-left text-sm transition-all duration-300 ease-premium hover:border-[#5788FF]/40 focus:border-[#5788FF]/50 focus:outline-hidden sm:flex-[0.9] sm:min-w-[130px]"
             >
               <Stethoscope className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
               <div className="min-w-0 flex-1 overflow-hidden">
@@ -250,7 +250,7 @@ export function CompactSearchBar({
         {/* Search button */}
           <Button
             onClick={handleSearch}
-            className="h-10 w-full rounded-xl border border-[#FEE720] bg-[#FEE720] px-5 text-sm font-semibold text-[#333333] shadow-[0_2px_8px_rgba(254,231,32,0.3)] transition-all duration-300 ease-premium hover:-translate-y-[1px] hover:bg-[#FFF5C2] hover:shadow-[0_4px_12px_rgba(254,231,32,0.4)] active:translate-y-0 sm:w-auto"
+            className="h-10 w-full rounded-xl border border-[#FEE720] bg-[#FEE720] px-5 text-sm font-semibold text-[#333333] shadow-[0_2px_8px_rgba(254,231,32,0.3)] transition-all duration-300 ease-premium hover:-translate-y-px hover:bg-[#FFF5C2] hover:shadow-[0_4px_12px_rgba(254,231,32,0.4)] active:translate-y-0 sm:w-auto"
           >
             Find care
           </Button>
