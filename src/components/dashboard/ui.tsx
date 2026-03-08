@@ -255,10 +255,11 @@ export function DashboardCallout({
   children,
   className,
 }: DashboardCalloutProps) {
-  const toneClasses = getDashboardToneClasses(tone);
+  const resolvedTone: DashboardTone = tone ?? "default";
+  const toneClasses = getDashboardToneClasses(resolvedTone);
 
   return (
-    <DashboardCard tone={tone} className={className}>
+    <DashboardCard tone={resolvedTone} className={className}>
       <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex items-start gap-3">
           <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-lg", toneClasses.icon)}>
@@ -294,10 +295,11 @@ export function DashboardEmptyState({
   tone = "default",
   className,
 }: DashboardEmptyStateProps) {
-  const toneClasses = getDashboardToneClasses(tone);
+  const resolvedTone: DashboardTone = tone ?? "default";
+  const toneClasses = getDashboardToneClasses(resolvedTone);
 
   return (
-    <DashboardCard tone={tone} className={cn("overflow-hidden", className)}>
+    <DashboardCard tone={resolvedTone} className={cn("overflow-hidden", className)}>
       <CardContent className="flex flex-col items-center px-6 py-12 text-center">
         <div className={cn("flex h-16 w-16 items-center justify-center rounded-2xl", toneClasses.icon)}>
           <Icon className="h-8 w-8" aria-hidden />
@@ -354,10 +356,11 @@ export function DashboardFeatureCard({
   tone = "premium",
   className,
 }: DashboardFeatureCardProps) {
-  const toneClasses = getDashboardToneClasses(tone);
+  const resolvedTone: DashboardTone = tone ?? "premium";
+  const toneClasses = getDashboardToneClasses(resolvedTone);
 
   return (
-    <DashboardCard tone={tone} className={cn("relative overflow-hidden", className)}>
+    <DashboardCard tone={resolvedTone} className={cn("relative overflow-hidden", className)}>
       <CardContent className="p-6">
         <div className="flex flex-col gap-4">
           <div className="flex items-start gap-4">
@@ -367,7 +370,7 @@ export function DashboardFeatureCard({
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
                 <h3 className="text-lg font-semibold text-foreground">{title}</h3>
-                <DashboardStatusBadge tone={tone}>{badgeLabel}</DashboardStatusBadge>
+                <DashboardStatusBadge tone={resolvedTone}>{badgeLabel}</DashboardStatusBadge>
               </div>
               <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{description}</p>
             </div>
@@ -438,10 +441,11 @@ export function DashboardStatCard({
   tone = "default",
   className,
 }: DashboardStatCardProps) {
-  const toneClasses = getDashboardToneClasses(tone);
+  const resolvedTone: DashboardTone = tone ?? "default";
+  const toneClasses = getDashboardToneClasses(resolvedTone);
 
   return (
-    <DashboardCard tone={tone} className={className}>
+    <DashboardCard tone={resolvedTone} className={className}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <p className="text-sm text-muted-foreground">{label}</p>
         <span className={cn("flex h-8 w-8 items-center justify-center rounded-lg", toneClasses.mutedIcon)}>

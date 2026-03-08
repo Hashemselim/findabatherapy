@@ -1,6 +1,7 @@
 import { MapPin } from "lucide-react";
+import type { VariantProps } from "class-variance-authority";
 
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 interface DirectionsButtonProps {
@@ -8,8 +9,8 @@ interface DirectionsButtonProps {
   longitude: number | null;
   address: string;
   className?: string;
-  variant?: "default" | "outline-solid" | "ghost";
-  size?: "default" | "sm" | "lg" | "icon";
+  variant?: VariantProps<typeof buttonVariants>["variant"];
+  size?: VariantProps<typeof buttonVariants>["size"];
 }
 
 /**

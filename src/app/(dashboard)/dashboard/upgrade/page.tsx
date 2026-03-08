@@ -19,12 +19,15 @@ export default function DashboardUpgradePage() {
       />
 
       <div className="grid gap-4 md:grid-cols-3">
-        {planTiers.map((plan) => (
-          <DashboardCard key={plan.id} tone={plan.highlight ? "premium" : "default"}>
+        {planTiers.map((plan) => {
+          const isRecommended = plan.id === "premium";
+
+          return (
+          <DashboardCard key={plan.id} tone={isRecommended ? "premium" : "default"}>
             <CardHeader>
               <div className="flex items-center justify-between gap-2">
                 <CardTitle>{plan.name}</CardTitle>
-                {plan.highlight && <DashboardStatusBadge tone="premium">Recommended</DashboardStatusBadge>}
+                {isRecommended && <DashboardStatusBadge tone="premium">Recommended</DashboardStatusBadge>}
               </div>
               <CardDescription>{plan.summary}</CardDescription>
             </CardHeader>
@@ -37,12 +40,12 @@ export default function DashboardUpgradePage() {
               </ul>
             </CardContent>
             <CardFooter>
-              <Button className="w-full" variant={plan.highlight ? "default" : "outline-solid"}>
+              <Button className="w-full" variant={isRecommended ? "default" : "outline-solid"}>
                 Choose {plan.name}
               </Button>
             </CardFooter>
           </DashboardCard>
-        ))}
+        )})}
       </div>
     </div>
   );

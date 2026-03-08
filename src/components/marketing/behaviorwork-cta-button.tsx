@@ -1,16 +1,17 @@
 "use client";
 
 import Link from "next/link";
+import type { VariantProps } from "class-variance-authority";
 
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { trackBehaviorWorkCtaClick } from "@/lib/posthog/events";
 
 interface BehaviorWorkCtaButtonProps {
   href: string;
   label: string;
   section: string;
-  variant?: "default" | "outline-solid" | "secondary";
-  size?: "default" | "sm" | "lg";
+  variant?: VariantProps<typeof buttonVariants>["variant"];
+  size?: VariantProps<typeof buttonVariants>["size"];
   className?: string;
 }
 

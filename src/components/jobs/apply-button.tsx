@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import type { VariantProps } from "class-variance-authority";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -16,8 +17,8 @@ interface ApplyButtonProps {
   jobId: string;
   jobTitle: string;
   providerName: string;
-  variant?: "default" | "outline-solid" | "secondary" | "ghost" | "link" | "destructive";
-  size?: "default" | "sm" | "lg" | "icon";
+  variant?: VariantProps<typeof buttonVariants>["variant"];
+  size?: VariantProps<typeof buttonVariants>["size"];
   className?: string;
   style?: React.CSSProperties;
   children?: React.ReactNode;

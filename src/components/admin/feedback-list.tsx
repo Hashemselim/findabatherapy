@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { format } from "date-fns";
+import type { VariantProps } from "class-variance-authority";
 import { RelativeTime } from "@/components/ui/relative-time";
 import {
   Mail,
@@ -25,7 +26,7 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Badge, badgeVariants } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
@@ -67,7 +68,7 @@ interface FeedbackListProps {
 
 const statusConfig: Record<
   FeedbackStatus,
-  { label: string; variant: "default" | "secondary" | "outline-solid"; icon: typeof Mail }
+  { label: string; variant: VariantProps<typeof badgeVariants>["variant"]; icon: typeof Mail }
 > = {
   unread: { label: "New", variant: "default", icon: Mail },
   read: { label: "Read", variant: "secondary", icon: MailOpen },

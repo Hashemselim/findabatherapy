@@ -2,13 +2,14 @@
 
 import { useState } from "react";
 import { ExternalLink, Loader2 } from "lucide-react";
+import type { VariantProps } from "class-variance-authority";
 
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { createBillingPortalSession } from "@/lib/stripe/actions";
 
 interface BillingPortalButtonProps {
-  variant?: "default" | "outline-solid" | "link";
-  size?: "default" | "sm" | "lg";
+  variant?: VariantProps<typeof buttonVariants>["variant"];
+  size?: VariantProps<typeof buttonVariants>["size"];
   className?: string;
   children?: React.ReactNode;
 }
