@@ -50,8 +50,6 @@ interface ClientOption {
   name: string;
 }
 
-const NO_CLIENT_VALUE = "__no_client__";
-
 interface TaskFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
