@@ -58,7 +58,7 @@ export default async function EmployeesPage() {
         title="Employees"
         description="Manage team members, credentials, and internal records."
       >
-        <Button asChild variant="outline" className="w-full rounded-full sm:w-auto">
+        <Button asChild className="w-full rounded-full sm:w-auto">
           <Link href="/dashboard/team/employees?new=1">
             <Plus className="mr-2 h-4 w-4" />
             Add Employee

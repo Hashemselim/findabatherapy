@@ -277,7 +277,7 @@ export function DashboardTopbar({
             <SheetContent
               side="left"
               className={cn(
-                "flex flex-col gap-0 overflow-hidden p-0 shadow-none",
+                "dashboard-theme flex flex-col gap-0 overflow-hidden p-0 shadow-none",
                 dashboardSidebarShellClassName
               )}
               style={{ width: DASHBOARD_SIDEBAR_WIDTH_PX, maxWidth: "calc(100vw - 16px)" }}
