@@ -43,7 +43,7 @@ export const metadata: Metadata = {
 
 export function GoodabaLandingPage() {
   return (
-    <div className="min-h-screen bg-[#FFFBF0] text-slate-900">
+    <div className="min-h-screen overflow-x-clip bg-[#FFFBF0] text-slate-900">
       <BehaviorWorkTracker mode="lander" />
       <BehaviorWorkHeader />
       <div className="h-16" aria-hidden="true" />

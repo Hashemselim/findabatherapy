@@ -72,14 +72,19 @@ export function BehaviorWorkHeader() {
           : "border-b border-transparent bg-[#FFFBF0]"
       )}
     >
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5 sm:px-6 lg:px-8">
+      <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
         {/* Logo */}
         <Link
           href={homeHref}
-          className="group flex items-center"
+          className="group flex min-w-0 items-center lg:flex-none"
           aria-label="GoodABA home"
         >
-          <BehaviorWorkLogo size="lg" />
+          <span className="sm:hidden">
+            <BehaviorWorkLogo size="md" />
+          </span>
+          <span className="hidden sm:inline-flex">
+            <BehaviorWorkLogo size="lg" />
+          </span>
         </Link>
 
         {/* Desktop nav */}
@@ -118,7 +123,7 @@ export function BehaviorWorkHeader() {
             <Button
               variant="ghost"
               size="icon"
-              className="h-9 w-9 text-[#1A2744] hover:bg-amber-50 lg:hidden"
+              className="h-9 w-9 shrink-0 rounded-full text-[#1A2744] hover:bg-amber-50 lg:hidden"
               aria-label="Toggle navigation"
             >
               <Menu className="h-5 w-5" />
@@ -126,32 +131,34 @@ export function BehaviorWorkHeader() {
           </SheetTrigger>
           <SheetContent
             side="right"
-            className="w-72 border-amber-100 bg-[#FFFBF0] sm:w-80"
+            className="w-[min(20rem,calc(100vw-1rem))] border-amber-100 bg-[#FFFBF0] p-0 sm:w-80"
           >
-            <SheetHeader>
-              <SheetTitle>
+            <SheetHeader className="gap-3 border-b border-amber-100 px-5 pb-4 pt-5 pr-14">
+              <SheetTitle className="leading-none">
                 <BehaviorWorkLogo size="md" />
               </SheetTitle>
-              <SheetDescription>
+              <SheetDescription className="max-w-[14rem] text-base leading-6 text-slate-500">
                 The growth platform for ABA agencies.
               </SheetDescription>
             </SheetHeader>
-            <div className="mt-6 flex flex-col gap-1">
-              {navItems.map((item) => (
-                <SheetClose asChild key={item.label}>
-                  <Link
-                    href={item.href}
-                    className="rounded-xl px-3 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:bg-amber-50 hover:text-[#1A2744]"
-                  >
-                    {item.label}
-                  </Link>
-                </SheetClose>
-              ))}
-              <div className="mt-3 border-t border-amber-100 pt-3">
+            <div className="flex flex-1 flex-col px-5 pb-5 pt-4">
+              <div className="space-y-1.5">
+                {navItems.map((item) => (
+                  <SheetClose asChild key={item.label}>
+                    <Link
+                      href={item.href}
+                      className="flex min-h-11 items-center rounded-2xl px-3.5 py-3 text-base font-medium text-slate-600 transition-colors hover:bg-amber-50 hover:text-[#1A2744]"
+                    >
+                      {item.label}
+                    </Link>
+                  </SheetClose>
+                ))}
+              </div>
+              <div className="mt-auto border-t border-amber-100 pt-5">
                 <SheetClose asChild>
                   <Link
                     href="/auth/sign-in"
-                    className="block rounded-xl px-3 py-2.5 text-sm font-medium text-slate-500 transition-colors hover:bg-amber-50 hover:text-[#1A2744]"
+                    className="flex min-h-11 items-center rounded-2xl px-3.5 py-3 text-base font-medium text-slate-500 transition-colors hover:bg-amber-50 hover:text-[#1A2744]"
                   >
                     Log In
                   </Link>
@@ -160,7 +167,7 @@ export function BehaviorWorkHeader() {
                   <Link
                     href={pricingHref}
                     onClick={trackHeaderCta}
-                    className="mt-1 flex h-10 items-center justify-center rounded-full bg-[#FFDC33] text-sm font-bold text-[#1A2744] shadow-xs shadow-amber-200/40 transition-all hover:bg-[#F5CF1B]"
+                    className="mt-3 flex h-12 items-center justify-center rounded-full bg-[#FFDC33] px-5 text-base font-bold text-[#1A2744] shadow-xs shadow-amber-200/40 transition-all hover:bg-[#F5CF1B]"
                   >
                     Start Free
                   </Link>
