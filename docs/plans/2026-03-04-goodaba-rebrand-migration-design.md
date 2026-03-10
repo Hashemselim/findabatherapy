@@ -1,535 +1,676 @@
-# GoodABA.com Rebrand & Domain Consolidation
+# GoodABA Rebrand Plan: Preserve FindABATherapy, Consolidate Platform + Jobs
 
 **Date:** 2026-03-04
-**Status:** Design — awaiting approval
+**Status:** Revised design
 
 ---
 
 ## Summary
 
-Consolidate three brands (FindABATherapy.org, FindABAJobs.org, BehaviorWork.com) into one unified brand: **GoodABA.com**. Eliminate multi-domain routing. All audiences — families, job seekers, and agencies — are served from a single domain with route-based separation.
+Adopt a hybrid brand architecture:
 
-Old domains remain owned and 301-redirect to their GoodABA equivalents permanently.
+- **FindABATherapy.org stays intact** as the family-facing provider directory and SEO asset.
+- **BehaviorWork.com is replaced by GoodABA.com** as the provider-facing platform brand.
+- **FindABAJobs is folded into GoodABA Jobs** and served from `goodaba.com/jobs`.
+- **All provider-controlled public pages move to GoodABA now** under a unified provider route structure.
 
----
-
-## Navigation Structure
-
-```
-goodaba.com
-├── Find Providers     → /find (directory)
-├── Family Resources   → /resources (learn hub)
-├── Find Jobs          → /jobs (job board)
-├── Get Listed         → /get-listed (agency landing + pricing)
-└── Log In             → /auth/sign-in
-```
+This keeps the strongest descriptive public brand while simplifying the agency-facing story into one company and one platform.
 
 ---
 
-## Route Mapping: Current → New
+## Recommended Brand Architecture
 
-### Homepage
+### 1. Family-facing brand
 
-| Current | New | Notes |
-|---------|-----|-------|
-| `findabatherapy.org/` | `goodaba.com/` | Directory-first homepage with unified nav. Same content as current therapy homepage but with top nav surfacing Jobs, Get Listed, etc. |
+- **Brand:** FindABATherapy
+- **Domain:** `findabatherapy.org`
+- **Audience:** Families and referral sources looking for ABA providers
+- **Primary job:** Discovery and provider lead generation
+- **Endorsement:** Use light endorsed-brand treatment where helpful, such as `FindABATherapy by GoodABA`
 
-### Provider Directory (currently `(site)` routes)
+### 2. Provider-facing platform brand
 
-| Current | New | Notes |
-|---------|-----|-------|
-| `/search` | `/find` | Main directory search page. Also serves as the homepage hero section. |
-| `/provider/[slug]` | `/find/provider/[slug]` | Individual provider listing |
-| `/provider/p/[slug]` | `/find/provider/[slug]` | Merge with above (301 redirect old format) |
-| `/states` | `/find/states` | Browse all states |
-| `/[state]` | `/find/[state]` | State listings (e.g., `/find/texas`) |
-| `/[state]/guide` | `/find/[state]/guide` | State guide |
-| `/[state]/[city]` | `/find/[state]/[city]` | City listings (e.g., `/find/texas/houston`) |
-| `/insurance` | `/find/insurance` | Browse insurance carriers |
-| `/insurance/[slug]` | `/find/insurance/[slug]` | Insurance-specific listings |
-| `/centers` | `/find/centers` | ABA centers directory |
-| `/faq` | `/faq` | Keep at root level (applies to whole platform) |
+- **Brand:** GoodABA
+- **Domain:** `goodaba.com`
+- **Audience:** ABA agency owners, operators, clinical leaders
+- **Primary job:** Sell and operate the software platform
+- **Core surfaces:** marketing site, pricing, auth, dashboard, billing, onboarding, support
 
-### Family Resources (currently `(site)` learn routes)
+### 3. Recruiting brand
 
-| Current | New | Notes |
-|---------|-----|-------|
-| `/learn` | `/resources` | Learning hub homepage. Nav label: "Family Resources" |
-| `/learn/[slug]` | `/resources/[slug]` | Individual article/guide |
-| `/learn/glossary` | `/resources/glossary` | Glossary of ABA terms |
-
-### Job Board (currently `(jobs)` routes)
-
-| Current | New | Notes |
-|---------|-----|-------|
-| `findabajobs.org/jobs` | `/jobs` | Job board homepage |
-| `findabajobs.org/jobs/search` | `/jobs/search` | Job search |
-| `findabajobs.org/jobs/[state]` | `/jobs/[state]` | Jobs by state |
-| `findabajobs.org/jobs/[state]/[city]` | `/jobs/[state]/[city]` | Jobs by city |
-| `findabajobs.org/[position]-jobs` | `/jobs/[position]` | Position category (e.g., `/jobs/rbt`) |
-| `findabajobs.org/job/[slug]` | `/jobs/[slug]` | Individual job posting |
-| `findabajobs.org/employers` | `/jobs/employers` | Employer profiles |
-| `findabajobs.org/employers/[slug]` | `/jobs/employers/[slug]` | Individual employer |
-
-### Careers Pages (currently `(careers)` routes)
-
-| Current | New | Notes |
-|---------|-----|-------|
-| `/careers/[slug]` | `/careers/[slug]` | No change — employer career pages stay |
-| `/careers/[slug]/[jobSlug]` | `/careers/[slug]/[jobSlug]` | No change |
-| `/provider/[slug]/careers` | `/careers/[slug]` | Redirect to canonical careers URL |
-
-### Agency Landing (currently `/behaviorwork` routes)
-
-| Current | New | Notes |
-|---------|-----|-------|
-| `/behaviorwork` | `/get-listed` | Single long-form landing page: hero → features → how it works → pricing → FAQ → CTA. Replaces both `/behaviorwork` and `/behaviorwork/get-started`. |
-| `/behaviorwork/get-started` | `/get-listed` | 301 redirect (merged into one page) |
-| `/get-listed` (current) | `/get-listed` | Current signup CTA page merges into new landing page |
-
-### Branded Agency Pages (currently various)
-
-| Current | New | Notes |
-|---------|-----|-------|
-| `/p/[slug]` | `/p/[slug]` | No change — short branded page URLs |
-| `/site/[slug]` | `/site/[slug]` | No change — full agency microsites |
-| `/site/[slug]/contact` | `/site/[slug]/contact` | No change |
-| `/site/[slug]/careers` | `/site/[slug]/careers` | No change |
-| `/site/[slug]/intake` | `/site/[slug]/intake` | No change |
-| `/site/[slug]/resources/*` | `/site/[slug]/resources/*` | No change |
-
-### Intake & Contact Forms
-
-| Current | New | Notes |
-|---------|-----|-------|
-| `/intake/[slug]/client` | `/intake/[slug]/client` | No change |
-| `/contact/[slug]` | `/contact/[slug]` | No change |
-| `/resources/[slug]/*` | `/resources/[slug]/*` | No change (intake resources, different from learn) |
-
-### Auth
-
-| Current | New | Notes |
-|---------|-----|-------|
-| `/auth/sign-in` | `/auth/sign-in` | No change |
-| `/auth/sign-up` | `/auth/sign-up` | No change |
-| `/auth/reset-password` | `/auth/reset-password` | No change |
-
-### Dashboard
-
-| Current | New | Notes |
-|---------|-----|-------|
-| `/dashboard/*` | `/dashboard/*` | No changes to any dashboard routes |
-
-### Legal
-
-| Current | New | Notes |
-|---------|-----|-------|
-| `/legal/privacy` | `/legal/privacy` | No change — update company name references in copy |
-| `/legal/terms` | `/legal/terms` | No change — update company name references in copy |
-
-### Admin & Demo
-
-| Current | New | Notes |
-|---------|-----|-------|
-| `/admin/*` | `/admin/*` | No change |
-| `/demo/*` | `/demo/*` | No change |
+- **Brand:** GoodABA Jobs
+- **Domain:** `goodaba.com/jobs`
+- **Audience:** Job seekers and hiring agencies
+- **Primary job:** Job discovery and recruiting distribution
+- **Legacy domain:** `findabajobs.org` becomes a permanent redirect domain
 
 ---
 
-## 301 Redirect Map (Old Domains → GoodABA)
+## Why This Direction Is Better
 
-These redirects run at the DNS/Vercel level. Old domains stay owned permanently.
+This structure matches the strategy more closely than a full consolidation:
 
-### findabatherapy.org
+- The strategy explicitly treats **client acquisition and lifecycle management** as the top value driver.
+- It also treats **FindABATherapy distribution** as unique strategic leverage.
+- Hiring is important, but it is secondary to getting and converting families.
+
+So the right move is:
+
+- preserve the strongest acquisition brand
+- simplify the provider-facing product story
+- consolidate the less strategically important public brand
+
+---
+
+## Domain Architecture
+
+### FindABATherapy.org
+
+Keep the directory domain and its public SEO structure as-is:
+
+- homepage
+- search
+- provider profiles
+- state/city pages
+- insurance pages
+- learn content
+- FAQ
+
+FindABATherapy scope is explicitly limited to:
+
+- directory and discovery
+- provider listing pages
+- state and city SEO pages
+- insurance SEO pages
+- editorial/learn content
+- FAQ and family education
+
+Only change the provider conversion path:
+
+- `Get Listed`
+- pricing / signup CTAs
+- any BehaviorWork references
+
+Those should send users to `https://www.goodaba.com/`.
+
+### GoodABA.com
+
+GoodABA becomes the provider/company domain:
+
+- `/` -> primary provider-facing landing page
+- `/provider/[slug]` -> branded brochure
+- `/provider/[slug]/website` -> full branded website homepage
+- `/provider/[slug]/website/contact`
+- `/provider/[slug]/website/intake`
+- `/provider/[slug]/website/resources`
+- `/provider/[slug]/website/careers`
+- `/provider/[slug]/contact`
+- `/provider/[slug]/intake`
+- `/provider/[slug]/resources`
+- `/provider/[slug]/careers`
+- `/provider/[slug]/jobs/[jobSlug]`
+- `/jobs` -> GoodABA Jobs homepage
+- `/jobs/search`
+- `/jobs/[state]`
+- `/jobs/[state]/[city]`
+- `/jobs/role/[position]`
+- `/jobs/post/[slug]`
+- `/jobs/employers`
+- `/jobs/employers/[slug]`
+- `/auth/*`
+- `/dashboard/*`
+
+GoodABA scope is explicitly:
+
+- landing and pricing
+- all provider-controlled branded pages
+- branded brochure
+- branded website
+- provider contact and intake flows
+- provider resources
+- provider careers and provider job pages
+- jobs marketplace
+- auth, onboarding, dashboard, and billing
+
+Product priority within GoodABA public pages:
+
+- the **primary provider-facing public surfaces** are the branded brochure and standalone branded pages
+- the **full branded website is optional/secondary**
+- implementation and onboarding should prioritize brochure, contact, intake, resources, and careers before website-specific expansion
+- because standalone branded pages and website subpages share similar content, they should not compete for indexing by default
+
+### Redirect-only domains
+
+- `behaviorwork.com/*` -> `goodaba.com/*`
+- `findabajobs.org/*` -> `goodaba.com/jobs/*` equivalents
+
+---
+
+## Information Architecture
+
+### FindABATherapy.org navigation
+
+Keep the family-first navigation. Do not turn it into a mixed family + jobs + platform site.
+
+Recommended nav:
+
+- Find Providers
+- Learn
+- Insurance
+- FAQ
+- Get Listed
+- Log In
+
+`Get Listed` should link to `https://www.goodaba.com/`.
+
+### GoodABA.com navigation
+
+Provider-facing top nav:
+
+- Platform
+- Pricing
+- Jobs
+- Log In
+- Start Free
+
+If landing and pricing are combined, use:
+
+- Platform
+- Jobs
+- FAQ
+- Log In
+- Start Free
+
+### Recommendation: combine landing + pricing
+
+Use one primary marketing page on `goodaba.com/` unless there is a strong paid-acquisition reason to split them.
+
+Recommended homepage sections:
+
+- hero
+- product value proposition
+- workflow / lifecycle explanation
+- branded pages and forms
+- CRM and communications
+- hiring / jobs distribution
+- pricing
+- FAQ
+- CTA
+
+Optional:
+
+- keep `/pricing` as a simple anchored version or alias later if needed
+
+---
+
+## Route Mapping
+
+### A. FindABATherapy routes
+
+These remain unchanged:
+
+| Current | New | Notes |
+|---------|-----|-------|
+| `/` | `/` | No change |
+| `/search` | `/search` | No change |
+| `/provider/[slug]` | `/provider/[slug]` | No change |
+| `/provider/p/[slug]` | `/provider/p/[slug]` | No change for now |
+| `/states` | `/states` | No change |
+| `/[state]` | `/[state]` | No change |
+| `/[state]/guide` | `/[state]/guide` | No change |
+| `/[state]/[city]` | `/[state]/[city]` | No change |
+| `/insurance` | `/insurance` | No change |
+| `/insurance/[slug]` | `/insurance/[slug]` | No change |
+| `/centers` | `/centers` | No change |
+| `/learn` | `/learn` | No change |
+| `/learn/[slug]` | `/learn/[slug]` | No change |
+| `/learn/glossary` | `/learn/glossary` | No change |
+| `/faq` | `/faq` | No change |
+
+### B. Provider conversion routes on FindABATherapy
+
+These should now hand off to GoodABA:
+
+| Current | New | Notes |
+|---------|-----|-------|
+| `/get-listed` | `https://www.goodaba.com/` | Canonical provider CTA destination |
+| `/behaviorwork` | `goodaba.com` | Permanent redirect |
+| `/behaviorwork/get-started` | `goodaba.com` | Permanent redirect |
+
+### C. Provider-controlled public routes moving to GoodABA
+
+These should move now instead of remaining on FindABATherapy:
+
+| Current | New | Notes |
+|---------|-----|-------|
+| `/p/[slug]` | `goodaba.com/provider/[slug]` | Branded brochure canonical route |
+| `/site/[slug]` | `goodaba.com/provider/[slug]/website` | Full branded website homepage |
+| `/site/[slug]/contact` | `goodaba.com/provider/[slug]/website/contact` | Contact page inside the branded website |
+| `/site/[slug]/intake` | `goodaba.com/provider/[slug]/website/intake` | Intake page inside the branded website |
+| `/site/[slug]/resources` | `goodaba.com/provider/[slug]/website/resources` | Resource hub inside the branded website |
+| `/site/[slug]/resources/*` | `goodaba.com/provider/[slug]/website/resources/*` | Website resources canonicalize under the website namespace |
+| `/site/[slug]/careers` | `goodaba.com/provider/[slug]/website/careers` | Careers page inside the branded website |
+| `/contact/[slug]` | `goodaba.com/provider/[slug]/contact` | Standalone contact link now uses provider namespace |
+| `/intake/[slug]/client` | `goodaba.com/provider/[slug]/intake` | Standalone intake link now uses provider namespace |
+| `/resources/[slug]` | `goodaba.com/provider/[slug]/resources` | Provider resource hub moves to GoodABA |
+| `/resources/[slug]/faq` | `goodaba.com/provider/[slug]/resources/faq` | Provider FAQ |
+| `/resources/[slug]/glossary` | `goodaba.com/provider/[slug]/resources/glossary` | Provider glossary |
+| `/resources/[slug]/guides` | `goodaba.com/provider/[slug]/resources/guides` | Provider guides |
+| `/resources/[slug]/guides/[guideSlug]` | `goodaba.com/provider/[slug]/resources/guides/[guideSlug]` | Provider guide detail |
+| `/careers/[slug]` | `goodaba.com/provider/[slug]/careers` | Provider-specific careers page |
+| `/careers/[slug]/[jobSlug]` | `goodaba.com/provider/[slug]/jobs/[jobSlug]` | Provider-owned job page |
+| `/provider/[slug]/careers` | `goodaba.com/provider/[slug]/careers` | Legacy provider careers mapping |
+
+### D. GoodABA marketplace and platform routes
+
+| Purpose | Route | Notes |
+|---------|------|-------|
+| Landing + pricing | `/` | Recommended combined page |
+| Optional pricing page | `/pricing` | Optional later, not required for launch |
+| Branded brochure | `/provider/[slug]` | Canonical brochure page |
+| Branded website home | `/provider/[slug]/website` | Canonical full website homepage |
+| Branded website contact | `/provider/[slug]/website/contact` | Contact page inside website |
+| Branded website intake | `/provider/[slug]/website/intake` | Intake page inside website |
+| Branded website resources | `/provider/[slug]/website/resources` | Resources inside website |
+| Branded website careers | `/provider/[slug]/website/careers` | Careers inside website |
+| Provider contact | `/provider/[slug]/contact` | Canonical provider contact page |
+| Provider intake | `/provider/[slug]/intake` | Canonical provider intake page |
+| Provider resources | `/provider/[slug]/resources` | Canonical provider resources hub |
+| Provider careers | `/provider/[slug]/careers` | Canonical provider careers page |
+| Provider job detail | `/provider/[slug]/jobs/[jobSlug]` | Canonical provider-owned job detail |
+| Jobs homepage | `/jobs` | Replaces jobs-domain homepage |
+| Jobs search | `/jobs/search` | Keep current pattern |
+| Jobs by state | `/jobs/[state]` | Keep current pattern |
+| Jobs by city | `/jobs/[state]/[city]` | Keep current pattern |
+| Jobs by role | `/jobs/role/[position]` | Avoid conflict with state and job detail routes |
+| Marketplace job detail | `/jobs/post/[slug]` | Avoid conflict with state and role routes |
+| Employers | `/jobs/employers` | Keep |
+| Employer detail | `/jobs/employers/[slug]` | Keep |
+| Auth | `/auth/*` | Canonical provider auth routes on GoodABA |
+| Dashboard | `/dashboard/*` | Canonical provider dashboard and billing routes on GoodABA |
+
+### E. Job page types and indexing rules
+
+The jobs product should explicitly support three page types:
+
+1. **Marketplace job pages**
+
+- Route: `/jobs/post/[slug]`
+- Purpose: public GoodABA Jobs listing pages browsable across providers
+- SEO: indexable
+- Canonical: self-canonical
+
+2. **Provider-branded public job pages**
+
+- Route: `/provider/[slug]/jobs/[jobSlug]`
+- Purpose: provider-context job pages linked from the provider careers flow
+- SEO: **not indexed separately by default**
+- Canonical: canonicalize to `/jobs/post/[slug]` unless there is a clear SEO reason to let a provider-branded page stand alone
+
+3. **Private or limited-access provider job pages**
+
+- Route: implementation-specific if needed
+- Purpose: provider-branded job pages not intended for broad public discovery
+- SEO: `noindex`
+- Canonical: none unless promoted to a public page
+
+### F. Legacy jobs redirects
 
 | Old URL | Redirects To |
 |---------|-------------|
-| `/` | `goodaba.com/` |
-| `/search` | `goodaba.com/find` |
-| `/provider/[slug]` | `goodaba.com/find/provider/[slug]` |
-| `/provider/p/[slug]` | `goodaba.com/find/provider/[slug]` |
-| `/states` | `goodaba.com/find/states` |
-| `/[state]` | `goodaba.com/find/[state]` |
-| `/[state]/guide` | `goodaba.com/find/[state]/guide` |
-| `/[state]/[city]` | `goodaba.com/find/[state]/[city]` |
-| `/insurance` | `goodaba.com/find/insurance` |
-| `/insurance/[slug]` | `goodaba.com/find/insurance/[slug]` |
-| `/centers` | `goodaba.com/find/centers` |
-| `/learn` | `goodaba.com/resources` |
-| `/learn/[slug]` | `goodaba.com/resources/[slug]` |
-| `/learn/glossary` | `goodaba.com/resources/glossary` |
-| `/faq` | `goodaba.com/faq` |
-| `/get-listed` | `goodaba.com/get-listed` |
-| `/*` (catch-all) | `goodaba.com/*` |
+| `findabajobs.org/` | `goodaba.com/jobs` |
+| `findabajobs.org/*` | `goodaba.com/jobs` or nearest relevant jobs destination | Lightweight redirect strategy is acceptable because legacy usage and SEO are minimal |
 
-### findabajobs.org
+### G. Legacy in-app path redirects
 
 | Old URL | Redirects To |
 |---------|-------------|
-| `/` | `goodaba.com/jobs` |
-| `/jobs` | `goodaba.com/jobs` |
-| `/jobs/search` | `goodaba.com/jobs/search` |
-| `/jobs/[state]` | `goodaba.com/jobs/[state]` |
-| `/jobs/[state]/[city]` | `goodaba.com/jobs/[state]/[city]` |
-| `/[position]-jobs` | `goodaba.com/jobs/[position]` |
-| `/job/[slug]` | `goodaba.com/jobs/[slug]` |
-| `/employers` | `goodaba.com/jobs/employers` |
-| `/employers/[slug]` | `goodaba.com/jobs/employers/[slug]` |
-| `/*` (catch-all) | `goodaba.com/*` |
+| `/job/[slug]` | `/jobs/post/[slug]` |
+| `/[position]-jobs` | `/jobs/role/[position]` |
+| `/careers/[slug]` | `/provider/[slug]/careers` |
+| `/careers/[slug]/[jobSlug]` | `/provider/[slug]/jobs/[jobSlug]` |
 
-### behaviorwork.com
+### H. BehaviorWork redirects
 
 | Old URL | Redirects To |
 |---------|-------------|
-| `/` | `goodaba.com/get-listed` |
-| `/dashboard/*` | `goodaba.com/dashboard/*` |
-| `/*` (catch-all) | `goodaba.com/*` |
+| `behaviorwork.com/` | `goodaba.com/` |
+| `behaviorwork.com/pricing` | `goodaba.com/` |
+| `behaviorwork.com/dashboard/*` | `goodaba.com/dashboard/*` |
+| `behaviorwork.com/auth/*` | `goodaba.com/auth/*` |
+| `behaviorwork.com/*` | `goodaba.com/*` |
 
 ---
 
 ## Code Changes Required
 
-### 1. Domain Configuration (`src/lib/utils/domains.ts`)
+### 1. Domain configuration
 
-**Current:** Three-brand `domains` object with brand detection by hostname.
+Update `src/lib/utils/domains.ts` from three brands to two public brands plus one platform brand model:
 
-**New:** Single-domain configuration.
+- keep `therapy` for `findabatherapy.org`
+- replace `parent` with `goodaba`
+- remove `behaviorwork.com` as a primary runtime domain
+- either remove `jobs` as a standalone domain brand or refactor it into a section under GoodABA
 
-```typescript
-// Replace entire domains object with:
-export const siteConfig = {
-  domain: "goodaba.com",
-  production: "https://www.goodaba.com",
-  name: "GoodABA",
-  supportEmail: "support@goodaba.com",
-  noReplyEmail: "noreply@goodaba.com",
-};
-```
+Recommended end state:
 
-- Remove `Brand` type (`"therapy" | "jobs" | "parent"`)
-- Remove `getBrandFromHost()`, `getBrandFromPath()`, `getBrandFromRequest()`
-- Remove `isJobsDomain()`, `isParentDomain()`
-- Simplify `getBaseUrl()` to return single domain
-- Simplify `getFromEmail()` / `getFormattedFromEmail()` to use `@goodaba.com`
-- Remove `getAllProductionDomains()` (one domain now)
+- `findabatherapy.org` remains a first-class production domain
+- `goodaba.com` becomes the primary app domain for platform + jobs
+- `findabajobs.org` is supported only for redirects
 
-### 2. Middleware (`src/middleware.ts`)
+### 2. Middleware
 
-**Current:** Complex host-based brand detection with cross-domain redirects and rewrites.
+Revise `src/middleware.ts` to support:
 
-**New:** Standard Next.js middleware — auth protection, no brand routing.
+- `findabatherapy.org` serving therapy public routes
+- `goodaba.com` serving jobs + auth + dashboard + platform marketing
+- redirecting old `behaviorwork.com` traffic to `goodaba.com`
+- redirecting old `findabajobs.org` traffic to GoodABA Jobs
+- canonicalizing provider auth, signup, onboarding, dashboard, and billing flows to `goodaba.com`
 
-- Remove `getBrandFromRequest()` call
-- Remove all host-based routing logic (lines 130-201)
-- Remove jobs domain detection
-- Remove cross-domain redirects
-- Keep: auth guards, CSP headers, any rate limiting
+Do **not** remove all domain-aware routing logic. Some domain-aware behavior is still required because the app will still serve at least two public domains.
 
-### 3. Site Configs (`src/config/site.ts`, `src/config/jobs.ts`, `src/config/brands.ts`)
+### 3. Route restructuring for provider pages and jobs
 
-**Current:** Separate config objects per brand.
+Do **not** move therapy routes under `/find`.
+Do **not** move learn routes from `/learn` to `/resources`.
 
-**New:** One unified config.
+Move all provider-controlled public pages to GoodABA under a unified provider namespace:
 
-```typescript
-// src/config/site.ts — single config
-export const siteConfig = {
-  name: "GoodABA",
-  tagline: "The ABA Growth Toolkit",
-  description: "Find ABA providers. Post ABA jobs. Manage your ABA agency. One platform.",
-  contactEmail: "support@goodaba.com",
-  url: "https://www.goodaba.com",
-  seo: {
-    // Merged keywords from both therapy + jobs configs
-  },
-  social: {
-    twitter: "https://twitter.com/goodaba",
-    // ...
-  },
-  nav: {
-    public: [
-      { label: "Find Providers", href: "/find" },
-      { label: "Family Resources", href: "/resources" },
-      { label: "Find Jobs", href: "/jobs" },
-      { label: "Get Listed", href: "/get-listed" },
-    ],
-  },
-};
-```
+- `goodaba.com/provider/[slug]` for the branded brochure
+- `goodaba.com/provider/[slug]/website` for the full branded website
+- `goodaba.com/provider/[slug]/website/contact`
+- `goodaba.com/provider/[slug]/website/intake`
+- `goodaba.com/provider/[slug]/website/resources`
+- `goodaba.com/provider/[slug]/website/careers`
+- `goodaba.com/provider/[slug]/contact`
+- `goodaba.com/provider/[slug]/intake`
+- `goodaba.com/provider/[slug]/resources`
+- `goodaba.com/provider/[slug]/careers`
+- `goodaba.com/provider/[slug]/jobs/[jobSlug]`
 
-- Delete `src/config/jobs.ts` (merge relevant SEO keywords into unified config)
-- Simplify `src/config/brands.ts` (keep color tokens for visual differentiation of directory vs jobs sections, but remove brand-switching logic)
+Treat these as primary launch surfaces:
 
-### 4. Layouts & Metadata
+- brochure
+- contact
+- intake
+- resources
+- careers
 
-**Root layout (`src/app/layout.tsx`):**
-- `metadataBase: new URL("https://www.goodaba.com")`
-- Update all metadata to GoodABA branding
-- Update OG defaults
+Treat the full branded website as optional/secondary for early rollout.
 
-**Jobs layout (`src/app/(jobs)/layout.tsx`):**
-- Remove `metadataBase` override (inherits from root)
-- Keep layout structure (different header/footer for jobs section)
-- Update metadata title template to `"%s | GoodABA Jobs"`
+Move the jobs marketplace routes to their GoodABA namespace:
 
-**Careers layout (`src/app/(careers)/layout.tsx`):**
-- Remove `metadataBase` override
-- Update metadata
+- current jobs homepage stays `/jobs`
+- current job search stays `/jobs/search`
+- current state and city routes stay under `/jobs/...`
+- current position pages should move from `/(jobs)/[position]-jobs` to `/jobs/role/[position]`
+- current job detail pages should move from `/job/[slug]` to `/jobs/post/[slug]`
 
-**Site layout (`src/app/(site)/layout.tsx`):**
-- Update nav component to unified GoodABA nav
+This keeps one provider identity model across both domains, avoids jobs route collisions, and preserves the therapy site SEO structure.
 
-### 5. Route Group Restructuring
+### 4. GoodABA marketing page
 
-**Move directory routes under `/find`:**
-- Current `(site)` routes at root (`/[state]`, `/search`, `/provider/[slug]`) need to move under a `/find` prefix
-- Option A: Move files into `(site)/find/` directory
-- Option B: Create new `(find)` route group with `/find` in the URL
-- This is the most file-movement-heavy change
+Replace the BehaviorWork marketing experience with GoodABA branding:
 
-**Rename learn routes:**
-- Move `(site)/learn/` → route under `/resources` (note: potential conflict with intake `resources/[slug]` routes — need to differentiate. Intake resources are provider-slug-scoped, learn resources are global.)
+- `/behaviorwork` content becomes GoodABA marketing content
+- recommended canonical location is `goodaba.com/`
+- current `findabatherapy.org/get-listed` should become a handoff path, not a primary marketing destination
+- all provider CTA entry points should land on `https://www.goodaba.com/`
 
-**Position-type job routes:**
-- Current: `findabajobs.org/[position]-jobs` (e.g., `/rbt-jobs`)
-- New: `/jobs/[position]` (e.g., `/jobs/rbt`)
-- Requires updating dynamic route structure
+### 5. Site configuration
 
-### 6. Sitemaps
+Refactor config files to reflect actual site responsibilities:
 
-**Current:** Two separate sitemaps (therapy sitemap.ts + jobs sitemap.ts).
+- `src/config/site.ts` remains for FindABATherapy
+- `src/config/jobs.ts` becomes GoodABA Jobs config or is merged into a GoodABA marketing/jobs config
+- `src/config/brands.ts` should describe section-level brand tokens, not pretend there are still three separate public companies
 
-**New:** One unified sitemap at root.
+### 6. Metadata and SEO
 
-- Merge both into `src/app/sitemap.ts`
-- All URLs use `https://www.goodaba.com` base
-- Directory URLs: `/find/provider/[slug]`, `/find/[state]/[city]`, etc.
-- Job URLs: `/jobs/[slug]`, `/jobs/[state]/[city]`, etc.
+Update metadata by domain responsibility:
 
-### 7. OG Image Generation (`src/app/api/og/route.tsx`)
+- FindABATherapy metadata stays branded as FindABATherapy
+- GoodABA marketing pages use GoodABA branding
+- GoodABA provider-branded public pages canonicalize to GoodABA URLs
+- GoodABA Jobs pages use GoodABA Jobs branding
+- provider careers and provider job pages should be reviewed carefully so canonical and OG data align with the new provider URLs
+- provider-branded job pages should canonicalize to marketplace job pages by default
+- website subpages that substantially duplicate standalone branded pages should canonicalize to the standalone branded pages or be marked `noindex`
 
-- Keep existing visual style (same gradients, same layout) — just swap brand names
-- Replace hardcoded `findabatherapy.org` / `findabajobs.org` text with `goodaba.com`
-- Remove brand parameter switching if no longer needed (one domain)
+### 7. Email templates
 
-### 8. Email Templates (`src/lib/email/email-helpers.ts`)
+Update provider/platform emails to GoodABA:
 
-- `emailWrapper()`: Update footer from "via findabatherapy.org" → "via GoodABA"
-- `agencyEmailWrapper()`: Update "Powered by BehaviorWork" → "Powered by GoodABA"
-- Update support email: `support@goodaba.com`
-- Update all `from` addresses: `noreply@goodaba.com`
+- support emails for platform flows should become `support@goodaba.com`
+- platform sender domain should become `goodaba.com`
+- therapy-facing directory emails should be reviewed case by case rather than blindly rebranded
 
-### 9. Robots.txt (`src/app/robots.ts`)
+The previous BehaviorWork unified sender approach can be repointed to GoodABA.
 
-- Update base URL to `https://www.goodaba.com`
-- Single sitemap reference
+### 8. UI copy sweep
 
-### 10. Environment Variables
+Replace BehaviorWork references across:
 
-```env
-NEXT_PUBLIC_SITE_URL=https://www.goodaba.com
+- auth header
+- onboarding
+- dashboard
+- billing
+- pricing
+- upgrade modal
+- marketing pages
+- email wrappers
+- docs and env examples
 
-# Remove per-brand email overrides
-# Just use:
-EMAIL_FROM=noreply@goodaba.com
-```
+Do **not** blindly replace every `FindABATherapy` reference. Many of those should remain unchanged.
 
-### 11. Stripe Configuration
+---
 
-- No code changes needed (uses relative paths + `getValidatedOrigin()`)
-- Update Stripe Dashboard: business name, support email, receipt branding
-- Update webhook endpoint URL in Stripe to `goodaba.com/api/stripe/webhooks`
+## File-Level Impact Areas
 
-### 12. Dynamic Icons
+### High-priority code areas
 
-- Update `icon.tsx` / `apple-icon.tsx` in route groups to GoodABA branding
-- Remove per-brand icon switching logic if any
+- `src/lib/utils/domains.ts`
+- `src/middleware.ts`
+- `src/config/site.ts`
+- `src/config/jobs.ts`
+- `src/config/brands.ts`
+- `src/app/(site)/get-listed/page.tsx`
+- `src/app/(site)/behaviorwork/page.tsx`
+- `src/app/(site)/behaviorwork/get-started/page.tsx`
+- `src/app/(jobs)/layout.tsx`
+- `src/app/(careers)/layout.tsx`
+- `src/app/(jobs)/jobs/*`
+- `src/app/(jobs)/job/[slug]/page.tsx`
+- `src/app/(jobs)/[position]-jobs/page.tsx`
+- `src/app/(website)/site/[slug]/*`
+- `src/app/(intake)/contact/[slug]/page.tsx`
+- `src/app/(intake)/intake/[slug]/client/page.tsx`
+- `src/app/(intake)/resources/[slug]/*`
+- `src/app/(careers)/careers/[slug]/*`
+- `src/app/layout.tsx`
+- `src/app/sitemap.ts`
+- `src/app/(jobs)/jobs/sitemap.ts`
+- `src/app/robots.ts`
+- `src/app/api/og/route.tsx`
+- `src/lib/email/email-helpers.ts`
+- `src/lib/email/notifications.ts`
 
-### 13. Brand Name Sweep (All UI, Copy, and Code References)
+### UI copy and navigation areas
 
-Every file referencing old brand names must be updated. Full audit below.
+- `src/components/layout/auth-header.tsx`
+- `src/components/layout/site-header.tsx`
+- `src/components/layout/site-footer.tsx`
+- dashboard sidebars and share cards
+- all `behaviorwork-*` marketing components
+- onboarding copy referencing BehaviorWork
 
-#### Components — UI Copy & Navigation
+### Documentation and config
 
-| File | What to Change |
-|------|---------------|
-| `src/components/layout/auth-header.tsx` | Replace "findabatherapy.org" and "findabajobs.org" display text → "GoodABA" |
-| `src/components/brand/behaviorwork-logo.tsx` | Rename file → `goodaba-logo.tsx`, update logo rendering |
-| `src/components/marketing/behaviorwork-header.tsx` | Rename → `goodaba-header.tsx`, update all copy |
-| `src/components/marketing/behaviorwork-footer.tsx` | Rename → `goodaba-footer.tsx`, update all copy |
-| `src/components/marketing/behaviorwork-funnel-visual.tsx` | Rename → `goodaba-funnel-visual.tsx`, update chip labels ("Find ABA Therapy" → "GoodABA Directory", etc.) |
-| `src/components/marketing/behaviorwork-tracker.tsx` | Rename → `goodaba-tracker.tsx` |
-| `src/components/marketing/behaviorwork-cta-button.tsx` | Rename → `goodaba-cta-button.tsx` |
-| All nav/header/footer components | Update brand name, links, and nav items to new unified nav structure |
+- `README.md`
+- `CLAUDE.md`
+- `.env.example`
+- scripts referencing `behaviorwork.com`
 
-#### Onboarding Flow
+---
 
-| File | What to Change |
-|------|---------------|
-| `src/app/(dashboard)/dashboard/onboarding/*` (all steps) | Replace any "FindABATherapy", "FindABAJobs", "BehaviorWork" references in step descriptions, labels, preview text |
-| Onboarding branded preview step | Update preview URLs shown to user (e.g., "Your listing on FindABATherapy.org" → "Your listing on GoodABA") |
-| Onboarding success page | Update congratulations copy and next-step links |
+## Sitemap Strategy
 
-#### Dashboard & Settings
+### FindABATherapy sitemap
 
-| File | What to Change |
-|------|---------------|
-| Dashboard sidebar/nav | Update any "FindABATherapy" or "FindABAJobs" labels |
-| Settings/billing page | Update plan names, branding references |
-| Upgrade modal / pricing cards | Replace "BehaviorWork" or "FindABATherapy" in feature descriptions |
-| Dashboard home/overview | Update any welcome copy or brand references |
-| Intake pages management | Update URLs shown for branded pages (contact form links, intake form links) |
+Keep the main sitemap focused on therapy content and existing therapy URLs:
 
-#### Marketing & Landing Pages
+- homepage
+- search
+- provider pages
+- state and city pages
+- insurance pages
+- learn content
+- FAQ
 
-| File | What to Change |
-|------|---------------|
-| `src/content/behaviorwork.ts` | Rename → `goodaba.ts`. Update all copy: chip labels ("Find ABA Therapy", "Find ABA Jobs"), engine cards, highlights, FAQ answers referencing "Behavior Work" |
-| `/behaviorwork` page components | Move to `/get-listed`, update all copy |
-| `/get-listed` (current) | Merge into new landing page |
-| Site homepage hero/CTA sections | Update brand references |
+Do not include provider-controlled GoodABA pages in the FindABATherapy sitemap.
 
-#### SEO & Structured Data
+### GoodABA sitemap
 
-| File | What to Change |
-|------|---------------|
-| `src/lib/seo/schemas.ts` | Organization name → "GoodABA", update URLs, twitter handle, LinkedIn, contact email |
-| `src/lib/seo/job-schemas.ts` | Update organization references to GoodABA |
-| All `page.tsx` files with inline metadata | Grep for old brand names in `title`, `description`, `openGraph` fields |
+GoodABA sitemap should include:
 
-#### Email Templates & Notifications
+- homepage
+- provider brochure pages
+- provider contact pages
+- provider intake pages
+- provider resources
+- provider careers
+- jobs marketplace pages
 
-| File | What to Change |
-|------|---------------|
-| `src/lib/email/email-helpers.ts` | "via findabatherapy.org" → "via GoodABA", "Powered by BehaviorWork" → "Powered by GoodABA" |
-| `src/lib/email/notifications.ts` | Update `behaviorWorkLogoHtml` import → `goodabaLogoHtml`, update all brand references |
-| Drip email templates | Update brand name, URLs, support email in all drip sequence emails |
-| Communication templates (22 templates) | Screen for any brand name references in template copy |
+Do not include provider-branded job pages in the sitemap by default.
+Do not include website subpages that substantially duplicate standalone branded pages in the sitemap by default.
 
-#### Scripts & Utilities
+Jobs subset:
 
-| File | What to Change |
-|------|---------------|
-| `src/env.ts` | Update "findabatherapy.org" in error message example |
-| `scripts/send-test-emails.ts` | Update domain references |
-| `scripts/set-admin.ts` | Update BehaviorWork references |
-| `.env.example` | Update example URLs and email addresses |
-
-#### Tests
-
-| Directory | What to Change |
-|-----------|---------------|
-| `e2e/find-aba-therapy/` | Rename directory → `e2e/goodaba-directory/` (or similar), update spec references |
-| `e2e/find-aba-jobs/` | Rename directory → `e2e/goodaba-jobs/`, update spec references |
-| All test fixtures | Update any hardcoded URLs or brand names |
-
-#### Documentation
-
-| File | What to Change |
-|------|---------------|
-| `CLAUDE.md` | Update brand names, domain references, route group descriptions |
-| `README.md` | Update project description and URLs |
-| `docs/strategy/BehaviorWork Strategy.md` | Update or note as historical (strategy still applies, brand name changed) |
-| All other docs | Grep and update |
-
-#### Database Migrations
-
-| File | What to Change |
-|------|---------------|
-| `supabase/migrations/034_create_job_tables.sql` | Comment references only — no data migration needed |
-| Any seed scripts | Update brand name references in seed data |
+- `/jobs`
+- `/jobs/search`
+- `/jobs/[state]`
+- `/jobs/[state]/[city]`
+- `/jobs/role/[position]`
+- `/jobs/post/[slug]`
+- `/jobs/employers/[slug]`
 
 ---
 
 ## Infrastructure Changes
 
-### DNS & Vercel
+### DNS and Vercel
 
-1. **Add `goodaba.com` domain to Vercel project** (primary domain)
-2. **Configure `www.goodaba.com`** as canonical (redirect naked → www, or vice versa — pick one)
-3. **Set up redirect projects** for old domains:
-   - `findabatherapy.org` → Vercel redirect project with 301 rules
-   - `findabajobs.org` → Vercel redirect project with 301 rules
-   - `behaviorwork.com` → Vercel redirect project with 301 rules
-   - Or: handle redirects in middleware during transition period
-4. **Update `NEXT_PUBLIC_SITE_URL`** in Vercel environment variables
+1. Add `goodaba.com` to the project as the new provider-platform domain.
+2. Decide canonical host: `www.goodaba.com` or apex `goodaba.com`.
+3. Keep `findabatherapy.org` active on the main project.
+4. Point `behaviorwork.com` to redirects.
+5. Point `findabajobs.org` to redirects.
 
-### Email (Resend)
+### Email
 
-1. **Verify `goodaba.com`** domain in Resend
-2. **Add DNS records:** SPF, DKIM, DMARC for `goodaba.com`
-3. **Test deliverability** before switching
-4. **Keep `behaviorwork.com`** verified during transition (emails in flight)
-5. **Update from addresses** in code after verification confirmed
+1. Verify `goodaba.com` in Resend.
+2. Add SPF, DKIM, and DMARC records.
+3. Keep the existing sending domain active until GoodABA deliverability is validated.
+4. Switch provider/platform mail first.
+5. Review therapy-facing emails separately before changing visible branding.
 
-### Google Search Console
+### Analytics
 
-1. **Add `goodaba.com`** as new property
-2. **Use Change of Address tool** on both old properties:
-   - `findabatherapy.org` → `goodaba.com`
-   - `findabajobs.org` → `goodaba.com`
-3. **Submit new sitemap** at `goodaba.com/sitemap.xml`
-4. **Monitor indexing** for 2-3 months
+1. Add `goodaba.com` to PostHog allowed origins.
+2. Keep `findabatherapy.org` as an active origin.
+3. Keep legacy redirect domains in analytics only if needed for transition visibility.
 
-### Google Analytics / PostHog
+### Search Console
 
-1. **Update PostHog** project settings for new domain
-2. **Add `goodaba.com`** to allowed origins
-3. **Keep old domains** in allowed origins during transition
+1. Add `goodaba.com` as a property.
+2. Keep `findabatherapy.org` as its own active property.
+3. Use Change of Address only for:
+   - `behaviorwork.com` -> `goodaba.com`
+   - `findabajobs.org` -> `goodaba.com`
+4. Do **not** use Change of Address for `findabatherapy.org` because it is not moving.
+
+---
+
+## Launch Validation Checklist
+
+Before cutover:
+
+- verify every `Get Listed`, pricing, signup, upgrade, and login CTA on FindABATherapy lands on `https://www.goodaba.com/` or the correct GoodABA auth route
+- verify OAuth signup and callback complete on GoodABA
+- verify email signup confirmation returns to GoodABA
+- verify dashboard access, onboarding, and billing work entirely on GoodABA
+- verify Stripe checkout success and cancel flows return to GoodABA
+- verify branded brochure routes resolve on GoodABA under `/provider/[slug]`
+- verify branded website routes resolve on GoodABA under `/provider/[slug]/website*`
+- verify provider public pages resolve on GoodABA under `/provider/[slug]/*`
+- verify old provider-owned URLs redirect to the correct new GoodABA provider URLs
+- verify old jobs paths redirect to the correct new GoodABA marketplace or provider job URLs
+- verify canonical tags and OG metadata point to GoodABA for provider-owned pages
+- verify canonical tags remain on FindABATherapy for directory/editorial pages
+- verify provider-branded job pages canonicalize correctly to marketplace job pages or are marked `noindex`
+- verify website subpages that duplicate standalone branded pages canonicalize correctly or are marked `noindex`
+- verify GoodABA sitemap and FindABATherapy sitemap only contain the correct domain-owned URLs
+- verify there are no redirect chains on top pages
+- verify no auth or billing links still point at `behaviorwork.com`
+- verify no provider CTA links still point at `findabatherapy.org/get-listed`
+- verify analytics is recording events on both active domains
+
+After cutover:
+
+- manually test top public routes on both domains
+- check Search Console for crawl and indexing errors
+- check server logs for 404s and auth callback failures
+- check Stripe webhook delivery on GoodABA
+- run a final grep for stale `behaviorwork.com` references in live code paths
 
 ---
 
 ## Execution Order
 
-The migration should happen in phases to minimize risk:
+### Phase 0: Preparation
 
-### Phase 0: Pre-Migration (no code changes)
-- Register/verify `goodaba.com` in Vercel
-- Verify `goodaba.com` in Resend, add DNS records
-- Set up Google Search Console for `goodaba.com`
-- Design GoodABA logo and brand assets
+- register and verify `goodaba.com`
+- prepare logo, colors, favicon, and brand assets
+- verify GoodABA email domain
+- add GoodABA Search Console and analytics configuration
 
-### Phase 1: Code — Single Domain Architecture
-- Rewrite `domains.ts` to single-domain config
-- Simplify middleware (remove brand routing)
-- Merge site configs (`site.ts`, `jobs.ts`, `brands.ts` → unified `site.ts`)
-- Update all metadata and layouts (`metadataBase`, titles, descriptions)
-- Update email templates (from addresses, footer copy, logo references)
+### Phase 1: GoodABA brand replacement for platform
 
-### Phase 2: Code — Route Restructuring
-- Move directory routes under `/find`
-- Move learn routes to `/resources`
-- Restructure job position routes
-- Build unified nav component (Find Providers, Family Resources, Find Jobs, Get Listed, Log In)
-- Build `/get-listed` landing page (merge `/behaviorwork` + `/behaviorwork/get-started`)
-- Merge sitemaps into one
+- replace BehaviorWork branding with GoodABA across dashboard, auth, billing, onboarding, and marketing components
+- update email sender and support references from BehaviorWork to GoodABA where they belong to the platform
+- update docs and environment examples
 
-### Phase 3: Code — Brand Name Sweep
-- Rename all `behaviorwork-*` component files → `goodaba-*`
-- Update all UI copy: auth header, dashboard sidebar, settings, billing, upgrade modal, pricing cards
-- Update onboarding flow: step descriptions, preview URLs, success page copy
-- Update marketing content (`src/content/behaviorwork.ts` → `goodaba.ts`)
-- Update SEO schemas (`schemas.ts`, `job-schemas.ts`)
-- Update OG image generation (swap domain text, keep existing visual style)
-- Update scripts, env examples, error messages
-- Update tests (rename e2e directories, update fixtures)
-- Update documentation (CLAUDE.md, README, strategy docs)
+### Phase 2: GoodABA marketing launch
 
-### Phase 4: Deploy & Redirect
-- Deploy to `goodaba.com`
-- Verify everything works on new domain
-- Set up 301 redirects from old domains
-- Update Stripe Dashboard (business name, support email, webhook URL, receipt branding)
-- Update Google Search Console (Change of Address for both old properties)
-- Submit new sitemap
-- Update PostHog allowed origins
+- build the GoodABA landing page on `goodaba.com/`
+- include pricing on the homepage unless a separate pricing page is clearly needed
+- update provider CTAs on FindABATherapy to point to GoodABA
+- convert `/get-listed` on FindABATherapy into a handoff route to `https://www.goodaba.com/`
 
-### Phase 5: Cleanup & Monitoring
-- Remove dead brand-detection code
-- Remove unused config files
-- Final grep for any remaining old brand references
-- Monitor search rankings for 2-3 months
-- Keep old domain redirects running indefinitely
+### Phase 3: Jobs migration
+
+- move jobs branding from FindABAJobs to GoodABA Jobs
+- move provider-controlled public pages from FindABATherapy route shapes to GoodABA `/provider/[slug]/*`
+- move job detail URLs to `/jobs/post/[slug]`
+- move position landing pages to `/jobs/role/[position]`
+- update jobs metadata, sitemap, OG tags, and structured data
+- set up lightweight redirects from `findabajobs.org`
+
+### Phase 4: Domain and redirect cutover
+
+- cut `goodaba.com` live
+- redirect `behaviorwork.com` to `goodaba.com`
+- redirect `findabajobs.org` to `goodaba.com/jobs`
+- validate auth, billing, and webhook flows on GoodABA
+
+### Phase 5: Cleanup
+
+- remove dead BehaviorWork code
+- keep only the domain logic still needed for FindABATherapy + GoodABA
+- run final grep for stale brand strings
+- monitor crawl errors, rankings, redirect chains, and email deliverability
 
 ---
 
@@ -537,18 +678,33 @@ The migration should happen in phases to minimize risk:
 
 | Risk | Mitigation |
 |------|-----------|
-| SEO ranking drop | 301 redirects preserve ~90-99% link equity. Google Search Console Change of Address. Expect 2-8 week dip, recovery within 2-3 months. |
-| Broken links from external sites | Old domains redirect permanently. No link goes dead. |
-| Email deliverability | Verify `goodaba.com` in Resend and test before switching. Run both domains in parallel briefly. |
-| Stripe webhooks break | Update webhook URL in Stripe before removing old domain. Test in Stripe CLI. |
-| Existing users confused | Email announcement before migration. Dashboard banner explaining the rebrand. Old URLs all redirect seamlessly. |
+| Over-disrupting directory SEO | Do not move FindABATherapy routes or content architecture. |
+| Route conflicts in jobs migration | Use `/jobs/role/[position]` and `/jobs/post/[slug]`, not ambiguous `/jobs/[slug]`. |
+| Mixed brand confusion | Keep FindABATherapy family-first and GoodABA provider-first. |
+| Broken provider CTA journey | Use `https://www.goodaba.com/` as the one canonical provider CTA destination and audit every entry point. |
+| Provider public page sprawl | Move provider-owned public pages to `/provider/[slug]/*` on GoodABA now instead of carrying old mixed route shapes forward. |
+| Email confusion | Rebrand provider/platform mail first; review therapy emails separately. |
+| Middleware regressions | Keep domain-aware logic where still required instead of over-simplifying. |
 
 ---
 
 ## Out of Scope
 
-- Logo/visual identity design (needed before Phase 0, but separate workstream)
-- Marketing copy for `/get-listed` page (content strategy, separate from code)
-- Social media account creation (@goodaba)
-- Business entity / legal name changes
-- Existing user notification email campaign (operational, not code)
+- legal entity rename
+- trademark work
+- social media handle acquisition
+- major redesign of FindABATherapy public information architecture
+- migration of therapy SEO URLs to GoodABA
+
+---
+
+## Decision Summary
+
+This plan assumes the following final decisions:
+
+- **FindABATherapy remains the family-facing directory brand and domain**
+- **GoodABA replaces BehaviorWork as the provider-facing platform brand**
+- **Jobs moves under GoodABA as GoodABA Jobs**
+- **All provider-controlled public pages move to `goodaba.com/provider/[slug]/*`**
+- **FindABATherapy provider CTAs hand off to `https://www.goodaba.com/`**
+- **GoodABA homepage should combine landing + pricing unless a later growth need requires separation**
