@@ -13,10 +13,10 @@ const channels = [
     tagline: "Public provider directory",
     description:
       "Families search by insurance and location to find ABA providers. Your listing drives high-intent leads directly to your branded pages.",
-    gradient: "from-[#5788FF] to-[#3D6BE5]",
+    gradient: "from-[#0866FF] to-[#3D6BE5]",
     footerTag: "Drives client leads",
-    footerColor: "text-[#5788FF]",
-    footerBg: "bg-[#5788FF]/10",
+    footerColor: "text-[#0866FF]",
+    footerBg: "bg-[#0866FF]/10",
     href: "https://www.findabatherapy.org",
     logoType: "image" as const,
     bullets: [
@@ -51,14 +51,14 @@ export function BwDistributionChannels() {
     <BwSectionWrapper background="cream">
       <BwFadeUp>
         <div className="mx-auto max-w-2xl text-center">
-          <span className="inline-flex items-center rounded-full border border-amber-200/60 bg-[#FFDC33]/10 px-4 py-1.5 text-xs font-bold tracking-wide text-amber-700">
+          <span className="inline-flex items-center rounded-full border border-amber-200/60 bg-[#FFCF40]/10 px-4 py-1.5 text-xs font-bold tracking-wide text-amber-700">
             Built-In Distribution
           </span>
           <h2 className="mt-5 text-3xl font-extrabold tracking-tight text-[#1A2744] sm:text-4xl">
             How families and candidates{" "}
             <span className="relative inline-block">
-              <span className="relative z-10 text-[#5788FF]">find you</span>
-              <span className="absolute -bottom-0.5 left-0 right-0 z-0 h-2.5 rounded-full bg-[#FFDC33]/30" />
+              <span className="relative z-10 text-[#0866FF]">find you</span>
+              <span className="absolute -bottom-0.5 left-0 right-0 z-0 h-2.5 rounded-full bg-[#FFCF40]/30" />
             </span>
           </h2>
           <p className="mt-4 text-lg text-slate-500">

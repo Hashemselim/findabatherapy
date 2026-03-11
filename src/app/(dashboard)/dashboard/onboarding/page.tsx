@@ -90,8 +90,8 @@ export default function OnboardingWelcomePage() {
           <h1 className="mx-auto max-w-2xl text-4xl font-semibold tracking-tight text-[#1A2744] sm:text-5xl md:text-[3.5rem] md:leading-[1.1]">
             Welcome — let&apos;s{" "}
             <span className="relative inline-block">
-              <span className="relative z-10 text-[#5788FF]">unlock</span>
-              <span className="absolute -bottom-1 left-0 right-0 z-0 h-3 rounded-full bg-[#FFDC33]/40 sm:h-4" />
+              <span className="relative z-10 text-[#0866FF]">unlock</span>
+              <span className="absolute -bottom-1 left-0 right-0 z-0 h-3 rounded-full bg-[#FFCF40]/40 sm:h-4" />
             </span>{" "}
             your agency&apos;s full potential.
           </h1>
@@ -159,7 +159,7 @@ export default function OnboardingWelcomePage() {
         <motion.div variants={item} className="flex flex-col items-center gap-4 text-center">
           <Button
             size="lg"
-            className="group relative h-12 overflow-hidden rounded-full bg-[#FFDC33] px-8 text-sm font-semibold text-[#1A2744] shadow-md shadow-amber-200/50 transition-all hover:bg-[#F5CF1B] hover:shadow-lg hover:shadow-amber-200/60"
+            className="group relative h-12 overflow-hidden rounded-full bg-[#0866FF] px-8 text-sm font-semibold text-white shadow-md shadow-[#0866FF]/25 transition-all hover:bg-[#0866FF]/92 hover:shadow-lg hover:shadow-[#0866FF]/30"
             disabled={isPending}
             onClick={handleContinue}
           >

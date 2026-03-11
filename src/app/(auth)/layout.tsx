@@ -5,7 +5,7 @@ import { AuthHeader } from "@/components/layout/auth-header";
 
 export default function AuthLayout({ children }: PropsWithChildren) {
   return (
-    <div className="flex min-h-screen flex-col bg-background text-foreground">
+    <div className="goodaba-theme flex min-h-screen flex-col bg-background text-foreground">
       <AuthHeader />
       <main className="flex flex-1 flex-col">{children}</main>
       {/* Minimal footer for auth pages */}

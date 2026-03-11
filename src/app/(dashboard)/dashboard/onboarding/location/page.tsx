@@ -881,7 +881,7 @@ export default function OnboardingLocationPage() {
 
                 <Button
                   type="submit"
-                  className="h-11 rounded-full bg-[#FFDC33] px-7 font-semibold text-[#1A2744] shadow-md shadow-amber-200/50 hover:bg-[#F5CF1B]"
+                  className="h-11 rounded-full bg-[#0866FF] px-7 font-semibold text-white shadow-md shadow-[#0866FF]/25 hover:bg-[#0866FF]/92"
                   disabled={isPending || (!editingLocation && hasReachedLimit)}
                 >
                   {isPending ? (
@@ -918,7 +918,7 @@ export default function OnboardingLocationPage() {
         <Button
           type="button"
           size="lg"
-          className="h-11 w-full shrink-0 rounded-full bg-[#FFDC33] px-7 font-semibold text-[#1A2744] shadow-md shadow-amber-200/50 hover:bg-[#F5CF1B] sm:ml-auto sm:w-auto"
+          className="h-11 w-full shrink-0 rounded-full bg-[#0866FF] px-7 font-semibold text-white shadow-md shadow-[#0866FF]/25 hover:bg-[#0866FF]/92 sm:ml-auto sm:w-auto"
           disabled={isPending || locations.length === 0}
           onClick={handleContinue}
         >

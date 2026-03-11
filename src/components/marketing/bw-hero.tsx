@@ -35,8 +35,8 @@ const scaleIn = {
 
 /* Pipeline stage data */
 const pipelineStages = [
-  { label: "New Lead", count: 8, color: "#5788FF", barH: "h-12" },
-  { label: "Intake Sent", count: 5, color: "#FFDC33", barH: "h-9" },
+  { label: "New Lead", count: 8, color: "#0866FF", barH: "h-12" },
+  { label: "Intake Sent", count: 5, color: "#FFCF40", barH: "h-9" },
   { label: "Docs Review", count: 3, color: "#8B5CF6", barH: "h-7" },
   { label: "Insurance", count: 4, color: "#F59E0B", barH: "h-8" },
   { label: "Active", count: 12, color: "#10B981", barH: "h-16" },
@@ -47,8 +47,8 @@ export function BwHero() {
     <section className="relative overflow-hidden bg-white pb-20 pt-14 sm:pb-28 sm:pt-24 lg:pb-36 lg:pt-32">
       {/* Background decoration */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute -right-24 top-16 h-80 w-80 rounded-full bg-[#FFDC33]/10 blur-3xl" />
-        <div className="absolute -left-20 top-1/2 h-64 w-64 rounded-full bg-[#5788FF]/8 blur-3xl" />
+        <div className="absolute -right-24 top-16 h-80 w-80 rounded-full bg-[#FFCF40]/10 blur-3xl" />
+        <div className="absolute -left-20 top-1/2 h-64 w-64 rounded-full bg-[#0866FF]/8 blur-3xl" />
         <div className="absolute bottom-8 right-1/3 h-48 w-48 rounded-full bg-[#10B981]/8 blur-3xl" />
         {/* Subtle grid pattern */}
         <div
@@ -71,7 +71,7 @@ export function BwHero() {
             className="max-w-xl"
           >
             <motion.div variants={fadeUp}>
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200/80 bg-[#FFDC33]/15 px-4 py-1.5 text-xs font-bold tracking-wide text-amber-700">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200/80 bg-[#FFCF40]/15 px-4 py-1.5 text-xs font-bold tracking-wide text-amber-700">
                 For ABA Practice Owners
               </span>
             </motion.div>
@@ -84,9 +84,9 @@ export function BwHero() {
               <br className="hidden sm:block" />
               ABA families &mdash;{" "}
               <span className="relative inline-block">
-                <span className="relative z-10 text-[#5788FF]">one platform</span>
+                <span className="relative z-10 text-[#0866FF]">one platform</span>
                 <motion.span
-                  className="absolute -bottom-1 left-0 right-0 z-0 h-3 rounded-full bg-[#FFDC33]/40 sm:h-4"
+                  className="absolute -bottom-1 left-0 right-0 z-0 h-3 rounded-full bg-[#FFCF40]/40 sm:h-4"
                   initial={{ scaleX: 0 }}
                   animate={{ scaleX: 1 }}
                   transition={{ duration: 0.6, delay: 0.8, ease: EASE }}
@@ -141,7 +141,7 @@ export function BwHero() {
                     destination: "/pricing",
                   })
                 }
-                className="group inline-flex h-12 items-center justify-center rounded-full bg-[#FFDC33] px-7 text-sm font-bold text-[#1A2744] shadow-md shadow-amber-200/50 transition-all hover:bg-[#F5CF1B] hover:shadow-lg hover:shadow-amber-200/60 active:scale-[0.97]"
+                className="group inline-flex h-12 items-center justify-center rounded-full bg-[#0866FF] px-7 text-sm font-bold text-white shadow-md shadow-[#0866FF]/25 transition-all hover:bg-[#0866FF]/92 hover:shadow-lg hover:shadow-[#0866FF]/30 active:scale-[0.97]"
               >
                 Start Growing Your Caseload
                 <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-0.5" />
@@ -167,7 +167,7 @@ export function BwHero() {
               className="mt-8 flex items-center gap-2 text-xs text-slate-400"
             >
               <div className="flex -space-x-1.5">
-                {["#5788FF", "#10B981", "#F59E0B", "#8B5CF6"].map((c) => (
+                {["#0866FF", "#10B981", "#F59E0B", "#8B5CF6"].map((c) => (
                   <div
                     key={c}
                     className="h-6 w-6 rounded-full border-2 border-white"
@@ -285,8 +285,8 @@ export function BwHero() {
             </div>
 
             {/* Decorative glow */}
-            <div className="pointer-events-none absolute -bottom-8 -right-8 -z-10 h-64 w-64 rounded-full bg-[#FFDC33]/15 blur-3xl" />
-            <div className="pointer-events-none absolute -left-6 -top-6 -z-10 h-48 w-48 rounded-full bg-[#5788FF]/10 blur-3xl" />
+            <div className="pointer-events-none absolute -bottom-8 -right-8 -z-10 h-64 w-64 rounded-full bg-[#FFCF40]/15 blur-3xl" />
+            <div className="pointer-events-none absolute -left-6 -top-6 -z-10 h-48 w-48 rounded-full bg-[#0866FF]/10 blur-3xl" />
           </motion.div>
         </div>
       </div>

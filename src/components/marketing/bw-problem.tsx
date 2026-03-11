@@ -14,8 +14,8 @@ export function BwProblem() {
   return (
     <section className="relative overflow-hidden bg-[#1A2744] py-24 lg:py-32">
       {/* Subtle glow accents */}
-      <div className="pointer-events-none absolute -left-20 top-1/2 h-72 w-72 -translate-y-1/2 rounded-full bg-[#FFDC33]/6 blur-3xl" />
-      <div className="pointer-events-none absolute -right-16 top-1/4 h-56 w-56 rounded-full bg-[#5788FF]/6 blur-3xl" />
+      <div className="pointer-events-none absolute -left-20 top-1/2 h-72 w-72 -translate-y-1/2 rounded-full bg-[#FFCF40]/6 blur-3xl" />
+      <div className="pointer-events-none absolute -right-16 top-1/4 h-56 w-56 rounded-full bg-[#0866FF]/6 blur-3xl" />
       {/* Grid pattern overlay */}
       <div
         className="pointer-events-none absolute inset-0 opacity-[0.04]"
@@ -34,11 +34,11 @@ export function BwProblem() {
               <span className="relative inline-block">
                 <span
                   ref={counter.ref as React.RefObject<HTMLSpanElement>}
-                  className="relative z-10 text-[#FFDC33]"
+                  className="relative z-10 text-[#FFCF40]"
                 >
                   {counter.display}
                 </span>
-                <span className="absolute -bottom-1 left-0 right-0 z-0 h-3 rounded-full bg-[#FFDC33]/20" />
+                <span className="absolute -bottom-1 left-0 right-0 z-0 h-3 rounded-full bg-[#FFCF40]/20" />
               </span>{" "}
               a year.
             </h2>
@@ -53,8 +53,8 @@ export function BwProblem() {
               <div className="mx-auto mt-12 max-w-xl">
                 <p className="text-center text-2xl font-extrabold tracking-tight text-white sm:text-3xl">
                   <span className="relative inline-block">
-                    <span className="relative z-10 text-[#FFDC33]">GoodABA</span>
-                    <span className="absolute -bottom-0.5 left-0 right-0 z-0 h-2.5 rounded-full bg-[#FFDC33]/20" />
+                    <span className="relative z-10 text-[#FFCF40]">GoodABA</span>
+                    <span className="absolute -bottom-0.5 left-0 right-0 z-0 h-2.5 rounded-full bg-[#FFCF40]/20" />
                   </span>{" "}
                   captures that revenue for you.
                 </p>

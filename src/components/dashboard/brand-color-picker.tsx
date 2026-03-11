@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export const BRAND_COLOR_PRESETS = [
-  { name: "Blue", value: "#5788FF" },
+  { name: "Blue", value: "#0866FF" },
   { name: "Teal", value: "#14B8A6" },
   { name: "Purple", value: "#8B5CF6" },
   { name: "Rose", value: "#F43F5E" },
@@ -36,11 +36,11 @@ export function BrandColorPicker({
 }: BrandColorPickerProps) {
   const colorInputRef = useRef<HTMLInputElement>(null);
   const [isPending, startTransition] = useTransition();
-  const [currentColor, setCurrentColor] = useState(normalizeHex(value || "#5788FF"));
-  const [hexDraft, setHexDraft] = useState(normalizeHex(value || "#5788FF"));
+  const [currentColor, setCurrentColor] = useState(normalizeHex(value || "#0866FF"));
+  const [hexDraft, setHexDraft] = useState(normalizeHex(value || "#0866FF"));
 
   useEffect(() => {
-    const normalized = normalizeHex(value || "#5788FF");
+    const normalized = normalizeHex(value || "#0866FF");
     setCurrentColor(normalized);
     setHexDraft(normalized);
   }, [value]);
@@ -113,7 +113,7 @@ export function BrandColorPicker({
             value={hexDraft}
             onChange={(event) => handleCustomColorChange(event.target.value)}
             className="max-w-[160px] border-[#e4d4bd] font-mono"
-            placeholder="#5788FF"
+            placeholder="#0866FF"
           />
           <input
             ref={colorInputRef}

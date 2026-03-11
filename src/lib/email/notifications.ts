@@ -14,7 +14,7 @@ import {
   domains,
   getSiteUrl as getSafeUrl,
 } from "@/lib/utils/domains";
-import { behaviorWorkLogoHtml } from "@/components/brand/behaviorwork-logo";
+import { goodabaLogoHtml } from "@/lib/brand/goodaba";
 import {
   agencyEmailWrapper,
   type AgencyBrandingData,
@@ -74,8 +74,8 @@ function getJobsSiteUrl(): string {
 
 // Brand colors
 const BRAND = {
-  primary: "#5788FF",      // Blue
-  accent: "#FFD700",       // Yellow/Gold
+  primary: "#0866FF",      // Blue
+  accent: "#FFCF40",       // Yellow/Gold
   success: "#059669",      // Green
   error: "#dc2626",        // Red
   warning: "#f59e0b",      // Amber
@@ -102,7 +102,10 @@ function emailWrapper(
   const siteUrl =
     brandContext === "therapy" ? domains.therapy.production : domains.goodaba.production;
   const supportEmail = getSupportEmail("goodaba");
-  const logoHtml = behaviorWorkLogoHtml({ fontSize: 28, color: "#ffffff" });
+  const logoHtml = goodabaLogoHtml({
+    baseUrl: domains.goodaba.production,
+    height: 28,
+  });
   const headerContext =
     brandContext === "therapy"
       ? `Find ABA Therapy by <a href="https://www.goodaba.com" style="color: rgba(255,255,255,0.9); text-decoration: none;">GoodABA</a>`
@@ -1085,7 +1088,10 @@ function jobsEmailWrapper(content: string, options?: { preheader?: string }): st
   const jobsSiteUrl = getJobsSiteUrl();
   const jobsIndexUrl = `${jobsSiteUrl}/jobs`;
   const supportEmail = getSupportEmail("goodaba");
-  const logoHtml = behaviorWorkLogoHtml({ fontSize: 28, color: "#ffffff" });
+  const logoHtml = goodabaLogoHtml({
+    baseUrl: domains.goodaba.production,
+    height: 28,
+  });
 
   return `
 <!DOCTYPE html>
@@ -1393,7 +1399,7 @@ export async function sendTestEmail(
 
   const testData: Record<TestEmailType, () => Promise<{ success: boolean; error?: string }>> = {
     // ==========================================================================
-    // THERAPY BRAND EMAILS (Blue #5788FF)
+    // THERAPY BRAND EMAILS (Blue #0866FF)
     // From: "Find ABA Therapy <noreply@goodaba.com>"
     // ==========================================================================
     inquiry: () =>

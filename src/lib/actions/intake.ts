@@ -103,7 +103,7 @@ export async function getContactPageData(
 
   // Default intake form settings
   const defaultSettings: IntakeFormSettings = {
-    background_color: "#5788FF",
+    background_color: "#0866FF",
     show_powered_by: true,
   };
 
@@ -228,7 +228,7 @@ export async function getClientIntakePageData(
 
   // Default intake form settings
   const defaultSettings: IntakeFormSettings = {
-    background_color: "#5788FF",
+    background_color: "#0866FF",
     show_powered_by: true,
   };
 
@@ -302,7 +302,7 @@ export async function getClientResourcesPageData(
   };
 
   const defaultSettings: IntakeFormSettings = {
-    background_color: "#5788FF",
+    background_color: "#0866FF",
     show_powered_by: true,
   };
 
@@ -354,7 +354,7 @@ export async function updateIntakeFormSettings(
     .single();
 
   const currentSettings = (profile?.intake_form_settings as IntakeFormSettings) || {
-    background_color: "#5788FF",
+    background_color: "#0866FF",
     show_powered_by: true,
   };
 
@@ -404,7 +404,7 @@ export async function updateIntakeFieldsConfig(
     .single();
 
   const current = (profile?.intake_form_settings as IntakeFormSettings) || {
-    background_color: "#5788FF",
+    background_color: "#0866FF",
     show_powered_by: true,
   };
 

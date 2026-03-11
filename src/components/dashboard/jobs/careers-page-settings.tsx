@@ -21,7 +21,7 @@ interface CareersPageSettingsProps {
 
 const PRESET_COLORS = [
   { color: "#10B981", name: "Emerald" },
-  { color: "#5788FF", name: "Blue" },
+  { color: "#0866FF", name: "Blue" },
   { color: "#8B5CF6", name: "Purple" },
   { color: "#F59E0B", name: "Amber" },
   { color: "#EF4444", name: "Red" },

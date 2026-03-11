@@ -12,7 +12,7 @@ export function BwTestimonials() {
     <BwSectionWrapper background="cream">
       <BwFadeUp>
         <div className="mx-auto max-w-2xl text-center">
-          <span className="inline-flex items-center rounded-full border border-amber-200/60 bg-[#FFDC33]/10 px-4 py-1.5 text-xs font-bold tracking-wide text-amber-700">
+          <span className="inline-flex items-center rounded-full border border-amber-200/60 bg-[#FFCF40]/10 px-4 py-1.5 text-xs font-bold tracking-wide text-amber-700">
             Trusted by ABA Agencies
           </span>
           <h2 className="mt-5 text-3xl font-extrabold tracking-tight text-[#1A2744] sm:text-4xl">
@@ -35,7 +35,7 @@ export function BwTestimonials() {
                 {Array.from({ length: 5 }).map((_, j) => (
                   <Star
                     key={j}
-                    className="h-3.5 w-3.5 fill-[#FFDC33] text-[#FFDC33]"
+                    className="h-3.5 w-3.5 fill-[#FFCF40] text-[#FFCF40]"
                   />
                 ))}
               </div>
@@ -43,7 +43,7 @@ export function BwTestimonials() {
                 &ldquo;{testimonial.quote}&rdquo;
               </p>
               <div className="mt-6 flex items-center gap-3 border-t border-amber-100/50 pt-4">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#FFDC33]/20 text-xs font-bold text-amber-700">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#FFCF40]/20 text-xs font-bold text-amber-700">
                   {testimonial.initials}
                 </div>
                 <div>

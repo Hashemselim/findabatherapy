@@ -11,7 +11,7 @@ export const brandsConfig = {
   findABATherapy: {
     name: "Find ABA Therapy",
     tagline: "Discover trusted ABA therapy providers near you",
-    color: "#5788FF", // Blue
+    color: "#0866FF", // Blue
     icon: "Heart", // Lucide icon name
     publicBasePath: "/provider",
     dashboardSection: "therapy",
@@ -40,12 +40,12 @@ export const brandsConfig = {
 
 // Brand color constants for easy access
 export const brandColors = {
-  therapy: "#5788FF",
+  therapy: "#0866FF",
   jobs: "#10B981",
   crm: "#8B5CF6",
   // Gradient for parent brand icon
   goodABAGradient: {
-    from: "#5788FF",
+    from: "#0866FF",
     to: "#10B981",
   },
 } as const;

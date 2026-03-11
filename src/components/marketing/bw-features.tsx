@@ -34,16 +34,16 @@ const categoryStyles: Record<
   { bg: string; text: string; border: string; dot: string }
 > = {
   Attract: {
-    bg: "bg-[#5788FF]/10",
-    text: "text-[#5788FF]",
-    border: "border-[#5788FF]/20",
-    dot: "bg-[#5788FF]",
+    bg: "bg-[#0866FF]/10",
+    text: "text-[#0866FF]",
+    border: "border-[#0866FF]/20",
+    dot: "bg-[#0866FF]",
   },
   Intake: {
-    bg: "bg-[#FFDC33]/15",
+    bg: "bg-[#FFCF40]/15",
     text: "text-amber-700",
     border: "border-amber-300/30",
-    dot: "bg-[#FFDC33]",
+    dot: "bg-[#FFCF40]",
   },
   Manage: {
     bg: "bg-[#10B981]/10",
@@ -181,8 +181,8 @@ export function BwFeatures() {
           <h2 className="mt-5 text-3xl font-extrabold tracking-tight text-[#1A2744] sm:text-4xl lg:text-5xl">
             Everything you need &mdash;{" "}
             <span className="relative inline-block">
-              <span className="relative z-10 text-[#5788FF]">all in one platform</span>
-              <span className="absolute -bottom-1 left-0 right-0 z-0 h-3 rounded-full bg-[#FFDC33]/30" />
+              <span className="relative z-10 text-[#0866FF]">all in one platform</span>
+              <span className="absolute -bottom-1 left-0 right-0 z-0 h-3 rounded-full bg-[#FFCF40]/30" />
             </span>
             .
           </h2>

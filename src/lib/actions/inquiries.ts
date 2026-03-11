@@ -101,7 +101,7 @@ export async function submitInquiry(
         .select("background_color")
         .eq("profile_id", listing.profile_id)
         .single()
-    ).data?.background_color || "#5788FF";
+    ).data?.background_color || "#0866FF";
 
   // Check if provider has premium plan (contact form is premium feature)
   const isPremium =

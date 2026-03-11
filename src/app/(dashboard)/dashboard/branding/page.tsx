@@ -70,7 +70,7 @@ export default async function BrandingPage() {
   }
 
   const defaultSettings: IntakeFormSettingsType = {
-    background_color: "#5788FF",
+    background_color: "#0866FF",
     show_powered_by: true,
   };
 

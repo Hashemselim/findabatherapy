@@ -326,7 +326,7 @@ async function getAgencyBrandingData(
     agencyName: profile?.agency_name || "Our Agency",
     contactEmail: profile?.contact_email || "",
     logoUrl: listing?.logo_url || null,
-    brandColor: settings?.background_color || "#5788FF",
+    brandColor: settings?.background_color || "#0866FF",
     website: profile?.website || null,
     phone: profile?.contact_phone || null,
   };

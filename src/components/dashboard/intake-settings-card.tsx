@@ -12,7 +12,7 @@ import { updateIntakeFormSettings, type IntakeFormSettings } from "@/lib/actions
 import { getProviderContactPath } from "@/lib/utils/public-paths";
 
 const COLOR_PRESETS = [
-  { name: "Blue", value: "#5788FF" },
+  { name: "Blue", value: "#0866FF" },
   { name: "Teal", value: "#14B8A6" },
   { name: "Purple", value: "#8B5CF6" },
   { name: "Rose", value: "#F43F5E" },
@@ -88,7 +88,7 @@ export function IntakeSettingsCard({
   };
 
   const selectedPreset = COLOR_PRESETS.find((p) => p.value === settings.background_color);
-  const isCustomColor = !selectedPreset && settings.background_color !== "#5788FF";
+  const isCustomColor = !selectedPreset && settings.background_color !== "#0866FF";
 
   return (
     <div className="space-y-6">
@@ -208,7 +208,7 @@ export function IntakeSettingsCard({
               <Input
                 id="custom-color"
                 type="text"
-                placeholder="#5788FF"
+                placeholder="#0866FF"
                 value={customColor}
                 onChange={(e) => handleCustomColorChange(e.target.value)}
                 className="max-w-[150px] font-mono"

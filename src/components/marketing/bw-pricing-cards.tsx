@@ -315,11 +315,11 @@ export function BwPricingCards({
         <BwFadeUp delay={0.1}>
           <div className="relative overflow-hidden rounded-2xl border-2 border-amber-300 bg-white shadow-xl shadow-amber-100/60 ring-1 ring-amber-200/50">
             {/* Top accent bar */}
-            <div className="h-1.5 w-full bg-gradient-to-r from-[#FFDC33] via-amber-400 to-[#FFDC33]" />
+            <div className="h-1.5 w-full bg-gradient-to-r from-[#FFCF40] via-amber-400 to-[#FFCF40]" />
 
             {/* Badge */}
             <div className="absolute -top-0 right-6 z-10">
-              <span className="inline-flex items-center gap-1.5 rounded-b-lg bg-[#1A2744] px-4 py-1.5 text-xs font-bold text-[#FFDC33] shadow-lg">
+              <span className="inline-flex items-center gap-1.5 rounded-b-lg bg-[#1A2744] px-4 py-1.5 text-xs font-bold text-[#FFCF40] shadow-lg">
                 <Crown className="h-3.5 w-3.5" />
                 Recommended
               </span>
@@ -354,7 +354,7 @@ export function BwPricingCards({
                     trackBehaviorWorkPlanSelect({ plan: "pro", billingInterval: interval });
                     trackBehaviorWorkPlanCtaClick({ plan: "pro", billingInterval: interval, destination: proHref });
                   }}
-                  className="group flex h-14 w-full items-center justify-center gap-2 rounded-full bg-[#FFDC33] text-base font-bold text-[#1A2744] shadow-lg shadow-amber-500/20 transition-all hover:bg-[#F5CF1B] hover:shadow-xl hover:shadow-amber-500/30 active:scale-[0.98]"
+                  className="group flex h-14 w-full items-center justify-center gap-2 rounded-full bg-[#0866FF] text-base font-bold text-white shadow-lg shadow-[#0866FF]/25 transition-all hover:bg-[#0866FF]/92 hover:shadow-xl hover:shadow-[#0866FF]/30 active:scale-[0.98]"
                 >
                   Start Free — Upgrade Anytime
                   <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-0.5" />
@@ -485,7 +485,7 @@ export function BwPricingCards({
 
             <div className="mt-6 flex items-center justify-center gap-3">
               <div className="h-px flex-1 bg-gradient-to-r from-transparent to-amber-200/60" />
-              <span className="rounded-full bg-[#1A2744] px-5 py-2 text-sm font-bold text-[#FFDC33]">
+              <span className="rounded-full bg-[#1A2744] px-5 py-2 text-sm font-bold text-[#FFCF40]">
                 All replaced by GoodABA — ${proPrice}/mo
               </span>
               <div className="h-px flex-1 bg-gradient-to-l from-transparent to-amber-200/60" />

@@ -67,7 +67,7 @@ export function BwFeatureMatrix() {
                                 className={cn(
                                   "rounded-md p-2 text-center",
                                   tier === "pro"
-                                    ? "border border-amber-200/60 bg-[#FFDC33]/10"
+                                    ? "border border-amber-200/60 bg-[#FFCF40]/10"
                                     : "bg-amber-50/30"
                                 )}
                               >

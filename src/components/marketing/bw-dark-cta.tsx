@@ -28,23 +28,23 @@ export function BwDarkCta({
   return (
     <section className="relative overflow-hidden bg-[#1A2744] py-24 lg:py-32">
       {/* Decorative warm glow */}
-      <div className="pointer-events-none absolute -left-32 top-1/2 h-96 w-96 -translate-y-1/2 rounded-full bg-[#FFDC33]/8 blur-3xl" />
-      <div className="pointer-events-none absolute -right-32 top-1/4 h-72 w-72 rounded-full bg-[#5788FF]/8 blur-3xl" />
+      <div className="pointer-events-none absolute -left-32 top-1/2 h-96 w-96 -translate-y-1/2 rounded-full bg-[#FFCF40]/8 blur-3xl" />
+      <div className="pointer-events-none absolute -right-32 top-1/4 h-72 w-72 rounded-full bg-[#0866FF]/8 blur-3xl" />
       {/* Floating dots */}
       <svg
-        className="pointer-events-none absolute left-[15%] top-20 h-2 w-2 text-[#FFDC33]/20"
+        className="pointer-events-none absolute left-[15%] top-20 h-2 w-2 text-[#FFCF40]/20"
         viewBox="0 0 8 8"
       >
         <circle cx="4" cy="4" r="4" fill="currentColor" />
       </svg>
       <svg
-        className="pointer-events-none absolute bottom-24 right-[20%] h-3 w-3 text-[#5788FF]/15"
+        className="pointer-events-none absolute bottom-24 right-[20%] h-3 w-3 text-[#0866FF]/15"
         viewBox="0 0 8 8"
       >
         <circle cx="4" cy="4" r="4" fill="currentColor" />
       </svg>
       <svg
-        className="pointer-events-none absolute right-[10%] top-[40%] h-1.5 w-1.5 text-[#FFDC33]/15"
+        className="pointer-events-none absolute right-[10%] top-[40%] h-1.5 w-1.5 text-[#FFCF40]/15"
         viewBox="0 0 8 8"
       >
         <circle cx="4" cy="4" r="4" fill="currentColor" />
@@ -64,7 +64,7 @@ export function BwDarkCta({
           <div className="text-center">
             <h2 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl lg:text-5xl">
               {headline}{" "}
-              <span className="text-[#FFDC33]">{accentWord}</span>.
+              <span className="text-[#FFCF40]">{accentWord}</span>.
             </h2>
 
             <p className="mx-auto mt-6 max-w-xl text-lg text-slate-400">
@@ -81,7 +81,7 @@ export function BwDarkCta({
                     destination: ctaHref,
                   })
                 }
-                className="group inline-flex h-12 items-center justify-center gap-2 rounded-full bg-[#FFDC33] px-8 text-sm font-bold text-[#1A2744] shadow-lg shadow-amber-500/20 transition-all hover:bg-[#F5CF1B] hover:shadow-xl hover:shadow-amber-500/25 active:scale-[0.97]"
+                className="group inline-flex h-12 items-center justify-center gap-2 rounded-full bg-[#0866FF] px-8 text-sm font-bold text-white shadow-lg shadow-[#0866FF]/25 transition-all hover:bg-[#0866FF]/92 hover:shadow-xl hover:shadow-[#0866FF]/30 active:scale-[0.97]"
               >
                 {ctaLabel}
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
-import { BehaviorWorkLogo } from "@/components/brand/behaviorwork-logo";
+import { GoodABALogo } from "@/components/brand/goodaba-logo";
 
 const companyLinks = [
   { href: "https://www.findabatherapy.org", label: "FindABATherapy" },
@@ -51,7 +51,7 @@ export function BehaviorWorkFooter() {
           {/* Brand */}
           <div className="sm:col-span-2 lg:col-span-1">
             <div className="flex items-center">
-              <BehaviorWorkLogo size="md" />
+              <GoodABALogo size="md" surface="white" />
             </div>
             <p className="mt-3 max-w-xs text-sm leading-relaxed text-slate-400">
               The growth platform for ABA agencies. From first inquiry to active
@@ -69,7 +69,7 @@ export function BehaviorWorkFooter() {
                 <li key={link.label}>
                   <Link
                     href={link.href}
-                    className="text-sm text-slate-400 transition-colors hover:text-[#FFDC33]"
+                    className="text-sm text-slate-400 transition-colors hover:text-[#FFCF40]"
                   >
                     {link.label}
                   </Link>
@@ -88,7 +88,7 @@ export function BehaviorWorkFooter() {
                 <li key={link.label}>
                   <Link
                     href={link.href}
-                    className="text-sm text-slate-400 transition-colors hover:text-[#FFDC33]"
+                    className="text-sm text-slate-400 transition-colors hover:text-[#FFCF40]"
                   >
                     {link.label}
                   </Link>
@@ -107,7 +107,7 @@ export function BehaviorWorkFooter() {
                 <li key={link.label}>
                   <Link
                     href={link.href}
-                    className="text-sm text-slate-400 transition-colors hover:text-[#FFDC33]"
+                    className="text-sm text-slate-400 transition-colors hover:text-[#FFCF40]"
                   >
                     {link.label}
                   </Link>

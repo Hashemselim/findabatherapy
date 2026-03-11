@@ -848,7 +848,7 @@ export async function getOnboardingData(): Promise<
                 profile.intake_form_settings as
                   | { background_color?: string; show_powered_by?: boolean }
                   | null
-              )?.background_color || "#5788FF",
+              )?.background_color || "#0866FF",
             showPoweredBy:
               (
                 profile.intake_form_settings as

@@ -13,7 +13,7 @@ const steps = [
     title: "Set up your agency",
     description:
       "Create your profile, add your locations, insurances, and team info. Live in under 5 minutes.",
-    color: "#5788FF",
+    color: "#0866FF",
   },
   {
     number: "2",
@@ -21,7 +21,7 @@ const steps = [
     title: "Families find you",
     description:
       "Your directory listing, branded pages, and contact forms start capturing real inquiries.",
-    color: "#FFDC33",
+    color: "#FFCF40",
   },
   {
     number: "3",
@@ -90,7 +90,7 @@ export function BwHowItWorks() {
                   destination: "/pricing",
                 })
               }
-              className="inline-flex h-12 items-center justify-center rounded-full bg-[#FFDC33] px-8 text-sm font-extrabold text-[#1A2744] shadow-md shadow-amber-200/40 transition-all hover:bg-[#F5CF1B] hover:shadow-lg hover:shadow-amber-200/50 active:scale-[0.97]"
+              className="inline-flex h-12 items-center justify-center rounded-full bg-[#0866FF] px-8 text-sm font-extrabold text-white shadow-md shadow-[#0866FF]/25 transition-all hover:bg-[#0866FF]/92 hover:shadow-lg hover:shadow-[#0866FF]/30 active:scale-[0.97]"
             >
               Get Started Free &rarr;
             </Link>

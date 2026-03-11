@@ -34,7 +34,7 @@ const detailsSchema = z.object({
 
 type DetailsFormData = z.infer<typeof detailsSchema>;
 
-const DEFAULT_BRAND_COLOR = "#5788FF";
+const DEFAULT_BRAND_COLOR = "#0866FF";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 12 },
@@ -333,7 +333,7 @@ export default function OnboardingDetailsPage() {
             <Button
               type="submit"
               size="lg"
-              className="h-11 w-full shrink-0 rounded-full bg-[#FFDC33] px-7 font-semibold text-[#1A2744] shadow-md shadow-amber-200/50 hover:bg-[#F5CF1B] sm:ml-auto sm:w-auto"
+              className="h-11 w-full shrink-0 rounded-full bg-[#0866FF] px-7 font-semibold text-white shadow-md shadow-[#0866FF]/25 hover:bg-[#0866FF]/92 sm:ml-auto sm:w-auto"
               disabled={isPending}
             >
               {isPending ? (

@@ -234,6 +234,34 @@
 }
 
 @layer base {
+  .goodaba-theme {
+    --background: 43 85% 98%;
+    --foreground: 226 15% 15%;
+    --card: 0 0% 100%;
+    --card-foreground: 226 15% 15%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 226 15% 15%;
+    --primary: 217 100% 52%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 40% 98%;
+    --secondary-foreground: 226 25% 20%;
+    --muted: 41 44% 93%;
+    --muted-foreground: 226 12% 35%;
+    --accent: 45 100% 92%;
+    --accent-foreground: 226 25% 15%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 43 40% 85%;
+    --input: 43 40% 85%;
+    --ring: 217 100% 52%;
+    --label: 35 80% 40%;
+    --chart-1: 217 100% 52%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 45 100% 63%;
+    --chart-4: 197 37% 24%;
+    --chart-5: 27 87% 67%;
+  }
+
   .dashboard-theme {
     --background: 220 33% 98%;
     --foreground: 222 47% 11%;
@@ -241,22 +269,22 @@
     --card-foreground: 222 47% 11%;
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
-    --primary: 221 83% 53%;
+    --primary: 217 100% 52%;
     --primary-foreground: 210 40% 98%;
     --secondary: 220 20% 96%;
     --secondary-foreground: 222 47% 16%;
     --muted: 220 20% 95%;
     --muted-foreground: 215 16% 40%;
-    --accent: 217 91% 95%;
+    --accent: 217 100% 96%;
     --accent-foreground: 222 47% 16%;
     --destructive: 0 72% 51%;
     --destructive-foreground: 210 40% 98%;
     --border: 214 32% 90%;
     --input: 214 32% 90%;
-    --ring: 221 83% 53%;
-    --chart-1: 221 83% 53%;
+    --ring: 217 100% 52%;
+    --chart-1: 217 100% 52%;
     --chart-2: 160 60% 45%;
-    --chart-3: 38 92% 50%;
+    --chart-3: 45 100% 63%;
     --chart-4: 262 83% 58%;
     --chart-5: 0 72% 51%;
     --radius: 0.875rem;

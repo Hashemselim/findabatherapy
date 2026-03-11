@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChevronRight, Menu } from "lucide-react";
 
-import { BehaviorWorkLogo } from "@/components/brand/behaviorwork-logo";
+import { GoodABALogo } from "@/components/brand/goodaba-logo";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -85,7 +85,7 @@ export function BehaviorWorkHeader({ isLoggedIn = false }: BehaviorWorkHeaderPro
           className="group flex items-center"
           aria-label="GoodABA home"
         >
-          <BehaviorWorkLogo size="lg" />
+          <GoodABALogo size="lg" priority />
         </Link>
 
         {/* Desktop nav */}
@@ -94,7 +94,7 @@ export function BehaviorWorkHeader({ isLoggedIn = false }: BehaviorWorkHeaderPro
             <Link
               key={item.label}
               href={item.href}
-              className="relative text-sm font-medium text-slate-500 transition-colors hover:text-[#1A2744] after:absolute after:-bottom-1 after:left-0 after:h-0.5 after:w-0 after:rounded-full after:bg-[#FFDC33] after:transition-all hover:after:w-full"
+              className="relative text-sm font-medium text-slate-500 transition-colors hover:text-[#1A2744] after:absolute after:-bottom-1 after:left-0 after:h-0.5 after:w-0 after:rounded-full after:bg-[#0866FF] after:transition-all hover:after:w-full"
             >
               {item.label}
             </Link>
@@ -112,7 +112,7 @@ export function BehaviorWorkHeader({ isLoggedIn = false }: BehaviorWorkHeaderPro
           <Link
             href={pricingHref}
             onClick={trackHeaderCta}
-            className="inline-flex h-9 items-center justify-center rounded-full bg-[#FFDC33] px-5 text-sm font-bold text-[#1A2744] shadow-xs shadow-amber-200/40 transition-all hover:bg-[#F5CF1B] hover:shadow-md hover:shadow-amber-200/50 active:scale-[0.97]"
+            className="inline-flex h-9 items-center justify-center rounded-full bg-[#0866FF] px-5 text-sm font-bold text-white shadow-xs shadow-[#0866FF]/25 transition-all hover:bg-[#0866FF]/92 hover:shadow-md hover:shadow-[#0866FF]/30 active:scale-[0.97]"
           >
             Start Free
           </Link>
@@ -136,7 +136,7 @@ export function BehaviorWorkHeader({ isLoggedIn = false }: BehaviorWorkHeaderPro
           >
             <SheetHeader className="gap-4 border-b border-amber-100/80 px-6 pb-5 pt-6 pr-16">
               <SheetTitle className="leading-none">
-                <BehaviorWorkLogo size="lg" />
+                <GoodABALogo size="lg" />
               </SheetTitle>
               <SheetDescription className="max-w-[15rem] text-[15px] leading-6 text-slate-500">
                 The growth platform for ABA agencies.
@@ -169,7 +169,7 @@ export function BehaviorWorkHeader({ isLoggedIn = false }: BehaviorWorkHeaderPro
                   <Link
                     href={pricingHref}
                     onClick={trackHeaderCta}
-                    className="flex h-12 items-center justify-center rounded-full bg-[#FFDC33] px-5 text-base font-bold text-[#1A2744] shadow-xs shadow-amber-200/40 transition-all hover:bg-[#F5CF1B]"
+                    className="flex h-12 items-center justify-center rounded-full bg-[#0866FF] px-5 text-base font-bold text-white shadow-xs shadow-[#0866FF]/25 transition-all hover:bg-[#0866FF]/92"
                   >
                     Start Free
                   </Link>

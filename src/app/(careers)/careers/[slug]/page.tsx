@@ -104,7 +104,7 @@ async function getProviderBySlug(slug: string): Promise<ProviderProfile | null> 
     isVerified: effectiveTier !== "free",
     primaryLocation,
     intakeFormSettings: {
-      background_color: intakeFormSettings?.background_color || "#5788FF",
+      background_color: intakeFormSettings?.background_color || "#0866FF",
       show_powered_by: intakeFormSettings?.show_powered_by ?? true,
     },
   };

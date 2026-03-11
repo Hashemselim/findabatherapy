@@ -41,10 +41,10 @@ const pillars: Pillar[] = [
     description:
       "Your agency gets a professional directory listing, branded pages, and a direct inquiry form — so families find you and start a real conversation.",
     icon: Megaphone,
-    color: "#5788FF",
-    lightBg: "bg-[#5788FF]/8",
-    textColor: "text-[#5788FF]",
-    borderColor: "border-[#5788FF]/25",
+    color: "#0866FF",
+    lightBg: "bg-[#0866FF]/8",
+    textColor: "text-[#0866FF]",
+    borderColor: "border-[#0866FF]/25",
     features: [
       "FindABATherapy.org listing — found by insurance + location",
       "Branded agency page with logo, photos & CTA",
@@ -60,8 +60,8 @@ const pillars: Pillar[] = [
     description:
       "Inquiries flow into your pipeline dashboard. Branded intake forms collect everything you need. Automated emails keep families engaged. No lead left behind.",
     icon: Zap,
-    color: "#FFDC33",
-    lightBg: "bg-[#FFDC33]/10",
+    color: "#FFCF40",
+    lightBg: "bg-[#FFCF40]/10",
     textColor: "text-amber-600",
     borderColor: "border-amber-300/30",
     features: [
@@ -122,13 +122,13 @@ function PillarMockup({ pillar }: { pillar: Pillar }) {
         </div>
         <div className="space-y-3 p-5">
           <div className="flex gap-2">
-            {["#5788FF", "#10B981", "#F59E0B"].map((c) => (
+            {["#0866FF", "#10B981", "#F59E0B"].map((c) => (
               <span
                 key={c}
                 className="rounded-full px-2.5 py-1 text-[9px] font-bold text-white"
                 style={{ backgroundColor: c }}
               >
-                {c === "#5788FF"
+                {c === "#0866FF"
                   ? "3 Locations"
                   : c === "#10B981"
                     ? "In-Network"
@@ -145,11 +145,11 @@ function PillarMockup({ pillar }: { pillar: Pillar }) {
               />
             ))}
           </div>
-          <div className="flex items-center justify-between rounded-xl bg-[#5788FF]/8 px-3 py-2.5">
-            <span className="text-[10px] font-bold text-[#5788FF]">
+          <div className="flex items-center justify-between rounded-xl bg-[#0866FF]/8 px-3 py-2.5">
+            <span className="text-[10px] font-bold text-[#0866FF]">
               Contact This Agency
             </span>
-            <span className="text-[10px] text-[#5788FF]/60">&rarr;</span>
+            <span className="text-[10px] text-[#0866FF]/60">&rarr;</span>
           </div>
         </div>
       </div>
@@ -173,8 +173,8 @@ function PillarMockup({ pillar }: { pillar: Pillar }) {
         <div className="p-4">
           <div className="flex gap-2">
             {[
-              { label: "New", count: 8, c: "#5788FF" },
-              { label: "Intake", count: 5, c: "#FFDC33" },
+              { label: "New", count: 8, c: "#0866FF" },
+              { label: "Intake", count: 5, c: "#FFCF40" },
               { label: "Review", count: 4, c: "#8B5CF6" },
               { label: "Active", count: 7, c: "#10B981" },
             ].map((s) => (
@@ -275,14 +275,14 @@ export function BwLifecycle() {
       {/* Section header */}
       <BwFadeUp>
         <div className="mx-auto max-w-3xl text-center">
-          <span className="inline-flex items-center rounded-full border border-amber-200/60 bg-[#FFDC33]/10 px-4 py-1.5 text-xs font-bold tracking-wide text-amber-700">
+          <span className="inline-flex items-center rounded-full border border-amber-200/60 bg-[#FFCF40]/10 px-4 py-1.5 text-xs font-bold tracking-wide text-amber-700">
             How It Works
           </span>
           <h2 className="mt-5 text-3xl font-extrabold tracking-tight text-[#1A2744] sm:text-4xl lg:text-5xl">
             One platform. Every stage of the{" "}
             <span className="relative inline-block">
-              <span className="relative z-10 text-[#5788FF]">client journey</span>
-              <span className="absolute -bottom-1 left-0 right-0 z-0 h-3 rounded-full bg-[#FFDC33]/30" />
+              <span className="relative z-10 text-[#0866FF]">client journey</span>
+              <span className="absolute -bottom-1 left-0 right-0 z-0 h-3 rounded-full bg-[#FFCF40]/30" />
             </span>
             .
           </h2>
@@ -411,7 +411,7 @@ export function BwLifecycle() {
 
       {/* +Grow Your Team bonus strip */}
       <BwMotion variant="fade-up" delay={0.1} className="mt-20">
-        <div className="overflow-hidden rounded-2xl border border-amber-200/40 bg-linear-to-r from-[#10B981]/5 via-white to-[#5788FF]/5 shadow-xs">
+        <div className="overflow-hidden rounded-2xl border border-amber-200/40 bg-linear-to-r from-[#10B981]/5 via-white to-[#0866FF]/5 shadow-xs">
           <div className="flex flex-col items-center gap-5 p-8 sm:flex-row sm:gap-8 sm:p-10">
             <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#10B981]/10 ring-4 ring-[#10B981]/10">
               <TrendingUp className="h-6 w-6 text-[#10B981]" />

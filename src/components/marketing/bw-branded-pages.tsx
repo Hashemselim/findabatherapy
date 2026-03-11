@@ -38,7 +38,7 @@ const slides: Slide[] = [
     path: "/contact/your-agency",
     description:
       "A branded inquiry form families fill out in under 60 seconds.",
-    color: "#5788FF",
+    color: "#0866FF",
     urlBar: "goodaba.com/provider/your-agency/contact",
   },
   {
@@ -47,7 +47,7 @@ const slides: Slide[] = [
     path: "/intake/your-agency",
     description:
       "Collect child details, parent info, insurance, and availability before the first call.",
-    color: "#FFDC33",
+    color: "#FFCF40",
     urlBar: "goodaba.com/provider/your-agency/intake",
   },
   {
@@ -83,7 +83,7 @@ const slides: Slide[] = [
     path: "auto-sent from pipeline",
     description:
       "22 email templates with your agency name, logo, and merge fields — sent automatically at every stage.",
-    color: "#5788FF",
+    color: "#0866FF",
     urlBar: "sent via GoodABA",
   },
 ];
@@ -132,7 +132,7 @@ function MockupContactForm() {
     <div className="mx-auto max-w-sm space-y-4">
       {/* Logo + heading */}
       <div className="flex items-center gap-3">
-        <div className="h-9 w-9 rounded-xl bg-[#5788FF]/15" />
+        <div className="h-9 w-9 rounded-xl bg-[#0866FF]/15" />
         <div>
           <div className="h-2.5 w-28 rounded-full bg-[#1A2744]/15" />
           <div className="mt-1 h-2 w-20 rounded-full bg-slate-200/80" />
@@ -171,7 +171,7 @@ function MockupContactForm() {
         <div className="h-14 rounded-lg border border-slate-200 bg-slate-50/80" />
       </div>
       {/* Submit */}
-      <div className="flex h-9 items-center justify-center rounded-full bg-[#5788FF] text-[11px] font-bold text-white">
+      <div className="flex h-9 items-center justify-center rounded-full bg-[#0866FF] text-[11px] font-bold text-white">
         Submit Inquiry &rarr;
       </div>
     </div>
@@ -189,7 +189,7 @@ function MockupIntakeForm() {
               <div
                 className={cn(
                   "h-1.5 rounded-full",
-                  i === 0 ? "bg-[#FFDC33]" : "bg-slate-100"
+                  i === 0 ? "bg-[#FFCF40]" : "bg-slate-100"
                 )}
               />
               <p
@@ -501,7 +501,7 @@ function MockupBrandedEmails() {
         <div className="space-y-3 p-4">
           {/* Logo header */}
           <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
-            <div className="h-8 w-8 rounded-lg bg-[#5788FF]/15" />
+            <div className="h-8 w-8 rounded-lg bg-[#0866FF]/15" />
             <span className="text-[10px] font-bold text-[#1A2744]">
               Your Agency Name
             </span>
@@ -516,8 +516,8 @@ function MockupBrandedEmails() {
             <div className="h-2 w-[80%] rounded-full bg-slate-100" />
           </div>
           {/* Status box */}
-          <div className="rounded-lg bg-[#5788FF]/5 p-3">
-            <p className="text-[9px] font-bold text-[#5788FF]">
+          <div className="rounded-lg bg-[#0866FF]/5 p-3">
+            <p className="text-[9px] font-bold text-[#0866FF]">
               Your Inquiry Status
             </p>
             <div className="mt-2 flex items-center gap-2">
@@ -529,7 +529,7 @@ function MockupBrandedEmails() {
               </div>
               <div className="h-px flex-1 bg-slate-200" />
               <div className="flex items-center gap-1">
-                <span className="h-2 w-2 rounded-full bg-[#FFDC33]" />
+                <span className="h-2 w-2 rounded-full bg-[#FFCF40]" />
                 <span className="text-[8px] font-semibold text-amber-600">
                   Under Review
                 </span>
@@ -547,7 +547,7 @@ function MockupBrandedEmails() {
             <div className="h-2 w-[75%] rounded-full bg-slate-100" />
           </div>
           {/* CTA button */}
-          <div className="flex h-8 items-center justify-center rounded-full bg-[#5788FF] text-[9px] font-bold text-white">
+          <div className="flex h-8 items-center justify-center rounded-full bg-[#0866FF] text-[9px] font-bold text-white">
             Complete Your Intake Form &rarr;
           </div>
           {/* Footer */}
@@ -613,8 +613,8 @@ export function BwBrandedPages() {
           <h2 className="mt-5 text-3xl font-extrabold tracking-tight text-[#1A2744] sm:text-4xl">
             Seven branded touchpoints.{" "}
             <span className="relative inline-block">
-              <span className="relative z-10 text-[#5788FF]">Zero coding</span>
-              <span className="absolute -bottom-0.5 left-0 right-0 z-0 h-2.5 rounded-full bg-[#FFDC33]/30" />
+              <span className="relative z-10 text-[#0866FF]">Zero coding</span>
+              <span className="absolute -bottom-0.5 left-0 right-0 z-0 h-2.5 rounded-full bg-[#FFCF40]/30" />
             </span>
             .
           </h2>
@@ -697,7 +697,7 @@ export function BwBrandedPages() {
                   className={cn(
                     "h-2 rounded-full transition-all",
                     i === active
-                      ? "w-6 bg-[#FFDC33]"
+                      ? "w-6 bg-[#FFCF40]"
                       : "w-2 bg-slate-300/50 hover:bg-slate-300"
                   )}
                 />

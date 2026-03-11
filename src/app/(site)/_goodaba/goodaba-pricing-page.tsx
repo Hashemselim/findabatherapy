@@ -39,7 +39,7 @@ export async function GoodabaPricingPage() {
   const user = await getUser();
 
   return (
-    <div className="min-h-screen overflow-x-clip bg-[#FFFBF0] text-slate-900">
+    <div className="goodaba-theme min-h-screen overflow-x-clip bg-[#FFFBF0] text-slate-900">
       <BehaviorWorkTracker mode="get-started" />
       <BehaviorWorkHeader isLoggedIn={Boolean(user)} />
       <div className="h-16" aria-hidden="true" />
@@ -52,17 +52,17 @@ export async function GoodabaPricingPage() {
           <BwFadeUp>
             <div className="mx-auto max-w-3xl text-center">
               <div className="mb-5">
-                <span className="inline-flex items-center rounded-full border border-[#5788FF]/20 bg-[#5788FF]/8 px-4 py-1.5 text-xs font-bold tracking-wide text-[#5788FF]">
+                <span className="inline-flex items-center rounded-full border border-[#0866FF]/20 bg-[#0866FF]/8 px-4 py-1.5 text-xs font-bold tracking-wide text-[#0866FF]">
                   Purpose-built for ABA agencies
                 </span>
               </div>
               <h1 className="text-3xl font-extrabold tracking-tight text-[#1A2744] sm:text-4xl lg:text-5xl">
                 Capture every inquiry. Convert every family.{" "}
                 <span className="relative inline-block">
-                  <span className="relative z-10 text-[#5788FF]">
+                  <span className="relative z-10 text-[#0866FF]">
                     Nothing falls through the cracks.
                   </span>
-                  <span className="absolute -bottom-0.5 left-0 right-0 z-0 h-3 rounded-full bg-[#FFDC33]/30 sm:h-4" />
+                  <span className="absolute -bottom-0.5 left-0 right-0 z-0 h-3 rounded-full bg-[#FFCF40]/30 sm:h-4" />
                 </span>
               </h1>
               <p className="mx-auto mt-5 max-w-2xl text-lg text-slate-600 sm:text-xl">
@@ -71,7 +71,7 @@ export async function GoodabaPricingPage() {
                   <span className="relative z-10">
                     Google Forms, spreadsheets, and disconnected tools
                   </span>
-                  <span className="absolute -bottom-0.5 left-0 right-0 z-0 h-2.5 rounded-full bg-[#FFDC33]/30" />
+                  <span className="absolute -bottom-0.5 left-0 right-0 z-0 h-2.5 rounded-full bg-[#FFCF40]/30" />
                 </span>{" "}
                 your agency runs on today with branded intake forms, client
                 management, automated emails, and a job board — all connected.{" "}

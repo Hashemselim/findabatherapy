@@ -29,7 +29,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { BehaviorWorkLogo } from "@/components/brand/behaviorwork-logo";
+import { GoodABALogo } from "@/components/brand/goodaba-logo";
 import { getJobsEmployersPath } from "@/lib/utils/public-paths";
 import { SupportContactDialog } from "@/components/support-contact-dialog";
 import { getNewApplicationCount } from "@/lib/actions/applications";
@@ -221,7 +221,7 @@ export function DashboardSidebar({
       {/* Top: Logo */}
       <div className="flex flex-col">
         <div className="px-6 pb-2 pt-6">
-          <BehaviorWorkLogo size="lg" />
+          <GoodABALogo size="lg" priority />
         </div>
 
         {/* Divider */}

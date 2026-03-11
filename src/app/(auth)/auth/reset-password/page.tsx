@@ -54,7 +54,7 @@ export default function ResetPasswordPage() {
     <div className="mx-auto flex min-h-[70vh] max-w-md flex-col justify-center px-4 py-10">
       <Card>
         <CardHeader className="space-y-4 text-center">
-          <Badge className="mx-auto rounded-full border border-[#5788FF]/40 bg-linear-to-r from-[#5788FF]/15 to-[#5788FF]/5 px-4 py-1.5 text-sm font-semibold text-[#5788FF] shadow-xs">
+          <Badge className="mx-auto rounded-full border border-[#0866FF]/20 bg-[#0866FF]/8 px-4 py-1.5 text-sm font-semibold text-[#0866FF] shadow-xs">
             Account Recovery
           </Badge>
           <CardTitle className="text-3xl">Reset your password</CardTitle>

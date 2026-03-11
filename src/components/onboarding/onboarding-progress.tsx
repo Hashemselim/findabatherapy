@@ -39,7 +39,7 @@ export function OnboardingProgress({
                     isCompleted
                       ? "bg-emerald-500 text-white shadow-[0_0_0_3px_rgba(16,185,129,0.15)]"
                       : isCurrent
-                        ? "bg-[#5788FF] text-white shadow-[0_0_0_3px_rgba(87,136,255,0.15)]"
+                        ? "bg-[#0866FF] text-white shadow-[0_0_0_3px_rgba(8,102,255,0.15)]"
                         : "bg-amber-100/60 text-slate-400"
                   )}
                 >
@@ -57,7 +57,7 @@ export function OnboardingProgress({
 
                   {/* Current step pulse */}
                   {isCurrent && (
-                    <span className="absolute inset-0 animate-ping rounded-full bg-[#5788FF]/20" style={{ animationDuration: "2s" }} />
+                    <span className="absolute inset-0 animate-ping rounded-full bg-[#0866FF]/20" style={{ animationDuration: "2s" }} />
                   )}
                 </div>
 
@@ -99,7 +99,7 @@ export function OnboardingProgress({
       <div className="flex flex-col gap-2 md:hidden">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#5788FF] text-[10px] font-bold text-white">
+            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#0866FF] text-[10px] font-bold text-white">
               {currentIndex + 1}
             </div>
             <span className="text-sm font-semibold text-[#1A2744]">
@@ -126,7 +126,7 @@ export function OnboardingProgress({
                   isCompleted
                     ? "bg-emerald-400"
                     : isCurrent
-                      ? "bg-[#5788FF]"
+                      ? "bg-[#0866FF]"
                       : "bg-amber-200/60"
                 )}
                 initial={false}

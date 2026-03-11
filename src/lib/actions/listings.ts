@@ -200,7 +200,7 @@ export async function getListing(): Promise<ActionResult<ListingWithRelations>> 
         planTier: profile.plan_tier,
         subscriptionStatus: profile.subscription_status,
         intakeFormSettings: {
-          background_color: dashboardIntakeSettings?.background_color || "#5788FF",
+          background_color: dashboardIntakeSettings?.background_color || "#0866FF",
           show_powered_by: dashboardIntakeSettings?.show_powered_by ?? true,
         },
       },
@@ -1018,7 +1018,7 @@ export async function getListingBySlug(
         planTier: profile.plan_tier,
         subscriptionStatus: profile.subscription_status,
         intakeFormSettings: {
-          background_color: intakeSettings?.background_color || "#5788FF",
+          background_color: intakeSettings?.background_color || "#0866FF",
           show_powered_by: intakeSettings?.show_powered_by ?? true,
         },
       },

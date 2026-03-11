@@ -78,7 +78,7 @@ We accept most major insurance plans and offer flexible scheduling to accommodat
     planTier: "pro",
     subscriptionStatus: "active",
     intakeFormSettings: {
-      background_color: "#5788FF",
+      background_color: "#0866FF",
       show_powered_by: true,
     },
   },

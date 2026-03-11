@@ -5,13 +5,13 @@
  * and the agency communication emails (communications server actions).
  */
 
-import { behaviorWorkLogoHtml } from "@/components/brand/behaviorwork-logo";
+import { goodabaLogoHtml } from "@/lib/brand/goodaba";
 import { domains, getSiteUrl as getSafeUrl, getSupportEmail } from "@/lib/utils/domains";
 
 // Brand colors (shared with notifications.ts)
 const BRAND = {
-  primary: "#5788FF",
-  accent: "#FFD700",
+  primary: "#0866FF",
+  accent: "#FFCF40",
   success: "#059669",
   error: "#dc2626",
   warning: "#f59e0b",
@@ -37,7 +37,10 @@ export function emailWrapper(
   const siteUrl =
     brandContext === "therapy" ? domains.therapy.production : domains.goodaba.production;
   const supportEmail = getSupportEmail("goodaba");
-  const logoHtml = behaviorWorkLogoHtml({ fontSize: 28, color: "#ffffff" });
+  const logoHtml = goodabaLogoHtml({
+    baseUrl: domains.goodaba.production,
+    height: 28,
+  });
   const headerContext =
     brandContext === "therapy"
       ? `Find ABA Therapy by <a href="https://www.goodaba.com" style="color: rgba(255,255,255,0.9); text-decoration: none;">GoodABA</a>`

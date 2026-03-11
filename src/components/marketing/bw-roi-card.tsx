@@ -32,13 +32,13 @@ function RoiMetric({
     <div
       className={
         highlight
-          ? "rounded-2xl bg-[#FFDC33]/15 p-4 text-center backdrop-blur-xs ring-1 ring-[#FFDC33]/20"
+          ? "rounded-2xl bg-[#FFCF40]/15 p-4 text-center backdrop-blur-xs ring-1 ring-[#FFCF40]/20"
           : "rounded-2xl bg-white/10 p-4 text-center backdrop-blur-xs"
       }
     >
       <p
         ref={counter.ref as React.RefObject<HTMLParagraphElement>}
-        className={`text-2xl font-extrabold sm:text-3xl ${highlight ? "text-[#FFDC33]" : "text-white"}`}
+        className={`text-2xl font-extrabold sm:text-3xl ${highlight ? "text-[#FFCF40]" : "text-white"}`}
       >
         {counter.display}
       </p>
@@ -58,13 +58,13 @@ export function BwRoiCard() {
         <div className="mx-auto max-w-2xl">
           <div className="relative overflow-hidden rounded-3xl bg-[#1A2744] p-8 shadow-2xl sm:p-12">
             {/* Decorative warm glow */}
-            <div className="pointer-events-none absolute -right-20 -top-20 h-60 w-60 rounded-full bg-[#FFDC33]/10 blur-3xl" />
-            <div className="pointer-events-none absolute -bottom-16 -left-16 h-48 w-48 rounded-full bg-[#5788FF]/10 blur-3xl" />
+            <div className="pointer-events-none absolute -right-20 -top-20 h-60 w-60 rounded-full bg-[#FFCF40]/10 blur-3xl" />
+            <div className="pointer-events-none absolute -bottom-16 -left-16 h-48 w-48 rounded-full bg-[#0866FF]/10 blur-3xl" />
 
             <div className="relative">
               <h2 className="text-center text-2xl font-extrabold tracking-tight text-white sm:text-3xl lg:text-4xl">
                 One new client pays for GoodABA for{" "}
-                <span className="text-[#FFDC33]">63 years</span>.
+                <span className="text-[#FFCF40]">63 years</span>.
               </h2>
 
               <div className="mt-8 grid gap-4 sm:grid-cols-3">
@@ -97,7 +97,7 @@ export function BwRoiCard() {
                       destination: "/pricing",
                     })
                   }
-                  className="group inline-flex h-12 items-center justify-center gap-2 rounded-full bg-[#FFDC33] px-7 text-sm font-bold text-[#1A2744] shadow-lg shadow-amber-500/20 transition-all hover:bg-[#F5CF1B] hover:shadow-xl hover:shadow-amber-500/25 active:scale-[0.97]"
+                  className="group inline-flex h-12 items-center justify-center gap-2 rounded-full bg-[#0866FF] px-7 text-sm font-bold text-white shadow-lg shadow-[#0866FF]/25 transition-all hover:bg-[#0866FF]/92 hover:shadow-xl hover:shadow-[#0866FF]/30 active:scale-[0.97]"
                 >
                   Start Growing Your Caseload
                   <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />

@@ -15,7 +15,7 @@ interface DripEmailTemplate {
 }
 
 const BRAND = {
-  primary: "#5788FF",
+  primary: "#0866FF",
   success: "#059669",
   textDark: "#1e293b",
   textMedium: "#475569",

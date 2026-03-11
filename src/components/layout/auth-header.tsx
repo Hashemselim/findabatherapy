@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Heart, Briefcase } from "lucide-react";
 
-import { BehaviorWorkLogo } from "@/components/brand/behaviorwork-logo";
+import { GoodABALogo } from "@/components/brand/goodaba-logo";
 
 export function AuthHeader() {
   return (
@@ -11,12 +11,12 @@ export function AuthHeader() {
         className="transition-opacity hover:opacity-80"
         aria-label="GoodABA home"
       >
-        <BehaviorWorkLogo size="xl" />
+        <GoodABALogo size="xl" priority />
       </Link>
 
       <div className="flex items-center gap-4 text-xs text-muted-foreground">
         <span className="flex items-center gap-1.5">
-          <Heart className="h-3 w-3 text-[#5788FF]" />
+          <Heart className="h-3 w-3 text-[#0866FF]" />
           <span>findabatherapy.org</span>
         </span>
         <span className="text-border">·</span>

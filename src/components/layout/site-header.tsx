@@ -52,7 +52,7 @@ export async function SiteHeader() {
           <Button
             asChild
             size="sm"
-            className="rounded-full border border-[#5788FF] bg-[#5788FF] px-4 text-sm font-medium text-white hover:bg-[#88B0FF]"
+            className="rounded-full border border-[#0866FF] bg-[#0866FF] px-4 text-sm font-medium text-white hover:bg-[#0866FF]"
           >
             <Link href="/get-listed">Get Listed</Link>
           </Button>
@@ -103,7 +103,7 @@ export async function SiteHeader() {
                 <SheetClose asChild>
                   <Button
                     asChild
-                    className="rounded-full border border-[#5788FF] bg-[#5788FF] text-base font-medium text-white hover:bg-[#88B0FF]"
+                    className="rounded-full border border-[#0866FF] bg-[#0866FF] text-base font-medium text-white hover:bg-[#0866FF]"
                   >
                     <Link href="/get-listed">Get Listed</Link>
                   </Button>

@@ -97,7 +97,7 @@ async function getProviderBySlug(slug: string): Promise<ProviderProfile | null> 
     planTier: effectiveTier,
     isVerified: effectiveTier !== "free",
     intakeFormSettings: {
-      background_color: intakeFormSettings?.background_color || "#5788FF",
+      background_color: intakeFormSettings?.background_color || "#0866FF",
       show_powered_by: intakeFormSettings?.show_powered_by ?? true,
     },
   };

@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 
-import { BehaviorWorkLogo } from "@/components/brand/behaviorwork-logo";
+import { GoodABALogo } from "@/components/brand/goodaba-logo";
 import { ONBOARDING_STEPS } from "@/lib/onboarding/flow";
 import { OnboardingProgress } from "@/components/onboarding/onboarding-progress";
 
@@ -24,8 +24,8 @@ export default function OnboardingLayout({
     <div className="relative min-h-screen overflow-x-hidden bg-[#FFFBF0]">
       {/* Subtle ambient background */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute -left-[300px] -top-[200px] h-[600px] w-[600px] rounded-full bg-[#FFDC33]/6 blur-[120px]" />
-        <div className="absolute -right-[200px] top-[40%] h-[500px] w-[500px] rounded-full bg-[#5788FF]/4 blur-[100px]" />
+        <div className="absolute -left-[300px] -top-[200px] h-[600px] w-[600px] rounded-full bg-[#FFCF40]/6 blur-[120px]" />
+        <div className="absolute -right-[200px] top-[40%] h-[500px] w-[500px] rounded-full bg-[#0866FF]/4 blur-[100px]" />
       </div>
 
       {/* Progress bar - sticky header */}
@@ -34,8 +34,8 @@ export default function OnboardingLayout({
           <div className="flex items-center gap-3 sm:gap-4">
             {/* Brand mark */}
             <div className="flex items-center gap-2 sm:gap-2.5">
-              <BehaviorWorkLogo size="sm" />
-              <span className="hidden text-sm font-semibold tracking-tight text-[#5788FF] sm:inline">
+              <GoodABALogo size="sm" priority />
+              <span className="hidden text-sm font-semibold tracking-tight text-[#0866FF] sm:inline">
                 Setup
               </span>
             </div>

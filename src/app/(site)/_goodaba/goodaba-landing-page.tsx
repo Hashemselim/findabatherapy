@@ -46,7 +46,7 @@ export async function GoodabaLandingPage() {
   const user = await getUser();
 
   return (
-    <div className="min-h-screen overflow-x-clip bg-[#FFFBF0] text-slate-900">
+    <div className="goodaba-theme min-h-screen overflow-x-clip bg-[#FFFBF0] text-slate-900">
       <BehaviorWorkTracker mode="lander" />
       <BehaviorWorkHeader isLoggedIn={Boolean(user)} />
       <div className="h-16" aria-hidden="true" />

@@ -203,7 +203,7 @@ export default function OnboardingPlanPage() {
         >
           {/* Recommended badge */}
           <div className="absolute right-4 top-4">
-            <span className="inline-flex items-center gap-1 rounded-full bg-[#1A2744] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-[#FFDC33]">
+            <span className="inline-flex items-center gap-1 rounded-full bg-[#1A2744] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-[#FFCF40]">
               <Crown className="h-3 w-3" />
               Recommended
             </span>
@@ -268,7 +268,7 @@ export default function OnboardingPlanPage() {
             </ul>
 
             <Button
-              className="mt-6 h-12 w-full rounded-full bg-[#FFDC33] font-semibold text-[#1A2744] shadow-md shadow-amber-200/50 hover:bg-[#F5CF1B]"
+              className="mt-6 h-12 w-full rounded-full bg-[#0866FF] font-semibold text-white shadow-md shadow-[#0866FF]/25 hover:bg-[#0866FF]/92"
               disabled={isPending}
               onClick={handleUpgrade}
             >
