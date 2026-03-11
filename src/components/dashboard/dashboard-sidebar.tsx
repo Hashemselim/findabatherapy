@@ -61,12 +61,60 @@ const SECTION_STORAGE_KEY = "dashboard_sections_v3";
 
 type SectionId = string;
 
-function getDefaultOpenState(): Record<SectionId, boolean> {
+function getCollapsedState(): Record<SectionId, boolean> {
   const state: Record<string, boolean> = {};
   for (const s of sectionNav) {
-    state[s.id] = s.defaultOpen;
+    state[s.id] = false;
   }
   return state;
+}
+
+function getDefaultOpenState(): Record<SectionId, boolean> {
+  const state = getCollapsedState();
+  const defaultOpenSection = sectionNav.find((section) => section.defaultOpen)?.id;
+  if (defaultOpenSection) {
+    state[defaultOpenSection] = true;
+  }
+  return state;
+}
+
+function getAccordionState(openSectionId: SectionId | null): Record<SectionId, boolean> {
+  const state = getCollapsedState();
+  if (openSectionId) {
+    state[openSectionId] = true;
+  }
+  return state;
+}
+
+function hasPersistedSectionState(state: Record<SectionId, boolean> | null | undefined): boolean {
+  if (!state) return false;
+
+  return sectionNav.some((section) =>
+    Object.prototype.hasOwnProperty.call(state, section.id)
+  );
+}
+
+function areSectionStatesEqual(
+  left: Record<SectionId, boolean>,
+  right: Record<SectionId, boolean>,
+): boolean {
+  return sectionNav.every((section) => (left[section.id] ?? false) === (right[section.id] ?? false));
+}
+
+function normalizeSectionState(
+  state: Record<SectionId, boolean> | null | undefined,
+  preferredOpenSectionId: SectionId | null = null,
+): Record<SectionId, boolean> {
+  if (preferredOpenSectionId) {
+    return getAccordionState(preferredOpenSectionId);
+  }
+
+  const firstOpenSection = sectionNav.find((section) => state?.[section.id])?.id;
+  if (firstOpenSection) {
+    return getAccordionState(firstOpenSection);
+  }
+
+  return hasPersistedSectionState(state) ? getCollapsedState() : getDefaultOpenState();
 }
 
 function loadSectionState(): Record<SectionId, boolean> {
@@ -131,23 +179,12 @@ export function DashboardSidebar({
   const [taskCount, setTaskCount] = useState(0);
   const [sectionOpen, setSectionOpen] = useState<Record<SectionId, boolean>>(getDefaultOpenState);
 
-  // Hydrate from localStorage after mount (avoids SSR/client mismatch)
-  useEffect(() => {
-    const stored = loadSectionState();
-    setSectionOpen(stored);
-  }, []);
-
-  // Auto-expand section containing current route
+  // Hydrate from localStorage and keep the active route's section as the only open one.
   useEffect(() => {
     const activeSection = inferActiveSectionFromPath(pathname);
-    if (activeSection) {
-      setSectionOpen((prev) => {
-        if (prev[activeSection]) return prev;
-        const next = { ...prev, [activeSection]: true };
-        saveSectionState(next);
-        return next;
-      });
-    }
+    const next = normalizeSectionState(loadSectionState(), activeSection);
+    setSectionOpen(next);
+    saveSectionState(next);
   }, [pathname]);
 
   // Fetch badge counts
@@ -177,9 +214,10 @@ export function DashboardSidebar({
     await signOut();
   };
 
-  function toggleSection(id: SectionId) {
+  function setSectionExpanded(id: SectionId, isOpen: boolean) {
     setSectionOpen((prev) => {
-      const next = { ...prev, [id]: !prev[id] };
+      const next = isOpen ? getAccordionState(id) : getCollapsedState();
+      if (areSectionStatesEqual(prev, next)) return prev;
       saveSectionState(next);
       return next;
     });
@@ -252,7 +290,7 @@ export function DashboardSidebar({
               <Collapsible
                 key={section.id}
                 open={isOpen}
-                onOpenChange={() => toggleSection(section.id)}
+                onOpenChange={(nextOpen) => setSectionExpanded(section.id, nextOpen)}
               >
                 <CollapsibleTrigger
                   className={cn(
