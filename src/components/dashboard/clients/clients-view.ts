@@ -256,7 +256,10 @@ function compareClients(
     return (leftValue - rightValue) * sortFactor;
   }
 
-  const comparison = leftValue.localeCompare(rightValue, undefined, {
+  const leftString = String(leftValue);
+  const rightString = String(rightValue);
+
+  const comparison = leftString.localeCompare(rightString, undefined, {
     sensitivity: "base",
   });
 
