@@ -123,17 +123,19 @@ export async function getClients(
       child_date_of_birth,
       created_at,
       updated_at,
-      client_parents!inner (
+      client_parents (
         first_name,
         last_name,
         phone,
         email,
-        is_primary
+        is_primary,
+        deleted_at
       ),
       client_insurances (
         insurance_name,
         member_id,
-        is_primary
+        is_primary,
+        deleted_at
       )
     `, { count: "exact" })
     .eq("profile_id", profileId)
@@ -171,8 +173,16 @@ export async function getClients(
     .eq("profile_id", profileId)
     .is("deleted_at", null);
 
+  let filteredStatusCounts = statusCounts;
+  if (filters?.status && filters.status.length > 0) {
+    const allowedStatuses = new Set(filters.status);
+    filteredStatusCounts = (statusCounts || []).filter((client) =>
+      allowedStatuses.has(client.status as ClientStatus)
+    );
+  }
+
   const counts: ClientCounts = {
-    total: statusCounts?.length || 0,
+    total: filteredStatusCounts?.length || 0,
     inquiry: 0,
     intake_pending: 0,
     waitlist: 0,
@@ -182,7 +192,7 @@ export async function getClients(
     discharged: 0,
   };
 
-  statusCounts?.forEach((c) => {
+  filteredStatusCounts?.forEach((c) => {
     const status = c.status as keyof Omit<ClientCounts, "total">;
     if (status in counts) {
       counts[status]++;
@@ -191,8 +201,20 @@ export async function getClients(
 
   // Transform data
   const clientList: ClientListItem[] = (clients || []).map((c) => {
-    const parents = c.client_parents as { first_name: string | null; last_name: string | null; phone: string | null; email: string | null; is_primary: boolean }[] | null;
-    const insurances = c.client_insurances as { insurance_name: string | null; member_id: string | null; is_primary: boolean }[] | null;
+    const parents = ((c.client_parents as {
+      first_name: string | null;
+      last_name: string | null;
+      phone: string | null;
+      email: string | null;
+      is_primary: boolean;
+      deleted_at?: string | null;
+    }[] | null) || []).filter((parent) => !parent.deleted_at);
+    const insurances = ((c.client_insurances as {
+      insurance_name: string | null;
+      member_id: string | null;
+      is_primary: boolean;
+      deleted_at?: string | null;
+    }[] | null) || []).filter((insurance) => !insurance.deleted_at);
 
     const primaryParent = parents?.find((p) => p.is_primary) || parents?.[0];
     const primaryInsurance = insurances?.find((i) => i.is_primary) || insurances?.[0];
