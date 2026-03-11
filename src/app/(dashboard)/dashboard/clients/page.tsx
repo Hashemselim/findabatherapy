@@ -54,6 +54,7 @@ export default async function ClientsPage() {
     intake_pending: 0,
     waitlist: 0,
     assessment: 0,
+    authorization: 0,
     active: 0,
     on_hold: 0,
     discharged: 0,

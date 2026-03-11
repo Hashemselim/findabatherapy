@@ -1,8 +1,21 @@
 "use client";
 
-import { MoreHorizontal, Pencil, Trash2, Phone, Mail, Copy, Check, ChevronRight, Users } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
+  Check,
+  ChevronRight,
+  Copy,
+  Mail,
+  MoreHorizontal,
+  Pencil,
+  Phone,
+  Trash2,
+  Users,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { Fragment, useState, type MouseEvent } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -20,6 +33,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import {
+  DashboardStatusBadge,
   DashboardTable,
   DashboardTableBody,
   DashboardTableCard,
@@ -30,21 +44,28 @@ import {
 } from "@/components/dashboard/ui";
 import { RelativeTime } from "@/components/ui/relative-time";
 import { cn } from "@/lib/utils";
-import { calculateAge, getClientDisplayName } from "@/lib/validations/clients";
-import type { ClientListItem } from "@/lib/actions/clients";
+import { calculateAge, getClientDisplayName, type ClientStatus } from "@/lib/validations/clients";
 
 import { ClientStatusBadge } from "./client-status-badge";
+import type { ClientStatusGroup, ClientsSortDirection, ClientsSortKey } from "./clients-view";
 
 interface ClientsTableProps {
-  clients: ClientListItem[];
+  groups: ClientStatusGroup[];
+  collapsedGroups: Record<ClientStatus, boolean>;
+  onToggleGroup: (status: ClientStatus) => void;
+  sortKey: ClientsSortKey;
+  sortDirection: ClientsSortDirection;
+  onSortChange: (sortKey: ClientsSortKey) => void;
   onEdit?: (clientId: string) => void;
   onDelete?: (clientId: string) => void;
+  emptyStateTitle: string;
+  emptyStateDescription: string;
 }
 
 function ContactCell({
   name,
   phone,
-  email
+  email,
 }: {
   name: string | null;
   phone: string | null;
@@ -53,7 +74,7 @@ function ContactCell({
   const [copiedPhone, setCopiedPhone] = useState(false);
   const [copiedEmail, setCopiedEmail] = useState(false);
 
-  const handleCopy = async (value: string, type: "phone" | "email", e: React.MouseEvent) => {
+  const handleCopy = async (value: string, type: "phone" | "email", e: MouseEvent) => {
     e.stopPropagation();
     await navigator.clipboard.writeText(value);
     if (type === "phone") {
@@ -84,7 +105,7 @@ function ContactCell({
                       e.stopPropagation();
                       window.location.href = `tel:${phone}`;
                     }}
-                    className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
                   >
                     <Phone className="h-3 w-3" />
                     <span className="tabular-nums">{phone}</span>
@@ -99,7 +120,7 @@ function ContactCell({
                   <button
                     type="button"
                     onClick={(e) => handleCopy(phone, "phone", e)}
-                    className="opacity-0 group-hover/btn:opacity-100 focus-visible:opacity-100 transition-opacity ml-0.5 p-0.5 hover:bg-muted rounded"
+                    className="ml-0.5 rounded p-0.5 opacity-0 transition-opacity group-hover/btn:opacity-100 hover:bg-muted focus-visible:opacity-100"
                     aria-label="Copy phone number"
                   >
                     {copiedPhone ? (
@@ -125,7 +146,7 @@ function ContactCell({
                       e.stopPropagation();
                       window.location.href = `mailto:${email}`;
                     }}
-                    className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
                   >
                     <Mail className="h-3 w-3" />
                     <span className="max-w-[140px] truncate">{email}</span>
@@ -140,7 +161,7 @@ function ContactCell({
                   <button
                     type="button"
                     onClick={(e) => handleCopy(email, "email", e)}
-                    className="opacity-0 group-hover/btn:opacity-100 focus-visible:opacity-100 transition-opacity ml-0.5 p-0.5 hover:bg-muted rounded"
+                    className="ml-0.5 rounded p-0.5 opacity-0 transition-opacity group-hover/btn:opacity-100 hover:bg-muted focus-visible:opacity-100"
                     aria-label="Copy email"
                   >
                     {copiedEmail ? (
@@ -163,9 +184,16 @@ function ContactCell({
 }
 
 export function ClientsTable({
-  clients,
+  groups,
+  collapsedGroups,
+  onToggleGroup,
+  sortKey,
+  sortDirection,
+  onSortChange,
   onEdit,
   onDelete,
+  emptyStateTitle,
+  emptyStateDescription,
 }: ClientsTableProps) {
   const router = useRouter();
 
@@ -173,16 +201,14 @@ export function ClientsTable({
     router.push(`/dashboard/clients/${clientId}`);
   };
 
-  if (clients.length === 0) {
+  if (groups.length === 0) {
     return (
-      <Card className="flex flex-col items-center justify-center py-16 px-8 text-center border-dashed">
-        <div className="rounded-full bg-muted/50 p-4 mb-4">
+      <Card className="flex flex-col items-center justify-center border-dashed px-8 py-16 text-center">
+        <div className="mb-4 rounded-full bg-muted/50 p-4">
           <Users className="h-8 w-8 text-muted-foreground/50" />
         </div>
-        <h3 className="text-base font-medium text-foreground/80">No clients found</h3>
-        <p className="text-sm text-muted-foreground mt-1 max-w-[260px]">
-          Add your first client to start tracking their care journey
-        </p>
+        <h3 className="text-base font-medium text-foreground/80">{emptyStateTitle}</h3>
+        <p className="mt-1 max-w-[280px] text-sm text-muted-foreground">{emptyStateDescription}</p>
       </Card>
     );
   }
@@ -192,135 +218,235 @@ export function ClientsTable({
       <DashboardTable>
         <DashboardTableHeader>
           <DashboardTableRow>
-            <DashboardTableHead className="px-5">
-                Client
-            </DashboardTableHead>
-            <DashboardTableHead className="px-5">
-                Status
-            </DashboardTableHead>
-            <DashboardTableHead className="hidden px-5 md:table-cell">
-                Contact
-            </DashboardTableHead>
-            <DashboardTableHead className="hidden px-5 lg:table-cell">
-                Insurance
-            </DashboardTableHead>
-            <DashboardTableHead className="hidden px-5 sm:table-cell">
-                Added
-            </DashboardTableHead>
+            <SortableHead
+              label="Client"
+              sortKey="client"
+              activeSortKey={sortKey}
+              sortDirection={sortDirection}
+              onSortChange={onSortChange}
+              className="px-5"
+            />
+            <SortableHead
+              label="Status"
+              sortKey="status"
+              activeSortKey={sortKey}
+              sortDirection={sortDirection}
+              onSortChange={onSortChange}
+              className="px-5"
+            />
+            <SortableHead
+              label="Contact"
+              sortKey="contact"
+              activeSortKey={sortKey}
+              sortDirection={sortDirection}
+              onSortChange={onSortChange}
+              className="hidden px-5 md:table-cell"
+            />
+            <SortableHead
+              label="Insurance"
+              sortKey="insurance"
+              activeSortKey={sortKey}
+              sortDirection={sortDirection}
+              onSortChange={onSortChange}
+              className="hidden px-5 lg:table-cell"
+            />
+            <SortableHead
+              label="Added"
+              sortKey="added"
+              activeSortKey={sortKey}
+              sortDirection={sortDirection}
+              onSortChange={onSortChange}
+              className="hidden px-5 sm:table-cell"
+            />
             <DashboardTableHead className="w-[50px]" />
           </DashboardTableRow>
         </DashboardTableHeader>
         <DashboardTableBody>
-            {clients.map((client, index) => {
-              const age = client.child_date_of_birth
-                ? calculateAge(client.child_date_of_birth)
-                : null;
+          {groups.map((group) => {
+            const isCollapsed = collapsedGroups[group.status];
 
-              return (
+            return (
+              <Fragment key={group.status}>
                 <DashboardTableRow
-                  key={client.id}
-                  onClick={() => handleRowClick(client.id)}
-                  className={cn(
-                    "group cursor-pointer transition-all duration-150",
-                    index !== clients.length - 1 && "border-b border-border/50"
-                  )}
+                  className="border-b border-border/60 bg-muted/20 hover:bg-muted/20"
                 >
-                  <DashboardTableCell className="px-5 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="flex flex-col">
-                        <span className="font-medium text-foreground">
-                          {getClientDisplayName({
-                            child_first_name: client.child_first_name || undefined,
-                            child_last_name: client.child_last_name || undefined,
-                          })}
-                        </span>
-                        {age !== null && (
-                          <span className="text-xs text-muted-foreground mt-0.5">
-                            {age} {age === 1 ? "year" : "years"} old
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </DashboardTableCell>
-                  <DashboardTableCell className="px-5 py-4">
-                    <ClientStatusBadge status={client.status} />
-                  </DashboardTableCell>
-                  <DashboardTableCell className="hidden px-5 py-4 md:table-cell">
-                    <ContactCell
-                      name={client.primary_parent_name}
-                      phone={client.primary_parent_phone}
-                      email={client.primary_parent_email}
-                    />
-                  </DashboardTableCell>
-                  <DashboardTableCell className="hidden px-5 py-4 lg:table-cell">
-                    {client.primary_insurance_name ? (
-                      <div className="flex flex-col">
-                        <span className="text-sm font-medium text-foreground/90">
-                          {client.primary_insurance_name}
-                        </span>
-                        {client.primary_insurance_member_id && (
-                          <span className="text-xs text-muted-foreground mt-0.5 font-mono">
-                            {client.primary_insurance_member_id}
-                          </span>
-                        )}
-                      </div>
-                    ) : (
-                      <span className="text-muted-foreground/60">—</span>
-                    )}
-                  </DashboardTableCell>
-                  <DashboardTableCell className="hidden px-5 py-4 sm:table-cell">
-                    <RelativeTime date={client.created_at} className="text-sm text-muted-foreground" />
-                  </DashboardTableCell>
-                  <DashboardTableCell className="px-3 py-4">
-                    <div className="flex items-center justify-end gap-1">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-[160px]">
-                          {onEdit && (
-                            <DropdownMenuItem
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onEdit(client.id);
-                              }}
-                            >
-                              <Pencil className="mr-2 h-4 w-4" />
-                              Edit
-                            </DropdownMenuItem>
+                  <DashboardTableCell colSpan={6} className="p-0">
+                    <button
+                      type="button"
+                      onClick={() => onToggleGroup(group.status)}
+                      className="flex w-full items-center justify-between px-5 py-3 text-left"
+                    >
+                      <div className="flex items-center gap-3">
+                        <ChevronRight
+                          className={cn(
+                            "h-4 w-4 text-muted-foreground transition-transform",
+                            !isCollapsed && "rotate-90"
                           )}
-                          {onDelete && (
-                            <>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  onDelete(client.id);
-                                }}
-                                className="text-destructive focus:text-destructive"
-                              >
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Delete
-                              </DropdownMenuItem>
-                            </>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                      <ChevronRight className="h-4 w-4 text-muted-foreground/40 group-hover:text-muted-foreground transition-colors" />
-                    </div>
+                        />
+                        <span className="text-sm font-semibold text-foreground">{group.label}</span>
+                        <DashboardStatusBadge tone="default" className="text-[11px]">
+                          {group.count}
+                        </DashboardStatusBadge>
+                      </div>
+                      <span className="text-xs text-muted-foreground">
+                        {isCollapsed ? "Show" : "Hide"}
+                      </span>
+                    </button>
                   </DashboardTableCell>
                 </DashboardTableRow>
-              );
-            })}
+                {!isCollapsed &&
+                  group.clients.map((client, index) => {
+                    const age = client.child_date_of_birth
+                      ? calculateAge(client.child_date_of_birth)
+                      : null;
+
+                    return (
+                      <DashboardTableRow
+                        key={client.id}
+                        onClick={() => handleRowClick(client.id)}
+                        className={cn(
+                          "group cursor-pointer transition-all duration-150",
+                          index !== group.clients.length - 1 && "border-b border-border/50"
+                        )}
+                      >
+                        <DashboardTableCell className="px-5 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="flex flex-col">
+                              <span className="font-medium text-foreground">
+                                {getClientDisplayName({
+                                  child_first_name: client.child_first_name || undefined,
+                                  child_last_name: client.child_last_name || undefined,
+                                })}
+                              </span>
+                              {age !== null && (
+                                <span className="mt-0.5 text-xs text-muted-foreground">
+                                  {age} {age === 1 ? "year" : "years"} old
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </DashboardTableCell>
+                        <DashboardTableCell className="px-5 py-4">
+                          <ClientStatusBadge status={client.status} />
+                        </DashboardTableCell>
+                        <DashboardTableCell className="hidden px-5 py-4 md:table-cell">
+                          <ContactCell
+                            name={client.primary_parent_name}
+                            phone={client.primary_parent_phone}
+                            email={client.primary_parent_email}
+                          />
+                        </DashboardTableCell>
+                        <DashboardTableCell className="hidden px-5 py-4 lg:table-cell">
+                          {client.primary_insurance_name ? (
+                            <div className="flex flex-col">
+                              <span className="text-sm font-medium text-foreground/90">
+                                {client.primary_insurance_name}
+                              </span>
+                              {client.primary_insurance_member_id && (
+                                <span className="mt-0.5 font-mono text-xs text-muted-foreground">
+                                  {client.primary_insurance_member_id}
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground/60">—</span>
+                          )}
+                        </DashboardTableCell>
+                        <DashboardTableCell className="hidden px-5 py-4 sm:table-cell">
+                          <RelativeTime date={client.created_at} className="text-sm text-muted-foreground" />
+                        </DashboardTableCell>
+                        <DashboardTableCell className="px-3 py-4">
+                          <div className="flex items-center justify-end gap-1">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 opacity-0 transition-opacity group-hover:opacity-100"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-[160px]">
+                                {onEdit && (
+                                  <DropdownMenuItem
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      onEdit(client.id);
+                                    }}
+                                  >
+                                    <Pencil className="mr-2 h-4 w-4" />
+                                    Edit
+                                  </DropdownMenuItem>
+                                )}
+                                {onDelete && (
+                                  <>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        onDelete(client.id);
+                                      }}
+                                      className="text-destructive focus:text-destructive"
+                                    >
+                                      <Trash2 className="mr-2 h-4 w-4" />
+                                      Delete
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                            <ChevronRight className="h-4 w-4 text-muted-foreground/40 transition-colors group-hover:text-muted-foreground" />
+                          </div>
+                        </DashboardTableCell>
+                      </DashboardTableRow>
+                    );
+                  })}
+              </Fragment>
+            );
+          })}
         </DashboardTableBody>
       </DashboardTable>
     </DashboardTableCard>
+  );
+}
+
+function SortableHead({
+  label,
+  sortKey,
+  activeSortKey,
+  sortDirection,
+  onSortChange,
+  className,
+}: {
+  label: string;
+  sortKey: ClientsSortKey;
+  activeSortKey: ClientsSortKey;
+  sortDirection: ClientsSortDirection;
+  onSortChange: (sortKey: ClientsSortKey) => void;
+  className?: string;
+}) {
+  const isActive = activeSortKey === sortKey;
+
+  return (
+    <DashboardTableHead className={className}>
+      <button
+        type="button"
+        onClick={() => onSortChange(sortKey)}
+        className="inline-flex items-center gap-1.5 text-left"
+      >
+        <span>{label}</span>
+        {isActive ? (
+          sortDirection === "asc" ? (
+            <ArrowUp className="h-3.5 w-3.5" />
+          ) : (
+            <ArrowDown className="h-3.5 w-3.5" />
+          )
+        ) : (
+          <ArrowUpDown className="h-3.5 w-3.5 opacity-60" />
+        )}
+      </button>
+    </DashboardTableHead>
   );
 }

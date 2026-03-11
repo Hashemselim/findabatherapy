@@ -1,7 +1,7 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -12,62 +12,170 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import type { ClientListItem, ClientCounts } from "@/lib/actions/clients";
+import type { ClientCounts, ClientListItem } from "@/lib/actions/clients";
 import { deleteClient as deleteClientAction } from "@/lib/actions/clients";
+import type { ClientStatus } from "@/lib/validations/clients";
 
-import { ClientsFilters, type ClientFilterValue } from "./clients-filters";
+import { ClientsFilters } from "./clients-filters";
 import { ClientsTable } from "./clients-table";
+import {
+  buildClientStatusGroups,
+  CLIENTS_VIEW_STORAGE_KEY,
+  filterClientsBySearch,
+  filterClientsByTab,
+  getDefaultCollapsedGroups,
+  getEmptyStateCopy,
+  parseClientsSortDirection,
+  parseClientsSortKey,
+  parseClientsViewTab,
+  type ClientsSortDirection,
+  type ClientsSortKey,
+  type ClientsViewTab,
+} from "./clients-view";
 
 interface ClientsListProps {
   initialClients: ClientListItem[];
   initialCounts: ClientCounts;
 }
 
+function loadCollapsedGroups(): {
+  hasSavedState: boolean;
+  state: Record<ClientStatus, boolean>;
+} {
+  if (typeof window === "undefined") {
+    return { hasSavedState: false, state: getDefaultCollapsedGroups() };
+  }
+
+  try {
+    const savedState = window.localStorage.getItem(CLIENTS_VIEW_STORAGE_KEY);
+    if (!savedState) {
+      return { hasSavedState: false, state: getDefaultCollapsedGroups() };
+    }
+
+    return {
+      hasSavedState: true,
+      state: {
+        ...getDefaultCollapsedGroups(),
+        ...(JSON.parse(savedState) as Partial<Record<ClientStatus, boolean>>),
+      },
+    };
+  } catch {
+    return { hasSavedState: false, state: getDefaultCollapsedGroups() };
+  }
+}
+
+function saveCollapsedGroups(state: Record<ClientStatus, boolean>) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(CLIENTS_VIEW_STORAGE_KEY, JSON.stringify(state));
+  } catch {
+    // Ignore storage errors so the page still works.
+  }
+}
+
 export function ClientsList({ initialClients, initialCounts }: ClientsListProps) {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
 
-  // State
   const [clients, setClients] = useState<ClientListItem[]>(initialClients);
   const [counts, setCounts] = useState<ClientCounts>(initialCounts);
-  const [filter, setFilter] = useState<ClientFilterValue>("all");
-  const [searchQuery, setSearchQuery] = useState("");
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<ClientStatus, boolean>>(
+    getDefaultCollapsedGroups
+  );
+  const [hasSavedCollapseState, setHasSavedCollapseState] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [clientToDelete, setClientToDelete] = useState<string | null>(null);
 
-  // Filter clients
-  let filteredClients = clients;
-  if (filter !== "all") {
-    filteredClients = filteredClients.filter((c) => c.status === filter);
-  }
-  if (searchQuery) {
-    const query = searchQuery.toLowerCase();
-    filteredClients = filteredClients.filter((c) => {
-      const childName = [c.child_first_name, c.child_last_name]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
-      const parentName = (c.primary_parent_name || "").toLowerCase();
-      const phone = (c.primary_parent_phone || "").toLowerCase();
-      const email = (c.primary_parent_email || "").toLowerCase();
-      const memberId = (c.primary_insurance_member_id || "").toLowerCase();
+  useEffect(() => {
+    const loadedState = loadCollapsedGroups();
+    setCollapsedGroups(loadedState.state);
+    setHasSavedCollapseState(loadedState.hasSavedState);
+  }, []);
 
-      return (
-        childName.includes(query) ||
-        parentName.includes(query) ||
-        phone.includes(query) ||
-        email.includes(query) ||
-        memberId.includes(query)
-      );
+  const tab = parseClientsViewTab(searchParams.get("tab"));
+  const sortKey = parseClientsSortKey(searchParams.get("sort"));
+  const sortDirection = parseClientsSortDirection(searchParams.get("dir"));
+  const searchQuery = searchParams.get("q") || "";
+
+  const setQueryState = (updates: Partial<Record<"tab" | "sort" | "dir" | "q", string | null>>) => {
+    const nextParams = new URLSearchParams(searchParams.toString());
+
+    Object.entries(updates).forEach(([key, value]) => {
+      if (!value || (key === "tab" && value === "all") || (key === "sort" && value === "status") || (key === "dir" && value === "asc")) {
+        nextParams.delete(key);
+      } else {
+        nextParams.set(key, value);
+      }
     });
-  }
 
-  // Handle edit
+    const nextQuery = nextParams.toString();
+    router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, { scroll: false });
+  };
+
+  const handleTabChange = (nextTab: ClientsViewTab) => {
+    setQueryState({ tab: nextTab });
+  };
+
+  const handleSearchChange = (query: string) => {
+    setQueryState({ q: query || null });
+  };
+
+  const handleSortChange = (nextSortKey: ClientsSortKey) => {
+    const nextDirection: ClientsSortDirection =
+      sortKey === nextSortKey && sortDirection === "asc" ? "desc" : "asc";
+
+    setQueryState({
+      sort: nextSortKey,
+      dir: nextDirection,
+    });
+  };
+
+  const visibleClients = useMemo(() => {
+    const clientsForTab = filterClientsByTab(clients, tab);
+    return filterClientsBySearch(clientsForTab, searchQuery);
+  }, [clients, searchQuery, tab]);
+
+  const groups = useMemo(
+    () =>
+      buildClientStatusGroups({
+        clients: visibleClients,
+        tab,
+        sortKey,
+        direction: sortDirection,
+      }),
+    [sortDirection, sortKey, tab, visibleClients]
+  );
+
+  const emptyState = getEmptyStateCopy(tab, searchQuery);
+  const effectiveCollapsedGroups = useMemo(() => {
+    if (hasSavedCollapseState || tab === "all") {
+      return collapsedGroups;
+    }
+
+    return {
+      ...collapsedGroups,
+      discharged: false,
+    };
+  }, [collapsedGroups, hasSavedCollapseState, tab]);
+
+  const toggleGroup = (status: ClientStatus) => {
+    setCollapsedGroups((prev) => {
+      const nextState = { ...prev, [status]: !prev[status] };
+      saveCollapsedGroups(nextState);
+      setHasSavedCollapseState(true);
+      return nextState;
+    });
+  };
+
   const handleEdit = (clientId: string) => {
     router.push(`/dashboard/clients/${clientId}/edit`);
   };
 
-  // Handle delete
   const handleDelete = (clientId: string) => {
     setClientToDelete(clientId);
     setDeleteDialogOpen(true);
@@ -79,44 +187,49 @@ export function ClientsList({ initialClients, initialCounts }: ClientsListProps)
     startTransition(async () => {
       const result = await deleteClientAction(clientToDelete);
       if (result.success) {
-        // Remove from local state
-        setClients((prev) => prev.filter((c) => c.id !== clientToDelete));
-        // Update counts
-        const deletedClient = clients.find((c) => c.id === clientToDelete);
+        const deletedClient = clients.find((client) => client.id === clientToDelete);
+
+        setClients((prev) => prev.filter((client) => client.id !== clientToDelete));
+
         if (deletedClient) {
           setCounts((prev) => ({
             ...prev,
             total: prev.total - 1,
-            [deletedClient.status]: prev[deletedClient.status as keyof Omit<ClientCounts, "total">] - 1,
+            [deletedClient.status]: prev[deletedClient.status] - 1,
           }));
         }
       }
+
       setDeleteDialogOpen(false);
       setClientToDelete(null);
     });
   };
 
   return (
-    <div className="flex flex-col gap-5 h-full">
-      {/* Filters */}
+    <div className="flex h-full flex-col gap-5">
       <ClientsFilters
-        filter={filter}
-        onFilterChange={setFilter}
+        tab={tab}
+        onTabChange={handleTabChange}
         counts={counts}
         searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
+        onSearchChange={handleSearchChange}
       />
 
-      {/* Table - full width */}
-      <div className="flex-1 min-h-0 overflow-auto">
+      <div className="min-h-0 flex-1 overflow-auto">
         <ClientsTable
-          clients={filteredClients}
+          groups={groups}
+          collapsedGroups={effectiveCollapsedGroups}
+          onToggleGroup={toggleGroup}
+          sortKey={sortKey}
+          sortDirection={sortDirection}
+          onSortChange={handleSortChange}
           onEdit={handleEdit}
           onDelete={handleDelete}
+          emptyStateTitle={emptyState.title}
+          emptyStateDescription={emptyState.description}
         />
       </div>
 
-      {/* Delete confirmation dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>

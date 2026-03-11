@@ -1,54 +1,31 @@
 "use client";
 
-import {
-  Users,
-  UserPlus,
-  Clock,
-  ClipboardList,
-  UserCheck,
-  Pause,
-  UserX,
-  Search,
-  X,
-} from "lucide-react";
+import { Search, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useDebounce } from "use-debounce";
 
-import { DashboardFilterButton, DashboardFilterGroup } from "@/components/dashboard/ui";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import type { ClientStatus } from "@/lib/validations/clients";
+
+import {
+  CLIENTS_VIEW_TABS,
+  getTabCount,
+  type ClientsViewTab,
+} from "./clients-view";
 import type { ClientCounts } from "@/lib/actions/clients";
 
-export type ClientFilterValue = ClientStatus | "all";
-
 interface ClientsFiltersProps {
-  filter: ClientFilterValue;
-  onFilterChange: (filter: ClientFilterValue) => void;
+  tab: ClientsViewTab;
+  onTabChange: (tab: ClientsViewTab) => void;
   counts: ClientCounts;
   searchQuery: string;
   onSearchChange: (query: string) => void;
 }
 
-const filterConfig: {
-  key: ClientFilterValue;
-  label: string;
-  icon: typeof Users;
-  countKey: keyof ClientCounts;
-}[] = [
-  { key: "all", label: "All", icon: Users, countKey: "total" },
-  { key: "inquiry", label: "Inquiry", icon: UserPlus, countKey: "inquiry" },
-  { key: "intake_pending", label: "Intake", icon: ClipboardList, countKey: "intake_pending" },
-  { key: "waitlist", label: "Waitlist", icon: Clock, countKey: "waitlist" },
-  { key: "assessment", label: "Assessment", icon: ClipboardList, countKey: "assessment" },
-  { key: "active", label: "Active", icon: UserCheck, countKey: "active" },
-  { key: "on_hold", label: "On Hold", icon: Pause, countKey: "on_hold" },
-  { key: "discharged", label: "Discharged", icon: UserX, countKey: "discharged" },
-];
-
 export function ClientsFilters({
-  filter,
-  onFilterChange,
+  tab,
+  onTabChange,
   counts,
   searchQuery,
   onSearchChange,
@@ -57,15 +34,37 @@ export function ClientsFilters({
   const [debouncedSearch] = useDebounce(localSearch, 300);
 
   useEffect(() => {
+    setLocalSearch(searchQuery);
+  }, [searchQuery]);
+
+  useEffect(() => {
     if (debouncedSearch !== searchQuery) {
       onSearchChange(debouncedSearch);
     }
-  }, [debouncedSearch, searchQuery, onSearchChange]);
+  }, [debouncedSearch, onSearchChange, searchQuery]);
 
   return (
     <div className="flex flex-col gap-3">
-      {/* Search - always on top on mobile for better UX */}
-      <div className="relative w-full sm:hidden">
+      <Tabs value={tab} onValueChange={(value) => onTabChange(value as ClientsViewTab)}>
+        <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+          <TabsList className="h-auto min-w-max bg-card p-1 shadow-xs">
+            {CLIENTS_VIEW_TABS.map((tabOption) => (
+              <TabsTrigger
+                key={tabOption.value}
+                value={tabOption.value}
+                className="gap-2 px-3 py-2 text-xs sm:text-sm"
+              >
+                <span>{tabOption.label}</span>
+                <span className="tabular-nums text-[11px] text-muted-foreground data-[state=active]:text-foreground">
+                  {getTabCount(counts, tabOption.value)}
+                </span>
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </div>
+      </Tabs>
+
+      <div className="relative w-full sm:max-w-sm">
         <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           placeholder="Search clients..."
@@ -86,57 +85,6 @@ export function ClientsFilters({
             <X className="h-4 w-4" />
           </Button>
         )}
-      </div>
-
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        {/* Status filters - horizontal scrollable on mobile */}
-        <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 sm:overflow-visible">
-          <DashboardFilterGroup>
-            {filterConfig.map(({ key, label, icon: Icon, countKey }) => {
-              const isActive = filter === key;
-              const count = counts[countKey];
-
-              // Hide filters with 0 count (except "all")
-              if (key !== "all" && count === 0) return null;
-
-              return (
-                <DashboardFilterButton
-                  key={key}
-                  onClick={() => onFilterChange(key)}
-                  active={isActive}
-                  icon={<Icon className="h-3.5 w-3.5" />}
-                  count={count}
-                >
-                  {label}
-                </DashboardFilterButton>
-              );
-            })}
-          </DashboardFilterGroup>
-        </div>
-
-        {/* Search - inline on desktop */}
-        <div className="relative w-64 hidden sm:block shrink-0">
-          <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Search clients..."
-            value={localSearch}
-            onChange={(e) => setLocalSearch(e.target.value)}
-            className="h-8 pl-8 pr-8 text-sm"
-          />
-          {localSearch && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute right-1 top-1/2 h-6 w-6 -translate-y-1/2"
-              onClick={() => {
-                setLocalSearch("");
-                onSearchChange("");
-              }}
-            >
-              <X className="h-3.5 w-3.5" />
-            </Button>
-          )}
-        </div>
       </div>
     </div>
   );
