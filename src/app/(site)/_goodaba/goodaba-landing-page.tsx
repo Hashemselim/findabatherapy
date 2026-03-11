@@ -15,6 +15,7 @@ import { BwRoiCard } from "@/components/marketing/bw-roi-card";
 import { BwTestimonials } from "@/components/marketing/bw-testimonials";
 import { BwFaq } from "@/components/marketing/bw-faq";
 import { BwDarkCta } from "@/components/marketing/bw-dark-cta";
+import { getUser } from "@/lib/supabase/server";
 
 const BASE_URL = "https://www.goodaba.com";
 
@@ -41,11 +42,13 @@ export const metadata: Metadata = {
   },
 };
 
-export function GoodabaLandingPage() {
+export async function GoodabaLandingPage() {
+  const user = await getUser();
+
   return (
     <div className="min-h-screen overflow-x-clip bg-[#FFFBF0] text-slate-900">
       <BehaviorWorkTracker mode="lander" />
-      <BehaviorWorkHeader />
+      <BehaviorWorkHeader isLoggedIn={Boolean(user)} />
       <div className="h-16" aria-hidden="true" />
 
       <main>

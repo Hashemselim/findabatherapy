@@ -19,7 +19,11 @@ import {
 import { trackBehaviorWorkCtaClick } from "@/lib/posthog/events";
 import { cn } from "@/lib/utils";
 
-export function BehaviorWorkHeader() {
+interface BehaviorWorkHeaderProps {
+  isLoggedIn?: boolean;
+}
+
+export function BehaviorWorkHeader({ isLoggedIn = false }: BehaviorWorkHeaderProps) {
   const [scrolled, setScrolled] = useState(false);
   const [hostname, setHostname] = useState("");
   const pathname = usePathname();
@@ -54,6 +58,8 @@ export function BehaviorWorkHeader() {
     { href: pricingHref, label: "Pricing" },
     { href: "/jobs", label: "Jobs" },
   ] as const;
+  const accountHref = isLoggedIn ? "/dashboard/clients/pipeline" : "/auth/sign-in";
+  const accountLabel = isLoggedIn ? "Provider Dashboard" : "Log In";
 
   const trackHeaderCta = () => {
     trackBehaviorWorkCtaClick({
@@ -98,10 +104,10 @@ export function BehaviorWorkHeader() {
         {/* Desktop CTAs */}
         <div className="hidden items-center gap-3 lg:flex">
           <Link
-            href="/auth/sign-in"
+            href={accountHref}
             className="text-sm font-medium text-slate-500 transition-colors hover:text-[#1A2744]"
           >
-            Log In
+            {accountLabel}
           </Link>
           <Link
             href={pricingHref}
@@ -153,10 +159,10 @@ export function BehaviorWorkHeader() {
               <div className="mt-6 space-y-2.5 border-t border-amber-100 pt-5">
                 <SheetClose asChild>
                   <Link
-                    href="/auth/sign-in"
+                    href={accountHref}
                     className="flex min-h-12 items-center rounded-2xl border border-amber-100 bg-white/70 px-4 py-3.5 text-base font-semibold text-slate-600 transition-colors hover:bg-white hover:text-[#1A2744]"
                   >
-                    Log In
+                    {accountLabel}
                   </Link>
                 </SheetClose>
                 <SheetClose asChild>

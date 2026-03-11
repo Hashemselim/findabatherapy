@@ -9,6 +9,7 @@ import { BwFaq } from "@/components/marketing/bw-faq";
 import { BwDarkCta } from "@/components/marketing/bw-dark-cta";
 import { BwFadeUp } from "@/components/marketing/bw-fade-up";
 import { BwSectionWrapper } from "@/components/marketing/bw-section-wrapper";
+import { getUser } from "@/lib/supabase/server";
 
 const BASE_URL = "https://www.goodaba.com/pricing";
 
@@ -34,11 +35,13 @@ export const metadata: Metadata = {
   },
 };
 
-export function GoodabaPricingPage() {
+export async function GoodabaPricingPage() {
+  const user = await getUser();
+
   return (
     <div className="min-h-screen overflow-x-clip bg-[#FFFBF0] text-slate-900">
       <BehaviorWorkTracker mode="get-started" />
-      <BehaviorWorkHeader />
+      <BehaviorWorkHeader isLoggedIn={Boolean(user)} />
       <div className="h-16" aria-hidden="true" />
 
       <main>
