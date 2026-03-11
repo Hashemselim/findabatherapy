@@ -19,7 +19,7 @@ export function BwSectionWrapper({
     <section
       id={id}
       className={cn(
-        "py-24 lg:py-32",
+        "overflow-x-clip py-24 lg:py-32",
         background === "cream" && "bg-[#FFFBF0]",
         background === "white" && "bg-white",
         background === "golden" && "bg-[#FFF7E1]",

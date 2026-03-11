@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu } from "lucide-react";
+import { ChevronRight, Menu } from "lucide-react";
 
 import { BehaviorWorkLogo } from "@/components/brand/behaviorwork-logo";
 import { Button } from "@/components/ui/button";
@@ -137,14 +137,15 @@ export function BehaviorWorkHeader() {
               </SheetDescription>
             </SheetHeader>
             <div className="flex flex-1 flex-col px-6 pb-6 pt-5">
-              <div className="space-y-2 rounded-[1.75rem] bg-white/55 p-2 shadow-[inset_0_0_0_1px_rgba(245,208,66,0.18)]">
+              <div className="overflow-hidden rounded-[1.75rem] border border-amber-100 bg-white/75 shadow-[0_1px_0_rgba(245,208,66,0.08),inset_0_0_0_1px_rgba(255,255,255,0.35)]">
                 {navItems.map((item) => (
                   <SheetClose asChild key={item.label}>
                     <Link
                       href={item.href}
-                      className="flex min-h-12 items-center rounded-2xl px-4 py-3.5 text-[17px] font-semibold text-[#1A2744] transition-colors hover:bg-[#FFFBF0] hover:text-[#1A2744]"
+                      className="flex min-h-14 items-center justify-between border-b border-amber-100 px-5 py-4 text-[17px] font-semibold text-[#1A2744] transition-colors last:border-b-0 hover:bg-[#FFFBF0] hover:text-[#1A2744]"
                     >
-                      {item.label}
+                      <span>{item.label}</span>
+                      <ChevronRight className="h-4 w-4 text-slate-400" />
                     </Link>
                   </SheetClose>
                 ))}
@@ -162,7 +163,7 @@ export function BehaviorWorkHeader() {
                   <Link
                     href={pricingHref}
                     onClick={trackHeaderCta}
-                    className="flex h-13 items-center justify-center rounded-full bg-[#FFDC33] px-5 text-base font-bold text-[#1A2744] shadow-xs shadow-amber-200/40 transition-all hover:bg-[#F5CF1B]"
+                    className="flex h-12 items-center justify-center rounded-full bg-[#FFDC33] px-5 text-base font-bold text-[#1A2744] shadow-xs shadow-amber-200/40 transition-all hover:bg-[#F5CF1B]"
                   >
                     Start Free
                   </Link>
