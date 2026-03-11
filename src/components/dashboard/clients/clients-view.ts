@@ -7,7 +7,6 @@ import {
 
 export type ClientsViewTab =
   | "all"
-  | "leads"
   | "waitlist"
   | "in-progress"
   | "clients"
@@ -42,7 +41,6 @@ const STATUS_LABELS = Object.fromEntries(
 
 export const CLIENTS_VIEW_TABS: Array<{ value: ClientsViewTab; label: string }> = [
   { value: "all", label: "All" },
-  { value: "leads", label: "Leads" },
   { value: "waitlist", label: "Waitlist" },
   { value: "in-progress", label: "In Progress" },
   { value: "clients", label: "Clients" },
@@ -51,7 +49,6 @@ export const CLIENTS_VIEW_TABS: Array<{ value: ClientsViewTab; label: string }> 
 
 const CLIENTS_TAB_STATUS_MAP: Record<ClientsViewTab, ClientStatus[]> = {
   all: CLIENT_STATUS_ORDER,
-  leads: ["inquiry", "intake_pending"],
   waitlist: ["waitlist"],
   "in-progress": ["assessment", "authorization"],
   clients: ["active", "on_hold"],
@@ -164,11 +161,6 @@ export function getEmptyStateCopy(
   }
 
   switch (tab) {
-    case "leads":
-      return {
-        title: "No leads yet",
-        description: "New inquiries and intake submissions will appear here.",
-      };
     case "waitlist":
       return {
         title: "No waitlisted clients",

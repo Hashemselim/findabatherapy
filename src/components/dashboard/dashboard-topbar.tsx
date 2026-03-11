@@ -74,7 +74,7 @@ function getPageTitle(pathname: string, isDemo: boolean): string {
   if (pathname.includes("/pipeline")) return "Pipeline";
   if (pathname.includes("/communications")) return "Communications";
   if (pathname.includes("/inbox") || pathname.includes("/notifications")) return "Notifications";
-  if (pathname.includes("/leads")) return "Leads";
+  if (pathname.includes("/leads")) return "Clients";
   if (pathname.includes("/intake-form") || pathname.includes("/intake-pages/intake")) return "Intake Form";
   if (pathname.includes("/contact-form")) return "Contact Form";
   if (pathname.includes("/directory")) return "Directory Listing";

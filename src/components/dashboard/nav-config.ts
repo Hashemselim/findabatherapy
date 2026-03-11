@@ -27,7 +27,6 @@ import {
   User,
   UserCheck,
   UserCircle,
-  UserPlus,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -87,12 +86,6 @@ export const mainNavItems: NavItemConfig[] = [
     showBadge: true,
     quickLink: true,
     aliases: ["/dashboard/inbox", "/dashboard/client-growth/notifications"],
-  },
-  {
-    href: "/dashboard/clients/leads",
-    label: "Leads",
-    icon: UserPlus,
-    quickLink: true,
   },
   {
     href: "/dashboard/clients",

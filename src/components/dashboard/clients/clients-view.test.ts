@@ -124,12 +124,11 @@ describe("clients-view helpers", () => {
   });
 
   it("maps grouped tab counts and filters correctly", () => {
-    expect(getTabCount(counts, "leads")).toBe(2);
     expect(getTabCount(counts, "in-progress")).toBe(2);
     expect(getTabCount(counts, "clients")).toBe(1);
 
-    expect(filterClientsByTab(clients, "leads").map((client) => client.id)).toEqual(["1", "2"]);
     expect(filterClientsByTab(clients, "in-progress").map((client) => client.id)).toEqual(["3", "4"]);
+    expect(filterClientsByTab(clients, "waitlist")).toEqual([]);
     expect(filterClientsBySearch(clients, "kim").map((client) => client.id)).toEqual(["3"]);
   });
 
