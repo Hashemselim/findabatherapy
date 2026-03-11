@@ -76,15 +76,10 @@ export function BehaviorWorkHeader() {
         {/* Logo */}
         <Link
           href={homeHref}
-          className="group flex min-w-0 items-center lg:flex-none"
+          className="group flex items-center"
           aria-label="GoodABA home"
         >
-          <span className="sm:hidden">
-            <BehaviorWorkLogo size="md" />
-          </span>
-          <span className="hidden sm:inline-flex">
-            <BehaviorWorkLogo size="lg" />
-          </span>
+          <BehaviorWorkLogo size="lg" />
         </Link>
 
         {/* Desktop nav */}
@@ -123,7 +118,7 @@ export function BehaviorWorkHeader() {
             <Button
               variant="ghost"
               size="icon"
-              className="h-9 w-9 shrink-0 rounded-full text-[#1A2744] hover:bg-amber-50 lg:hidden"
+              className="h-10 w-10 shrink-0 rounded-full text-[#1A2744] hover:bg-amber-50 lg:hidden"
               aria-label="Toggle navigation"
             >
               <Menu className="h-5 w-5" />
@@ -131,34 +126,34 @@ export function BehaviorWorkHeader() {
           </SheetTrigger>
           <SheetContent
             side="right"
-            className="w-[min(20rem,calc(100vw-1rem))] border-amber-100 bg-[#FFFBF0] p-0 sm:w-80"
+            className="w-[min(21.5rem,calc(100vw-1rem))] border-amber-100 bg-[#FFFBF0] p-0 sm:w-80"
           >
-            <SheetHeader className="gap-3 border-b border-amber-100 px-5 pb-4 pt-5 pr-14">
+            <SheetHeader className="gap-4 border-b border-amber-100/80 px-6 pb-5 pt-6 pr-16">
               <SheetTitle className="leading-none">
-                <BehaviorWorkLogo size="md" />
+                <BehaviorWorkLogo size="lg" />
               </SheetTitle>
-              <SheetDescription className="max-w-[14rem] text-base leading-6 text-slate-500">
+              <SheetDescription className="max-w-[15rem] text-[15px] leading-6 text-slate-500">
                 The growth platform for ABA agencies.
               </SheetDescription>
             </SheetHeader>
-            <div className="flex flex-1 flex-col px-5 pb-5 pt-4">
-              <div className="space-y-1.5">
+            <div className="flex flex-1 flex-col px-6 pb-6 pt-5">
+              <div className="space-y-2 rounded-[1.75rem] bg-white/55 p-2 shadow-[inset_0_0_0_1px_rgba(245,208,66,0.18)]">
                 {navItems.map((item) => (
                   <SheetClose asChild key={item.label}>
                     <Link
                       href={item.href}
-                      className="flex min-h-11 items-center rounded-2xl px-3.5 py-3 text-base font-medium text-slate-600 transition-colors hover:bg-amber-50 hover:text-[#1A2744]"
+                      className="flex min-h-12 items-center rounded-2xl px-4 py-3.5 text-[17px] font-semibold text-[#1A2744] transition-colors hover:bg-[#FFFBF0] hover:text-[#1A2744]"
                     >
                       {item.label}
                     </Link>
                   </SheetClose>
                 ))}
               </div>
-              <div className="mt-auto border-t border-amber-100 pt-5">
+              <div className="mt-6 space-y-2.5 border-t border-amber-100 pt-5">
                 <SheetClose asChild>
                   <Link
                     href="/auth/sign-in"
-                    className="flex min-h-11 items-center rounded-2xl px-3.5 py-3 text-base font-medium text-slate-500 transition-colors hover:bg-amber-50 hover:text-[#1A2744]"
+                    className="flex min-h-12 items-center rounded-2xl border border-amber-100 bg-white/70 px-4 py-3.5 text-base font-semibold text-slate-600 transition-colors hover:bg-white hover:text-[#1A2744]"
                   >
                     Log In
                   </Link>
@@ -167,7 +162,7 @@ export function BehaviorWorkHeader() {
                   <Link
                     href={pricingHref}
                     onClick={trackHeaderCta}
-                    className="mt-3 flex h-12 items-center justify-center rounded-full bg-[#FFDC33] px-5 text-base font-bold text-[#1A2744] shadow-xs shadow-amber-200/40 transition-all hover:bg-[#F5CF1B]"
+                    className="flex h-13 items-center justify-center rounded-full bg-[#FFDC33] px-5 text-base font-bold text-[#1A2744] shadow-xs shadow-amber-200/40 transition-all hover:bg-[#F5CF1B]"
                   >
                     Start Free
                   </Link>
