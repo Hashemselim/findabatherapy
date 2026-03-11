@@ -205,17 +205,17 @@ CREATE POLICY "Workspace members manage authorization services"
   USING (
     EXISTS (
       SELECT 1
-      FROM public.client_authorizations authorization
-      WHERE authorization.id = client_authorization_services.authorization_id
-        AND public.is_client_member(authorization.client_id)
+      FROM public.client_authorizations authz
+      WHERE authz.id = client_authorization_services.authorization_id
+        AND public.is_client_member(authz.client_id)
     )
   )
   WITH CHECK (
     EXISTS (
       SELECT 1
-      FROM public.client_authorizations authorization
-      WHERE authorization.id = client_authorization_services.authorization_id
-        AND public.is_client_member(authorization.client_id)
+      FROM public.client_authorizations authz
+      WHERE authz.id = client_authorization_services.authorization_id
+        AND public.is_client_member(authz.client_id)
     )
   );
 
