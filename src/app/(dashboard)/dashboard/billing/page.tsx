@@ -199,7 +199,7 @@ export default async function DashboardBillingPage() {
               {hasIncompletePayment ? "Complete Upgrade" : "Go Live"}
             </Link>
           </Button>
-        )}
+        ) : null}
       </DashboardPageHeader>
 
       {membership.role !== "owner" && (
