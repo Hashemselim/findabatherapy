@@ -25,6 +25,7 @@ import {
   filterClientsByTab,
   getDefaultCollapsedGroups,
   getEmptyStateCopy,
+  getTabForLegacyStatus,
   parseClientsSortDirection,
   parseClientsSortKey,
   parseClientsViewTab,
@@ -97,16 +98,25 @@ export function ClientsList({ initialClients, initialCounts }: ClientsListProps)
     setHasSavedCollapseState(loadedState.hasSavedState);
   }, []);
 
-  const tab = parseClientsViewTab(searchParams.get("tab"));
+  const legacyStatus = searchParams.get("status");
+  const tab = parseClientsViewTab(searchParams.get("tab") ?? getTabForLegacyStatus(legacyStatus));
   const sortKey = parseClientsSortKey(searchParams.get("sort"));
   const sortDirection = parseClientsSortDirection(searchParams.get("dir"));
   const searchQuery = searchParams.get("q") || "";
 
-  const setQueryState = (updates: Partial<Record<"tab" | "sort" | "dir" | "q", string | null>>) => {
+  const setQueryState = (
+    updates: Partial<Record<"tab" | "sort" | "dir" | "q", string | null>>
+  ) => {
     const nextParams = new URLSearchParams(searchParams.toString());
+    nextParams.delete("status");
 
     Object.entries(updates).forEach(([key, value]) => {
-      if (!value || (key === "tab" && value === "all") || (key === "sort" && value === "status") || (key === "dir" && value === "asc")) {
+      if (
+        !value ||
+        (key === "tab" && value === "all") ||
+        (key === "sort" && value === "status") ||
+        (key === "dir" && value === "asc")
+      ) {
         nextParams.delete(key);
       } else {
         nextParams.set(key, value);
@@ -153,7 +163,7 @@ export function ClientsList({ initialClients, initialCounts }: ClientsListProps)
 
   const emptyState = getEmptyStateCopy(tab, searchQuery);
   const effectiveCollapsedGroups = useMemo(() => {
-    if (hasSavedCollapseState || tab === "all") {
+    if (hasSavedCollapseState || tab === "all" || tab === "leads") {
       return collapsedGroups;
     }
 

@@ -44,45 +44,42 @@ export function ClientsFilters({
   }, [debouncedSearch, onSearchChange, searchQuery]);
 
   return (
-    <div className="flex flex-col gap-3">
-      <Tabs value={tab} onValueChange={(value) => onTabChange(value as ClientsViewTab)}>
-        <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
-          <TabsList className="h-auto min-w-max bg-card p-1 shadow-xs">
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 sm:overflow-visible">
+        <Tabs value={tab} onValueChange={(value) => onTabChange(value as ClientsViewTab)}>
+          <TabsList className="inline-flex min-h-11 w-auto min-w-full items-center rounded-xl border border-border/60 bg-card p-1 shadow-xs sm:min-w-0">
             {CLIENTS_VIEW_TABS.map((tabOption) => (
               <TabsTrigger
                 key={tabOption.value}
                 value={tabOption.value}
-                className="gap-2 px-3 py-2 text-xs sm:text-sm"
+                className="flex h-9 flex-1 items-center rounded-lg border border-transparent px-4 text-xs font-medium leading-none text-muted-foreground data-[state=active]:border-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-xs sm:flex-none"
               >
-                <span>{tabOption.label}</span>
-                <span className="tabular-nums text-[11px] text-muted-foreground data-[state=active]:text-foreground">
-                  {getTabCount(counts, tabOption.value)}
-                </span>
+                {tabOption.label} ({getTabCount(counts, tabOption.value)})
               </TabsTrigger>
             ))}
           </TabsList>
-        </div>
-      </Tabs>
+        </Tabs>
+      </div>
 
-      <div className="relative w-full sm:max-w-sm">
+      <div className="relative w-full sm:w-64 shrink-0">
         <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           placeholder="Search clients..."
           value={localSearch}
           onChange={(e) => setLocalSearch(e.target.value)}
-          className="h-10 pl-9 pr-9 text-sm"
+          className="h-10 sm:h-8 pl-8 pr-8 text-sm"
         />
         {localSearch && (
           <Button
             variant="ghost"
             size="icon"
-            className="absolute right-1 top-1/2 h-8 w-8 -translate-y-1/2"
+            className="absolute right-1 top-1/2 h-8 w-8 sm:h-6 sm:w-6 -translate-y-1/2"
             onClick={() => {
               setLocalSearch("");
               onSearchChange("");
             }}
           >
-            <X className="h-4 w-4" />
+            <X className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
           </Button>
         )}
       </div>
