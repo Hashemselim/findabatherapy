@@ -408,7 +408,10 @@ function AddonPurchaseButton({
   // If they already have this add-on active, show "Add more" variant
   if (existingAddon) {
     return (
-      <div className="rounded-lg border border-dashed border-blue-200 bg-blue-50/50 transition-colors hover:border-blue-300 hover:bg-blue-50">
+      <div
+        id={addonType === "extra_users" ? "add-user-seat" : undefined}
+        className="rounded-lg border border-dashed border-blue-200 bg-blue-50/50 transition-colors hover:border-blue-300 hover:bg-blue-50"
+      >
         <button
           onClick={() => setShowQuantity(!showQuantity)}
           disabled={loading}
@@ -472,7 +475,10 @@ function AddonPurchaseButton({
   }
 
   return (
-    <div className="rounded-lg border border-dashed border-slate-300 bg-white transition-colors hover:border-slate-400 hover:bg-slate-50">
+    <div
+      id={addonType === "extra_users" ? "add-user-seat" : undefined}
+      className="rounded-lg border border-dashed border-slate-300 bg-white transition-colors hover:border-slate-400 hover:bg-slate-50"
+    >
       <button
         onClick={() => setShowQuantity(!showQuantity)}
         disabled={loading}

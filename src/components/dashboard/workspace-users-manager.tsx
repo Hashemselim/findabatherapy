@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Loader2, Mail, MoreHorizontal, Plus, Shield, UserMinus, Users } from "lucide-react";
 
@@ -68,6 +69,8 @@ export function WorkspaceUsersManager({ data }: WorkspaceUsersManagerProps) {
   const canInvite = data.currentMembership.role === "owner" || data.currentMembership.role === "admin";
   const canChangeRoles = data.currentMembership.role === "owner";
   const canRemoveAdmins = data.currentMembership.role === "owner";
+  const canPurchaseSeats = data.currentMembership.role === "owner";
+  const hasAvailableSeats = data.seatSummary.availableSeats > 0;
 
   function runAction(action: () => Promise<{ success: boolean; error?: string }>) {
     startTransition(async () => {
@@ -118,6 +121,11 @@ export function WorkspaceUsersManager({ data }: WorkspaceUsersManagerProps) {
           <CardHeader className="pb-2">
             <CardDescription>Available</CardDescription>
             <CardTitle>{data.seatSummary.availableSeats}</CardTitle>
+            {canPurchaseSeats && (
+              <Button asChild variant="outline" size="sm" className="mt-3 w-full sm:w-auto">
+                <Link href="/dashboard/billing#add-user-seat">Add a User</Link>
+              </Button>
+            )}
           </CardHeader>
         </Card>
       </div>
@@ -131,60 +139,67 @@ export function WorkspaceUsersManager({ data }: WorkspaceUsersManagerProps) {
             </CardDescription>
           </div>
           {canInvite && (
-            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-              <DialogTrigger asChild>
-                <Button className="rounded-full">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Invite User
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Invite account user</DialogTitle>
-                  <DialogDescription>
-                    Invitations use one available seat immediately and expire after 7 days.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="invite-email">Email</Label>
-                    <Input
-                      id="invite-email"
-                      type="email"
-                      value={email}
-                      onChange={(event) => setEmail(event.target.value)}
-                      placeholder="you@company.com"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="invite-role">Role</Label>
-                    <Select value={role} onValueChange={(value: "admin" | "member") => setRole(value)}>
-                      <SelectTrigger id="invite-role">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="member">Member</SelectItem>
-                        <SelectItem value="admin">Admin</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  {error && (
-                    <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
-                      {error}
-                    </div>
-                  )}
-                </div>
-                <DialogFooter>
-                  <Button
-                    onClick={handleInvite}
-                    disabled={isPending || !email || data.seatSummary.availableSeats < 1}
-                  >
-                    {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Mail className="mr-2 h-4 w-4" />}
-                    Send invite
+            <div className="flex flex-col items-start gap-1 sm:items-end">
+              <Dialog open={dialogOpen} onOpenChange={(open) => setDialogOpen(open && hasAvailableSeats)}>
+                <DialogTrigger asChild>
+                  <Button className="rounded-full" disabled={!hasAvailableSeats}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Invite User
                   </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Invite account user</DialogTitle>
+                    <DialogDescription>
+                      Send an invitation to grant shared dashboard access.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="invite-email">Email</Label>
+                      <Input
+                        id="invite-email"
+                        type="email"
+                        value={email}
+                        onChange={(event) => setEmail(event.target.value)}
+                        placeholder="you@company.com"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="invite-role">Role</Label>
+                      <Select value={role} onValueChange={(value: "admin" | "member") => setRole(value)}>
+                        <SelectTrigger id="invite-role">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="member">Member</SelectItem>
+                          <SelectItem value="admin">Admin</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {error && (
+                      <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
+                        {error}
+                      </div>
+                    )}
+                  </div>
+                  <DialogFooter>
+                    <Button
+                      onClick={handleInvite}
+                      disabled={isPending || !email || !hasAvailableSeats}
+                    >
+                      {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Mail className="mr-2 h-4 w-4" />}
+                      Send invite
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+              {!hasAvailableSeats && (
+                <p className="text-xs text-muted-foreground">
+                  No available seats
+                </p>
+              )}
+            </div>
           )}
         </CardHeader>
         <CardContent className="space-y-4">
