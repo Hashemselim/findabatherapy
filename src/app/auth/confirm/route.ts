@@ -3,9 +3,9 @@ import { NextResponse } from "next/server";
 
 import {
   createClient,
-  getCurrentProfileId,
   getWorkspaceInviteCookie,
 } from "@/lib/supabase/server";
+import { resolveCurrentWorkspaceProfileId } from "@/lib/workspace/current-profile";
 import {
   acceptWorkspaceInvitation,
   createWorkspaceForUser,
@@ -23,6 +23,23 @@ function normalizeSignupIntent(value: string | null | undefined): SignupIntent {
   return "both";
 }
 
+function buildInviteErrorRedirect(params: {
+  origin: string;
+  token: string;
+  email: string | null | undefined;
+  message: string;
+}) {
+  const redirectUrl = new URL("/auth/sign-in", params.origin);
+  redirectUrl.searchParams.set("invite", params.token);
+  redirectUrl.searchParams.set("error", params.message);
+
+  if (params.email) {
+    redirectUrl.searchParams.set("email", params.email);
+  }
+
+  return redirectUrl.toString();
+}
+
 /**
  * Email confirmation handler.
  * This route handles email verification links sent during signup.
@@ -32,6 +49,7 @@ export async function GET(request: Request) {
   const token_hash = searchParams.get("token_hash");
   const type = searchParams.get("type") as EmailOtpType | null;
   const next = searchParams.get("next") ?? "/dashboard/clients/pipeline";
+  const inviteToken = searchParams.get("invite");
 
   if (token_hash && type) {
     const supabase = await createClient();
@@ -49,7 +67,7 @@ export async function GET(request: Request) {
     }
 
     if (data.user) {
-      const pendingInviteToken = await getWorkspaceInviteCookie();
+      const pendingInviteToken = inviteToken || (await getWorkspaceInviteCookie());
       if (pendingInviteToken) {
         try {
           const result = await acceptWorkspaceInvitation({
@@ -70,13 +88,31 @@ export async function GET(request: Request) {
           return NextResponse.redirect(`${origin}${next}`);
         } catch (inviteError) {
           return NextResponse.redirect(
-            `${origin}/auth/sign-in?error=${encodeURIComponent(inviteError instanceof Error ? inviteError.message : "Invitation could not be accepted")}`
+            buildInviteErrorRedirect({
+              origin,
+              token: pendingInviteToken,
+              email: data.user.email,
+              message:
+                inviteError instanceof Error
+                  ? inviteError.message
+                  : "Invitation could not be accepted",
+            })
           );
         }
       }
 
-      const currentProfileId = (await getCurrentProfileId()) || data.user.id;
+      const currentProfileId = await resolveCurrentWorkspaceProfileId(supabase, data.user.id);
       if (currentProfileId !== data.user.id) {
+        const { data: invitedWorkspace } = await supabase
+          .from("profiles")
+          .select("onboarding_completed_at")
+          .eq("id", currentProfileId)
+          .single();
+
+        if (!invitedWorkspace?.onboarding_completed_at) {
+          return NextResponse.redirect(`${origin}/dashboard/onboarding`);
+        }
+
         return NextResponse.redirect(`${origin}${next}`);
       }
 

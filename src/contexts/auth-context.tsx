@@ -13,6 +13,7 @@ import { useRouter } from "next/navigation";
 import posthog from "posthog-js";
 
 import { createSupabaseBrowserClient } from "@/lib/supabase/clients";
+import { resolveCurrentWorkspaceProfileId } from "@/lib/workspace/current-profile";
 
 type Profile = {
   id: string;
@@ -48,10 +49,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchProfile = useCallback(async (userId: string) => {
     const supabase = createSupabaseBrowserClient();
+    const profileId = await resolveCurrentWorkspaceProfileId(supabase, userId);
     const { data } = await supabase
       .from("profiles")
       .select("*")
-      .eq("id", userId)
+      .eq("id", profileId)
       .single();
 
     setProfile(data);

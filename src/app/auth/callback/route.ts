@@ -2,10 +2,10 @@ import { NextResponse } from "next/server";
 
 import {
   createClient,
-  getCurrentProfileId,
   getWorkspaceInviteCookie,
 } from "@/lib/supabase/server";
 import { sendAdminNewSignupNotification } from "@/lib/email/notifications";
+import { resolveCurrentWorkspaceProfileId } from "@/lib/workspace/current-profile";
 import {
   acceptWorkspaceInvitation,
   createWorkspaceForUser,
@@ -23,6 +23,23 @@ function normalizeSignupIntent(value: string | null | undefined): SignupIntent {
   return "both";
 }
 
+function buildInviteErrorRedirect(params: {
+  origin: string;
+  token: string;
+  email: string | null | undefined;
+  message: string;
+}) {
+  const redirectUrl = new URL("/auth/sign-in", params.origin);
+  redirectUrl.searchParams.set("invite", params.token);
+  redirectUrl.searchParams.set("error", params.message);
+
+  if (params.email) {
+    redirectUrl.searchParams.set("email", params.email);
+  }
+
+  return redirectUrl.toString();
+}
+
 /**
  * OAuth callback handler.
  * This route handles the redirect from OAuth providers after authentication.
@@ -32,6 +49,7 @@ export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
   const next = searchParams.get("next") ?? "/dashboard/clients/pipeline";
+  const inviteToken = searchParams.get("invite");
   const selectedPlan = searchParams.get("plan");
   const selectedInterval = searchParams.get("interval");
   const selectedIntent = normalizeSignupIntent(searchParams.get("intent"));
@@ -56,7 +74,7 @@ export async function GET(request: Request) {
     }
 
     if (data.user) {
-      const pendingInviteToken = await getWorkspaceInviteCookie();
+      const pendingInviteToken = inviteToken || (await getWorkspaceInviteCookie());
       if (pendingInviteToken) {
         try {
           const result = await acceptWorkspaceInvitation({
@@ -77,12 +95,20 @@ export async function GET(request: Request) {
           return NextResponse.redirect(`${origin}${next}`);
         } catch (error) {
           return NextResponse.redirect(
-            `${origin}/auth/sign-in?error=${encodeURIComponent(error instanceof Error ? error.message : "Failed to accept workspace invitation")}`
+            buildInviteErrorRedirect({
+              origin,
+              token: pendingInviteToken,
+              email: data.user.email,
+              message:
+                error instanceof Error
+                  ? error.message
+                  : "Failed to accept workspace invitation",
+            })
           );
         }
       }
 
-      const currentProfileId = (await getCurrentProfileId()) || data.user.id;
+      const currentProfileId = await resolveCurrentWorkspaceProfileId(supabase, data.user.id);
       if (currentProfileId !== data.user.id) {
         const { data: invitedWorkspace } = await supabase
           .from("profiles")

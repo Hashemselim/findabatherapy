@@ -8,6 +8,7 @@ import {
 import { isDevOnboardingPreviewEnabled } from "@/lib/onboarding-preview";
 import { updateSession } from "@/lib/supabase/middleware";
 import { domains } from "@/lib/utils/domains";
+import { resolveCurrentWorkspaceProfileId } from "@/lib/workspace/current-profile";
 
 const PROTECTED_ROUTES = ["/dashboard"];
 const AUTH_ROUTES = ["/auth/sign-in", "/auth/sign-up"];
@@ -185,6 +186,64 @@ function redirectToTherapy(
 ) {
   const target = new URL(`${pathname}${request.nextUrl.search}`, domains.therapy.production);
   return NextResponse.redirect(target, status);
+}
+
+async function loadOnboardingFlowForUser(
+  supabase: Awaited<ReturnType<typeof updateSession>>["supabase"],
+  userId: string
+) {
+  const profileId = await resolveCurrentWorkspaceProfileId(supabase, userId);
+
+  const [{ data: profile }, { data: listing }] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select(
+        "agency_name, contact_email, plan_tier, billing_interval, onboarding_completed_at, subscription_status"
+      )
+      .eq("id", profileId)
+      .single(),
+    supabase
+      .from("listings")
+      .select("id, description")
+      .eq("profile_id", profileId)
+      .single(),
+  ]);
+
+  let hasLocationStep = false;
+  let hasServicesStep = false;
+
+  if (listing?.id) {
+    const [{ count }, { data: servicesAttr }] = await Promise.all([
+      supabase
+        .from("locations")
+        .select("id", { count: "exact", head: true })
+        .eq("listing_id", listing.id),
+      supabase
+        .from("listing_attribute_values")
+        .select("value_json")
+        .eq("listing_id", listing.id)
+        .eq("attribute_key", "services_offered")
+        .maybeSingle(),
+    ]);
+
+    hasLocationStep = (count || 0) > 0;
+    hasServicesStep =
+      Array.isArray(servicesAttr?.value_json) &&
+      servicesAttr.value_json.length > 0;
+  }
+
+  return evaluateOnboardingFlow({
+    onboardingCompleted: Boolean(profile?.onboarding_completed_at),
+    selectedPlan: profile?.plan_tier,
+    billingInterval: profile?.billing_interval,
+    subscriptionStatus: profile?.subscription_status,
+    hasAgencyStep:
+      Boolean(profile?.agency_name) &&
+      Boolean(profile?.contact_email) &&
+      Boolean(listing?.description?.trim()),
+    hasLocationStep,
+    hasServicesStep,
+  });
 }
 
 export async function middleware(request: NextRequest) {
@@ -423,56 +482,7 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL(legacyRedirect, request.url));
     }
 
-    const [{ data: profile }, { data: listing }] = await Promise.all([
-      supabase
-        .from("profiles")
-        .select(
-          "agency_name, contact_email, plan_tier, billing_interval, onboarding_completed_at, subscription_status"
-        )
-        .eq("id", user.id)
-        .single(),
-      supabase
-        .from("listings")
-        .select("id, description")
-        .eq("profile_id", user.id)
-        .single(),
-    ]);
-
-    let hasLocationStep = false;
-    let hasServicesStep = false;
-
-    if (listing?.id) {
-      const [{ count }, { data: servicesAttr }] = await Promise.all([
-        supabase
-          .from("locations")
-          .select("id", { count: "exact", head: true })
-          .eq("listing_id", listing.id),
-        supabase
-          .from("listing_attribute_values")
-          .select("value_json")
-          .eq("listing_id", listing.id)
-          .eq("attribute_key", "services_offered")
-          .maybeSingle(),
-      ]);
-
-      hasLocationStep = (count || 0) > 0;
-      hasServicesStep =
-        Array.isArray(servicesAttr?.value_json) &&
-        servicesAttr.value_json.length > 0;
-    }
-
-    const flow = evaluateOnboardingFlow({
-      onboardingCompleted: Boolean(profile?.onboarding_completed_at),
-      selectedPlan: profile?.plan_tier,
-      billingInterval: profile?.billing_interval,
-      subscriptionStatus: profile?.subscription_status,
-      hasAgencyStep:
-        Boolean(profile?.agency_name) &&
-        Boolean(profile?.contact_email) &&
-        Boolean(listing?.description?.trim()),
-      hasLocationStep,
-      hasServicesStep,
-    });
+    const flow = await loadOnboardingFlowForUser(supabase, user.id);
 
     if (!flow.isComplete && !isAllowedPreOnboardingPath(pathname)) {
       return NextResponse.redirect(new URL(flow.firstIncompletePath, request.url));
@@ -480,56 +490,7 @@ export async function middleware(request: NextRequest) {
   }
 
   if (isAuthRoute && user) {
-    const [{ data: profile }, { data: listing }] = await Promise.all([
-      supabase
-        .from("profiles")
-        .select(
-          "agency_name, contact_email, plan_tier, billing_interval, onboarding_completed_at, subscription_status"
-        )
-        .eq("id", user.id)
-        .single(),
-      supabase
-        .from("listings")
-        .select("id, description")
-        .eq("profile_id", user.id)
-        .single(),
-    ]);
-
-    let hasLocationStep = false;
-    let hasServicesStep = false;
-
-    if (listing?.id) {
-      const [{ count }, { data: servicesAttr }] = await Promise.all([
-        supabase
-          .from("locations")
-          .select("id", { count: "exact", head: true })
-          .eq("listing_id", listing.id),
-        supabase
-          .from("listing_attribute_values")
-          .select("value_json")
-          .eq("listing_id", listing.id)
-          .eq("attribute_key", "services_offered")
-          .maybeSingle(),
-      ]);
-
-      hasLocationStep = (count || 0) > 0;
-      hasServicesStep =
-        Array.isArray(servicesAttr?.value_json) &&
-        servicesAttr.value_json.length > 0;
-    }
-
-    const flow = evaluateOnboardingFlow({
-      onboardingCompleted: Boolean(profile?.onboarding_completed_at),
-      selectedPlan: profile?.plan_tier,
-      billingInterval: profile?.billing_interval,
-      subscriptionStatus: profile?.subscription_status,
-      hasAgencyStep:
-        Boolean(profile?.agency_name) &&
-        Boolean(profile?.contact_email) &&
-        Boolean(listing?.description?.trim()),
-      hasLocationStep,
-      hasServicesStep,
-    });
+    const flow = await loadOnboardingFlowForUser(supabase, user.id);
 
     if (!flow.isComplete) {
       return NextResponse.redirect(new URL(flow.firstIncompletePath, request.url));

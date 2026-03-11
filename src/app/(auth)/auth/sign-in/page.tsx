@@ -35,6 +35,7 @@ function SignInForm() {
   const inviteToken = searchParams.get("invite");
   const inviteEmail = searchParams.get("email");
   const showTurnstile = failedAttempts >= 2;
+  const inviteError = inviteToken && error;
 
   async function handleSubmit(formData: FormData) {
     // Require Turnstile after 2 failed attempts
@@ -138,7 +139,17 @@ function SignInForm() {
       <CardContent className="space-y-4">
         {error && (
           <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
-            {error}
+            {inviteError ? (
+              <>
+                <div className="font-medium">Workspace invitation could not be completed.</div>
+                <div className="mt-1">{error}</div>
+                <div className="mt-1 text-destructive/80">
+                  Use the invited email address or reopen the latest invitation link and try again.
+                </div>
+              </>
+            ) : (
+              error
+            )}
           </div>
         )}
 

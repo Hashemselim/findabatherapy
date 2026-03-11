@@ -44,6 +44,28 @@ function normalizeSignupIntent(value: string | null | undefined): SignupIntent {
   return "both";
 }
 
+function buildAuthCallbackUrl(params: {
+  origin: string;
+  planTier: string;
+  interval: string;
+  intent?: string;
+  inviteToken?: string | null;
+}) {
+  const callbackUrl = new URL("/auth/callback", params.origin);
+  callbackUrl.searchParams.set("plan", params.planTier);
+  callbackUrl.searchParams.set("interval", params.interval);
+
+  if (params.intent) {
+    callbackUrl.searchParams.set("intent", params.intent);
+  }
+
+  if (params.inviteToken) {
+    callbackUrl.searchParams.set("invite", params.inviteToken);
+  }
+
+  return callbackUrl.toString();
+}
+
 /**
  * Sign in with email and password
  */
@@ -184,7 +206,12 @@ export async function signUpWithEmail(formData: FormData): Promise<AuthResult> {
     email,
     password,
     options: {
-      emailRedirectTo: `${origin}/auth/callback?plan=${planTier}&interval=${interval}`,
+      emailRedirectTo: buildAuthCallbackUrl({
+        origin,
+        planTier,
+        interval,
+        inviteToken,
+      }),
       data: {
         agency_name: agencyName || email.split("@")[0],
         selected_plan: planTier,
@@ -271,7 +298,13 @@ export async function signInWithOAuth(
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider,
     options: {
-      redirectTo: `${origin}/auth/callback?plan=${planTier}&interval=${interval}&intent=${intent}`,
+      redirectTo: buildAuthCallbackUrl({
+        origin,
+        planTier,
+        interval,
+        intent,
+        inviteToken,
+      }),
       queryParams: provider === "azure" ? {
         // Microsoft-specific params if needed
       } : undefined,
