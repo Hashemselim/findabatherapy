@@ -19,8 +19,12 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DashboardStatusBadge } from "@/components/dashboard/ui";
+import { Tabs } from "@/components/ui/tabs";
+import {
+  DashboardStatusBadge,
+  DashboardTabsList,
+  DashboardTabsTrigger,
+} from "@/components/dashboard/ui";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -239,31 +243,19 @@ export function TasksList({ initialTasks, clients = [] }: TasksListProps) {
     <div className="flex flex-col gap-4">
       {/* Header with Add Button and Filters */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        {/* Filters - horizontally scrollable on mobile */}
-        <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 sm:overflow-visible">
-          <Tabs value={filter} onValueChange={(v) => setFilter(v as typeof filter)}>
-            <TabsList className="inline-flex min-h-11 w-auto min-w-full items-center rounded-xl border border-border/60 bg-card p-1 shadow-xs sm:min-w-0">
-              <TabsTrigger
-                value="all"
-                className="flex h-9 flex-1 items-center rounded-lg border border-transparent px-4 text-xs font-medium leading-none text-muted-foreground data-[state=active]:border-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-xs sm:flex-none"
-              >
-                All ({tasks.length})
-              </TabsTrigger>
-              <TabsTrigger
-                value="active"
-                className="flex h-9 flex-1 items-center rounded-lg border border-transparent px-4 text-xs font-medium leading-none text-muted-foreground data-[state=active]:border-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-xs sm:flex-none"
-              >
-                Active ({activeCount})
-              </TabsTrigger>
-              <TabsTrigger
-                value="completed"
-                className="flex h-9 flex-1 items-center rounded-lg border border-transparent px-4 text-xs font-medium leading-none text-muted-foreground data-[state=active]:border-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-xs sm:flex-none"
-              >
-                Done ({completedCount})
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-        </div>
+        <Tabs value={filter} onValueChange={(v) => setFilter(v as typeof filter)}>
+          <DashboardTabsList>
+            <DashboardTabsTrigger value="all">
+              All ({tasks.length})
+            </DashboardTabsTrigger>
+            <DashboardTabsTrigger value="active">
+              Active ({activeCount})
+            </DashboardTabsTrigger>
+            <DashboardTabsTrigger value="completed">
+              Done ({completedCount})
+            </DashboardTabsTrigger>
+          </DashboardTabsList>
+        </Tabs>
 
         <Button onClick={handleAddNew} size="sm" className="w-full sm:w-auto shrink-0">
           <Plus className="h-4 w-4 mr-1" />

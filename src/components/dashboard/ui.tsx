@@ -5,6 +5,7 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { TabsList as BaseTabsList, TabsTrigger as BaseTabsTrigger } from "@/components/ui/tabs";
 import {
   Table as BaseTable,
   TableBody as BaseTableBody,
@@ -142,7 +143,7 @@ export function DashboardFilterGroup({ className, ...props }: DashboardFilterGro
   return (
     <div
       className={cn(
-        "inline-flex min-h-11 min-w-full items-center gap-1.5 rounded-xl border border-border/60 bg-card p-1 shadow-xs sm:min-w-0 sm:flex-wrap",
+        "inline-flex min-h-11 min-w-full flex-wrap items-center gap-1.5 rounded-xl border border-border/60 bg-card p-1 shadow-xs sm:min-w-0 sm:flex-nowrap",
         className
       )}
       {...props}
@@ -179,6 +180,40 @@ export function DashboardFilterButton({
         </span>
       )}
     </Button>
+  );
+}
+
+type DashboardTabsListProps = ComponentProps<typeof BaseTabsList>;
+
+export function DashboardTabsList({ className, ...props }: DashboardTabsListProps) {
+  return (
+    <BaseTabsList
+      className={cn(
+        "grid h-auto min-h-11 w-full grid-cols-3 items-stretch rounded-xl border border-border/60 bg-card p-1 shadow-xs group-data-[orientation=horizontal]/tabs:h-auto",
+        "sm:inline-flex sm:w-auto sm:min-w-0 sm:flex-nowrap sm:items-center sm:justify-start",
+        className
+      )}
+      {...props}
+    />
+  );
+}
+
+type DashboardTabsTriggerProps = ComponentProps<typeof BaseTabsTrigger>;
+
+export function DashboardTabsTrigger({
+  className,
+  ...props
+}: DashboardTabsTriggerProps) {
+  return (
+    <BaseTabsTrigger
+      className={cn(
+        "flex h-auto min-h-9 w-full items-center justify-center rounded-lg border border-transparent px-3 py-2 text-center text-xs font-medium leading-tight",
+        "text-muted-foreground data-[state=active]:border-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-xs",
+        "sm:h-9 sm:w-auto sm:flex-none sm:px-4 sm:py-0 sm:leading-none",
+        className
+      )}
+      {...props}
+    />
   );
 }
 
