@@ -9,6 +9,10 @@ import { BwFaq } from "@/components/marketing/bw-faq";
 import { BwDarkCta } from "@/components/marketing/bw-dark-cta";
 import { BwFadeUp } from "@/components/marketing/bw-fade-up";
 import { BwSectionWrapper } from "@/components/marketing/bw-section-wrapper";
+import {
+  GOODABA_NAME,
+  GOODABA_OG_IMAGE,
+} from "@/lib/seo/goodaba-metadata";
 import { getUser } from "@/lib/supabase/server";
 
 const BASE_URL = "https://www.goodaba.com/pricing";
@@ -26,12 +30,24 @@ export const metadata: Metadata = {
       "Stop running your ABA business on Google Forms. One platform. One price. Everything included.",
     url: BASE_URL,
     type: "website",
+    siteName: GOODABA_NAME,
+    images: [
+      {
+        url: GOODABA_OG_IMAGE,
+        width: 1200,
+        height: 630,
+        alt: GOODABA_NAME,
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "GoodABA Pricing — $79/mo for Everything",
     description:
       "Branded intake forms, CRM, automated emails, and job board for ABA agencies. Start free.",
+    site: "@goodaba",
+    creator: "@goodaba",
+    images: [GOODABA_OG_IMAGE],
   },
 };
 

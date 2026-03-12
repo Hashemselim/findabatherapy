@@ -5,8 +5,9 @@ import { FeedbackForm } from "@/components/feedback/feedback-form";
 import { getUser } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
-  title: "Send Feedback | Dashboard | FindABATherapy",
-  description: "Share your feedback, report issues, or request features to help us improve FindABATherapy.",
+  title: "Send Feedback | Dashboard | GoodABA",
+  description:
+    "Share your feedback, report issues, or request features to help us improve GoodABA.",
 };
 
 export default async function DashboardFeedbackPage() {

@@ -3,14 +3,12 @@ import type { PropsWithChildren } from "react";
 
 import { createGoodABALayoutMetadata } from "@/lib/seo/goodaba-metadata";
 
-/**
- * Branded agency page layout — no site header/footer.
- * Minimal passthrough; the page component handles its own branded background.
- */
 export const metadata: Metadata = createGoodABALayoutMetadata({
   defaultTitle: "GoodABA",
 });
 
-export default function BrandedPageLayout({ children }: PropsWithChildren) {
+export default function GoodABAInternalLayout({
+  children,
+}: PropsWithChildren) {
   return <>{children}</>;
 }

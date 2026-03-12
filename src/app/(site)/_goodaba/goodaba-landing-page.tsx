@@ -15,6 +15,10 @@ import { BwRoiCard } from "@/components/marketing/bw-roi-card";
 import { BwTestimonials } from "@/components/marketing/bw-testimonials";
 import { BwFaq } from "@/components/marketing/bw-faq";
 import { BwDarkCta } from "@/components/marketing/bw-dark-cta";
+import {
+  GOODABA_NAME,
+  GOODABA_OG_IMAGE,
+} from "@/lib/seo/goodaba-metadata";
 import { getUser } from "@/lib/supabase/server";
 
 const BASE_URL = "https://www.goodaba.com";
@@ -33,12 +37,24 @@ export const metadata: Metadata = {
       "Branded intake pages, client pipeline, communication automation, and hiring tools - one platform for ABA agencies.",
     url: BASE_URL,
     type: "website",
+    siteName: GOODABA_NAME,
+    images: [
+      {
+        url: GOODABA_OG_IMAGE,
+        width: 1200,
+        height: 630,
+        alt: GOODABA_NAME,
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "GoodABA | Fill Your ABA Caseload",
     description:
       "Branded pages, intake forms, CRM, and hiring tools - one platform for ABA agencies.",
+    site: "@goodaba",
+    creator: "@goodaba",
+    images: [GOODABA_OG_IMAGE],
   },
 };
 

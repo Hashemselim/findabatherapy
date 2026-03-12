@@ -1,7 +1,13 @@
+import type { Metadata } from "next";
 import { PropsWithChildren } from "react";
 import Link from "next/link";
 
 import { AuthHeader } from "@/components/layout/auth-header";
+import { createGoodABALayoutMetadata } from "@/lib/seo/goodaba-metadata";
+
+export const metadata: Metadata = createGoodABALayoutMetadata({
+  defaultTitle: "GoodABA",
+});
 
 export default function AuthLayout({ children }: PropsWithChildren) {
   return (

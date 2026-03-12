@@ -1,9 +1,15 @@
+import type { Metadata } from "next";
 import { PropsWithChildren } from "react";
 
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { type CompanyProfile } from "@/components/dashboard/dashboard-sidebar";
 import { getListing } from "@/lib/actions/listings";
+import { createGoodABALayoutMetadata } from "@/lib/seo/goodaba-metadata";
 import { getProfile } from "@/lib/supabase/server";
+
+export const metadata: Metadata = createGoodABALayoutMetadata({
+  defaultTitle: "Dashboard | GoodABA",
+});
 
 export default async function DashboardLayout({ children }: PropsWithChildren) {
   let isOnboardingComplete = false;

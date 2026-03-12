@@ -6,9 +6,13 @@ export const runtime = "edge";
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const brand = searchParams.get("brand") || "therapy";
+  const isGoodABA = brand === "goodaba";
   const isJobs = brand === "jobs";
+  const requestOrigin = new URL(request.url).origin;
 
-  const title = searchParams.get("title") || (isJobs ? "GoodABA Jobs" : "Find ABA Therapy");
+  const title =
+    searchParams.get("title") ||
+    (isJobs ? "GoodABA Jobs" : isGoodABA ? "GoodABA" : "Find ABA Therapy");
   const subtitle = searchParams.get("subtitle");
   const location = searchParams.get("location");
   const logo = searchParams.get("logo"); // Company logo URL
@@ -16,7 +20,11 @@ export async function GET(request: NextRequest) {
 
   // Build display title with location if provided
   const displayTitle = location
-    ? (isJobs ? `ABA Jobs in ${location}` : `ABA Therapy in ${location}`)
+    ? isJobs
+      ? `ABA Jobs in ${location}`
+      : isGoodABA
+        ? title
+        : `ABA Therapy in ${location}`
     : title;
 
   // Default subtitle based on brand and type
@@ -29,6 +37,8 @@ export async function GET(request: NextRequest) {
 
     return isJobs
       ? "Discover ABA therapy careers near you"
+      : isGoodABA
+        ? "Your complete ABA practice growth platform"
       : "Discover trusted ABA therapy providers near you";
   };
 
@@ -40,56 +50,75 @@ export async function GET(request: NextRequest) {
 
     return isJobs
       ? ["1,000+ Jobs", "All 50 States", "Free to Apply"]
+      : isGoodABA
+        ? ["Intake & CRM", "Hiring Tools", "Live in Minutes"]
       : ["500+ Providers", "All 50 States", "Free to Search"];
   };
 
   // Brand-specific colors and settings
-  const brandConfig = isJobs ? {
-    gradient: "linear-gradient(135deg, #064e3b 0%, #065f46 50%, #047857 100%)",
-    accentGradient: "linear-gradient(135deg, #10B981 0%, #059669 100%)",
-    decorativeColor1: "rgba(16, 185, 129, 0.15)",
-    decorativeColor2: "rgba(20, 184, 166, 0.1)",
-    decorativeColor3: "rgba(52, 211, 153, 0.1)",
-    brandName: "GoodABA Jobs",
-    siteDomain: "goodaba.com/jobs",
-    icon: (
-      <svg
-        width="36"
-        height="36"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="white"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
-        <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
-      </svg>
-    ),
-  } : {
-    gradient: "linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%)",
-    accentGradient: "linear-gradient(135deg, #9333ea 0%, #3b82f6 100%)",
-    decorativeColor1: "rgba(147, 51, 234, 0.15)",
-    decorativeColor2: "rgba(59, 130, 246, 0.1)",
-    decorativeColor3: "rgba(236, 72, 153, 0.1)",
-    brandName: "Find ABA Therapy",
-    siteDomain: "findabatherapy.org",
-    icon: (
-      <svg
-        width="36"
-        height="36"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="white"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-      </svg>
-    ),
-  };
+  const brandConfig = isJobs
+    ? {
+        gradient: "linear-gradient(135deg, #064e3b 0%, #065f46 50%, #047857 100%)",
+        accentGradient: "linear-gradient(135deg, #10B981 0%, #059669 100%)",
+        decorativeColor1: "rgba(16, 185, 129, 0.15)",
+        decorativeColor2: "rgba(20, 184, 166, 0.1)",
+        decorativeColor3: "rgba(52, 211, 153, 0.1)",
+        brandName: "GoodABA Jobs",
+        siteDomain: "goodaba.com/jobs",
+        brandLogoUrl: null,
+        icon: (
+          <svg
+            width="36"
+            height="36"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="white"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+            <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+          </svg>
+        ),
+      }
+    : isGoodABA
+      ? {
+          gradient:
+            "linear-gradient(135deg, #fff7e6 0%, #eef6ff 52%, #ecfdf5 100%)",
+          accentGradient: "linear-gradient(135deg, #0866FF 0%, #10B981 100%)",
+          decorativeColor1: "rgba(8, 102, 255, 0.12)",
+          decorativeColor2: "rgba(255, 207, 64, 0.18)",
+          decorativeColor3: "rgba(16, 185, 129, 0.12)",
+          brandName: "GoodABA",
+          siteDomain: "goodaba.com",
+          brandLogoUrl: `${requestOrigin}/logo-full-pill.png`,
+          icon: null,
+        }
+      : {
+          gradient: "linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%)",
+          accentGradient: "linear-gradient(135deg, #9333ea 0%, #3b82f6 100%)",
+          decorativeColor1: "rgba(147, 51, 234, 0.15)",
+          decorativeColor2: "rgba(59, 130, 246, 0.1)",
+          decorativeColor3: "rgba(236, 72, 153, 0.1)",
+          brandName: "Find ABA Therapy",
+          siteDomain: "findabatherapy.org",
+          brandLogoUrl: null,
+          icon: (
+            <svg
+              width="36"
+              height="36"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="white"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+            </svg>
+          ),
+        };
 
   const stats = getStats();
   const displaySubtitle = getDefaultSubtitle();
@@ -238,32 +267,44 @@ export async function GET(request: NextRequest) {
                 </div>
               </div>
             ) : (
-              // Default brand icon
-              <>
-                <div
-                  style={{
-                    width: 60,
-                    height: 60,
-                    borderRadius: 12,
-                    background: brandConfig.accentGradient,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    marginRight: 16,
-                  }}
-                >
-                  {brandConfig.icon}
-                </div>
-                <span
-                  style={{
-                    fontSize: 28,
-                    fontWeight: 600,
-                    color: "white",
-                  }}
-                >
-                  {brandConfig.brandName}
-                </span>
-              </>
+              brandConfig.brandLogoUrl ? (
+                // Full wordmark for GoodABA shares
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={brandConfig.brandLogoUrl}
+                  alt={brandConfig.brandName}
+                  width={360}
+                  height={48}
+                  style={{ width: 360, height: "auto" }}
+                />
+              ) : (
+                // Default brand icon
+                <>
+                  <div
+                    style={{
+                      width: 60,
+                      height: 60,
+                      borderRadius: 12,
+                      background: brandConfig.accentGradient,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      marginRight: 16,
+                    }}
+                  >
+                    {brandConfig.icon}
+                  </div>
+                  <span
+                    style={{
+                      fontSize: 28,
+                      fontWeight: 600,
+                      color: isGoodABA ? "#1A2744" : "white",
+                    }}
+                  >
+                    {brandConfig.brandName}
+                  </span>
+                </>
+              )
             )}
           </div>
 
@@ -272,12 +313,12 @@ export async function GET(request: NextRequest) {
             style={{
               fontSize: logo ? 48 : (location ? 64 : 56),
               fontWeight: 700,
-              color: "white",
+              color: isGoodABA ? "#1A2744" : "white",
               lineHeight: 1.1,
               margin: 0,
               marginBottom: 20,
               maxWidth: 900,
-              textShadow: "0 2px 10px rgba(0,0,0,0.3)",
+              textShadow: isGoodABA ? "none" : "0 2px 10px rgba(0,0,0,0.3)",
             }}
           >
             {displayTitle}
@@ -287,7 +328,7 @@ export async function GET(request: NextRequest) {
           <p
             style={{
               fontSize: 24,
-              color: "rgba(255, 255, 255, 0.7)",
+              color: isGoodABA ? "rgba(26, 39, 68, 0.74)" : "rgba(255, 255, 255, 0.7)",
               margin: 0,
               maxWidth: 700,
               lineHeight: 1.4,
@@ -311,11 +352,12 @@ export async function GET(request: NextRequest) {
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  background: "rgba(255, 255, 255, 0.1)",
+                  background: isGoodABA ? "rgba(255, 255, 255, 0.85)" : "rgba(255, 255, 255, 0.1)",
                   padding: "10px 20px",
                   borderRadius: 50,
-                  color: "rgba(255, 255, 255, 0.9)",
+                  color: isGoodABA ? "#1A2744" : "rgba(255, 255, 255, 0.9)",
                   fontSize: 18,
+                  boxShadow: isGoodABA ? "0 8px 24px rgba(8, 102, 255, 0.08)" : "none",
                 }}
               >
                 {stat}
@@ -330,7 +372,7 @@ export async function GET(request: NextRequest) {
             position: "absolute",
             bottom: 30,
             display: "flex",
-            color: "rgba(255, 255, 255, 0.5)",
+            color: isGoodABA ? "rgba(26, 39, 68, 0.5)" : "rgba(255, 255, 255, 0.5)",
             fontSize: 18,
           }}
         >
