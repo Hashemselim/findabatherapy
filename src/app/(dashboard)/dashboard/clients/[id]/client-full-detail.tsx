@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import {
   User,
@@ -23,12 +25,14 @@ import {
   Stethoscope,
   ClipboardList,
   Mail,
+  Phone,
   Upload,
   Eye,
   Download,
+  ArrowLeft,
   type LucideIcon,
 } from "lucide-react";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -57,6 +61,13 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
@@ -73,6 +84,8 @@ import {
   REFERRAL_SOURCE_OPTIONS,
   LOCATION_LABEL_OPTIONS,
   GRADE_LEVEL_OPTIONS,
+  CLIENT_STATUS_OPTIONS,
+  type ClientStatus,
 } from "@/lib/validations/clients";
 import {
   updateClientTask,
@@ -84,11 +97,13 @@ import {
   deleteClientDocument,
   getDocumentSignedUrl,
   downloadClientDocument,
+  updateClientStatus,
 } from "@/lib/actions/clients";
 import type { ClientDetail } from "@/lib/actions/clients";
 import { TASK_STATUS_OPTIONS, DOCUMENT_TYPE_OPTIONS, type ClientTask } from "@/lib/validations/clients";
 import { formatFileSize, getDocumentIconName } from "@/lib/storage/config";
 import { DashboardStatusBadge } from "@/components/dashboard/ui";
+import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
 
 import { ClientStatusBadge } from "@/components/dashboard/clients/client-status-badge";
 import { TaskFormDialog } from "@/components/dashboard/tasks";
@@ -110,6 +125,15 @@ import { DocumentEditDialog } from "@/components/dashboard/clients/edit/document
 interface ClientFullDetailProps {
   client: ClientDetail;
 }
+
+const EMAIL_PROVIDER_OPTIONS = [
+  { value: "apple_mail", label: "Apple Mail" },
+  { value: "gmail", label: "Gmail" },
+  { value: "outlook", label: "Outlook" },
+  { value: "yahoo", label: "Yahoo" },
+] as const;
+
+type EmailProvider = (typeof EMAIL_PROVIDER_OPTIONS)[number]["value"];
 
 // Helper to get display label from option arrays
 function getOptionLabel<T extends readonly { value: string; label: string }[]>(
@@ -254,7 +278,9 @@ function EmptyState({ message }: { message: string }) {
 type TaskStatus = "pending" | "in_progress" | "completed";
 
 export function ClientFullDetail({ client }: ClientFullDetailProps) {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [isStatusPending, startStatusTransition] = useTransition();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<{
     type: "parent" | "insurance" | "authorization" | "location" | "document" | "task";
@@ -286,6 +312,7 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
   // Document management state
   const [documentDialogOpen, setDocumentDialogOpen] = useState(false);
   const [editingDocument, setEditingDocument] = useState<(typeof client.documents)[number] | undefined>(undefined);
+  const [clientStatus, setClientStatus] = useState<ClientStatus>(client.status);
 
   const age = client.child_date_of_birth ? calculateAge(client.child_date_of_birth) : null;
   const childName = [client.child_first_name, client.child_last_name].filter(Boolean).join(" ") || "Client";
@@ -299,6 +326,16 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
       relationship: p.relationship || "guardian",
       isPrimary: p.is_primary,
     }));
+  const primaryParent = client.parents?.find((parent) => parent.is_primary) || client.parents?.[0];
+  const primaryParentName = primaryParent
+    ? [primaryParent.first_name, primaryParent.last_name].filter(Boolean).join(" ") || "Primary parent"
+    : null;
+  const primaryParentEmail = primaryParent?.email || null;
+  const primaryParentPhone = primaryParent?.phone || null;
+
+  useEffect(() => {
+    setClientStatus(client.status);
+  }, [client.status]);
 
   const handleDelete = (
     type: "parent" | "insurance" | "authorization" | "location" | "document" | "task",
@@ -354,6 +391,52 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
     setTaskDialogOpen(true);
   };
 
+  const handleEmailProviderSelect = (provider: EmailProvider) => {
+    if (!primaryParentEmail) return;
+
+    const encodedEmail = encodeURIComponent(primaryParentEmail);
+    const emailGreeting = encodeURIComponent(`Hi ${primaryParentName || "there"},`);
+    const emailUrls: Record<EmailProvider, string> = {
+      apple_mail: `mailto:${encodedEmail}?body=${emailGreeting}`,
+      gmail: `https://mail.google.com/mail/?view=cm&fs=1&to=${encodedEmail}&body=${emailGreeting}`,
+      outlook: `https://outlook.live.com/mail/0/deeplink/compose?to=${encodedEmail}&body=${emailGreeting}`,
+      yahoo: `https://compose.mail.yahoo.com/?to=${encodedEmail}&body=${emailGreeting}`,
+    };
+
+    if (provider === "apple_mail") {
+      window.location.href = emailUrls[provider];
+      return;
+    }
+
+    window.open(emailUrls[provider], "_blank", "noopener,noreferrer");
+  };
+
+  const handleCopyEmail = async () => {
+    if (!primaryParentEmail) return;
+
+    await navigator.clipboard.writeText(primaryParentEmail);
+    toast.success("Email copied");
+  };
+
+  const handleStatusChange = (nextStatus: ClientStatus) => {
+    if (nextStatus === clientStatus) return;
+
+    const previousStatus = clientStatus;
+    setClientStatus(nextStatus);
+
+    startStatusTransition(async () => {
+      const result = await updateClientStatus(client.id, nextStatus);
+      if (!result.success) {
+        setClientStatus(previousStatus);
+        toast.error(result.error);
+        return;
+      }
+
+      toast.success("Client status updated");
+      router.refresh();
+    });
+  };
+
   // Document handlers
   const handleViewDocument = async (docId: string) => {
     const result = await getDocumentSignedUrl(docId);
@@ -399,30 +482,113 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
 
   return (
     <>
-      <div className="space-y-6">
-        {/* SECTION 1: Client Information */}
-        <Card>
-          <CardContent className="pt-6">
-            <SectionHeader
-              icon={User}
-              title="Client Information"
-              onEdit={() => setChildInfoDialogOpen(true)}
-            />
-            <div className="grid gap-x-6 gap-y-1 sm:grid-cols-2 lg:grid-cols-4">
-              <Field label="First Name" value={client.child_first_name} />
-              <Field label="Last Name" value={client.child_last_name} />
-              <Field
-                label="Date of Birth"
-                value={client.child_date_of_birth ? format(new Date(client.child_date_of_birth), "MMM d, yyyy") : null}
+      <div className="space-y-3">
+        <Button variant="ghost" size="sm" asChild className="w-fit px-2">
+          <Link href="/dashboard/clients">
+            <ArrowLeft className="h-4 w-4" />
+            Back to Clients
+          </Link>
+        </Button>
+
+        <DashboardPageHeader
+          title={childName}
+          description={
+            primaryParentName ? `Client details - Primary contact: ${primaryParentName}` : "Client details"
+          }
+        >
+          <div className="w-full sm:w-auto">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full gap-1.5 sm:w-auto"
+                  disabled={!primaryParentEmail}
+                >
+                  <Mail className="h-4 w-4" />
+                  Email
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {EMAIL_PROVIDER_OPTIONS.map((provider) => (
+                  <DropdownMenuItem
+                    key={provider.value}
+                    onClick={() => handleEmailProviderSelect(provider.value)}
+                  >
+                    {provider.label}
+                  </DropdownMenuItem>
+                ))}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleCopyEmail}>
+                  Copy Email
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+            disabled={!primaryParentPhone}
+            onClick={() => {
+              if (!primaryParentPhone) return;
+              window.location.href = `tel:${primaryParentPhone}`;
+            }}
+          >
+            <Phone className="h-4 w-4" />
+            Call
+          </Button>
+
+          <Button size="sm" className="gap-1.5" onClick={handleAddTask}>
+            <Plus className="h-4 w-4" />
+            Add Task
+          </Button>
+
+          <div className="w-full sm:w-[190px]">
+            <Select
+              value={clientStatus}
+              onValueChange={(value) => handleStatusChange(value as ClientStatus)}
+              disabled={isStatusPending}
+            >
+              <SelectTrigger size="sm" className="w-full">
+                <SelectValue placeholder="Change status" />
+              </SelectTrigger>
+              <SelectContent align="end">
+                {CLIENT_STATUS_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </DashboardPageHeader>
+
+        <div className="space-y-6">
+          {/* SECTION 1: Client Information */}
+          <Card>
+            <CardContent className="pt-6">
+              <SectionHeader
+                icon={User}
+                title="Client Information"
+                onEdit={() => setChildInfoDialogOpen(true)}
               />
-              <Field label="Age" value={age !== null ? `${age} years old` : null} />
-              <Field label="School Name" value={client.child_school_name} />
-              <Field label="School District" value={client.child_school_district} />
-              <Field label="Grade Level" value={getOptionLabel(GRADE_LEVEL_OPTIONS, client.child_grade_level)} />
-              <Field label="Preferred Language" value={client.preferred_language} />
-            </div>
-          </CardContent>
-        </Card>
+              <div className="grid gap-x-6 gap-y-1 sm:grid-cols-2 lg:grid-cols-4">
+                <Field label="First Name" value={client.child_first_name} />
+                <Field label="Last Name" value={client.child_last_name} />
+                <Field
+                  label="Date of Birth"
+                  value={client.child_date_of_birth ? format(new Date(client.child_date_of_birth), "MMM d, yyyy") : null}
+                />
+                <Field label="Age" value={age !== null ? `${age} years old` : null} />
+                <Field label="School Name" value={client.child_school_name} />
+                <Field label="School District" value={client.child_school_district} />
+                <Field label="Grade Level" value={getOptionLabel(GRADE_LEVEL_OPTIONS, client.child_grade_level)} />
+                <Field label="Preferred Language" value={client.preferred_language} />
+              </div>
+            </CardContent>
+          </Card>
 
         {/* SECTION 2: Parents/Guardians */}
         <Card>
@@ -1101,7 +1267,7 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
             <SectionHeader
               icon={ClipboardList}
               title="Status & Service Information"
-              rightContent={<ClientStatusBadge status={client.status} />}
+              rightContent={<ClientStatusBadge status={clientStatus} />}
               onEdit={() => setStatusDialogOpen(true)}
             />
             <div className="grid gap-x-6 gap-y-1 sm:grid-cols-2 lg:grid-cols-4">
@@ -1381,6 +1547,7 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
             )}
           </CardContent>
         </Card>
+        </div>
       </div>
 
       {/* Delete Confirmation Dialog */}
@@ -1408,7 +1575,10 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
       {/* Task Form Dialog */}
       <TaskFormDialog
         open={taskDialogOpen}
-        onOpenChange={setTaskDialogOpen}
+        onOpenChange={(open) => {
+          setTaskDialogOpen(open);
+          if (!open) setEditingTask(null);
+        }}
         task={
           editingTask
             ? {
@@ -1424,6 +1594,10 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
         }
         clientId={client.id}
         clientName={childName}
+        onSuccess={() => {
+          setEditingTask(null);
+          router.refresh();
+        }}
       />
 
       {/* Child Info Edit Dialog */}
@@ -1447,7 +1621,7 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
         open={statusDialogOpen}
         onOpenChange={setStatusDialogOpen}
         clientId={client.id}
-        client={client}
+        client={{ ...client, status: clientStatus }}
       />
 
       {/* Parent Edit Dialog */}
@@ -1491,7 +1665,7 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
           clientId={client.id}
           clientName={childName}
           recipients={recipientsWithEmail}
-          currentStage={client.status}
+          currentStage={clientStatus}
           onSuccess={() => setCommunicationRefreshKey((k) => k + 1)}
         />
       )}
