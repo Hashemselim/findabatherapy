@@ -6,7 +6,7 @@
  */
 
 import { goodabaLogoHtml } from "@/lib/brand/goodaba";
-import { domains, getSiteUrl as getSafeUrl, getSupportEmail } from "@/lib/utils/domains";
+import { domains, getSupportEmail } from "@/lib/utils/domains";
 
 // Brand colors (shared with notifications.ts)
 const BRAND = {
@@ -176,7 +176,7 @@ export function agencyEmailWrapper(
   agency: AgencyBrandingData,
   options?: { preheader?: string }
 ): string {
-  const siteUrl = getSafeUrl();
+  const siteUrl = domains.therapy.production;
   const name = escapeHtml(agency.agencyName);
   const textColor = getContrastColor(agency.brandColor);
 

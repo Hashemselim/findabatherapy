@@ -198,9 +198,6 @@ export function buildBrandUrl(brand: Brand, path: string): string {
   return `${baseUrl}${cleanPath}`;
 }
 
-// All platform/provider emails now send from GoodABA by default.
-const UNIFIED_EMAIL_DOMAIN = "goodaba.com";
-
 function extractEmailAddress(input: string): string {
   const match = input.match(/<([^>]+)>/);
   return match ? match[1] : input;
@@ -221,7 +218,7 @@ export function getFromEmail(brand: Brand): string {
     return extractEmailAddress(process.env.EMAIL_FROM);
   }
 
-  return `noreply@${UNIFIED_EMAIL_DOMAIN}`;
+  return domains[brand].supportEmail;
 }
 
 export function getFormattedFromEmail(brand: Brand): string {

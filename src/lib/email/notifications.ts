@@ -506,7 +506,7 @@ export async function sendFamilyInquiryConfirmation(
 
     const { error } = await client.emails.send({
       from: isBrandedInquiry
-        ? `${params.agencyBranding!.agencyName} <${domains.goodaba.noReplyEmail}>`
+        ? `${params.agencyBranding!.agencyName} <${getSupportEmail("goodaba")}>`
         : getFromEmail(),
       to: params.to,
       subject: `Your message to ${params.providerName} has been sent`,
