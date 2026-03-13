@@ -145,15 +145,15 @@ export default async function CommunicationsPage() {
               className="border-0 shadow-none"
             />
           ) : (
-            <DashboardTable>
+            <DashboardTable className="table-fixed">
               <DashboardTableHeader>
                 <DashboardTableRow>
-                  <DashboardTableHead className="pl-6 normal-case tracking-normal">Status</DashboardTableHead>
-                  <DashboardTableHead className="normal-case tracking-normal">Client</DashboardTableHead>
-                  <DashboardTableHead className="normal-case tracking-normal">Subject</DashboardTableHead>
-                  <DashboardTableHead className="hidden normal-case tracking-normal md:table-cell">Recipient</DashboardTableHead>
-                  <DashboardTableHead className="hidden normal-case tracking-normal sm:table-cell">Template</DashboardTableHead>
-                  <DashboardTableHead className="pr-6 normal-case tracking-normal">Date</DashboardTableHead>
+                  <DashboardTableHead className="w-[120px] pl-6 normal-case tracking-normal">Status</DashboardTableHead>
+                  <DashboardTableHead className="w-[160px] normal-case tracking-normal">Client</DashboardTableHead>
+                  <DashboardTableHead className="w-[28%] normal-case tracking-normal">Subject</DashboardTableHead>
+                  <DashboardTableHead className="hidden w-[26%] normal-case tracking-normal md:table-cell">Recipient</DashboardTableHead>
+                  <DashboardTableHead className="hidden w-[200px] normal-case tracking-normal sm:table-cell">Template</DashboardTableHead>
+                  <DashboardTableHead className="w-[120px] pr-6 normal-case tracking-normal">Date</DashboardTableHead>
                 </DashboardTableRow>
               </DashboardTableHeader>
               <DashboardTableBody>
@@ -172,21 +172,27 @@ export default async function CommunicationsPage() {
                         <DashboardTableCell className="py-3">
                           <Link
                             href={`/dashboard/clients/${comm.client_id}`}
-                            className="font-medium hover:underline"
+                            className="block truncate font-medium hover:underline"
                           >
                             {comm.client_name || "Unknown"}
                           </Link>
                         </DashboardTableCell>
-                        <DashboardTableCell className="max-w-[200px] py-3">
-                          {comm.subject}
+                        <DashboardTableCell className="py-3 align-top whitespace-normal">
+                          <div className="leading-5 [overflow-wrap:anywhere]">
+                            {comm.subject}
+                          </div>
                         </DashboardTableCell>
-                        <DashboardTableCell className="hidden py-3 text-muted-foreground md:table-cell">
-                          {comm.recipient_email}
+                        <DashboardTableCell className="hidden py-3 align-top whitespace-normal text-muted-foreground md:table-cell">
+                          <div className="leading-5 [overflow-wrap:anywhere]">
+                            {comm.recipient_email}
+                          </div>
                         </DashboardTableCell>
                         <DashboardTableCell className="hidden py-3 sm:table-cell">
                           {comm.template_slug ? (
-                            <DashboardStatusBadge tone="default" className="text-xs">
-                              {comm.template_slug.replace(/-/g, " ")}
+                            <DashboardStatusBadge tone="default" className="max-w-full text-xs">
+                              <span className="block truncate">
+                                {comm.template_slug.replace(/-/g, " ")}
+                              </span>
                             </DashboardStatusBadge>
                           ) : (
                             <span className="text-muted-foreground">Custom</span>
