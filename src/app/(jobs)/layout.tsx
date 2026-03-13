@@ -4,6 +4,7 @@ import { PropsWithChildren } from "react";
 import { JobsHeader } from "@/components/jobs/jobs-header";
 import { JobsFooter } from "@/components/jobs/jobs-footer";
 import { jobsConfig } from "@/config/jobs";
+import { GOODABA_ICONS } from "@/lib/seo/goodaba-metadata";
 
 const BASE_URL = "https://www.goodaba.com";
 
@@ -14,6 +15,7 @@ export const metadata: Metadata = {
   },
   description: jobsConfig.description,
   metadataBase: new URL(BASE_URL),
+  icons: GOODABA_ICONS,
   keywords: [...jobsConfig.seo.keywords],
   authors: [{ name: jobsConfig.name, url: BASE_URL }],
   creator: jobsConfig.name,

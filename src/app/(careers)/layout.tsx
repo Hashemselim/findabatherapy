@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { PropsWithChildren } from "react";
 
 import { jobsConfig } from "@/config/jobs";
+import { GOODABA_ICONS } from "@/lib/seo/goodaba-metadata";
 
 const BASE_URL = "https://www.goodaba.com";
 
@@ -18,6 +19,7 @@ const BASE_URL = "https://www.goodaba.com";
 
 export const metadata: Metadata = {
   metadataBase: new URL(BASE_URL),
+  icons: GOODABA_ICONS,
   openGraph: {
     type: "website",
     locale: "en_US",

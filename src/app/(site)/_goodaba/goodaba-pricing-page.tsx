@@ -10,6 +10,7 @@ import { BwDarkCta } from "@/components/marketing/bw-dark-cta";
 import { BwFadeUp } from "@/components/marketing/bw-fade-up";
 import { BwSectionWrapper } from "@/components/marketing/bw-section-wrapper";
 import {
+  GOODABA_ICONS,
   GOODABA_NAME,
   GOODABA_OG_IMAGE,
 } from "@/lib/seo/goodaba-metadata";
@@ -21,6 +22,7 @@ export const metadata: Metadata = {
   title: "Pricing | GoodABA — The ABA Growth Toolkit",
   description:
     "One platform replaces Google Forms, spreadsheets, and Indeed. Branded intake forms, CRM, automated emails, and job board — $79/mo. Start free.",
+  icons: GOODABA_ICONS,
   alternates: {
     canonical: BASE_URL,
   },

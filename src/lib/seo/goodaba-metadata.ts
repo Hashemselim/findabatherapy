@@ -8,6 +8,10 @@ export const GOODABA_DESCRIPTION =
 export const GOODABA_OG_IMAGE = `${GOODABA_BASE_URL}/api/og?brand=goodaba&title=${encodeURIComponent(
   GOODABA_NAME
 )}&subtitle=${encodeURIComponent(GOODABA_TAGLINE)}`;
+export const GOODABA_ICONS: Metadata["icons"] = {
+  icon: [{ url: "/brand/goodaba-icon.svg", type: "image/svg+xml" }],
+  shortcut: [{ url: "/brand/goodaba-icon.svg", type: "image/svg+xml" }],
+};
 
 type GoodABALayoutMetadataOptions = {
   defaultTitle?: string;
@@ -23,6 +27,7 @@ export function createGoodABALayoutMetadata(
   return {
     metadataBase: new URL(GOODABA_BASE_URL),
     applicationName: GOODABA_NAME,
+    icons: GOODABA_ICONS,
     title: {
       default: defaultTitle,
       template: "%s",

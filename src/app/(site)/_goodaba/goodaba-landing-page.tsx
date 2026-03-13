@@ -16,6 +16,7 @@ import { BwTestimonials } from "@/components/marketing/bw-testimonials";
 import { BwFaq } from "@/components/marketing/bw-faq";
 import { BwDarkCta } from "@/components/marketing/bw-dark-cta";
 import {
+  GOODABA_ICONS,
   GOODABA_NAME,
   GOODABA_OG_IMAGE,
 } from "@/lib/seo/goodaba-metadata";
@@ -28,6 +29,7 @@ export const metadata: Metadata = {
     "GoodABA | Attract, Intake & Manage ABA Families - One Platform",
   description:
     "The ABA client management platform with built-in tools to attract families, capture their information, and manage your caseload. Set up in 5 minutes.",
+  icons: GOODABA_ICONS,
   alternates: {
     canonical: BASE_URL,
   },
