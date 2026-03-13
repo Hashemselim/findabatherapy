@@ -21,7 +21,7 @@ export default function OnboardingLayout({
     ONBOARDING_STEPS[currentStepIndex]?.id || ONBOARDING_STEPS[0].id;
 
   return (
-    <div className="relative min-h-screen overflow-x-hidden bg-muted/50">
+    <div className="dashboard-theme relative min-h-screen overflow-x-hidden bg-muted/50">
       {/* Subtle ambient background */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
         <div className="absolute -left-[300px] -top-[200px] h-[600px] w-[600px] rounded-full bg-primary/5 blur-[120px]" />

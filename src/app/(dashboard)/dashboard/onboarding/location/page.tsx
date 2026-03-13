@@ -459,7 +459,7 @@ export default function OnboardingLocationPage() {
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.05 }}
-              className={`group rounded-2xl border bg-card p-5 transition-colors ${
+              className={`group rounded-2xl border bg-card shadow-sm p-5 transition-colors ${
                 editingLocationId === location.id
                   ? "border-foreground/20 shadow-xs"
                   : "border-border/60 hover:border-border/70"
@@ -589,7 +589,7 @@ export default function OnboardingLocationPage() {
           >
             <form onSubmit={handleSubmit(handleLocationSave)} className="space-y-6">
               {/* Form header */}
-              <div className="flex items-center justify-between rounded-2xl border border-border/60 bg-card px-4 py-3 sm:px-5 sm:py-4">
+              <div className="flex items-center justify-between rounded-2xl border border-border/60 bg-card shadow-sm px-4 py-3 sm:px-5 sm:py-4">
                 <div>
                   <h2 className="text-lg font-semibold text-foreground">
                     {editingLocation ? "Edit location" : "Add a location"}
@@ -612,7 +612,7 @@ export default function OnboardingLocationPage() {
               {/* Service types */}
               <motion.section
                 variants={fadeUp}
-                className="space-y-4 rounded-2xl border border-border/60 bg-card p-4 sm:p-6"
+                className="space-y-4 rounded-2xl border border-border/60 bg-card shadow-sm p-4 sm:p-6"
               >
                 <div>
                   <h3 className="text-base font-semibold text-foreground">Service types</h3>
@@ -683,7 +683,7 @@ export default function OnboardingLocationPage() {
               {/* Address */}
               <motion.section
                 variants={fadeUp}
-                className="space-y-4 rounded-2xl border border-border/60 bg-card p-4 sm:p-6"
+                className="space-y-4 rounded-2xl border border-border/60 bg-card shadow-sm p-4 sm:p-6"
               >
                 <div>
                   <h3 className="text-base font-semibold text-foreground">Address</h3>
@@ -698,7 +698,7 @@ export default function OnboardingLocationPage() {
                   </Label>
                   <input
                     id="label"
-                    className="flex h-11 w-full rounded-xl border border-border/60 bg-muted/50 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground transition-colors focus:border-foreground/30 focus:bg-card focus:outline-hidden focus:ring-2 focus:ring-foreground/5"
+                    className="flex h-11 w-full rounded-xl border border-border/60 bg-white px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground transition-colors focus:border-foreground/30 focus:bg-card focus:outline-hidden focus:ring-2 focus:ring-foreground/5"
                     placeholder="Main office, North campus, etc."
                     value={watch("label") || ""}
                     onChange={(event) => setValue("label", event.target.value, { shouldValidate: true })}
@@ -722,7 +722,7 @@ export default function OnboardingLocationPage() {
                     onPlaceSelect={handlePlaceSelect}
                     placeholder="Search for your address..."
                     showIcon
-                    inputClassName="h-11 rounded-xl border-border/60 bg-muted/50 focus:bg-card"
+                    inputClassName="h-11 rounded-xl border-border/60 bg-white focus:bg-card"
                   />
                 </div>
 
@@ -771,7 +771,7 @@ export default function OnboardingLocationPage() {
               {showServiceRadius && (
                 <motion.section
                   variants={fadeUp}
-                  className="space-y-4 rounded-2xl border border-border/60 bg-card p-4 sm:p-6"
+                  className="space-y-4 rounded-2xl border border-border/60 bg-card shadow-sm p-4 sm:p-6"
                 >
                   <div>
                     <h3 className="text-base font-semibold text-foreground">Service radius</h3>
@@ -787,7 +787,7 @@ export default function OnboardingLocationPage() {
                       })
                     }
                   >
-                    <SelectTrigger className="h-11 rounded-xl border-border/60 bg-muted/50">
+                    <SelectTrigger className="h-11 rounded-xl border-border/60 bg-white">
                       <SelectValue placeholder="Select radius" />
                     </SelectTrigger>
                     <SelectContent>
@@ -804,7 +804,7 @@ export default function OnboardingLocationPage() {
               {/* Insurance */}
               <motion.section
                 variants={fadeUp}
-                className="space-y-4 rounded-2xl border border-border/60 bg-card p-4 sm:p-6"
+                className="space-y-4 rounded-2xl border border-border/60 bg-card shadow-sm p-4 sm:p-6"
               >
                 <div>
                   <h3 className="text-base font-semibold text-foreground">Insurance accepted</h3>
@@ -843,7 +843,7 @@ export default function OnboardingLocationPage() {
               {/* Accepting clients toggle */}
               <motion.section
                 variants={fadeUp}
-                className="rounded-2xl border border-border/60 bg-card p-4 sm:p-6"
+                className="rounded-2xl border border-border/60 bg-card shadow-sm p-4 sm:p-6"
               >
                 <div className="flex items-center justify-between">
                   <div>
@@ -907,7 +907,7 @@ export default function OnboardingLocationPage() {
       {/* Navigation footer */}
       <motion.div
         variants={fadeUp}
-        className="mt-8 flex flex-col gap-3 rounded-2xl border border-border/60 bg-card px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:py-4"
+        className="mt-8 flex flex-col gap-3 rounded-2xl border border-border/60 bg-card shadow-sm px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:py-4"
       >
         <p className="text-xs text-muted-foreground sm:text-sm sm:text-muted-foreground">
           {locations.length === 0

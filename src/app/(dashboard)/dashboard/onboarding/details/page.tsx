@@ -197,7 +197,7 @@ export default function OnboardingDetailsPage() {
           {/* Agency Basics */}
           <motion.section
             variants={fadeUp}
-            className="space-y-5 rounded-2xl border border-border/60 bg-card p-4 sm:p-6"
+            className="space-y-5 rounded-2xl border border-border/60 bg-card shadow-sm p-4 sm:p-6"
           >
             <div>
               <h2 className="text-lg font-semibold text-foreground">Agency basics</h2>
@@ -211,7 +211,7 @@ export default function OnboardingDetailsPage() {
                   id="agencyName"
                   placeholder="e.g. BrightPath ABA"
                   {...register("agencyName")}
-                  className="h-11 border-border/60 bg-muted/50 focus:bg-card"
+                  className="h-11 border-border/60 bg-white focus:bg-card"
                 />
                 {errors.agencyName && <p className="text-sm text-destructive">{errors.agencyName.message}</p>}
               </div>
@@ -225,7 +225,7 @@ export default function OnboardingDetailsPage() {
                   id="headline"
                   placeholder="Modern ABA care for growing families"
                   {...register("headline")}
-                  className="h-11 border-border/60 bg-muted/50 focus:bg-card"
+                  className="h-11 border-border/60 bg-white focus:bg-card"
                 />
                 {errors.headline && <p className="text-sm text-destructive">{errors.headline.message}</p>}
               </div>
@@ -237,7 +237,7 @@ export default function OnboardingDetailsPage() {
                   rows={5}
                   placeholder="Describe your approach, the families you serve, and what makes your agency special."
                   {...register("description")}
-                  className="border-border/60 bg-muted/50 focus:bg-card"
+                  className="border-border/60 bg-white focus:bg-card"
                 />
                 {errors.description && <p className="text-sm text-destructive">{errors.description.message}</p>}
               </div>
@@ -247,7 +247,7 @@ export default function OnboardingDetailsPage() {
           {/* Contact */}
           <motion.section
             variants={fadeUp}
-            className="space-y-5 rounded-2xl border border-border/60 bg-card p-4 sm:p-6"
+            className="space-y-5 rounded-2xl border border-border/60 bg-card shadow-sm p-4 sm:p-6"
           >
             <div>
               <h2 className="text-lg font-semibold text-foreground">Contact info</h2>
@@ -261,7 +261,7 @@ export default function OnboardingDetailsPage() {
                   id="contactEmail"
                   placeholder="hello@youragency.com"
                   {...register("contactEmail")}
-                  className="h-11 border-border/60 bg-muted/50 focus:bg-card"
+                  className="h-11 border-border/60 bg-white focus:bg-card"
                 />
                 {errors.contactEmail && <p className="text-sm text-destructive">{errors.contactEmail.message}</p>}
               </div>
@@ -276,7 +276,7 @@ export default function OnboardingDetailsPage() {
                     id="contactPhone"
                     placeholder="(555) 123-4567"
                     {...register("contactPhone")}
-                    className="h-11 border-border/60 bg-muted/50 focus:bg-card"
+                    className="h-11 border-border/60 bg-white focus:bg-card"
                   />
                 </div>
 
@@ -289,7 +289,7 @@ export default function OnboardingDetailsPage() {
                     id="website"
                     placeholder="https://youragency.com"
                     {...register("website")}
-                    className="h-11 border-border/60 bg-muted/50 focus:bg-card"
+                    className="h-11 border-border/60 bg-white focus:bg-card"
                   />
                   {errors.website && <p className="text-sm text-destructive">{errors.website.message}</p>}
                 </div>
@@ -300,7 +300,7 @@ export default function OnboardingDetailsPage() {
           {/* Brand */}
           <motion.section
             variants={fadeUp}
-            className="space-y-5 rounded-2xl border border-border/60 bg-card p-4 sm:p-6"
+            className="space-y-5 rounded-2xl border border-border/60 bg-card shadow-sm p-4 sm:p-6"
           >
             <div>
               <h2 className="text-lg font-semibold text-foreground">Brand identity</h2>
@@ -324,7 +324,7 @@ export default function OnboardingDetailsPage() {
           {/* Navigation footer */}
           <motion.div
             variants={fadeUp}
-            className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-card px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:py-4"
+            className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-card shadow-sm px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:py-4"
           >
             <p className="text-xs text-muted-foreground sm:text-sm">
               Name, description, and email are required.
@@ -352,7 +352,7 @@ export default function OnboardingDetailsPage() {
 
           {/* Mobile branded preview — below continue button */}
           <motion.div variants={fadeUp} className="min-w-0 xl:hidden">
-            <div className="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-xs">
+            <div className="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm">
               <div className="border-b border-border/60 bg-muted/50 px-4 py-2.5">
                 <div className="flex items-center gap-2">
                   <div className="h-2 w-2 rounded-full bg-emerald-400" />
@@ -439,7 +439,7 @@ export default function OnboardingDetailsPage() {
           variants={fadeUp}
           className="hidden xl:sticky xl:top-24 xl:block xl:self-start"
         >
-          <div className="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-xs">
+          <div className="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm">
             <div className="border-b border-border/60 bg-muted/50 px-5 py-3">
               <div className="flex items-center gap-2">
                 <div className="h-2 w-2 rounded-full bg-emerald-400" />

@@ -80,7 +80,7 @@ export default function OnboardingWelcomePage() {
       >
         {/* Hero section */}
         <motion.div variants={item} className="mb-12 text-center">
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-border/60 bg-card px-4 py-1.5 shadow-xs">
+          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-border/60 bg-card px-4 py-1.5 shadow-sm shadow-xs">
             <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
             <span className="text-xs font-medium tracking-wide text-muted-foreground">
               Ready to set up your agency

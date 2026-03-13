@@ -174,7 +174,7 @@ export default function OnboardingServicesPage() {
         {/* Services offered */}
         <motion.section
           variants={fadeUp}
-          className="space-y-4 rounded-2xl border border-border/60 bg-card p-4 sm:p-6"
+          className="space-y-4 rounded-2xl border border-border/60 bg-card shadow-sm p-4 sm:p-6"
         >
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-50">
@@ -213,7 +213,7 @@ export default function OnboardingServicesPage() {
         <div className="grid gap-6 lg:grid-cols-2">
           <motion.section
             variants={fadeUp}
-            className="space-y-4 rounded-2xl border border-border/60 bg-card p-4 sm:p-6"
+            className="space-y-4 rounded-2xl border border-border/60 bg-card shadow-sm p-4 sm:p-6"
           >
             <div className="flex items-center gap-3">
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50">
@@ -227,7 +227,7 @@ export default function OnboardingServicesPage() {
 
             <div className="flex items-center gap-3">
               <select
-                className="h-11 flex-1 rounded-xl border border-border/60 bg-muted/50 px-3 text-sm text-foreground focus:border-foreground/30 focus:bg-card focus:outline-hidden focus:ring-2 focus:ring-foreground/5"
+                className="h-11 flex-1 rounded-xl border border-border/60 bg-white px-3 text-sm text-foreground focus:border-foreground/30 focus:bg-card focus:outline-hidden focus:ring-2 focus:ring-foreground/5"
                 value={formData.agesServedMin}
                 onChange={(event) =>
                   setFormData((prev) => ({ ...prev, agesServedMin: Number(event.target.value) }))
@@ -241,7 +241,7 @@ export default function OnboardingServicesPage() {
               </select>
               <span className="text-sm font-medium text-muted-foreground">to</span>
               <select
-                className="h-11 flex-1 rounded-xl border border-border/60 bg-muted/50 px-3 text-sm text-foreground focus:border-foreground/30 focus:bg-card focus:outline-hidden focus:ring-2 focus:ring-foreground/5"
+                className="h-11 flex-1 rounded-xl border border-border/60 bg-white px-3 text-sm text-foreground focus:border-foreground/30 focus:bg-card focus:outline-hidden focus:ring-2 focus:ring-foreground/5"
                 value={formData.agesServedMax}
                 onChange={(event) =>
                   setFormData((prev) => ({ ...prev, agesServedMax: Number(event.target.value) }))
@@ -258,7 +258,7 @@ export default function OnboardingServicesPage() {
 
           <motion.section
             variants={fadeUp}
-            className="space-y-4 rounded-2xl border border-border/60 bg-card p-4 sm:p-6"
+            className="space-y-4 rounded-2xl border border-border/60 bg-card shadow-sm p-4 sm:p-6"
           >
             <div className="flex items-center gap-3">
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50">
@@ -297,7 +297,7 @@ export default function OnboardingServicesPage() {
         {/* Diagnoses */}
         <motion.section
           variants={fadeUp}
-          className="space-y-4 rounded-2xl border border-border/60 bg-card p-4 sm:p-6"
+          className="space-y-4 rounded-2xl border border-border/60 bg-card shadow-sm p-4 sm:p-6"
         >
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-50">
@@ -335,7 +335,7 @@ export default function OnboardingServicesPage() {
         {/* Clinical specialties */}
         <motion.section
           variants={fadeUp}
-          className="space-y-4 rounded-2xl border border-border/60 bg-card p-4 sm:p-6"
+          className="space-y-4 rounded-2xl border border-border/60 bg-card shadow-sm p-4 sm:p-6"
         >
           <div>
             <h2 className="text-base font-semibold text-foreground">Clinical specialties</h2>
@@ -370,7 +370,7 @@ export default function OnboardingServicesPage() {
         {/* Intro video */}
         <motion.section
           variants={fadeUp}
-          className="space-y-4 rounded-2xl border border-border/60 bg-card p-4 sm:p-6"
+          className="space-y-4 rounded-2xl border border-border/60 bg-card shadow-sm p-4 sm:p-6"
         >
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-50">
@@ -393,14 +393,14 @@ export default function OnboardingServicesPage() {
             onChange={(event) =>
               setFormData((prev) => ({ ...prev, videoUrl: event.target.value }))
             }
-            className="h-11 rounded-xl border-border/60 bg-muted/50 focus:bg-card"
+            className="h-11 rounded-xl border-border/60 bg-white focus:bg-card"
           />
         </motion.section>
 
         {/* Navigation footer */}
         <motion.div
           variants={fadeUp}
-          className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-card px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:py-4"
+          className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-card shadow-sm px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:py-4"
         >
           <p className="text-xs text-muted-foreground sm:text-sm sm:text-muted-foreground">
             At least one service is required.

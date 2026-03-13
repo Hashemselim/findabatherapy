@@ -161,7 +161,7 @@ export default function OnboardingBrandedPreviewPage() {
               variants={fadeUp}
               whileHover={{ y: -2 }}
               transition={{ duration: 0.2 }}
-              className="group flex flex-col rounded-2xl border border-border/60 bg-card p-5 transition-colors hover:border-border"
+              className="group flex flex-col rounded-2xl border border-border/60 bg-card p-5 shadow-sm transition-colors hover:border-border"
             >
               <div className="flex items-start gap-3.5">
                 <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${card.color.bg}`}>
@@ -199,7 +199,7 @@ export default function OnboardingBrandedPreviewPage() {
       {/* Navigation footer */}
       <motion.div
         variants={fadeUp}
-        className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-card px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:py-4"
+        className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-card px-4 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:py-4"
       >
         <p className="text-xs text-muted-foreground sm:text-sm">
           You can preview live links from your dashboard anytime.

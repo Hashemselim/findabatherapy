@@ -290,7 +290,7 @@ export default function OnboardingPlanPage() {
         {/* Free plan */}
         <motion.div
           variants={fadeUp}
-          className="rounded-2xl border border-border/60 bg-card"
+          className="rounded-2xl border border-border/60 bg-card shadow-sm"
         >
           <div className="p-6 pb-0">
             <h2 className="text-xl font-bold text-foreground">Free</h2>
