@@ -144,8 +144,8 @@ export default function OnboardingPlanPage() {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
         <div className="flex flex-col items-center gap-3">
-          <Loader2 className="h-6 w-6 animate-spin text-[#1A2744]" />
-          <p className="text-sm text-slate-400">Loading plan options...</p>
+          <Loader2 className="h-6 w-6 animate-spin text-foreground" />
+          <p className="text-sm text-muted-foreground">Loading plan options...</p>
         </div>
       </div>
     );
@@ -155,11 +155,11 @@ export default function OnboardingPlanPage() {
     <motion.div variants={stagger} initial="hidden" animate="show">
       {/* Page header */}
       <motion.div variants={fadeUp} className="mb-8 text-center">
-        <p className="mb-2 text-sm font-medium text-slate-400">Step 7 of 7</p>
-        <h1 className="text-3xl font-semibold tracking-tight text-[#1A2744] sm:text-4xl">
+        <p className="mb-2 text-sm font-medium text-muted-foreground">Step 7 of 7</p>
+        <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
           Choose how {agencyName} goes live
         </h1>
-        <p className="mx-auto mt-2 max-w-xl text-base leading-relaxed text-slate-500">
+        <p className="mx-auto mt-2 max-w-xl text-base leading-relaxed text-muted-foreground">
           Free publishes your listing. Pro unlocks the full branded and operational experience.
         </p>
       </motion.div>
@@ -199,29 +199,29 @@ export default function OnboardingPlanPage() {
         {/* Pro plan - featured */}
         <motion.div
           variants={fadeUp}
-          className="relative overflow-hidden rounded-2xl border-2 border-[#1A2744] bg-white shadow-lg"
+          className="relative overflow-hidden rounded-2xl border-2 border-foreground bg-card shadow-lg"
         >
           {/* Recommended badge */}
           <div className="absolute right-4 top-4">
-            <span className="inline-flex items-center gap-1 rounded-full bg-[#1A2744] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-[#FFCF40]">
+            <span className="inline-flex items-center gap-1 rounded-full bg-foreground px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-amber-400">
               <Crown className="h-3 w-3" />
               Recommended
             </span>
           </div>
 
           <div className="p-6 pb-0">
-            <h2 className="text-xl font-bold text-[#1A2744]">Pro</h2>
-            <p className="mt-1 text-sm text-slate-600">
+            <h2 className="text-xl font-bold text-foreground">Pro</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
               The full branded and operational experience.
             </p>
 
             {/* Pricing */}
             <div className="mt-5">
               <div className="flex items-baseline gap-1">
-                <span className="text-4xl font-bold tracking-tight text-[#1A2744]">
+                <span className="text-4xl font-bold tracking-tight text-foreground">
                   ${billingInterval === "month" ? "79" : "47"}
                 </span>
-                <span className="text-base text-slate-600">/mo</span>
+                <span className="text-base text-muted-foreground">/mo</span>
               </div>
               {billingInterval === "year" && (
                 <p className="mt-1 text-sm text-emerald-600">
@@ -231,14 +231,14 @@ export default function OnboardingPlanPage() {
             </div>
 
             {/* Billing toggle */}
-            <div className="mt-4 inline-flex rounded-full border border-amber-200/60 bg-[#FFFBF0] p-0.5">
+            <div className="mt-4 inline-flex rounded-full border border-border/60 bg-muted/50 p-0.5">
               <button
                 type="button"
                 onClick={() => setBillingInterval("month")}
                 className={`rounded-full px-4 py-1.5 text-sm font-medium transition-all ${
                   billingInterval === "month"
-                    ? "bg-[#1A2744] text-white shadow-xs"
-                    : "text-slate-600 hover:text-[#1A2744]"
+                    ? "bg-foreground text-background shadow-xs"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 Monthly
@@ -248,8 +248,8 @@ export default function OnboardingPlanPage() {
                 onClick={() => setBillingInterval("year")}
                 className={`rounded-full px-4 py-1.5 text-sm font-medium transition-all ${
                   billingInterval === "year"
-                    ? "bg-[#1A2744] text-white shadow-xs"
-                    : "text-slate-600 hover:text-[#1A2744]"
+                    ? "bg-foreground text-background shadow-xs"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 Annual
@@ -260,7 +260,7 @@ export default function OnboardingPlanPage() {
           <div className="p-6">
             <ul className="space-y-2.5">
               {proFeatures.map((feature) => (
-                <li key={feature} className="flex items-start gap-2.5 text-sm text-[#1A2744]">
+                <li key={feature} className="flex items-start gap-2.5 text-sm text-foreground">
                   <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" strokeWidth={2.5} />
                   {feature}
                 </li>
@@ -268,7 +268,7 @@ export default function OnboardingPlanPage() {
             </ul>
 
             <Button
-              className="mt-6 h-12 w-full rounded-full bg-[#0866FF] font-semibold text-white shadow-md shadow-[#0866FF]/25 hover:bg-[#0866FF]/92"
+              className="mt-6 h-12 w-full rounded-full bg-primary font-semibold text-primary-foreground shadow-md shadow-primary/25 hover:bg-primary/90"
               disabled={isPending}
               onClick={handleUpgrade}
             >
@@ -290,20 +290,20 @@ export default function OnboardingPlanPage() {
         {/* Free plan */}
         <motion.div
           variants={fadeUp}
-          className="rounded-2xl border border-amber-200/60 bg-white"
+          className="rounded-2xl border border-border/60 bg-card"
         >
           <div className="p-6 pb-0">
-            <h2 className="text-xl font-bold text-[#1A2744]">Free</h2>
-            <p className="mt-1 text-sm text-slate-600">
+            <h2 className="text-xl font-bold text-foreground">Free</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
               Your listing goes live. Explore the rest in preview.
             </p>
 
             <div className="mt-5">
               <div className="flex items-baseline gap-1">
-                <span className="text-4xl font-bold tracking-tight text-[#1A2744]">$0</span>
-                <span className="text-base text-slate-600">/forever</span>
+                <span className="text-4xl font-bold tracking-tight text-foreground">$0</span>
+                <span className="text-base text-muted-foreground">/forever</span>
               </div>
-              <p className="mt-1 text-sm text-slate-400">
+              <p className="mt-1 text-sm text-muted-foreground">
                 Upgrade anytime from your dashboard.
               </p>
             </div>
@@ -312,8 +312,8 @@ export default function OnboardingPlanPage() {
           <div className="p-6">
             <ul className="space-y-2.5">
               {freeFeatures.map((feature) => (
-                <li key={feature} className="flex items-start gap-2.5 text-sm text-slate-500">
-                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" strokeWidth={2.5} />
+                <li key={feature} className="flex items-start gap-2.5 text-sm text-muted-foreground">
+                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" strokeWidth={2.5} />
                   {feature}
                 </li>
               ))}
@@ -321,7 +321,7 @@ export default function OnboardingPlanPage() {
 
             <Button
               variant="outline"
-              className="mt-6 h-12 w-full rounded-full border-amber-200/60 font-semibold text-[#1A2744] hover:bg-[#FFFBF0]"
+              className="mt-6 h-12 w-full rounded-full border-border/60 font-semibold text-foreground hover:bg-muted/50"
               disabled={isPending}
               onClick={handleContinueFree}
             >

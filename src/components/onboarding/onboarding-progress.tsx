@@ -39,8 +39,8 @@ export function OnboardingProgress({
                     isCompleted
                       ? "bg-emerald-500 text-white shadow-[0_0_0_3px_rgba(16,185,129,0.15)]"
                       : isCurrent
-                        ? "bg-[#0866FF] text-white shadow-[0_0_0_3px_rgba(8,102,255,0.15)]"
-                        : "bg-amber-100/60 text-slate-400"
+                        ? "bg-primary text-white shadow-[0_0_0_3px_hsl(var(--primary)/0.15)]"
+                        : "bg-muted text-muted-foreground"
                   )}
                 >
                   {isCompleted ? (
@@ -57,7 +57,7 @@ export function OnboardingProgress({
 
                   {/* Current step pulse */}
                   {isCurrent && (
-                    <span className="absolute inset-0 animate-ping rounded-full bg-[#0866FF]/20" style={{ animationDuration: "2s" }} />
+                    <span className="absolute inset-0 animate-ping rounded-full bg-primary/20" style={{ animationDuration: "2s" }} />
                   )}
                 </div>
 
@@ -65,10 +65,10 @@ export function OnboardingProgress({
                   className={cn(
                     "hidden text-xs font-medium transition-colors lg:block",
                     isCurrent
-                      ? "text-[#1A2744]"
+                      ? "text-foreground"
                       : isCompleted
                         ? "text-emerald-600"
-                        : "text-slate-400"
+                        : "text-muted-foreground"
                   )}
                 >
                   {step.label}
@@ -78,7 +78,7 @@ export function OnboardingProgress({
               {/* Connector line */}
               {!isLast && (
                 <div className="mx-2 h-px flex-1 lg:mx-3">
-                  <div className="relative h-full w-full overflow-hidden rounded-full bg-amber-200/60">
+                  <div className="relative h-full w-full overflow-hidden rounded-full bg-border/60">
                     <motion.div
                       className="absolute inset-y-0 left-0 rounded-full bg-emerald-400"
                       initial={false}
@@ -99,14 +99,14 @@ export function OnboardingProgress({
       <div className="flex flex-col gap-2 md:hidden">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#0866FF] text-[10px] font-bold text-white">
+            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-white">
               {currentIndex + 1}
             </div>
-            <span className="text-sm font-semibold text-[#1A2744]">
+            <span className="text-sm font-semibold text-foreground">
               {ONBOARDING_STEPS[currentIndex]?.label}
             </span>
           </div>
-          <span className="text-xs tabular-nums text-slate-400">
+          <span className="text-xs tabular-nums text-muted-foreground">
             {currentIndex + 1}/{ONBOARDING_STEPS.length}
           </span>
         </div>
@@ -126,8 +126,8 @@ export function OnboardingProgress({
                   isCompleted
                     ? "bg-emerald-400"
                     : isCurrent
-                      ? "bg-[#0866FF]"
-                      : "bg-amber-200/60"
+                      ? "bg-primary"
+                      : "bg-border/60"
                 )}
                 initial={false}
                 animate={{

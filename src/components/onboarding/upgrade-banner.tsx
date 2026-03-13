@@ -36,7 +36,7 @@ export function UpgradeBanner({
           <Button
             onClick={onUpgradePro}
             disabled={disabled}
-            className="rounded-full border border-[#FEE720] bg-[#FEE720] text-[#333333] hover:bg-[#FFF5C2]"
+            className="rounded-full bg-primary text-primary-foreground hover:bg-primary/90"
           >
             Upgrade to Pro (${PLAN_CONFIGS.pro.pricing.monthly.price}/mo)
           </Button>

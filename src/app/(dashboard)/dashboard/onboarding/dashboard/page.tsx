@@ -70,11 +70,11 @@ export default function OnboardingDashboardPreviewPage() {
     <motion.div variants={stagger} initial="hidden" animate="show">
       {/* Page header */}
       <motion.div variants={fadeUp} className="mb-8">
-        <p className="mb-2 text-sm font-medium text-slate-400">Step 6 of 7</p>
-        <h1 className="text-3xl font-semibold tracking-tight text-[#1A2744] sm:text-4xl">
+        <p className="mb-2 text-sm font-medium text-muted-foreground">Step 6 of 7</p>
+        <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
           Your command center
         </h1>
-        <p className="mt-2 max-w-2xl text-base leading-relaxed text-slate-500">
+        <p className="mt-2 max-w-2xl text-base leading-relaxed text-muted-foreground">
           Leads, clients, communication, tasks, notifications, and branded pages — all in one
           dashboard.
         </p>
@@ -93,15 +93,15 @@ export default function OnboardingDashboardPreviewPage() {
               variants={fadeUp}
               whileHover={{ y: -2, boxShadow: "0 8px 30px rgba(0,0,0,0.06)" }}
               transition={{ duration: 0.2 }}
-              className="group rounded-2xl border border-amber-200/40 bg-white p-5 transition-colors hover:border-amber-200/70"
+              className="group rounded-2xl border border-border/60 bg-card p-5 transition-colors hover:border-border"
             >
               <div className="flex items-start gap-3.5">
                 <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${card.color.bg}`}>
                   <Icon className={`h-5 w-5 ${card.color.text}`} />
                 </div>
                 <div className="min-w-0">
-                  <h3 className="font-semibold text-[#1A2744]">{card.title}</h3>
-                  <p className="mt-0.5 text-sm leading-relaxed text-slate-600">
+                  <h3 className="font-semibold text-foreground">{card.title}</h3>
+                  <p className="mt-0.5 text-sm leading-relaxed text-muted-foreground">
                     {card.description}
                   </p>
                 </div>
@@ -131,16 +131,16 @@ export default function OnboardingDashboardPreviewPage() {
       {/* Navigation footer */}
       <motion.div
         variants={fadeUp}
-        className="flex flex-col gap-3 rounded-2xl border border-amber-200/40 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:py-4"
+        className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-card px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:py-4"
       >
-        <p className="text-xs text-slate-500 sm:text-sm sm:text-slate-600">
+        <p className="text-xs text-muted-foreground sm:text-sm">
           Almost there — one more step.
         </p>
 
         <Button
           type="button"
           size="lg"
-          className="h-11 w-full shrink-0 rounded-full bg-[#0866FF] px-7 font-semibold text-white shadow-md shadow-[#0866FF]/25 hover:bg-[#0866FF]/92 sm:ml-auto sm:w-auto"
+          className="h-11 w-full shrink-0 rounded-full bg-primary px-7 font-semibold text-primary-foreground shadow-md shadow-primary/25 hover:bg-primary/90 sm:ml-auto sm:w-auto"
           onClick={() => router.push("/dashboard/onboarding/plan")}
         >
           Choose your plan

@@ -401,8 +401,8 @@ export default function OnboardingLocationPage() {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
         <div className="flex flex-col items-center gap-3">
-          <Loader2 className="h-6 w-6 animate-spin text-[#1A2744]" />
-          <p className="text-sm text-slate-400">Loading your locations...</p>
+          <Loader2 className="h-6 w-6 animate-spin text-foreground" />
+          <p className="text-sm text-muted-foreground">Loading your locations...</p>
         </div>
       </div>
     );
@@ -412,11 +412,11 @@ export default function OnboardingLocationPage() {
     <motion.div variants={stagger} initial="hidden" animate="show">
       {/* Page header */}
       <motion.div variants={fadeUp} className="mb-8">
-        <p className="mb-2 text-sm font-medium text-slate-400">Step 3 of 7</p>
-        <h1 className="text-3xl font-semibold tracking-tight text-[#1A2744] sm:text-4xl">
+        <p className="mb-2 text-sm font-medium text-muted-foreground">Step 3 of 7</p>
+        <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
           Where do you serve families?
         </h1>
-        <p className="mt-2 max-w-2xl text-base leading-relaxed text-slate-500">
+        <p className="mt-2 max-w-2xl text-base leading-relaxed text-muted-foreground">
           Add up to {MAX_ONBOARDING_LOCATIONS} locations during setup. Each carries its own service
           types and insurance. You can add more later.
         </p>
@@ -459,20 +459,20 @@ export default function OnboardingLocationPage() {
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.05 }}
-              className={`group rounded-2xl border bg-white p-5 transition-colors ${
+              className={`group rounded-2xl border bg-card p-5 transition-colors ${
                 editingLocationId === location.id
-                  ? "border-[#1A2744]/20 shadow-xs"
-                  : "border-amber-200/60 hover:border-amber-200/70"
+                  ? "border-foreground/20 shadow-xs"
+                  : "border-border/60 hover:border-border/70"
               }`}
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-start gap-3.5 min-w-0">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#FFFBF0]">
-                    <MapPin className="h-5 w-5 text-slate-600" />
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-muted/50">
+                    <MapPin className="h-5 w-5 text-muted-foreground" />
                   </div>
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <h3 className="truncate font-semibold text-[#1A2744]">
+                      <h3 className="truncate font-semibold text-foreground">
                         {location.label || `${location.city}, ${location.state}`}
                       </h3>
                       {location.isPrimary && (
@@ -482,7 +482,7 @@ export default function OnboardingLocationPage() {
                         </span>
                       )}
                     </div>
-                    <p className="mt-0.5 truncate text-sm text-slate-600">
+                    <p className="mt-0.5 truncate text-sm text-muted-foreground">
                       {[location.street, location.city, location.state].filter(Boolean).join(", ")}
                     </p>
 
@@ -518,7 +518,7 @@ export default function OnboardingLocationPage() {
                       type="button"
                       onClick={() => handlePrimary(location.id)}
                       disabled={isPending}
-                      className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-[#FFFBF0] hover:text-amber-600"
+                      className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted/50 hover:text-amber-600"
                       title="Make primary"
                     >
                       <Star className="h-4 w-4" />
@@ -527,7 +527,7 @@ export default function OnboardingLocationPage() {
                   <button
                     type="button"
                     onClick={() => populateForm(location)}
-                    className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-[#FFFBF0] hover:text-[#1A2744]"
+                    className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
                     title="Edit"
                   >
                     <Pencil className="h-4 w-4" />
@@ -537,7 +537,7 @@ export default function OnboardingLocationPage() {
                       type="button"
                       onClick={() => handleDelete(location.id)}
                       disabled={isPending}
-                      className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600"
+                      className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-600"
                       title="Remove"
                     >
                       <Trash2 className="h-4 w-4" />
@@ -555,7 +555,7 @@ export default function OnboardingLocationPage() {
               onClick={handleAddNew}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-amber-200/60 bg-white/50 py-4 text-sm font-medium text-slate-600 transition-colors hover:border-[#1A2744]/20 hover:bg-white hover:text-[#1A2744]"
+              className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-border/60 bg-card/50 py-4 text-sm font-medium text-muted-foreground transition-colors hover:border-foreground/20 hover:bg-card hover:text-foreground"
             >
               <Plus className="h-4 w-4" />
               Add another location
@@ -563,7 +563,7 @@ export default function OnboardingLocationPage() {
           )}
 
           {!showForm && hasReachedLimit && (
-            <p className="text-center text-xs text-slate-400">
+            <p className="text-center text-xs text-muted-foreground">
               Maximum {MAX_ONBOARDING_LOCATIONS} locations during setup. Add more from your dashboard later.
             </p>
           )}
@@ -589,12 +589,12 @@ export default function OnboardingLocationPage() {
           >
             <form onSubmit={handleSubmit(handleLocationSave)} className="space-y-6">
               {/* Form header */}
-              <div className="flex items-center justify-between rounded-2xl border border-amber-200/60 bg-white px-4 py-3 sm:px-5 sm:py-4">
+              <div className="flex items-center justify-between rounded-2xl border border-border/60 bg-card px-4 py-3 sm:px-5 sm:py-4">
                 <div>
-                  <h2 className="text-lg font-semibold text-[#1A2744]">
+                  <h2 className="text-lg font-semibold text-foreground">
                     {editingLocation ? "Edit location" : "Add a location"}
                   </h2>
-                  <p className="mt-0.5 text-sm text-slate-600">
+                  <p className="mt-0.5 text-sm text-muted-foreground">
                     Where families will find you in search results.
                   </p>
                 </div>
@@ -602,7 +602,7 @@ export default function OnboardingLocationPage() {
                   <button
                     type="button"
                     onClick={handleCancelForm}
-                    className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-[#FFFBF0] hover:text-[#1A2744]"
+                    className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
                   >
                     <X className="h-5 w-5" />
                   </button>
@@ -612,11 +612,11 @@ export default function OnboardingLocationPage() {
               {/* Service types */}
               <motion.section
                 variants={fadeUp}
-                className="space-y-4 rounded-2xl border border-amber-200/60 bg-white p-4 sm:p-6"
+                className="space-y-4 rounded-2xl border border-border/60 bg-card p-4 sm:p-6"
               >
                 <div>
-                  <h3 className="text-base font-semibold text-[#1A2744]">Service types</h3>
-                  <p className="mt-0.5 text-sm text-slate-600">
+                  <h3 className="text-base font-semibold text-foreground">Service types</h3>
+                  <p className="mt-0.5 text-sm text-muted-foreground">
                     How do you deliver services at this location?
                   </p>
                 </div>
@@ -635,20 +635,20 @@ export default function OnboardingLocationPage() {
                         className={`flex items-center gap-3 rounded-xl border-2 p-3.5 text-left transition-all ${
                           isSelected
                             ? `${colors.border} ${colors.bg}`
-                            : "border-amber-200/60 bg-[#FFFBF0] hover:border-amber-200/70"
+                            : "border-border/60 bg-muted/50 hover:border-border/70"
                         }`}
                       >
                         <div
                           className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors ${
                             isSelected
                               ? `${colors.bg} ${colors.text}`
-                              : "bg-white text-slate-400"
+                              : "bg-card text-muted-foreground"
                           }`}
                         >
                           <Icon className="h-4.5 w-4.5" />
                         </div>
                         <div className="min-w-0">
-                          <p className={`text-sm font-medium ${isSelected ? colors.text : "text-[#1A2744]"}`}>
+                          <p className={`text-sm font-medium ${isSelected ? colors.text : "text-foreground"}`}>
                             {type.label}
                           </p>
                         </div>
@@ -657,7 +657,7 @@ export default function OnboardingLocationPage() {
                             className={`flex h-5 w-5 items-center justify-center rounded-full border-2 transition-colors ${
                               isSelected
                                 ? `${colors.border} ${colors.bg}`
-                                : "border-amber-200/70"
+                                : "border-border/70"
                             }`}
                           >
                             {isSelected && (
@@ -683,22 +683,22 @@ export default function OnboardingLocationPage() {
               {/* Address */}
               <motion.section
                 variants={fadeUp}
-                className="space-y-4 rounded-2xl border border-amber-200/60 bg-white p-4 sm:p-6"
+                className="space-y-4 rounded-2xl border border-border/60 bg-card p-4 sm:p-6"
               >
                 <div>
-                  <h3 className="text-base font-semibold text-[#1A2744]">Address</h3>
-                  <p className="mt-0.5 text-sm text-slate-600">
+                  <h3 className="text-base font-semibold text-foreground">Address</h3>
+                  <p className="mt-0.5 text-sm text-muted-foreground">
                     Search for your address so families can find you in nearby results.
                   </p>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="label" className="text-slate-500">
-                    Location label <span className="text-slate-400">(optional)</span>
+                  <Label htmlFor="label" className="text-muted-foreground">
+                    Location label <span className="text-muted-foreground">(optional)</span>
                   </Label>
                   <input
                     id="label"
-                    className="flex h-11 w-full rounded-xl border border-amber-200/60 bg-[#FFFBF0] px-3 py-2 text-sm text-[#1A2744] placeholder:text-slate-400 transition-colors focus:border-[#1A2744]/30 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#1A2744]/5"
+                    className="flex h-11 w-full rounded-xl border border-border/60 bg-muted/50 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground transition-colors focus:border-foreground/30 focus:bg-card focus:outline-hidden focus:ring-2 focus:ring-foreground/5"
                     placeholder="Main office, North campus, etc."
                     value={watch("label") || ""}
                     onChange={(event) => setValue("label", event.target.value, { shouldValidate: true })}
@@ -706,7 +706,7 @@ export default function OnboardingLocationPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-slate-500">
+                  <Label className="text-muted-foreground">
                     Address <span className="text-destructive">*</span>
                   </Label>
                   <PlacesAutocomplete
@@ -722,7 +722,7 @@ export default function OnboardingLocationPage() {
                     onPlaceSelect={handlePlaceSelect}
                     placeholder="Search for your address..."
                     showIcon
-                    inputClassName="h-11 rounded-xl border-amber-200/60 bg-[#FFFBF0] focus:bg-white"
+                    inputClassName="h-11 rounded-xl border-border/60 bg-muted/50 focus:bg-card"
                   />
                 </div>
 
@@ -730,12 +730,12 @@ export default function OnboardingLocationPage() {
                   <motion.div
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: "auto" }}
-                    className="rounded-xl border border-amber-200/60 bg-[#FFFBF0] p-4"
+                    className="rounded-xl border border-border/60 bg-muted/50 p-4"
                   >
                     <div className="flex items-start gap-3">
-                      <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-slate-600" />
+                      <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
                       <div>
-                        <p className="text-sm font-medium text-[#1A2744]">
+                        <p className="text-sm font-medium text-foreground">
                           {[watch("street"), watch("city"), watch("state"), watch("postalCode")]
                             .filter(Boolean)
                             .join(", ")}
@@ -749,7 +749,7 @@ export default function OnboardingLocationPage() {
                           ) : (
                             <>
                               <div className="h-1.5 w-1.5 rounded-full bg-amber-400" />
-                              <span className="text-slate-600">Select from suggestions to verify map point</span>
+                              <span className="text-muted-foreground">Select from suggestions to verify map point</span>
                             </>
                           )}
                         </p>
@@ -771,11 +771,11 @@ export default function OnboardingLocationPage() {
               {showServiceRadius && (
                 <motion.section
                   variants={fadeUp}
-                  className="space-y-4 rounded-2xl border border-amber-200/60 bg-white p-4 sm:p-6"
+                  className="space-y-4 rounded-2xl border border-border/60 bg-card p-4 sm:p-6"
                 >
                   <div>
-                    <h3 className="text-base font-semibold text-[#1A2744]">Service radius</h3>
-                    <p className="mt-0.5 text-sm text-slate-600">
+                    <h3 className="text-base font-semibold text-foreground">Service radius</h3>
+                    <p className="mt-0.5 text-sm text-muted-foreground">
                       How far from this location do you travel or serve via telehealth?
                     </p>
                   </div>
@@ -787,7 +787,7 @@ export default function OnboardingLocationPage() {
                       })
                     }
                   >
-                    <SelectTrigger className="h-11 rounded-xl border-amber-200/60 bg-[#FFFBF0]">
+                    <SelectTrigger className="h-11 rounded-xl border-border/60 bg-muted/50">
                       <SelectValue placeholder="Select radius" />
                     </SelectTrigger>
                     <SelectContent>
@@ -804,11 +804,11 @@ export default function OnboardingLocationPage() {
               {/* Insurance */}
               <motion.section
                 variants={fadeUp}
-                className="space-y-4 rounded-2xl border border-amber-200/60 bg-white p-4 sm:p-6"
+                className="space-y-4 rounded-2xl border border-border/60 bg-card p-4 sm:p-6"
               >
                 <div>
-                  <h3 className="text-base font-semibold text-[#1A2744]">Insurance accepted</h3>
-                  <p className="mt-0.5 text-sm text-slate-600">
+                  <h3 className="text-base font-semibold text-foreground">Insurance accepted</h3>
+                  <p className="mt-0.5 text-sm text-muted-foreground">
                     Select all insurance plans accepted at this location.
                   </p>
                 </div>
@@ -821,8 +821,8 @@ export default function OnboardingLocationPage() {
                         key={insurance}
                         className={`flex cursor-pointer items-center gap-2.5 rounded-xl border px-3 py-2.5 text-sm transition-all ${
                           isSelected
-                            ? "border-[#1A2744]/20 bg-[#1A2744]/3 text-[#1A2744]"
-                            : "border-amber-200/60 bg-[#FFFBF0] text-slate-500 hover:border-amber-200/70"
+                            ? "border-foreground/20 bg-foreground/5 text-foreground"
+                            : "border-border/60 bg-muted/50 text-muted-foreground hover:border-border/70"
                         }`}
                       >
                         <Checkbox
@@ -843,12 +843,12 @@ export default function OnboardingLocationPage() {
               {/* Accepting clients toggle */}
               <motion.section
                 variants={fadeUp}
-                className="rounded-2xl border border-amber-200/60 bg-white p-4 sm:p-6"
+                className="rounded-2xl border border-border/60 bg-card p-4 sm:p-6"
               >
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-base font-semibold text-[#1A2744]">Accepting new clients</h3>
-                    <p className="mt-0.5 text-sm text-slate-600">
+                    <h3 className="text-base font-semibold text-foreground">Accepting new clients</h3>
+                    <p className="mt-0.5 text-sm text-muted-foreground">
                       Let families know this location is open to inquiries.
                     </p>
                   </div>
@@ -871,7 +871,7 @@ export default function OnboardingLocationPage() {
                     <Button
                       type="button"
                       variant="ghost"
-                      className="text-slate-600"
+                      className="text-muted-foreground"
                       onClick={handleCancelForm}
                     >
                       Cancel
@@ -881,7 +881,7 @@ export default function OnboardingLocationPage() {
 
                 <Button
                   type="submit"
-                  className="h-11 rounded-full bg-[#0866FF] px-7 font-semibold text-white shadow-md shadow-[#0866FF]/25 hover:bg-[#0866FF]/92"
+                  className="h-11 rounded-full bg-primary px-7 font-semibold text-primary-foreground shadow-md shadow-primary/25 hover:bg-primary/90"
                   disabled={isPending || (!editingLocation && hasReachedLimit)}
                 >
                   {isPending ? (
@@ -907,9 +907,9 @@ export default function OnboardingLocationPage() {
       {/* Navigation footer */}
       <motion.div
         variants={fadeUp}
-        className="mt-8 flex flex-col gap-3 rounded-2xl border border-amber-200/60 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:py-4"
+        className="mt-8 flex flex-col gap-3 rounded-2xl border border-border/60 bg-card px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:py-4"
       >
-        <p className="text-xs text-slate-500 sm:text-sm sm:text-slate-600">
+        <p className="text-xs text-muted-foreground sm:text-sm sm:text-muted-foreground">
           {locations.length === 0
             ? "Add at least one location to continue."
             : `${locations.length} location${locations.length !== 1 ? "s" : ""} added`}
@@ -918,7 +918,7 @@ export default function OnboardingLocationPage() {
         <Button
           type="button"
           size="lg"
-          className="h-11 w-full shrink-0 rounded-full bg-[#0866FF] px-7 font-semibold text-white shadow-md shadow-[#0866FF]/25 hover:bg-[#0866FF]/92 sm:ml-auto sm:w-auto"
+          className="h-11 w-full shrink-0 rounded-full bg-primary px-7 font-semibold text-primary-foreground shadow-md shadow-primary/25 hover:bg-primary/90 sm:ml-auto sm:w-auto"
           disabled={isPending || locations.length === 0}
           onClick={handleContinue}
         >

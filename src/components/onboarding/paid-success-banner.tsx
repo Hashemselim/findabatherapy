@@ -34,10 +34,10 @@ export function PaidSuccessBanner({ planTier, isPaid = false }: PaidSuccessBanne
 
   // Plan selected but not yet paid - show info about completing payment
   return (
-    <div className="rounded-xl border border-[#0866FF]/30 bg-[#0866FF]/10 p-4">
+    <div className="rounded-xl border border-primary/30 bg-primary/10 p-4">
       <div className="flex items-center gap-3">
-        <Sparkles className="h-5 w-5 shrink-0 text-[#0866FF]" />
-        <p className="text-sm font-medium text-[#0866FF]">
+        <Sparkles className="h-5 w-5 shrink-0 text-primary" />
+        <p className="text-sm font-medium text-primary">
           You selected {planConfig.displayName} — complete payment on the next step to activate premium features
         </p>
       </div>

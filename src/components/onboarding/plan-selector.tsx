@@ -77,13 +77,13 @@ export function PlanSelector({
             disabled={disabled}
             className={cn(
               "relative flex flex-col rounded-2xl border-2 p-5 text-left transition-all",
-              "hover:border-primary/60 focus:outline-hidden focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-slate-900",
+              "hover:border-primary/60 focus:outline-hidden focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background",
               disabled && "cursor-not-allowed opacity-50",
               isSelected
                 ? "border-primary bg-primary/10"
                 : plan.highlight
-                  ? "border-primary/40 bg-white/5"
-                  : "border-white/10 bg-white/5"
+                  ? "border-primary/40 bg-muted/10"
+                  : "border-border/30 bg-muted/10"
             )}
           >
             {/* Selected indicator */}
@@ -106,24 +106,24 @@ export function PlanSelector({
             {/* Header */}
             <div className="flex items-center gap-2">
               {plan.icon}
-              <h3 className="text-lg font-semibold text-white">{plan.name}</h3>
+              <h3 className="text-lg font-semibold text-foreground">{plan.name}</h3>
             </div>
 
             {/* Price */}
             <div className="mt-3">
-              <span className="text-3xl font-bold text-white">{plan.price}</span>
-              <span className="text-sm text-slate-400">{plan.period}</span>
+              <span className="text-3xl font-bold text-foreground">{plan.price}</span>
+              <span className="text-sm text-muted-foreground">{plan.period}</span>
             </div>
 
             {/* Description */}
-            <p className="mt-2 text-sm text-slate-300">{plan.description}</p>
+            <p className="mt-2 text-sm text-muted-foreground">{plan.description}</p>
 
             {/* Features */}
             <ul className="mt-4 flex-1 space-y-2">
               {plan.features.map((feature) => (
                 <li
                   key={feature}
-                  className="flex items-start gap-2 text-sm text-slate-300"
+                  className="flex items-start gap-2 text-sm text-muted-foreground"
                 >
                   <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />
                   <span>{feature}</span>

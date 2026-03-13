@@ -80,23 +80,23 @@ export default function OnboardingWelcomePage() {
       >
         {/* Hero section */}
         <motion.div variants={item} className="mb-12 text-center">
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-amber-200/60 bg-white px-4 py-1.5 shadow-xs">
+          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-border/60 bg-card px-4 py-1.5 shadow-xs">
             <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-            <span className="text-xs font-medium tracking-wide text-slate-500">
+            <span className="text-xs font-medium tracking-wide text-muted-foreground">
               Ready to set up your agency
             </span>
           </div>
 
-          <h1 className="mx-auto max-w-2xl text-4xl font-semibold tracking-tight text-[#1A2744] sm:text-5xl md:text-[3.5rem] md:leading-[1.1]">
+          <h1 className="mx-auto max-w-2xl text-4xl font-semibold tracking-tight text-foreground sm:text-5xl md:text-[3.5rem] md:leading-[1.1]">
             Welcome — let&apos;s{" "}
             <span className="relative inline-block">
-              <span className="relative z-10 text-[#0866FF]">unlock</span>
-              <span className="absolute -bottom-1 left-0 right-0 z-0 h-3 rounded-full bg-[#FFCF40]/40 sm:h-4" />
+              <span className="relative z-10 text-primary">unlock</span>
+              <span className="absolute -bottom-1 left-0 right-0 z-0 h-3 rounded-full bg-primary/30 sm:h-4" />
             </span>{" "}
             your agency&apos;s full potential.
           </h1>
 
-          <p className="mx-auto mt-5 max-w-lg text-base leading-relaxed text-slate-500 sm:text-lg">
+          <p className="mx-auto mt-5 max-w-lg text-base leading-relaxed text-muted-foreground sm:text-lg">
             Your membership brings together growth, operations, and hiring in one premium system.
           </p>
         </motion.div>
@@ -113,7 +113,7 @@ export default function OnboardingWelcomePage() {
                 key={group.title}
                 whileHover={{ y: -2, boxShadow: "0 8px 30px rgba(0,0,0,0.06)" }}
                 transition={{ duration: 0.2 }}
-                className="group flex items-start gap-4 rounded-2xl border border-amber-200/40 bg-[#FFFBF0] p-5 transition-colors hover:border-amber-200/70"
+                className="group flex items-start gap-4 rounded-2xl border border-border/60 bg-muted/50 p-5 transition-colors hover:border-border"
               >
                 <div
                   className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-transform duration-300 group-hover:scale-110"
@@ -122,10 +122,10 @@ export default function OnboardingWelcomePage() {
                   <Icon className="h-5 w-5" />
                 </div>
                 <div className="min-w-0">
-                  <h3 className="text-sm font-semibold text-[#1A2744]">
+                  <h3 className="text-sm font-semibold text-foreground">
                     {group.title}
                   </h3>
-                  <p className="mt-1 text-sm leading-relaxed text-slate-600">
+                  <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
                     {group.description}
                   </p>
                 </div>
@@ -159,18 +159,18 @@ export default function OnboardingWelcomePage() {
         <motion.div variants={item} className="flex flex-col items-center gap-4 text-center">
           <Button
             size="lg"
-            className="group relative h-12 overflow-hidden rounded-full bg-[#0866FF] px-8 text-sm font-semibold text-white shadow-md shadow-[#0866FF]/25 transition-all hover:bg-[#0866FF]/92 hover:shadow-lg hover:shadow-[#0866FF]/30"
+            className="group relative h-12 overflow-hidden rounded-full bg-primary px-8 text-sm font-semibold text-primary-foreground shadow-md shadow-primary/25 transition-all hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/30"
             disabled={isPending}
             onClick={handleContinue}
           >
             {/* Shimmer effect */}
-            <span className="absolute inset-0 -translate-x-full animate-[shimmer_3s_ease-in-out_infinite] bg-linear-to-r from-transparent via-[#1A2744]/10 to-transparent" />
+            <span className="absolute inset-0 -translate-x-full animate-[shimmer_3s_ease-in-out_infinite] bg-linear-to-r from-transparent via-primary/10 to-transparent" />
             <span className="relative flex items-center gap-2">
               {isPending ? "Starting..." : "Begin Setup"}
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
             </span>
           </Button>
-          <p className="text-sm text-slate-400">
+          <p className="text-sm text-muted-foreground">
             Takes about 5 minutes. You&apos;ll preview everything before going live.
           </p>
         </motion.div>

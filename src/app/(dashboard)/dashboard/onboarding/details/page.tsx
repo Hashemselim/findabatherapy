@@ -162,8 +162,8 @@ export default function OnboardingDetailsPage() {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
         <div className="flex flex-col items-center gap-3">
-          <Loader2 className="h-6 w-6 animate-spin text-[#1A2744]" />
-          <p className="text-sm text-slate-400">Loading your agency details...</p>
+          <Loader2 className="h-6 w-6 animate-spin text-foreground" />
+          <p className="text-sm text-muted-foreground">Loading your agency details...</p>
         </div>
       </div>
     );
@@ -173,11 +173,11 @@ export default function OnboardingDetailsPage() {
     <motion.div variants={stagger} initial="hidden" animate="show" className="min-w-0">
       {/* Page header */}
       <motion.div variants={fadeUp} className="mb-8">
-        <p className="mb-2 text-sm font-medium text-slate-400">Step 2 of 7</p>
-        <h1 className="text-3xl font-semibold tracking-tight text-[#1A2744] sm:text-4xl">
+        <p className="mb-2 text-sm font-medium text-muted-foreground">Step 2 of 7</p>
+        <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
           Tell us about your agency
         </h1>
-        <p className="mt-2 max-w-2xl text-base leading-relaxed text-slate-500">
+        <p className="mt-2 max-w-2xl text-base leading-relaxed text-muted-foreground">
           This info shapes your listing, branded pages, and dashboard. You can always refine later.
         </p>
       </motion.div>
@@ -197,11 +197,11 @@ export default function OnboardingDetailsPage() {
           {/* Agency Basics */}
           <motion.section
             variants={fadeUp}
-            className="space-y-5 rounded-2xl border border-amber-200/60 bg-white p-4 sm:p-6"
+            className="space-y-5 rounded-2xl border border-border/60 bg-card p-4 sm:p-6"
           >
             <div>
-              <h2 className="text-lg font-semibold text-[#1A2744]">Agency basics</h2>
-              <p className="mt-1 text-sm text-slate-600">How families will first see you.</p>
+              <h2 className="text-lg font-semibold text-foreground">Agency basics</h2>
+              <p className="mt-1 text-sm text-muted-foreground">How families will first see you.</p>
             </div>
 
             <div className="space-y-4">
@@ -211,7 +211,7 @@ export default function OnboardingDetailsPage() {
                   id="agencyName"
                   placeholder="e.g. BrightPath ABA"
                   {...register("agencyName")}
-                  className="h-11 border-amber-200/60 bg-[#FFFBF0] focus:bg-white"
+                  className="h-11 border-border/60 bg-muted/50 focus:bg-card"
                 />
                 {errors.agencyName && <p className="text-sm text-destructive">{errors.agencyName.message}</p>}
               </div>
@@ -219,13 +219,13 @@ export default function OnboardingDetailsPage() {
               <div className="space-y-2">
                 <div className="flex items-baseline justify-between">
                   <Label htmlFor="headline">Tagline</Label>
-                  <span className="text-xs text-slate-400">Optional</span>
+                  <span className="text-xs text-muted-foreground">Optional</span>
                 </div>
                 <Input
                   id="headline"
                   placeholder="Modern ABA care for growing families"
                   {...register("headline")}
-                  className="h-11 border-amber-200/60 bg-[#FFFBF0] focus:bg-white"
+                  className="h-11 border-border/60 bg-muted/50 focus:bg-card"
                 />
                 {errors.headline && <p className="text-sm text-destructive">{errors.headline.message}</p>}
               </div>
@@ -237,7 +237,7 @@ export default function OnboardingDetailsPage() {
                   rows={5}
                   placeholder="Describe your approach, the families you serve, and what makes your agency special."
                   {...register("description")}
-                  className="border-amber-200/60 bg-[#FFFBF0] focus:bg-white"
+                  className="border-border/60 bg-muted/50 focus:bg-card"
                 />
                 {errors.description && <p className="text-sm text-destructive">{errors.description.message}</p>}
               </div>
@@ -247,11 +247,11 @@ export default function OnboardingDetailsPage() {
           {/* Contact */}
           <motion.section
             variants={fadeUp}
-            className="space-y-5 rounded-2xl border border-amber-200/60 bg-white p-4 sm:p-6"
+            className="space-y-5 rounded-2xl border border-border/60 bg-card p-4 sm:p-6"
           >
             <div>
-              <h2 className="text-lg font-semibold text-[#1A2744]">Contact info</h2>
-              <p className="mt-1 text-sm text-slate-600">How families will reach you.</p>
+              <h2 className="text-lg font-semibold text-foreground">Contact info</h2>
+              <p className="mt-1 text-sm text-muted-foreground">How families will reach you.</p>
             </div>
 
             <div className="space-y-4">
@@ -261,7 +261,7 @@ export default function OnboardingDetailsPage() {
                   id="contactEmail"
                   placeholder="hello@youragency.com"
                   {...register("contactEmail")}
-                  className="h-11 border-amber-200/60 bg-[#FFFBF0] focus:bg-white"
+                  className="h-11 border-border/60 bg-muted/50 focus:bg-card"
                 />
                 {errors.contactEmail && <p className="text-sm text-destructive">{errors.contactEmail.message}</p>}
               </div>
@@ -270,26 +270,26 @@ export default function OnboardingDetailsPage() {
                 <div className="space-y-2">
                   <div className="flex items-baseline justify-between">
                     <Label htmlFor="contactPhone">Phone</Label>
-                    <span className="text-xs text-slate-400">Optional</span>
+                    <span className="text-xs text-muted-foreground">Optional</span>
                   </div>
                   <Input
                     id="contactPhone"
                     placeholder="(555) 123-4567"
                     {...register("contactPhone")}
-                    className="h-11 border-amber-200/60 bg-[#FFFBF0] focus:bg-white"
+                    className="h-11 border-border/60 bg-muted/50 focus:bg-card"
                   />
                 </div>
 
                 <div className="space-y-2">
                   <div className="flex items-baseline justify-between">
                     <Label htmlFor="website">Website</Label>
-                    <span className="text-xs text-slate-400">Optional</span>
+                    <span className="text-xs text-muted-foreground">Optional</span>
                   </div>
                   <Input
                     id="website"
                     placeholder="https://youragency.com"
                     {...register("website")}
-                    className="h-11 border-amber-200/60 bg-[#FFFBF0] focus:bg-white"
+                    className="h-11 border-border/60 bg-muted/50 focus:bg-card"
                   />
                   {errors.website && <p className="text-sm text-destructive">{errors.website.message}</p>}
                 </div>
@@ -300,18 +300,18 @@ export default function OnboardingDetailsPage() {
           {/* Brand */}
           <motion.section
             variants={fadeUp}
-            className="space-y-5 rounded-2xl border border-amber-200/60 bg-white p-4 sm:p-6"
+            className="space-y-5 rounded-2xl border border-border/60 bg-card p-4 sm:p-6"
           >
             <div>
-              <h2 className="text-lg font-semibold text-[#1A2744]">Brand identity</h2>
-              <p className="mt-1 text-sm text-slate-600">Logo and color used across your branded pages.</p>
+              <h2 className="text-lg font-semibold text-foreground">Brand identity</h2>
+              <p className="mt-1 text-sm text-muted-foreground">Logo and color used across your branded pages.</p>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
-              <div className="rounded-xl border border-amber-200/60 bg-[#FFFBF0] p-4">
+              <div className="rounded-xl border border-border/60 bg-muted/50 p-4">
                 <LogoUploader currentLogoUrl={logoUrl} hideHeader onLogoChange={setLogoUrl} />
               </div>
-              <div className="rounded-xl border border-amber-200/60 bg-[#FFFBF0] p-4">
+              <div className="rounded-xl border border-border/60 bg-muted/50 p-4">
                 <BrandColorPicker
                   value={brandColor}
                   onColorChange={handleBrandColorChange}
@@ -324,16 +324,16 @@ export default function OnboardingDetailsPage() {
           {/* Navigation footer */}
           <motion.div
             variants={fadeUp}
-            className="flex flex-col gap-3 rounded-2xl border border-amber-200/60 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:py-4"
+            className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-card px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:py-4"
           >
-            <p className="text-xs text-slate-500 sm:text-sm sm:text-slate-600">
+            <p className="text-xs text-muted-foreground sm:text-sm">
               Name, description, and email are required.
             </p>
 
             <Button
               type="submit"
               size="lg"
-              className="h-11 w-full shrink-0 rounded-full bg-[#0866FF] px-7 font-semibold text-white shadow-md shadow-[#0866FF]/25 hover:bg-[#0866FF]/92 sm:ml-auto sm:w-auto"
+              className="h-11 w-full shrink-0 rounded-full bg-primary px-7 font-semibold text-primary-foreground shadow-md shadow-primary/25 hover:bg-primary/90 sm:ml-auto sm:w-auto"
               disabled={isPending}
             >
               {isPending ? (
@@ -352,11 +352,11 @@ export default function OnboardingDetailsPage() {
 
           {/* Mobile branded preview — below continue button */}
           <motion.div variants={fadeUp} className="min-w-0 xl:hidden">
-            <div className="overflow-hidden rounded-2xl border border-amber-200/60 bg-white shadow-xs">
-              <div className="border-b border-amber-200/60 bg-[#FFFBF0] px-4 py-2.5">
+            <div className="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-xs">
+              <div className="border-b border-border/60 bg-muted/50 px-4 py-2.5">
                 <div className="flex items-center gap-2">
                   <div className="h-2 w-2 rounded-full bg-emerald-400" />
-                  <span className="text-xs font-medium text-slate-500">Live Preview</span>
+                  <span className="text-xs font-medium text-muted-foreground">Live Preview</span>
                 </div>
               </div>
 
@@ -370,7 +370,7 @@ export default function OnboardingDetailsPage() {
                 >
                   <div className="rounded-lg bg-white p-3 shadow-xs sm:p-4">
                     <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[#FFFBF0] sm:h-12 sm:w-12">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-muted/50 sm:h-12 sm:w-12">
                         {logoUrl ? (
                           <Image
                             src={logoUrl}
@@ -380,22 +380,22 @@ export default function OnboardingDetailsPage() {
                             className="h-full w-full object-contain p-1"
                           />
                         ) : (
-                          <span className="text-xs font-bold text-slate-400 sm:text-sm">
+                          <span className="text-xs font-bold text-muted-foreground sm:text-sm">
                             {(agencyName || "BW").slice(0, 2).toUpperCase()}
                           </span>
                         )}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <h3 className="truncate text-sm font-semibold text-[#1A2744] sm:text-base">
+                        <h3 className="truncate text-sm font-semibold text-foreground sm:text-base">
                           {agencyName || "Your agency name"}
                         </h3>
-                        <p className="truncate text-xs text-slate-600">
+                        <p className="truncate text-xs text-muted-foreground">
                           {headline || "Your tagline goes here"}
                         </p>
                       </div>
                     </div>
 
-                    <p className="mt-2.5 line-clamp-2 text-xs leading-relaxed text-slate-500">
+                    <p className="mt-2.5 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
                       {description || "Your agency description will appear here."}
                     </p>
 
@@ -407,9 +407,9 @@ export default function OnboardingDetailsPage() {
                       ].map(({ icon: Icon, value }) => (
                         <div
                           key={value}
-                          className="flex items-center gap-2 rounded-lg bg-[#FFFBF0] px-2 py-1 text-xs text-slate-500"
+                          className="flex items-center gap-2 rounded-lg bg-muted/50 px-2 py-1 text-xs text-muted-foreground"
                         >
-                          <Icon className="h-3 w-3 shrink-0 text-slate-400" />
+                          <Icon className="h-3 w-3 shrink-0 text-muted-foreground" />
                           <span className="truncate">{value}</span>
                         </div>
                       ))}
@@ -422,7 +422,7 @@ export default function OnboardingDetailsPage() {
                     (label) => (
                       <span
                         key={label}
-                        className="rounded-md bg-[#FFFBF0] px-2 py-1 text-[10px] font-medium text-slate-600"
+                        className="rounded-md bg-muted/50 px-2 py-1 text-[10px] font-medium text-muted-foreground"
                       >
                         {label}
                       </span>
@@ -439,11 +439,11 @@ export default function OnboardingDetailsPage() {
           variants={fadeUp}
           className="hidden xl:sticky xl:top-24 xl:block xl:self-start"
         >
-          <div className="overflow-hidden rounded-2xl border border-amber-200/60 bg-white shadow-xs">
-            <div className="border-b border-amber-200/60 bg-[#FFFBF0] px-5 py-3">
+          <div className="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-xs">
+            <div className="border-b border-border/60 bg-muted/50 px-5 py-3">
               <div className="flex items-center gap-2">
                 <div className="h-2 w-2 rounded-full bg-emerald-400" />
-                <span className="text-xs font-medium text-slate-500">Live Preview</span>
+                <span className="text-xs font-medium text-muted-foreground">Live Preview</span>
               </div>
             </div>
 
@@ -458,7 +458,7 @@ export default function OnboardingDetailsPage() {
               >
                 <div className="rounded-lg bg-white p-4 shadow-xs">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[#FFFBF0]">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-muted/50">
                       {logoUrl ? (
                         <Image
                           src={logoUrl}
@@ -468,22 +468,22 @@ export default function OnboardingDetailsPage() {
                           className="h-full w-full object-contain p-1.5"
                         />
                       ) : (
-                        <span className="text-sm font-bold text-slate-400">
+                        <span className="text-sm font-bold text-muted-foreground">
                           {(agencyName || "BW").slice(0, 2).toUpperCase()}
                         </span>
                       )}
                     </div>
                     <div className="min-w-0">
-                      <h3 className="truncate text-base font-semibold text-[#1A2744]">
+                      <h3 className="truncate text-base font-semibold text-foreground">
                         {agencyName || "Your agency name"}
                       </h3>
-                      <p className="truncate text-xs text-slate-600">
+                      <p className="truncate text-xs text-muted-foreground">
                         {headline || "Your tagline goes here"}
                       </p>
                     </div>
                   </div>
 
-                  <p className="mt-3 line-clamp-3 text-xs leading-relaxed text-slate-500">
+                  <p className="mt-3 line-clamp-3 text-xs leading-relaxed text-muted-foreground">
                     {description || "Your agency description will appear here."}
                   </p>
 
@@ -495,9 +495,9 @@ export default function OnboardingDetailsPage() {
                     ].map(({ icon: Icon, value }) => (
                       <div
                         key={value}
-                        className="flex items-center gap-2 rounded-lg bg-[#FFFBF0] px-2.5 py-1.5 text-xs text-slate-500"
+                        className="flex items-center gap-2 rounded-lg bg-muted/50 px-2.5 py-1.5 text-xs text-muted-foreground"
                       >
-                        <Icon className="h-3 w-3 text-slate-400" />
+                        <Icon className="h-3 w-3 text-muted-foreground" />
                         <span className="truncate">{value}</span>
                       </div>
                     ))}
@@ -511,7 +511,7 @@ export default function OnboardingDetailsPage() {
                   (label) => (
                     <span
                       key={label}
-                      className="rounded-md bg-[#FFFBF0] px-2 py-1 text-[10px] font-medium text-slate-600"
+                      className="rounded-md bg-muted/50 px-2 py-1 text-[10px] font-medium text-muted-foreground"
                     >
                       {label}
                     </span>

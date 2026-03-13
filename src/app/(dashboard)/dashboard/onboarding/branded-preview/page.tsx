@@ -33,7 +33,7 @@ const previewCards = [
     icon: Globe,
     color: { bg: "bg-violet-50", text: "text-violet-600" },
     status: "Pro feature",
-    statusColor: "text-slate-600",
+    statusColor: "text-muted-foreground",
   },
   {
     title: "Agency Digital Brochure",
@@ -42,7 +42,7 @@ const previewCards = [
     icon: BookOpen,
     color: { bg: "bg-sky-50", text: "text-sky-600" },
     status: "Pro feature",
-    statusColor: "text-slate-600",
+    statusColor: "text-muted-foreground",
   },
   {
     title: "FindABATherapy Listing",
@@ -60,7 +60,7 @@ const previewCards = [
     icon: Mail,
     color: { bg: "bg-rose-50", text: "text-rose-600" },
     status: "Pro feature",
-    statusColor: "text-slate-600",
+    statusColor: "text-muted-foreground",
   },
   {
     title: "Intake Form",
@@ -69,7 +69,7 @@ const previewCards = [
     icon: FileText,
     color: { bg: "bg-amber-50", text: "text-amber-600" },
     status: "Pro feature",
-    statusColor: "text-slate-600",
+    statusColor: "text-muted-foreground",
   },
   {
     title: "Resources Page",
@@ -78,7 +78,7 @@ const previewCards = [
     icon: Sparkles,
     color: { bg: "bg-emerald-50", text: "text-emerald-600" },
     status: "Pro feature",
-    statusColor: "text-slate-600",
+    statusColor: "text-muted-foreground",
   },
   {
     title: "Careers Page",
@@ -87,7 +87,7 @@ const previewCards = [
     icon: Briefcase,
     color: { bg: "bg-indigo-50", text: "text-indigo-600" },
     status: "Pro feature",
-    statusColor: "text-slate-600",
+    statusColor: "text-muted-foreground",
   },
 ];
 
@@ -124,8 +124,8 @@ export default function OnboardingBrandedPreviewPage() {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
         <div className="flex flex-col items-center gap-3">
-          <Loader2 className="h-6 w-6 animate-spin text-[#1A2744]" />
-          <p className="text-sm text-slate-400">Preparing your preview...</p>
+          <Loader2 className="h-6 w-6 animate-spin text-foreground" />
+          <p className="text-sm text-muted-foreground">Preparing your preview...</p>
         </div>
       </div>
     );
@@ -139,11 +139,11 @@ export default function OnboardingBrandedPreviewPage() {
           <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
           <span className="text-xs font-medium text-emerald-700">Everything is coming together</span>
         </div>
-        <p className="mb-2 text-sm font-medium text-slate-400">Step 5 of 7</p>
-        <h1 className="text-3xl font-semibold tracking-tight text-[#1A2744] sm:text-4xl">
+        <p className="mb-2 text-sm font-medium text-muted-foreground">Step 5 of 7</p>
+        <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
           Your branded pages are taking shape
         </h1>
-        <p className="mt-2 max-w-2xl text-base leading-relaxed text-slate-500">
+        <p className="mt-2 max-w-2xl text-base leading-relaxed text-muted-foreground">
           {agencyName} now has a branded presence across the platform. Preview each experience below.
         </p>
       </motion.div>
@@ -161,15 +161,15 @@ export default function OnboardingBrandedPreviewPage() {
               variants={fadeUp}
               whileHover={{ y: -2 }}
               transition={{ duration: 0.2 }}
-              className="group flex flex-col rounded-2xl border border-amber-200/40 bg-white p-5 transition-colors hover:border-amber-200/70"
+              className="group flex flex-col rounded-2xl border border-border/60 bg-card p-5 transition-colors hover:border-border"
             >
               <div className="flex items-start gap-3.5">
                 <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${card.color.bg}`}>
                   <Icon className={`h-5 w-5 ${card.color.text}`} />
                 </div>
                 <div className="min-w-0">
-                  <h3 className="font-semibold text-[#1A2744]">{card.title}</h3>
-                  <p className="mt-0.5 text-sm leading-relaxed text-slate-600">
+                  <h3 className="font-semibold text-foreground">{card.title}</h3>
+                  <p className="mt-0.5 text-sm leading-relaxed text-muted-foreground">
                     {card.description}
                   </p>
                 </div>
@@ -184,7 +184,7 @@ export default function OnboardingBrandedPreviewPage() {
                     href={card.href(slug)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-xs font-medium text-[#1A2744] opacity-100 sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100"
+                    className="inline-flex items-center gap-1 text-xs font-medium text-foreground opacity-100 sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100"
                   >
                     Preview
                     <ExternalLink className="h-3 w-3" />
@@ -199,16 +199,16 @@ export default function OnboardingBrandedPreviewPage() {
       {/* Navigation footer */}
       <motion.div
         variants={fadeUp}
-        className="flex flex-col gap-3 rounded-2xl border border-amber-200/40 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:py-4"
+        className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-card px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:py-4"
       >
-        <p className="text-xs text-slate-500 sm:text-sm sm:text-slate-600">
+        <p className="text-xs text-muted-foreground sm:text-sm">
           You can preview live links from your dashboard anytime.
         </p>
 
         <Button
           type="button"
           size="lg"
-          className="h-11 w-full shrink-0 rounded-full bg-[#0866FF] px-7 font-semibold text-white shadow-md shadow-[#0866FF]/25 hover:bg-[#0866FF]/92 sm:ml-auto sm:w-auto"
+          className="h-11 w-full shrink-0 rounded-full bg-primary px-7 font-semibold text-primary-foreground shadow-md shadow-primary/25 hover:bg-primary/90 sm:ml-auto sm:w-auto"
           onClick={() => router.push("/dashboard/onboarding/dashboard")}
         >
           Continue

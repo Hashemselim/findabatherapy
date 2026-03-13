@@ -140,8 +140,8 @@ export default function OnboardingServicesPage() {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
         <div className="flex flex-col items-center gap-3">
-          <Loader2 className="h-6 w-6 animate-spin text-[#1A2744]" />
-          <p className="text-sm text-slate-400">Loading service details...</p>
+          <Loader2 className="h-6 w-6 animate-spin text-foreground" />
+          <p className="text-sm text-muted-foreground">Loading service details...</p>
         </div>
       </div>
     );
@@ -151,11 +151,11 @@ export default function OnboardingServicesPage() {
     <motion.div variants={stagger} initial="hidden" animate="show">
       {/* Page header */}
       <motion.div variants={fadeUp} className="mb-8">
-        <p className="mb-2 text-sm font-medium text-slate-400">Step 4 of 7</p>
-        <h1 className="text-3xl font-semibold tracking-tight text-[#1A2744] sm:text-4xl">
+        <p className="mb-2 text-sm font-medium text-muted-foreground">Step 4 of 7</p>
+        <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
           What care do you provide?
         </h1>
-        <p className="mt-2 max-w-2xl text-base leading-relaxed text-slate-500">
+        <p className="mt-2 max-w-2xl text-base leading-relaxed text-muted-foreground">
           These details power your listing filters, branded pages, and help families find the right match.
         </p>
       </motion.div>
@@ -174,15 +174,15 @@ export default function OnboardingServicesPage() {
         {/* Services offered */}
         <motion.section
           variants={fadeUp}
-          className="space-y-4 rounded-2xl border border-amber-200/60 bg-white p-4 sm:p-6"
+          className="space-y-4 rounded-2xl border border-border/60 bg-card p-4 sm:p-6"
         >
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-50">
               <Sparkles className="h-4.5 w-4.5 text-violet-600" />
             </div>
             <div>
-              <h2 className="text-base font-semibold text-[#1A2744]">Services offered</h2>
-              <p className="text-sm text-slate-600">Select everything your agency actively delivers.</p>
+              <h2 className="text-base font-semibold text-foreground">Services offered</h2>
+              <p className="text-sm text-muted-foreground">Select everything your agency actively delivers.</p>
             </div>
           </div>
 
@@ -194,8 +194,8 @@ export default function OnboardingServicesPage() {
                   key={service.value}
                   className={`flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 transition-all ${
                     isSelected
-                      ? "border-violet-200 bg-violet-50/50 text-[#1A2744]"
-                      : "border-amber-200/60 bg-[#FFFBF0] text-slate-500 hover:border-amber-200/70"
+                      ? "border-violet-200 bg-violet-50/50 text-foreground"
+                      : "border-border/60 bg-muted/50 text-muted-foreground hover:border-border/70"
                   }`}
                 >
                   <Checkbox
@@ -213,21 +213,21 @@ export default function OnboardingServicesPage() {
         <div className="grid gap-6 lg:grid-cols-2">
           <motion.section
             variants={fadeUp}
-            className="space-y-4 rounded-2xl border border-amber-200/60 bg-white p-4 sm:p-6"
+            className="space-y-4 rounded-2xl border border-border/60 bg-card p-4 sm:p-6"
           >
             <div className="flex items-center gap-3">
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50">
                 <Users className="h-4.5 w-4.5 text-blue-600" />
               </div>
               <div>
-                <h2 className="text-base font-semibold text-[#1A2744]">Ages served</h2>
-                <p className="text-sm text-slate-600">Age range families should expect.</p>
+                <h2 className="text-base font-semibold text-foreground">Ages served</h2>
+                <p className="text-sm text-muted-foreground">Age range families should expect.</p>
               </div>
             </div>
 
             <div className="flex items-center gap-3">
               <select
-                className="h-11 flex-1 rounded-xl border border-amber-200/60 bg-[#FFFBF0] px-3 text-sm text-[#1A2744] focus:border-[#1A2744]/30 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#1A2744]/5"
+                className="h-11 flex-1 rounded-xl border border-border/60 bg-muted/50 px-3 text-sm text-foreground focus:border-foreground/30 focus:bg-card focus:outline-hidden focus:ring-2 focus:ring-foreground/5"
                 value={formData.agesServedMin}
                 onChange={(event) =>
                   setFormData((prev) => ({ ...prev, agesServedMin: Number(event.target.value) }))
@@ -239,9 +239,9 @@ export default function OnboardingServicesPage() {
                   </option>
                 ))}
               </select>
-              <span className="text-sm font-medium text-slate-400">to</span>
+              <span className="text-sm font-medium text-muted-foreground">to</span>
               <select
-                className="h-11 flex-1 rounded-xl border border-amber-200/60 bg-[#FFFBF0] px-3 text-sm text-[#1A2744] focus:border-[#1A2744]/30 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#1A2744]/5"
+                className="h-11 flex-1 rounded-xl border border-border/60 bg-muted/50 px-3 text-sm text-foreground focus:border-foreground/30 focus:bg-card focus:outline-hidden focus:ring-2 focus:ring-foreground/5"
                 value={formData.agesServedMax}
                 onChange={(event) =>
                   setFormData((prev) => ({ ...prev, agesServedMax: Number(event.target.value) }))
@@ -258,15 +258,15 @@ export default function OnboardingServicesPage() {
 
           <motion.section
             variants={fadeUp}
-            className="space-y-4 rounded-2xl border border-amber-200/60 bg-white p-4 sm:p-6"
+            className="space-y-4 rounded-2xl border border-border/60 bg-card p-4 sm:p-6"
           >
             <div className="flex items-center gap-3">
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50">
                 <Globe className="h-4.5 w-4.5 text-emerald-600" />
               </div>
               <div>
-                <h2 className="text-base font-semibold text-[#1A2744]">Languages</h2>
-                <p className="text-sm text-slate-600">Languages your team speaks.</p>
+                <h2 className="text-base font-semibold text-foreground">Languages</h2>
+                <p className="text-sm text-muted-foreground">Languages your team speaks.</p>
               </div>
             </div>
 
@@ -278,8 +278,8 @@ export default function OnboardingServicesPage() {
                     key={language}
                     className={`flex cursor-pointer items-center gap-2.5 rounded-xl border px-3 py-2.5 text-sm transition-all ${
                       isSelected
-                        ? "border-emerald-200 bg-emerald-50/50 text-[#1A2744]"
-                        : "border-amber-200/60 bg-[#FFFBF0] text-slate-500 hover:border-amber-200/70"
+                        ? "border-emerald-200 bg-emerald-50/50 text-foreground"
+                        : "border-border/60 bg-muted/50 text-muted-foreground hover:border-border/70"
                     }`}
                   >
                     <Checkbox
@@ -297,15 +297,15 @@ export default function OnboardingServicesPage() {
         {/* Diagnoses */}
         <motion.section
           variants={fadeUp}
-          className="space-y-4 rounded-2xl border border-amber-200/60 bg-white p-4 sm:p-6"
+          className="space-y-4 rounded-2xl border border-border/60 bg-card p-4 sm:p-6"
         >
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-50">
               <Stethoscope className="h-4.5 w-4.5 text-rose-600" />
             </div>
             <div>
-              <h2 className="text-base font-semibold text-[#1A2744]">Diagnoses supported</h2>
-              <p className="text-sm text-slate-600">Select diagnoses your team is experienced with.</p>
+              <h2 className="text-base font-semibold text-foreground">Diagnoses supported</h2>
+              <p className="text-sm text-muted-foreground">Select diagnoses your team is experienced with.</p>
             </div>
           </div>
 
@@ -317,8 +317,8 @@ export default function OnboardingServicesPage() {
                   key={diagnosis}
                   className={`flex cursor-pointer items-center gap-2.5 rounded-xl border px-3 py-2.5 text-sm transition-all ${
                     isSelected
-                      ? "border-rose-200 bg-rose-50/50 text-[#1A2744]"
-                      : "border-amber-200/60 bg-[#FFFBF0] text-slate-500 hover:border-amber-200/70"
+                      ? "border-rose-200 bg-rose-50/50 text-foreground"
+                      : "border-border/60 bg-muted/50 text-muted-foreground hover:border-border/70"
                   }`}
                 >
                   <Checkbox
@@ -335,11 +335,11 @@ export default function OnboardingServicesPage() {
         {/* Clinical specialties */}
         <motion.section
           variants={fadeUp}
-          className="space-y-4 rounded-2xl border border-amber-200/60 bg-white p-4 sm:p-6"
+          className="space-y-4 rounded-2xl border border-border/60 bg-card p-4 sm:p-6"
         >
           <div>
-            <h2 className="text-base font-semibold text-[#1A2744]">Clinical specialties</h2>
-            <p className="mt-0.5 text-sm text-slate-600">
+            <h2 className="text-base font-semibold text-foreground">Clinical specialties</h2>
+            <p className="mt-0.5 text-sm text-muted-foreground">
               Focus areas families and referrers should know about.
             </p>
           </div>
@@ -352,8 +352,8 @@ export default function OnboardingServicesPage() {
                   key={specialty}
                   className={`flex cursor-pointer items-center gap-2.5 rounded-xl border px-3 py-2.5 text-sm transition-all ${
                     isSelected
-                      ? "border-[#1A2744]/15 bg-[#1A2744]/3 text-[#1A2744]"
-                      : "border-amber-200/60 bg-[#FFFBF0] text-slate-500 hover:border-amber-200/70"
+                      ? "border-foreground/15 bg-foreground/5 text-foreground"
+                      : "border-border/60 bg-muted/50 text-muted-foreground hover:border-border/70"
                   }`}
                 >
                   <Checkbox
@@ -370,15 +370,15 @@ export default function OnboardingServicesPage() {
         {/* Intro video */}
         <motion.section
           variants={fadeUp}
-          className="space-y-4 rounded-2xl border border-amber-200/60 bg-white p-4 sm:p-6"
+          className="space-y-4 rounded-2xl border border-border/60 bg-card p-4 sm:p-6"
         >
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-50">
               <Video className="h-4.5 w-4.5 text-amber-600" />
             </div>
             <div>
-              <h2 className="text-base font-semibold text-[#1A2744]">Intro video</h2>
-              <p className="text-sm text-slate-600">
+              <h2 className="text-base font-semibold text-foreground">Intro video</h2>
+              <p className="text-sm text-muted-foreground">
                 Optional. Add a YouTube or Vimeo link for your branded pages.
               </p>
             </div>
@@ -393,23 +393,23 @@ export default function OnboardingServicesPage() {
             onChange={(event) =>
               setFormData((prev) => ({ ...prev, videoUrl: event.target.value }))
             }
-            className="h-11 rounded-xl border-amber-200/60 bg-[#FFFBF0] focus:bg-white"
+            className="h-11 rounded-xl border-border/60 bg-muted/50 focus:bg-card"
           />
         </motion.section>
 
         {/* Navigation footer */}
         <motion.div
           variants={fadeUp}
-          className="flex flex-col gap-3 rounded-2xl border border-amber-200/60 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:py-4"
+          className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-card px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:py-4"
         >
-          <p className="text-xs text-slate-500 sm:text-sm sm:text-slate-600">
+          <p className="text-xs text-muted-foreground sm:text-sm sm:text-muted-foreground">
             At least one service is required.
           </p>
 
           <Button
             type="button"
             size="lg"
-            className="h-11 w-full shrink-0 rounded-full bg-[#0866FF] px-7 font-semibold text-white shadow-md shadow-[#0866FF]/25 hover:bg-[#0866FF]/92 sm:ml-auto sm:w-auto"
+            className="h-11 w-full shrink-0 rounded-full bg-primary px-7 font-semibold text-primary-foreground shadow-md shadow-primary/25 hover:bg-primary/90 sm:ml-auto sm:w-auto"
             disabled={isPending}
             onClick={handleContinue}
           >
