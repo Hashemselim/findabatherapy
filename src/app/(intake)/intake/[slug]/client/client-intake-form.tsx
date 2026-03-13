@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { getContrastingTextColor, getSolidBrandButtonStyles } from "@/lib/utils/brand-color";
 import { submitPublicClientIntake } from "@/lib/actions/clients";
 import { markIntakeTokenUsed, type PrefillData } from "@/lib/actions/intake";
 import {
@@ -302,7 +303,7 @@ export function ClientIntakeForm({
         size="lg"
         className="w-full"
         disabled={isPending || !turnstileToken}
-        style={{ backgroundColor: brandColor }}
+        style={getSolidBrandButtonStyles(brandColor)}
       >
         {isPending ? (
           <>
@@ -372,10 +373,10 @@ function DynamicField({
                   className={cn(
                     "rounded-full px-3 py-1.5 text-sm border transition-colors",
                     isSelected
-                      ? "text-white border-transparent"
+                      ? "border-transparent"
                       : "bg-background hover:bg-muted border-border",
                   )}
-                  style={isSelected ? { backgroundColor: brandColor } : {}}
+                  style={isSelected ? { backgroundColor: brandColor, color: getContrastingTextColor(brandColor) } : {}}
                 >
                   {label}
                 </button>

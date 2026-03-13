@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Sparkles } from "lucide-react";
+import { getSolidBrandButtonStyles } from "@/lib/utils/brand-color";
 import { useWebsite } from "./website-provider";
 
 export function WebsiteWatermark() {
@@ -36,7 +37,7 @@ export function WebsiteWatermark() {
         <Link
           href="https://www.goodaba.com/pricing"
           className="rounded-full px-3 py-1 text-xs font-medium text-white shadow-xs transition-all hover:scale-[1.02] hover:shadow-md"
-          style={{ backgroundColor: brandColor }}
+          style={getSolidBrandButtonStyles(brandColor)}
         >
           Build with GoodABA
         </Link>

@@ -27,6 +27,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { submitInquiry } from "@/lib/actions/inquiries";
+import { getSolidBrandButtonStyles } from "@/lib/utils/brand-color";
 import { contactFormSchema, type ContactFormData } from "@/lib/validations/contact";
 import { PUBLIC_REFERRAL_SOURCE_OPTIONS } from "@/lib/validations/clients";
 
@@ -337,7 +338,7 @@ export function ContactFormFields({
           type="submit"
           className="group w-full rounded-full py-6 text-base font-medium transition-all duration-300 ease-premium hover:-translate-y-[2px] active:translate-y-0 disabled:hover:translate-y-0 disabled:hover:shadow-none"
           disabled={isSubmitting || !turnstileToken}
-          style={brandColor ? { backgroundColor: brandColor, color: "#FFFFFF" } : undefined}
+          style={brandColor ? getSolidBrandButtonStyles(brandColor) : undefined}
         >
           {isSubmitting ? (
             <>

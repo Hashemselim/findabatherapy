@@ -5,6 +5,7 @@ import { Search, Filter, X } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { getContrastingTextColor } from "@/lib/utils/brand-color";
 import { SEARCH_POSITION_OPTIONS } from "@/lib/validations/jobs";
 import { BrandedJobCard } from "@/components/jobs/branded-job-card";
 import type { JobSearchResult } from "@/lib/queries/jobs";
@@ -75,15 +76,6 @@ export function CareersJobFilter({ jobs, brandColor, providerSlug, ctaText }: Ca
 
   const hasActiveFilters = searchQuery || selectedPositions.length > 0;
 
-  // Helper to calculate contrasting text color
-  const getContrastColor = (hexColor: string) => {
-    const r = parseInt(hexColor.slice(1, 3), 16);
-    const g = parseInt(hexColor.slice(3, 5), 16);
-    const b = parseInt(hexColor.slice(5, 7), 16);
-    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-    return luminance > 0.5 ? "#000000" : "#FFFFFF";
-  };
-
   // Render job cards
   const renderJobCards = (jobsToRender: JobSearchResult[]) => (
     <>
@@ -148,11 +140,11 @@ export function CareersJobFilter({ jobs, brandColor, providerSlug, ctaText }: Ca
                 className="rounded-full border px-3 py-1 text-sm font-medium transition-all"
                 style={
                   isSelected
-                    ? {
-                        backgroundColor: brandColor,
-                        borderColor: brandColor,
-                        color: getContrastColor(brandColor),
-                      }
+                      ? {
+                          backgroundColor: brandColor,
+                          borderColor: brandColor,
+                          color: getContrastingTextColor(brandColor),
+                        }
                     : {
                         backgroundColor: "white",
                         borderColor: "rgba(0,0,0,0.1)",

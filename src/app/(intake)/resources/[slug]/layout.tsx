@@ -6,6 +6,7 @@ import { Globe } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { getClientResourcesPageData } from "@/lib/actions/intake";
+import { getContrastingTextColor } from "@/lib/utils/brand-color";
 
 type LayoutParams = {
   slug: string;
@@ -42,14 +43,6 @@ function getLighterShade(hexColor: string, opacity: number = 0.1) {
   return `${hexColor}${Math.round(opacity * 255).toString(16).padStart(2, "0")}`;
 }
 
-function getContrastColor(hexColor: string) {
-  const r = parseInt(hexColor.slice(1, 3), 16);
-  const g = parseInt(hexColor.slice(3, 5), 16);
-  const b = parseInt(hexColor.slice(5, 7), 16);
-  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-  return luminance > 0.5 ? "#000000" : "#FFFFFF";
-}
-
 export default async function ResourcesLayout({ children, params }: ResourcesLayoutProps) {
   const { slug } = await params;
   const result = await getClientResourcesPageData(slug);
@@ -60,7 +53,7 @@ export default async function ResourcesLayout({ children, params }: ResourcesLay
 
   const { listing, profile } = result.data;
   const { background_color, show_powered_by } = profile.intakeFormSettings;
-  const contrastColor = getContrastColor(background_color);
+  const contrastColor = getContrastingTextColor(background_color);
   const brandTextColor = contrastColor === "#000000" ? "#1f2937" : "#FFFFFF";
 
   const initials = profile.agencyName

@@ -15,6 +15,7 @@ import { AgencyPageCta } from "@/components/branded/agency-page-cta";
 import { ViewTracker } from "@/components/analytics/view-tracker";
 import { PreviewBanner } from "@/components/ui/preview-banner";
 import { getListingBySlug } from "@/lib/actions/listings";
+import { getContrastingTextColor } from "@/lib/utils/brand-color";
 
 // Cache the listing fetch to dedupe between generateMetadata and page component
 const getCachedListing = cache(async (slug: string) => {
@@ -36,15 +37,6 @@ export const revalidate = 300;
 // Helper to create a lighter shade of the brand color
 function getLighterShade(hexColor: string, opacity: number = 0.1) {
   return `${hexColor}${Math.round(opacity * 255).toString(16).padStart(2, "0")}`;
-}
-
-// Helper to calculate contrasting text color
-function getContrastColor(hexColor: string) {
-  const r = parseInt(hexColor.slice(1, 3), 16);
-  const g = parseInt(hexColor.slice(3, 5), 16);
-  const b = parseInt(hexColor.slice(5, 7), 16);
-  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-  return luminance > 0.5 ? "#000000" : "#FFFFFF";
 }
 
 export async function generateMetadata({
@@ -123,7 +115,7 @@ export default async function BrandedAgencyPage({ params, searchParams }: Brande
 
   // Brand color from intake form settings
   const brandColor = listing.profile.intakeFormSettings.background_color;
-  const contrastColor = getContrastColor(brandColor);
+  const contrastColor = getContrastingTextColor(brandColor);
   const { show_powered_by } = listing.profile.intakeFormSettings;
 
   // Premium features require both a paid plan AND an active subscription

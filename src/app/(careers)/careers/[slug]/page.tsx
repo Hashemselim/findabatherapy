@@ -9,6 +9,7 @@ import { CareersJobFilter } from "@/components/jobs/careers-job-filter";
 import { getJobsByProvider } from "@/lib/queries/jobs";
 import { createAdminClient } from "@/lib/supabase/server";
 import type { PlanTier } from "@/lib/plans/features";
+import { getContrastingTextColor } from "@/lib/utils/brand-color";
 import { getProviderCareersPath } from "@/lib/utils/public-paths";
 
 interface CareersPageProps {
@@ -170,15 +171,6 @@ export async function generateMetadata({ params }: CareersPageProps): Promise<Me
   };
 }
 
-// Helper to calculate contrasting text color
-function getContrastColor(hexColor: string) {
-  const r = parseInt(hexColor.slice(1, 3), 16);
-  const g = parseInt(hexColor.slice(3, 5), 16);
-  const b = parseInt(hexColor.slice(5, 7), 16);
-  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-  return luminance > 0.5 ? "#000000" : "#FFFFFF";
-}
-
 // Helper to create a lighter shade of the brand color
 function getLighterShade(hexColor: string, opacity: number = 0.1) {
   return `${hexColor}${Math.round(opacity * 255).toString(16).padStart(2, "0")}`;
@@ -203,7 +195,7 @@ export default async function BrandedCareersPage({ params }: CareersPageProps) {
     .toUpperCase();
 
   const brandColor = provider.intakeFormSettings.background_color;
-  const contrastColor = getContrastColor(brandColor);
+  const contrastColor = getContrastingTextColor(brandColor);
 
   const effectiveHeadline = provider.headline;
   const effectiveCtaText = "Apply Now";
@@ -403,7 +395,7 @@ export default async function BrandedCareersPage({ params }: CareersPageProps) {
         {provider.intakeFormSettings.show_powered_by ? (
           <div className="mt-6 text-center">
             <a
-              href="https://findabatherapy.com"
+              href="https://www.findabatherapy.org"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-semibold shadow-lg transition-all hover:scale-105 hover:shadow-xl"
@@ -418,7 +410,7 @@ export default async function BrandedCareersPage({ params }: CareersPageProps) {
         ) : (
           <div className="mt-6 text-center">
             <a
-              href="https://findabatherapy.com"
+              href="https://www.findabatherapy.org"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 rounded-full bg-white/20 px-4 py-2 text-xs font-medium backdrop-blur-xs transition-colors hover:bg-white/30"

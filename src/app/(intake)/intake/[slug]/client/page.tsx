@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { PreviewBanner } from "@/components/ui/preview-banner";
 import { getClientIntakePageData, getIntakeFieldsConfig, getIntakeTokenData, getPublicAgencyLocations, type PrefillData } from "@/lib/actions/intake";
+import { getContrastingTextColor } from "@/lib/utils/brand-color";
 
 import { ClientIntakeForm } from "./client-intake-form";
 
@@ -47,15 +48,6 @@ function getLighterShade(hexColor: string, opacity: number = 0.1) {
   return `${hexColor}${Math.round(opacity * 255).toString(16).padStart(2, "0")}`;
 }
 
-// Helper to calculate contrasting text color
-function getContrastColor(hexColor: string) {
-  const r = parseInt(hexColor.slice(1, 3), 16);
-  const g = parseInt(hexColor.slice(3, 5), 16);
-  const b = parseInt(hexColor.slice(5, 7), 16);
-  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-  return luminance > 0.5 ? "#000000" : "#FFFFFF";
-}
-
 export default async function ClientIntakePage({ params, searchParams }: ClientIntakePageProps) {
   const { slug } = await params;
   const { ref, token } = await searchParams;
@@ -68,7 +60,7 @@ export default async function ClientIntakePage({ params, searchParams }: ClientI
   const { listing, profile } = result.data;
   const isPreview = profile.planTier === "free";
   const { background_color, show_powered_by } = profile.intakeFormSettings;
-  const contrastColor = getContrastColor(background_color);
+  const contrastColor = getContrastingTextColor(background_color);
 
   // Load dynamic field configuration and agency locations in parallel
   const [fieldsConfig, agencyLocations] = await Promise.all([

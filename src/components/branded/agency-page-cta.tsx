@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Mail, FileText, Phone, ArrowRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { getSolidBrandButtonStyles } from "@/lib/utils/brand-color";
 import { getProviderContactPath, getProviderIntakePath } from "@/lib/utils/public-paths";
 
 interface AgencyPageCtaProps {
@@ -56,7 +57,7 @@ export function AgencyPageCta({
                 asChild
                 size="lg"
                 className="w-full rounded-full text-base sm:w-auto"
-                style={{ backgroundColor: brandColor }}
+                style={getSolidBrandButtonStyles(brandColor)}
               >
                 <Link href={`${getProviderContactPath(slug)}${refParam}`}>
                   <Mail className="mr-2 h-4 w-4" />
@@ -69,7 +70,7 @@ export function AgencyPageCta({
               size="lg"
               variant={contactFormEnabled ? "outline-solid" : "default"}
               className="w-full rounded-full text-base sm:w-auto"
-              style={contactFormEnabled ? { borderColor: brandColor, color: brandColor } : { backgroundColor: brandColor }}
+              style={contactFormEnabled ? { borderColor: brandColor, color: brandColor } : getSolidBrandButtonStyles(brandColor)}
             >
               <Link href={`${getProviderIntakePath(slug)}${refParam}`}>
                 <FileText className="mr-2 h-4 w-4" />
@@ -85,7 +86,7 @@ export function AgencyPageCta({
                   asChild
                   size="lg"
                   className="w-full rounded-full text-base sm:w-auto"
-                  style={{ backgroundColor: brandColor }}
+                  style={getSolidBrandButtonStyles(brandColor)}
                 >
                   <a href={`tel:+1${contactPhone.replace(/\D/g, "")}`}>
                     <Phone className="mr-2 h-4 w-4" />
@@ -98,7 +99,7 @@ export function AgencyPageCta({
                 size="lg"
                 variant={contactPhone ? "outline-solid" : "default"}
                 className="w-full rounded-full text-base sm:w-auto"
-                style={contactPhone ? { borderColor: brandColor, color: brandColor } : { backgroundColor: brandColor }}
+                style={contactPhone ? { borderColor: brandColor, color: brandColor } : getSolidBrandButtonStyles(brandColor)}
               >
                 <a href={`mailto:${contactEmail}`}>
                   <Mail className="mr-2 h-4 w-4" />

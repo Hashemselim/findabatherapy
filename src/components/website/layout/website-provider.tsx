@@ -2,6 +2,7 @@
 
 import { createContext, useContext, type ReactNode } from "react";
 import type { ProviderWebsiteData } from "@/lib/actions/provider-website";
+import { getContrastingTextColor } from "@/lib/utils/brand-color";
 
 interface WebsiteContextValue {
   provider: ProviderWebsiteData;
@@ -13,14 +14,6 @@ interface WebsiteContextValue {
 
 const WebsiteContext = createContext<WebsiteContextValue | null>(null);
 
-function getContrastColor(hexColor: string) {
-  const r = parseInt(hexColor.slice(1, 3), 16);
-  const g = parseInt(hexColor.slice(3, 5), 16);
-  const b = parseInt(hexColor.slice(5, 7), 16);
-  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-  return luminance > 0.5 ? "#1a1a2e" : "#FFFFFF";
-}
-
 export function WebsiteProvider({
   provider,
   children,
@@ -29,7 +22,7 @@ export function WebsiteProvider({
   children: ReactNode;
 }) {
   const brandColor = provider.profile.intakeFormSettings.background_color;
-  const contrastColor = getContrastColor(brandColor);
+  const contrastColor = getContrastingTextColor(brandColor);
 
   const isActiveSubscription =
     provider.profile.subscriptionStatus === "active" ||

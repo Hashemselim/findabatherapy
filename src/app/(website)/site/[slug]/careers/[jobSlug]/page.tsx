@@ -18,6 +18,7 @@ import { Separator } from "@/components/ui/separator";
 import { ApplyButton } from "@/components/jobs/apply-button";
 import { getProviderWebsiteData } from "@/lib/actions/provider-website";
 import { getPublishedJobBySlug } from "@/lib/queries/jobs";
+import { getSolidBrandButtonStyles } from "@/lib/utils/brand-color";
 import { getProviderWebsitePath } from "@/lib/utils/public-paths";
 import {
   POSITION_TYPES,
@@ -229,10 +230,7 @@ export default async function WebsiteJobDetailPage({
               jobTitle={job.title}
               providerName={provider.profile.agencyName}
               className="rounded-xl px-8 py-3 text-base font-semibold"
-              style={{
-                backgroundColor: brandColor,
-                color: "#FFFFFF",
-              }}
+              style={getSolidBrandButtonStyles(brandColor)}
             />
           </div>
         </div>
@@ -317,10 +315,7 @@ export default async function WebsiteJobDetailPage({
                   jobTitle={job.title}
                   providerName={provider.profile.agencyName}
                   className="mt-4 w-full rounded-xl py-3 font-semibold"
-                  style={{
-                    backgroundColor: brandColor,
-                    color: "#FFFFFF",
-                  }}
+                  style={getSolidBrandButtonStyles(brandColor)}
                 />
               </CardContent>
             </Card>

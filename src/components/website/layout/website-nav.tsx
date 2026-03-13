@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { Menu, X, ChevronRight } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { getSolidBrandButtonStyles } from "@/lib/utils/brand-color";
 import { getProviderWebsitePath } from "@/lib/utils/public-paths";
 import { useWebsite } from "./website-provider";
 
@@ -114,8 +115,9 @@ export function WebsiteNav() {
               size="sm"
               className="ml-3 gap-1.5 rounded-full px-5 shadow-md transition-all duration-300 hover:scale-[1.02] hover:shadow-lg"
               style={{
-                backgroundColor: showSolidNav ? brandColor : "white",
-                color: showSolidNav ? "white" : brandColor,
+                ...(showSolidNav
+                  ? getSolidBrandButtonStyles(brandColor)
+                  : { backgroundColor: "white", color: brandColor }),
               }}
             >
               <Link href={`${basePath}/contact`}>
@@ -161,7 +163,7 @@ export function WebsiteNav() {
                 <Button
                   asChild
                   className="w-full gap-1.5 rounded-xl shadow-md"
-                  style={{ backgroundColor: brandColor, color: "white" }}
+                  style={getSolidBrandButtonStyles(brandColor)}
                 >
                   <Link
                     href={`${basePath}/contact`}
