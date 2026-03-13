@@ -38,11 +38,11 @@ const dashboardBadgeVariants = cva("border px-2.5 py-0.5 text-xs font-medium", {
   variants: {
     tone: {
       default: "border-border/60 bg-muted/50 text-foreground",
-      info: "border-primary/20 bg-primary/10 text-primary",
+      info: "border-blue-500/20 bg-blue-500/10 text-blue-700",
       success: "border-emerald-500/20 bg-emerald-500/10 text-emerald-700",
-      warning: "border-amber-500/20 bg-amber-500/10 text-amber-700",
+      warning: "border-amber-500/20 bg-amber-500/10 text-amber-800",
       danger: "border-destructive/20 bg-destructive/10 text-destructive",
-      premium: "border-primary/20 bg-primary/10 text-primary",
+      premium: "border-violet-500/20 bg-violet-500/10 text-violet-700",
     },
   },
   defaultVariants: {

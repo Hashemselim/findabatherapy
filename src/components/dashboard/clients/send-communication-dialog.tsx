@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition, useEffect, useMemo } from "react";
-import { Loader2, Mail, Eye } from "lucide-react";
+import { Loader2, Mail, Plus, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -14,7 +14,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -26,17 +25,40 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { DashboardStatusBadge, type DashboardTone } from "@/components/dashboard/ui";
+import {
+  DashboardStatusBadge,
+  type DashboardTone,
+} from "@/components/dashboard/ui";
 import { cn } from "@/lib/utils";
+import { PARENT_RELATIONSHIP_OPTIONS } from "@/lib/validations/clients";
 import {
   getTemplates,
   populateMergeFields,
   sendCommunication,
+  getAgencyBranding,
+  getClientMergeFieldValues,
   type CommunicationTemplate,
 } from "@/lib/actions/communications";
+import type { AgencyBrandingData } from "@/lib/email/email-helpers";
+import {
+  EmailEditor,
+  MERGE_FIELD_CATEGORIES,
+  MERGE_FIELD_MAP,
+  templateHtmlToMergeFieldHtml,
+  mergeFieldHtmlToTemplate,
+} from "./email-editor";
+import {
+  resolveCcEmails,
+} from "./send-communication-dialog.utils";
 
-// Lifecycle stage display config
-const LIFECYCLE_STAGES: Record<string, { label: string; tone: DashboardTone }> = {
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+const LIFECYCLE_STAGES: Record<
+  string,
+  { label: string; tone: DashboardTone }
+> = {
   inquiry: { label: "Inquiry", tone: "info" },
   intake_pending: { label: "Intake Pending", tone: "premium" },
   waitlist: { label: "Waitlist", tone: "warning" },
@@ -46,16 +68,19 @@ const LIFECYCLE_STAGES: Record<string, { label: string; tone: DashboardTone }> =
   any: { label: "General", tone: "default" },
 };
 
-// Relationship display labels
-const RELATIONSHIP_LABELS: Record<string, string> = {
-  mother: "Mother",
-  father: "Father",
-  stepmother: "Stepmother",
-  stepfather: "Stepfather",
-  guardian: "Guardian",
-  grandparent: "Grandparent",
-  other: "Other",
-};
+const RELATIONSHIP_LABELS: Record<string, string> = Object.fromEntries(
+  PARENT_RELATIONSHIP_OPTIONS.map((o) => [o.value, o.label])
+);
+
+/** Fields that require manual input — derived from merge field registry */
+const MANUAL_FIELDS = MERGE_FIELD_CATEGORIES.flatMap((c) => c.fields).filter(
+  (f) => f.manual
+);
+const MANUAL_FIELD_KEYS = MANUAL_FIELDS.map((f) => f.key);
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
 
 export interface Recipient {
   email: string;
@@ -74,6 +99,10 @@ interface SendCommunicationDialogProps {
   onSuccess?: () => void;
 }
 
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
+
 export function SendCommunicationDialog({
   open,
   onOpenChange,
@@ -84,24 +113,35 @@ export function SendCommunicationDialog({
   onSuccess,
 }: SendCommunicationDialogProps) {
   const [isPending, startTransition] = useTransition();
+
+  // Data
   const [templates, setTemplates] = useState<CommunicationTemplate[]>([]);
+  const [branding, setBranding] = useState<AgencyBrandingData | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Form state
   const [selectedTemplateSlug, setSelectedTemplateSlug] = useState<string>("");
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
-  const [activeTab, setActiveTab] = useState<string>("edit");
-  const [previewHtml, setPreviewHtml] = useState<string>("");
-  const [isLoadingPreview, setIsLoadingPreview] = useState(false);
-  const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
+  const [selectedEmails, setSelectedEmails] = useState<string[]>([]);
+  const [ccEmails, setCcEmails] = useState<string[]>([]);
+  const [ccInput, setCcInput] = useState("");
+  const [showCcField, setShowCcField] = useState(false);
+  const [manualFieldValues, setManualFieldValues] = useState<
+    Record<string, string>
+  >({});
+
+  // Feedback
+  const [fieldValues, setFieldValues] = useState<Record<string, string> | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [selectedEmails, setSelectedEmails] = useState<string[]>([]);
 
+  // Derived
   const validTemplates = useMemo(
-    () => templates.filter((template) => template.slug.trim().length > 0),
+    () => templates.filter((t) => t.slug.trim().length > 0),
     [templates]
   );
 
-  // Group templates by lifecycle stage
   const templatesByStage = useMemo(() => {
     const grouped: Record<string, CommunicationTemplate[]> = {};
     for (const template of validTemplates) {
@@ -112,12 +152,18 @@ export function SendCommunicationDialog({
     return grouped;
   }, [validTemplates]);
 
-  // Order stages with current stage first
   const orderedStages = useMemo(() => {
-    const stageOrder = ["inquiry", "intake_pending", "waitlist", "assessment", "authorization", "active", "discharged", "any"];
+    const stageOrder = [
+      "inquiry",
+      "intake_pending",
+      "waitlist",
+      "assessment",
+      "authorization",
+      "active",
+      "discharged",
+      "any",
+    ];
     const stages = Object.keys(templatesByStage);
-
-    // Sort: current stage first, then by standard order
     return stages.sort((a, b) => {
       if (a === currentStage) return -1;
       if (b === currentStage) return 1;
@@ -125,48 +171,88 @@ export function SendCommunicationDialog({
     });
   }, [templatesByStage, currentStage]);
 
-  // Load templates and reset state when dialog opens
+  const selectedTemplate = validTemplates.find(
+    (t) => t.slug === selectedTemplateSlug
+  );
+
+  // Detect which manual fields are present in the current body
+  const activeManualFields = useMemo(() => {
+    return MANUAL_FIELD_KEYS.filter(
+      (key) => body.includes(`data-merge-field="${key}"`) || body.includes(`{${key}}`)
+    );
+  }, [body]);
+
+  const fromLine = branding
+    ? `${branding.agencyName} <noreply@goodaba.com>`
+    : "Loading...";
+  const replyToLine = branding?.contactEmail || "\u2014";
+
+  // ---------------------------------------------------------------------------
+  // Effects
+  // ---------------------------------------------------------------------------
+
+  // Load templates + branding when dialog opens
   useEffect(() => {
-    if (open) {
-      setIsLoadingTemplates(true);
-      setError(null);
-      setSuccessMessage(null);
-      setSelectedTemplateSlug("");
-      setSubject("");
-      setBody("");
-      setActiveTab("edit");
+    if (!open) return;
 
-      // Default to primary parent(s) selected
-      const primaryEmails = recipients
-        .filter((r) => r.isPrimary)
-        .map((r) => r.email);
-      setSelectedEmails(
-        primaryEmails.length > 0 ? primaryEmails : recipients.length > 0 ? [recipients[0].email] : []
-      );
+    setIsLoading(true);
+    setError(null);
+    setSuccessMessage(null);
+    setSelectedTemplateSlug("");
+    setSubject("");
+    setBody("");
+    setShowCcField(false);
+    setCcEmails([]);
+    setCcInput("");
+    setManualFieldValues({});
 
-      getTemplates().then((result) => {
-        if (result.success && result.data) {
-          setTemplates(result.data);
+    const primaryEmails = recipients
+      .filter((r) => r.isPrimary)
+      .map((r) => r.email);
+    setSelectedEmails(
+      primaryEmails.length > 0
+        ? primaryEmails
+        : recipients.length > 0
+          ? [recipients[0].email]
+          : []
+    );
+
+    Promise.all([getTemplates(), getAgencyBranding(), getClientMergeFieldValues(clientId)]).then(
+      ([templatesResult, brandingResult, fieldValuesResult]) => {
+        if (templatesResult.success && templatesResult.data) {
+          setTemplates(templatesResult.data);
         } else {
           setError("Failed to load templates");
         }
-        setIsLoadingTemplates(false);
-      });
-    }
-  }, [open, recipients]);
+        if (brandingResult.success && brandingResult.data) {
+          setBranding(brandingResult.data);
+        }
+        if (fieldValuesResult.success && fieldValuesResult.data) {
+          setFieldValues(fieldValuesResult.data);
+        }
+        setIsLoading(false);
+      }
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, clientId]);
 
-  // Toggle recipient selection
+  // ---------------------------------------------------------------------------
+  // Handlers
+  // ---------------------------------------------------------------------------
+
   const toggleRecipient = (email: string) => {
     setSelectedEmails((prev) =>
-      prev.includes(email) ? prev.filter((e) => e !== email) : [...prev, email]
+      prev.includes(email)
+        ? prev.filter((e) => e !== email)
+        : [...prev, email]
     );
   };
 
-  // When template is selected, populate fields
   const handleTemplateSelect = (slug: string) => {
     setSelectedTemplateSlug(slug);
     setError(null);
     setSuccessMessage(null);
+    setManualFieldValues({});
 
     if (slug === "custom") {
       setSubject("");
@@ -177,69 +263,103 @@ export function SendCommunicationDialog({
     const template = validTemplates.find((t) => t.slug === slug);
     if (!template) return;
 
-    // Populate merge fields in subject and body
+    // Populate auto merge fields via server action, then convert to pill HTML
     startTransition(async () => {
       const [subjectResult, bodyResult] = await Promise.all([
         populateMergeFields(template.subject, clientId),
         populateMergeFields(template.body, clientId),
       ]);
 
-      if (subjectResult.success && subjectResult.data) {
-        setSubject(subjectResult.data);
-      } else {
-        setSubject(template.subject);
-      }
+      const populatedSubject =
+        subjectResult.success && subjectResult.data
+          ? subjectResult.data
+          : template.subject;
+      const populatedBody =
+        bodyResult.success && bodyResult.data
+          ? bodyResult.data
+          : template.body;
 
-      if (bodyResult.success && bodyResult.data) {
-        setBody(bodyResult.data);
-      } else {
-        setBody(template.body);
-      }
+      setSubject(populatedSubject);
+      // Convert remaining {field} placeholders to merge-field pill HTML
+      setBody(templateHtmlToMergeFieldHtml(populatedBody));
     });
   };
 
-  // Preview toggle
-  const handlePreviewToggle = () => {
-    if (activeTab === "edit") {
-      setIsLoadingPreview(true);
-      // Show raw HTML body as preview (styled)
-      setPreviewHtml(body);
-      setIsLoadingPreview(false);
-      setActiveTab("preview");
-    } else {
-      setActiveTab("edit");
-    }
+  const updateManualField = (key: string, value: string) => {
+    setManualFieldValues((prev) => ({ ...prev, [key]: value }));
   };
 
-  // Send the communication to all selected recipients
+  const commitCcInput = () => {
+    const resolvedCc = resolveCcEmails(ccEmails, ccInput);
+    if (resolvedCc.invalidInput) {
+      setError("Invalid CC email address");
+      return;
+    }
+
+    setCcEmails(resolvedCc.ccEmails);
+    setCcInput("");
+    setError(null);
+  };
+
+  const removeCcEmail = (email: string) => {
+    setCcEmails((prev) => prev.filter((e) => e !== email));
+  };
+
   const handleSend = () => {
     if (!subject.trim() || !body.trim()) {
       setError("Subject and body are required");
       return;
     }
-
     if (selectedEmails.length === 0) {
       setError("Please select at least one recipient");
       return;
     }
 
+    const resolvedCc = resolveCcEmails(ccEmails, ccInput);
+    if (resolvedCc.invalidInput) {
+      setError("Invalid CC email address");
+      return;
+    }
+
     setError(null);
     setSuccessMessage(null);
+    setCcEmails(resolvedCc.ccEmails);
+    setCcInput("");
 
     startTransition(async () => {
+      // Convert pill HTML back to {field_name} syntax for server processing
+      let sendBody = mergeFieldHtmlToTemplate(body);
+
+      // Replace manual fields with user-provided values
+      for (const key of MANUAL_FIELD_KEYS) {
+        const value = manualFieldValues[key]?.trim();
+        if (value) {
+          sendBody = sendBody.replace(
+            new RegExp(`\\{${key}\\}`, "g"),
+            value
+          );
+        }
+      }
+
       const selectedRecipients = recipients.filter((r) =>
         selectedEmails.includes(r.email)
       );
+
+      console.log("[SEND-DIALOG] Sending with CC:", resolvedCc.ccEmails);
 
       const results = await Promise.all(
         selectedRecipients.map((recipient) =>
           sendCommunication({
             clientId,
-            templateSlug: selectedTemplateSlug === "custom" ? null : selectedTemplateSlug || null,
+            templateSlug:
+              selectedTemplateSlug === "custom"
+                ? null
+                : selectedTemplateSlug || null,
             subject: subject.trim(),
-            body: body.trim(),
+            body: sendBody.trim(),
             recipientEmail: recipient.email,
             recipientName: recipient.name || undefined,
+            cc: resolvedCc.ccEmails.length > 0 ? resolvedCc.ccEmails : undefined,
           })
         )
       );
@@ -263,16 +383,22 @@ export function SendCommunicationDialog({
         );
         onSuccess?.();
       } else {
-        setError(failures[0] && !failures[0].success ? failures[0].error : "Failed to send email");
+        setError(
+          failures[0] && !failures[0].success
+            ? failures[0].error
+            : "Failed to send email"
+        );
       }
     });
   };
 
-  const selectedTemplate = validTemplates.find((t) => t.slug === selectedTemplateSlug);
+  // ---------------------------------------------------------------------------
+  // Render
+  // ---------------------------------------------------------------------------
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Mail className="h-5 w-5" />
@@ -283,14 +409,16 @@ export function SendCommunicationDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-4 py-4">
+        <div className="grid gap-3 py-3">
           {/* Template Selector */}
-          <div className="grid gap-2">
-            <Label htmlFor="template">Email Template</Label>
-            {isLoadingTemplates ? (
+          <div className="grid gap-1.5">
+            <Label htmlFor="template" className="text-sm font-medium">
+              Template
+            </Label>
+            {isLoading ? (
               <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Loading templates...
+                Loading...
               </div>
             ) : (
               <Select
@@ -312,15 +440,23 @@ export function SendCommunicationDialog({
                     return (
                       <SelectGroup key={stage}>
                         <SelectLabel className="flex items-center gap-2">
-                          <DashboardStatusBadge tone={stageConfig.tone} className="px-1.5 py-0 text-xs">
+                          <DashboardStatusBadge
+                            tone={stageConfig.tone}
+                            className="px-1.5 py-0 text-xs"
+                          >
                             {stageConfig.label}
                           </DashboardStatusBadge>
                           {stage === currentStage && (
-                            <span className="text-xs text-muted-foreground">(current)</span>
+                            <span className="text-xs text-muted-foreground">
+                              (current)
+                            </span>
                           )}
                         </SelectLabel>
                         {templatesByStage[stage]?.map((template) => (
-                          <SelectItem key={template.slug} value={template.slug}>
+                          <SelectItem
+                            key={template.slug}
+                            value={template.slug}
+                          >
                             {template.name}
                           </SelectItem>
                         ))}
@@ -332,42 +468,46 @@ export function SendCommunicationDialog({
             )}
           </div>
 
-          {/* Merge Fields Info */}
-          {selectedTemplate && selectedTemplate.merge_fields.length > 0 && (
-            <div className="text-xs text-muted-foreground bg-muted/50 rounded-md px-3 py-2">
-              <span className="font-medium">Merge fields:</span>{" "}
-              {selectedTemplate.merge_fields.map((f) => `{${f}}`).join(", ")}
-              <span className="block mt-1">
-                Fields like {"{assessment_date}"}, {"{assessment_time}"}, and {"{assessment_location}"} need to be filled in manually.
-              </span>
-            </div>
-          )}
+          {/* From / Reply-To / To */}
+          <div className="grid grid-cols-[4.5rem_1fr] gap-y-2 items-start text-sm">
+            <Label className="text-xs font-medium text-muted-foreground pt-0.5">From</Label>
+            <span className="text-xs text-foreground truncate pt-0.5">{fromLine}</span>
 
-          {/* Recipients */}
-          <div className="grid gap-2">
-            <Label>To</Label>
-            <div className="bg-muted/50 rounded-md px-3 py-2 space-y-2">
+            <Label className="text-xs font-medium text-muted-foreground pt-0.5">Reply-To</Label>
+            <span className="text-xs text-foreground truncate pt-0.5">{replyToLine}</span>
+
+            <Label className="text-xs font-medium text-muted-foreground pt-2">To</Label>
+            <div className="bg-muted/40 rounded-md px-3 py-2 space-y-1.5">
               {recipients.map((recipient) => (
                 <label
                   key={recipient.email}
-                  className="flex items-center gap-3 cursor-pointer"
+                  className="flex items-center gap-2.5 cursor-pointer"
                 >
                   <Checkbox
                     checked={selectedEmails.includes(recipient.email)}
                     onCheckedChange={() => toggleRecipient(recipient.email)}
                     disabled={isPending}
                   />
-                  <div className="flex items-center gap-2 text-sm min-w-0">
-                    <span className="font-medium truncate">{recipient.name}</span>
-                    <Badge variant="outline" className="text-xs shrink-0">
-                      {RELATIONSHIP_LABELS[recipient.relationship] || recipient.relationship}
+                  <div className="flex items-center gap-1.5 text-sm min-w-0">
+                    <span className="font-medium truncate text-xs">
+                      {recipient.name}
+                    </span>
+                    <Badge
+                      variant="outline"
+                      className="text-[10px] shrink-0 px-1.5 py-0"
+                    >
+                      {RELATIONSHIP_LABELS[recipient.relationship] ||
+                        recipient.relationship}
                     </Badge>
                     {recipient.isPrimary && (
-                      <Badge variant="secondary" className="text-xs shrink-0">
+                      <Badge
+                        variant="secondary"
+                        className="text-[10px] shrink-0 px-1.5 py-0"
+                      >
                         Primary
                       </Badge>
                     )}
-                    <span className="text-muted-foreground truncate">
+                    <span className="text-muted-foreground truncate text-xs">
                       &lt;{recipient.email}&gt;
                     </span>
                   </div>
@@ -379,60 +519,128 @@ export function SendCommunicationDialog({
                 </p>
               )}
             </div>
+
+            {/* CC */}
+            <Label className="text-xs font-medium text-muted-foreground pt-1">CC</Label>
+            {!showCcField ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="w-fit h-6 text-xs text-muted-foreground"
+                onClick={() => setShowCcField(true)}
+              >
+                <Plus className="h-3 w-3 mr-1" />
+                Add CC
+              </Button>
+            ) : (
+              <div className="space-y-1.5">
+                {ccEmails.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {ccEmails.map((email) => (
+                      <Badge
+                        key={email}
+                        variant="secondary"
+                        className="gap-1 pr-1 text-xs"
+                      >
+                        {email}
+                        <button
+                          type="button"
+                          onClick={() => removeCcEmail(email)}
+                          className="rounded-full hover:bg-muted p-0.5"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+                <div className="flex gap-2">
+                  <Input
+                    type="email"
+                    placeholder="email@example.com"
+                    value={ccInput}
+                    onChange={(e) => setCcInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === "," || e.key === "Tab") {
+                        e.preventDefault();
+                        commitCcInput();
+                      }
+                    }}
+                    onBlur={commitCcInput}
+                    disabled={isPending}
+                    className="flex-1 h-8 text-sm"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={commitCcInput}
+                    disabled={isPending || !ccInput.trim()}
+                    className="h-8"
+                  >
+                    Add
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Subject */}
-          <div className="grid gap-2">
-            <Label htmlFor="subject">Subject *</Label>
+          <div className="grid gap-1.5">
+            <Label htmlFor="subject" className="text-sm font-medium">
+              Subject
+            </Label>
             <Input
               id="subject"
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
               placeholder="Email subject line"
               disabled={isPending}
+              className="h-9"
             />
           </div>
 
-          {/* Body with Edit/Preview tabs */}
-          <div className="grid gap-2">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="body">Body *</Label>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={handlePreviewToggle}
-                className="h-7 text-xs"
-              >
-                <Eye className="h-3 w-3 mr-1" />
-                {activeTab === "edit" ? "Preview" : "Edit"}
-              </Button>
-            </div>
-            {activeTab === "edit" ? (
-              <Textarea
-                id="body"
-                value={body}
-                onChange={(e) => setBody(e.target.value)}
-                placeholder="Email body content (HTML supported)..."
-                rows={12}
-                className="font-mono text-sm"
-                disabled={isPending}
-              />
-            ) : (
-              <div className="border rounded-md p-4 min-h-[200px] max-h-[400px] overflow-y-auto bg-white">
-                {isLoadingPreview ? (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Loading preview...
+          {/* Manual Field Inputs (only when relevant fields are in the body) */}
+          {activeManualFields.length > 0 && (
+            <div className="grid gap-1.5">
+              <Label className="text-sm font-medium">
+                Fill in required fields
+              </Label>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                {activeManualFields.map((key) => (
+                  <div key={key}>
+                    <Label
+                      htmlFor={`manual-${key}`}
+                      className="text-xs text-muted-foreground mb-1 block"
+                    >
+                      {MERGE_FIELD_MAP[key]?.label || key}
+                    </Label>
+                    <Input
+                      id={`manual-${key}`}
+                      value={manualFieldValues[key] || ""}
+                      onChange={(e) => updateManualField(key, e.target.value)}
+                      placeholder={MERGE_FIELD_MAP[key]?.label || key}
+                      disabled={isPending}
+                      className="h-8 text-sm"
+                    />
                   </div>
-                ) : (
-                  <div
-                    className="prose prose-sm max-w-none"
-                    dangerouslySetInnerHTML={{ __html: previewHtml }}
-                  />
-                )}
+                ))}
               </div>
-            )}
+            </div>
+          )}
+
+          {/* Branded email body editor */}
+          <div className="grid gap-1.5">
+            <Label className="text-sm font-medium">Body</Label>
+            <EmailEditor
+              content={body}
+              onChange={setBody}
+              branding={branding}
+              disabled={isPending}
+              placeholder="Write your email here..."
+              fieldValues={fieldValues}
+            />
           </div>
 
           {/* Error/Success Messages */}
@@ -442,7 +650,7 @@ export function SendCommunicationDialog({
             </div>
           )}
           {successMessage && (
-            <div className="rounded-md bg-primary/10 px-3 py-2 text-sm text-primary">
+            <div className="rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-700 border border-emerald-200">
               {successMessage}
             </div>
           )}
@@ -459,7 +667,13 @@ export function SendCommunicationDialog({
           </Button>
           <Button
             onClick={handleSend}
-            disabled={isPending || !subject.trim() || !body.trim() || selectedEmails.length === 0 || !!successMessage}
+            disabled={
+              isPending ||
+              !subject.trim() ||
+              !body.trim() ||
+              selectedEmails.length === 0 ||
+              !!successMessage
+            }
           >
             {isPending ? (
               <>

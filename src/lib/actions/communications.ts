@@ -217,28 +217,37 @@ export async function getAllCommunications(
 // =============================================================================
 
 /**
- * Populate merge fields in template content
+ * Internal helper: resolve all merge field values for a client.
+ * Returns a Record<string, string> where empty string means the field has no value.
  */
-export async function populateMergeFields(
-  content: string,
-  clientId: string
-): Promise<ActionResult<string>> {
-  const user = await getUser();
-  const profileId = await getCurrentProfileId();
-  if (!user || !profileId) {
-    return { success: false, error: "Not authenticated" };
-  }
-
+async function resolveFieldValues(
+  clientId: string,
+  profileId: string
+): Promise<ActionResult<Record<string, string>>> {
   const supabase = await createSupabaseClient();
 
-  // Fetch client with related data
+  // Fetch client with all related data for merge fields
   const { data: client, error: clientError } = await supabase
     .from("clients")
     .select(`
       child_first_name,
       child_last_name,
-      client_parents(first_name, last_name, email, is_primary),
-      client_insurances(insurance_name, is_primary)
+      child_date_of_birth,
+      child_diagnosis,
+      child_school_name,
+      child_school_district,
+      child_grade_level,
+      child_pediatrician_name,
+      child_pediatrician_phone,
+      preferred_language,
+      service_start_date,
+      referral_source,
+      referral_date,
+      status,
+      funding_source,
+      client_parents(first_name, last_name, email, phone, relationship, is_primary),
+      client_insurances(insurance_name, plan_name, member_id, group_number, insurance_type, is_primary),
+      client_authorizations(auth_reference_number, start_date, end_date, units_requested, units_used, status)
     `)
     .eq("id", clientId)
     .eq("profile_id", profileId)
@@ -262,27 +271,119 @@ export async function populateMergeFields(
     .eq("profile_id", profileId)
     .single();
 
-  // Resolve field values
-  const parents = (client.client_parents as { first_name: string | null; last_name: string | null; email: string | null; is_primary: boolean }[]) || [];
+  // Resolve related records
+  type ParentRow = { first_name: string | null; last_name: string | null; email: string | null; phone: string | null; relationship: string | null; is_primary: boolean };
+  type InsuranceRow = { insurance_name: string | null; plan_name: string | null; member_id: string | null; group_number: string | null; insurance_type: string | null; is_primary: boolean };
+  type AuthRow = { auth_reference_number: string | null; start_date: string | null; end_date: string | null; units_requested: number | null; units_used: number | null; status: string | null };
+
+  const parents = (client.client_parents as unknown as ParentRow[]) || [];
   const primaryParent = parents.find((p) => p.is_primary) || parents[0];
-  const insurances = (client.client_insurances as { insurance_name: string | null; is_primary: boolean }[]) || [];
+  const insurances = (client.client_insurances as unknown as InsuranceRow[]) || [];
   const primaryInsurance = insurances.find((i) => i.is_primary) || insurances[0];
+  const auths = (client.client_authorizations as unknown as AuthRow[]) || [];
+  const latestAuth = auths[0]; // most recent authorization
   const locations = (listing?.locations as { phone: string | null }[]) || [];
   const primaryLocation = locations[0];
   const slug = listing?.slug || "";
 
+  // Helper to format dates
+  const fmtDate = (d: string | null | undefined) => {
+    if (!d) return "";
+    try { return new Date(d).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }); } catch { return d; }
+  };
+
   const fields: Record<string, string> = {
-    client_name: [client.child_first_name, client.child_last_name].filter(Boolean).join(" ") || "your child",
-    parent_name: [primaryParent?.first_name, primaryParent?.last_name].filter(Boolean).join(" ") || "there",
+    // Client fields
+    client_name: [client.child_first_name, client.child_last_name].filter(Boolean).join(" "),
+    child_first_name: client.child_first_name || "",
+    child_last_name: client.child_last_name || "",
+    child_date_of_birth: fmtDate(client.child_date_of_birth),
+    child_diagnosis: Array.isArray(client.child_diagnosis) ? (client.child_diagnosis as string[]).join(", ") : "",
+    child_school_name: client.child_school_name || "",
+    child_school_district: client.child_school_district || "",
+    child_grade_level: client.child_grade_level || "",
+    child_pediatrician_name: client.child_pediatrician_name || "",
+    child_pediatrician_phone: client.child_pediatrician_phone || "",
+    preferred_language: client.preferred_language || "",
+    service_start_date: fmtDate(client.service_start_date),
+    referral_source: client.referral_source || "",
+    referral_date: fmtDate(client.referral_date),
+    status: client.status || "",
+    funding_source: client.funding_source || "",
+
+    // Parent fields
+    parent_name: [primaryParent?.first_name, primaryParent?.last_name].filter(Boolean).join(" "),
+    parent_first_name: primaryParent?.first_name || "",
+    parent_last_name: primaryParent?.last_name || "",
     parent_email: primaryParent?.email || "",
-    agency_name: profile?.agency_name || "Our Agency",
+    parent_phone: primaryParent?.phone || "",
+    parent_relationship: primaryParent?.relationship || "",
+
+    // Insurance fields
+    insurance_name: primaryInsurance?.insurance_name || "",
+    insurance_plan_name: primaryInsurance?.plan_name || "",
+    insurance_member_id: primaryInsurance?.member_id || "",
+    insurance_group_number: primaryInsurance?.group_number || "",
+    insurance_type: primaryInsurance?.insurance_type || "",
+
+    // Authorization fields
+    auth_reference_number: latestAuth?.auth_reference_number || "",
+    auth_start_date: fmtDate(latestAuth?.start_date),
+    auth_end_date: fmtDate(latestAuth?.end_date),
+    auth_units_requested: latestAuth?.units_requested?.toString() || "",
+    auth_units_used: latestAuth?.units_used?.toString() || "",
+    auth_units_remaining: latestAuth?.units_requested != null && latestAuth?.units_used != null
+      ? (latestAuth.units_requested - latestAuth.units_used).toString()
+      : "",
+    auth_status: latestAuth?.status || "",
+
+    // Agency fields
+    agency_name: profile?.agency_name || "",
     agency_phone: primaryLocation?.phone || "",
     agency_email: profile?.contact_email || "",
-    insurance_name: primaryInsurance?.insurance_name || "your insurance provider",
+
+    // Link fields
     resources_link: slug ? `${process.env.NEXT_PUBLIC_SITE_URL || ""}/resources/${slug}` : "",
     intake_link: slug ? `${process.env.NEXT_PUBLIC_SITE_URL || ""}/intake/${slug}/client` : "",
     contact_link: slug ? `${process.env.NEXT_PUBLIC_SITE_URL || ""}/contact/${slug}` : "",
-    // Manual fields that the user fills in the modal:
+
+    // Manual fields — left empty (resolved client-side)
+    assessment_date: "",
+    assessment_time: "",
+    assessment_location: "",
+  };
+
+  return { success: true, data: fields };
+}
+
+/**
+ * Populate merge fields in template content
+ */
+export async function populateMergeFields(
+  content: string,
+  clientId: string
+): Promise<ActionResult<string>> {
+  const user = await getUser();
+  const profileId = await getCurrentProfileId();
+  if (!user || !profileId) {
+    return { success: false, error: "Not authenticated" };
+  }
+
+  const result = await resolveFieldValues(clientId, profileId);
+  if (!result.success) {
+    return result;
+  }
+
+  const fields = result.data!;
+
+  // Apply fallback display values for fields that are empty
+  const displayFields: Record<string, string> = {
+    ...fields,
+    client_name: fields.client_name || "your child",
+    parent_name: fields.parent_name || "there",
+    insurance_name: fields.insurance_name || "your insurance provider",
+    agency_name: fields.agency_name || "Our Agency",
+    // Manual fields keep their placeholders
     assessment_date: "{assessment_date}",
     assessment_time: "{assessment_time}",
     assessment_location: "{assessment_location}",
@@ -290,16 +391,45 @@ export async function populateMergeFields(
 
   // Replace all merge fields
   let populated = content;
-  for (const [key, value] of Object.entries(fields)) {
+  for (const [key, value] of Object.entries(displayFields)) {
     populated = populated.replace(new RegExp(`\\{${key}\\}`, "g"), value);
   }
 
   return { success: true, data: populated };
 }
 
+/**
+ * Get resolved merge field values for a client (used by UI to show empty field indicators)
+ */
+export async function getClientMergeFieldValues(
+  clientId: string
+): Promise<ActionResult<Record<string, string>>> {
+  const user = await getUser();
+  const profileId = await getCurrentProfileId();
+  if (!user || !profileId) {
+    return { success: false, error: "Not authenticated" };
+  }
+
+  return resolveFieldValues(clientId, profileId);
+}
+
 // =============================================================================
 // AGENCY BRANDING
 // =============================================================================
+
+/**
+ * Get agency branding data for the current user (public export for the email composer UI)
+ */
+export async function getAgencyBranding(): Promise<ActionResult<AgencyBrandingData>> {
+  const user = await getUser();
+  const profileId = await getCurrentProfileId();
+  if (!user || !profileId) {
+    return { success: false, error: "Not authenticated" };
+  }
+
+  const data = await getAgencyBrandingData(profileId);
+  return { success: true, data };
+}
 
 async function getAgencyBrandingData(
   profileId: string
@@ -346,6 +476,7 @@ export async function sendCommunication(params: {
   body: string;
   recipientEmail: string;
   recipientName?: string;
+  cc?: string[];
 }): Promise<ActionResult<{ communicationId: string }>> {
   const user = await getUser();
   const profileId = await getCurrentProfileId();
@@ -369,8 +500,36 @@ export async function sendCommunication(params: {
     return { success: false, error: "Invalid email address" };
   }
 
+  // Resolve merge fields once — reuse for both subject and body
+  const fieldsResult = await resolveFieldValues(params.clientId, profileId);
+  if (!fieldsResult.success) {
+    return { success: false, error: fieldsResult.error };
+  }
+  const fields = fieldsResult.data!;
+  const displayFields: Record<string, string> = {
+    ...fields,
+    client_name: fields.client_name || "your child",
+    parent_name: fields.parent_name || "there",
+    insurance_name: fields.insurance_name || "your insurance provider",
+    agency_name: fields.agency_name || "Our Agency",
+    assessment_date: "{assessment_date}",
+    assessment_time: "{assessment_time}",
+    assessment_location: "{assessment_location}",
+  };
+
+  const applyMergeFields = (text: string) => {
+    let result = text;
+    for (const [key, value] of Object.entries(displayFields)) {
+      result = result.replace(new RegExp(`\\{${key}\\}`, "g"), value);
+    }
+    return result;
+  };
+
+  const resolvedBody = applyMergeFields(params.body);
+  const resolvedSubject = applyMergeFields(params.subject);
+
   // Sanitize body — strip script tags to prevent XSS in emails
-  const sanitizedBody = params.body
+  const sanitizedBody = resolvedBody
     .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
     .replace(/on\w+="[^"]*"/gi, "");
 
@@ -408,13 +567,25 @@ export async function sendCommunication(params: {
       // Use agency branding: from name is the agency, reply-to is agency email
       const { agencyEmailWrapper } = await import("@/lib/email/email-helpers");
 
-      const { error: resendError } = await resend.emails.send({
-        from: `${agencyData.agencyName} <${getFromEmail("goodaba")}>`,
+      const ccEmails = params.cc?.filter((e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e));
+
+      console.log("[COMMUNICATIONS] Sending email:", {
         to: params.recipientEmail,
+        cc: ccEmails,
+        ccFromParams: params.cc,
+        subject: resolvedSubject.substring(0, 50),
+      });
+
+      const { data: resendData, error: resendError } = await resend.emails.send({
+        from: `${agencyData.agencyName} <${getFromEmail("goodaba")}>`,
+        to: [params.recipientEmail],
+        cc: ccEmails && ccEmails.length > 0 ? ccEmails : undefined,
         replyTo: agencyData.contactEmail || undefined,
-        subject: params.subject,
+        subject: resolvedSubject,
         html: agencyEmailWrapper(sanitizedBody, agencyData),
       });
+
+      console.log("[COMMUNICATIONS] Resend response:", { data: resendData, error: resendError });
 
       if (resendError) {
         console.error("[COMMUNICATIONS] Resend send error:", resendError);
@@ -435,7 +606,7 @@ export async function sendCommunication(params: {
       client_id: params.clientId,
       profile_id: profileId,
       template_slug: params.templateSlug,
-      subject: params.subject,
+      subject: resolvedSubject,
       body: sanitizedBody,
       recipient_email: params.recipientEmail,
       recipient_name: params.recipientName || null,
