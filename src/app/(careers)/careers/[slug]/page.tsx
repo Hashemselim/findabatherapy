@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { MapPin, Briefcase, BadgeCheck, Building2, Globe } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { BrandedLogo } from "@/components/branded/branded-logo";
 import { JsonLd } from "@/components/seo/json-ld";
 import { CareersJobFilter } from "@/components/jobs/careers-job-filter";
 import { getJobsByProvider } from "@/lib/queries/jobs";
@@ -187,13 +187,6 @@ export default async function BrandedCareersPage({ params }: CareersPageProps) {
     notFound();
   }
 
-  const initials = provider.agencyName
-    .split(" ")
-    .map((w) => w[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
-
   const brandColor = provider.intakeFormSettings.background_color;
   const contrastColor = getContrastingTextColor(brandColor);
 
@@ -230,20 +223,12 @@ export default async function BrandedCareersPage({ params }: CareersPageProps) {
           >
             {/* Logo */}
             <div className="mx-auto mb-6">
-              <Avatar
-                className="mx-auto h-20 w-20 border-4 shadow-lg sm:h-24 sm:w-24"
-                style={{ borderColor: brandColor }}
-              >
-                {provider.logoUrl ? (
-                  <AvatarImage src={provider.logoUrl} alt={provider.agencyName} />
-                ) : null}
-                <AvatarFallback
-                  className="text-xl font-bold sm:text-2xl"
-                  style={{ backgroundColor: getLighterShade(brandColor, 0.15), color: brandColor }}
-                >
-                  {initials}
-                </AvatarFallback>
-              </Avatar>
+              <BrandedLogo
+                logoUrl={provider.logoUrl}
+                agencyName={provider.agencyName}
+                brandColor={brandColor}
+                variant="hero"
+              />
             </div>
 
             {/* Company Name & Verified Badge */}
@@ -370,17 +355,13 @@ export default async function BrandedCareersPage({ params }: CareersPageProps) {
           >
             <div className="flex flex-col items-center gap-3 text-center sm:flex-row sm:justify-between sm:text-left">
               <div className="flex items-center gap-2">
-                <Avatar className="h-6 w-6 border border-border/60">
-                  {provider.logoUrl ? (
-                    <AvatarImage src={provider.logoUrl} alt={provider.agencyName} />
-                  ) : null}
-                  <AvatarFallback
-                    className="text-[10px] font-semibold"
-                    style={{ backgroundColor: getLighterShade(brandColor, 0.15), color: brandColor }}
-                  >
-                    {initials}
-                  </AvatarFallback>
-                </Avatar>
+                <BrandedLogo
+                  logoUrl={provider.logoUrl}
+                  agencyName={provider.agencyName}
+                  brandColor={brandColor}
+                  variant="footer"
+                  className="mx-0"
+                />
                 <span className="text-sm font-medium text-foreground">
                   {provider.agencyName}
                 </span>

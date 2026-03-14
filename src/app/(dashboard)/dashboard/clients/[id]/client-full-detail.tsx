@@ -121,9 +121,12 @@ import { SendCommunicationDialog } from "@/components/dashboard/clients/send-com
 import { createIntakeToken } from "@/lib/actions/intake";
 import { CommunicationHistory } from "@/components/dashboard/clients/communication-history";
 import { DocumentEditDialog } from "@/components/dashboard/clients/edit/document-edit-dialog";
+import { AgreementLinkDialog } from "@/components/dashboard/forms/agreement-link-dialog";
+import type { AgreementPacketOption } from "@/lib/actions/agreements";
 
 interface ClientFullDetailProps {
   client: ClientDetail;
+  agreementPackets: AgreementPacketOption[];
 }
 
 const EMAIL_PROVIDER_OPTIONS = [
@@ -277,7 +280,7 @@ function EmptyState({ message }: { message: string }) {
 
 type TaskStatus = "pending" | "in_progress" | "completed";
 
-export function ClientFullDetail({ client }: ClientFullDetailProps) {
+export function ClientFullDetail({ client, agreementPackets }: ClientFullDetailProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [isStatusPending, startStatusTransition] = useTransition();
@@ -308,6 +311,7 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
   // Intake token state
   const [intakeLinkCopied, setIntakeLinkCopied] = useState(false);
   const [intakeLinkLoading, setIntakeLinkLoading] = useState(false);
+  const [agreementLinkDialogOpen, setAgreementLinkDialogOpen] = useState(false);
 
   // Document management state
   const [documentDialogOpen, setDocumentDialogOpen] = useState(false);
@@ -1534,6 +1538,15 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
                       Send
                     </Button>
                   )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setAgreementLinkDialogOpen(true)}
+                    disabled={agreementPackets.length === 0}
+                  >
+                    <ClipboardList className="h-4 w-4 mr-1" />
+                    Share Agreement
+                  </Button>
                 </div>
               }
             />
@@ -1669,6 +1682,14 @@ export function ClientFullDetail({ client }: ClientFullDetailProps) {
           onSuccess={() => setCommunicationRefreshKey((k) => k + 1)}
         />
       )}
+      <AgreementLinkDialog
+        open={agreementLinkDialogOpen}
+        onOpenChange={setAgreementLinkDialogOpen}
+        packets={agreementPackets}
+        clients={[]}
+        fixedClientId={client.id}
+        fixedClientName={childName}
+      />
     </>
   );
 }

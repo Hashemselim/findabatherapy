@@ -2,16 +2,10 @@
 
 import Link from "next/link";
 import { ChevronRight, CheckCircle2, Sparkles } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { BrandedLogo } from "@/components/branded/branded-logo";
 import { Button } from "@/components/ui/button";
 import { getProviderWebsitePath } from "@/lib/utils/public-paths";
 import { useWebsite } from "../../layout/website-provider";
-
-function getLighterShade(hexColor: string, opacity: number) {
-  return `${hexColor}${Math.round(opacity * 255)
-    .toString(16)
-    .padStart(2, "0")}`;
-}
 
 export function ModernHero() {
   const { provider, brandColor, isPremium } = useWebsite();
@@ -20,13 +14,6 @@ export function ModernHero() {
 
   const primaryLocation =
     provider.locations.find((l) => l.isPrimary) || provider.locations[0];
-
-  const initials = provider.profile.agencyName
-    .split(" ")
-    .map((w) => w[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
 
   return (
     <section className="relative -mt-16 overflow-hidden sm:-mt-18">
@@ -65,22 +52,14 @@ export function ModernHero() {
         <div className="mx-auto max-w-3xl text-center">
           {/* Logo */}
           <div className="mb-8 flex justify-center">
-            <Avatar className="h-20 w-20 border-4 border-white/30 shadow-2xl ring-4 ring-white/10 sm:h-24 sm:w-24">
-              {provider.logoUrl ? (
-                <AvatarImage
-                  src={provider.logoUrl}
-                  alt={provider.profile.agencyName}
-                />
-              ) : null}
-              <AvatarFallback
-                className="text-xl font-bold text-white sm:text-2xl"
-                style={{
-                  backgroundColor: getLighterShade(brandColor, 0.3),
-                }}
-              >
-                {initials}
-              </AvatarFallback>
-            </Avatar>
+            <BrandedLogo
+              logoUrl={provider.logoUrl}
+              agencyName={provider.profile.agencyName}
+              brandColor={brandColor}
+              borderColor="rgba(255,255,255,0.32)"
+              variant="hero"
+              className="bg-white/95 ring-4 ring-white/10"
+            />
           </div>
 
           {/* Agency Name */}

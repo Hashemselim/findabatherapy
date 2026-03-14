@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { Globe } from "lucide-react";
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { BrandedLogo } from "@/components/branded/branded-logo";
 import { Button } from "@/components/ui/button";
 import { getClientResourcesPageData } from "@/lib/actions/intake";
 import { getContrastingTextColor } from "@/lib/utils/brand-color";
@@ -56,13 +56,6 @@ export default async function ResourcesLayout({ children, params }: ResourcesLay
   const contrastColor = getContrastingTextColor(background_color);
   const brandTextColor = contrastColor === "#000000" ? "#1f2937" : "#FFFFFF";
 
-  const initials = profile.agencyName
-    .split(" ")
-    .map((w) => w[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
-
   return (
     <div
       className="min-h-screen"
@@ -77,20 +70,12 @@ export default async function ResourcesLayout({ children, params }: ResourcesLay
             style={{ backgroundColor: getLighterShade(background_color, 0.08) }}
           >
             <div className="mx-auto mb-6">
-              <Avatar
-                className="mx-auto h-20 w-20 border-4 shadow-lg sm:h-24 sm:w-24"
-                style={{ borderColor: background_color }}
-              >
-                {listing.logoUrl ? (
-                  <AvatarImage src={listing.logoUrl} alt={profile.agencyName} />
-                ) : null}
-                <AvatarFallback
-                  className="text-xl font-bold sm:text-2xl"
-                  style={{ backgroundColor: getLighterShade(background_color, 0.15), color: brandTextColor }}
-                >
-                  {initials}
-                </AvatarFallback>
-              </Avatar>
+              <BrandedLogo
+                logoUrl={listing.logoUrl}
+                agencyName={profile.agencyName}
+                brandColor={background_color}
+                variant="hero"
+              />
             </div>
 
             <div className="space-y-3">
@@ -136,17 +121,13 @@ export default async function ResourcesLayout({ children, params }: ResourcesLay
           >
             <div className="flex flex-col items-center gap-3 text-center sm:flex-row sm:justify-between sm:text-left">
               <div className="flex items-center gap-2">
-                <Avatar className="h-6 w-6 border border-border/60">
-                  {listing.logoUrl ? (
-                    <AvatarImage src={listing.logoUrl} alt={profile.agencyName} />
-                  ) : null}
-                  <AvatarFallback
-                    className="text-[10px] font-semibold"
-                    style={{ backgroundColor: getLighterShade(background_color, 0.15), color: brandTextColor }}
-                  >
-                    {initials}
-                  </AvatarFallback>
-                </Avatar>
+                <BrandedLogo
+                  logoUrl={listing.logoUrl}
+                  agencyName={profile.agencyName}
+                  brandColor={background_color}
+                  variant="footer"
+                  className="mx-0"
+                />
                 <span className="text-sm font-medium text-foreground">{profile.agencyName}</span>
               </div>
               <p className="text-xs text-muted-foreground">

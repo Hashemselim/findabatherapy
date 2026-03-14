@@ -360,6 +360,7 @@ export function SendCommunicationDialog({
             recipientEmail: recipient.email,
             recipientName: recipient.name || undefined,
             cc: resolvedCc.ccEmails.length > 0 ? resolvedCc.ccEmails : undefined,
+            manualFieldValues,
           })
         )
       );

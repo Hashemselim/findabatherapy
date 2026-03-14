@@ -13,6 +13,15 @@ function normalizeHexColor(hexColor: string): string {
   return "#000000";
 }
 
+function getPerceivedBrightness(hexColor: string): number {
+  const normalized = normalizeHexColor(hexColor);
+  const r = parseInt(normalized.slice(1, 3), 16);
+  const g = parseInt(normalized.slice(3, 5), 16);
+  const b = parseInt(normalized.slice(5, 7), 16);
+
+  return (r * 299 + g * 587 + b * 114) / 1000;
+}
+
 function hexChannelToLinear(channel: string): number {
   const srgb = parseInt(channel, 16) / 255;
   return srgb <= 0.04045
@@ -50,8 +59,11 @@ export function getContrastingTextColor(
 }
 
 export function getSolidBrandButtonStyles(backgroundColor: string) {
+  const normalized = normalizeHexColor(backgroundColor);
+  const preferredTextColor = getPerceivedBrightness(normalized) >= 160 ? "#111827" : "#FFFFFF";
+
   return {
-    backgroundColor,
-    color: getContrastingTextColor(backgroundColor),
+    backgroundColor: normalized,
+    color: preferredTextColor,
   };
 }

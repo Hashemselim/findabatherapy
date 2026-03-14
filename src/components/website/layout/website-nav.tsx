@@ -4,17 +4,11 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X, ChevronRight } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { BrandedLogo } from "@/components/branded/branded-logo";
 import { Button } from "@/components/ui/button";
 import { getSolidBrandButtonStyles } from "@/lib/utils/brand-color";
 import { getProviderWebsitePath } from "@/lib/utils/public-paths";
 import { useWebsite } from "./website-provider";
-
-function getLighterShade(hexColor: string, opacity: number) {
-  return `${hexColor}${Math.round(opacity * 255)
-    .toString(16)
-    .padStart(2, "0")}`;
-}
 
 export function WebsiteNav() {
   const { provider, brandColor } = useWebsite();
@@ -35,13 +29,6 @@ export function WebsiteNav() {
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
-
-  const initials = provider.profile.agencyName
-    .split(" ")
-    .map((w) => w[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
 
   const navLinks = [
     { label: "Home", href: basePath },
@@ -66,26 +53,13 @@ export function WebsiteNav() {
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:h-18 sm:px-6 lg:px-8">
           {/* Logo + Name */}
           <Link href={basePath} className="flex items-center gap-3">
-            <Avatar
-              className="h-9 w-9 border-2 shadow-xs sm:h-10 sm:w-10"
-              style={{ borderColor: getLighterShade(brandColor, 0.3) }}
-            >
-              {provider.logoUrl ? (
-                <AvatarImage
-                  src={provider.logoUrl}
-                  alt={provider.profile.agencyName}
-                />
-              ) : null}
-              <AvatarFallback
-                className="text-xs font-bold sm:text-sm"
-                style={{
-                  backgroundColor: getLighterShade(brandColor, 0.12),
-                  color: brandColor,
-                }}
-              >
-                {initials}
-              </AvatarFallback>
-            </Avatar>
+            <BrandedLogo
+              logoUrl={provider.logoUrl}
+              agencyName={provider.profile.agencyName}
+              brandColor={brandColor}
+              variant="compact"
+              className="mx-0 h-11 max-w-[140px] sm:h-12 sm:max-w-[160px]"
+            />
             <span
               className={`text-base font-semibold tracking-tight transition-colors duration-300 sm:text-lg ${
                 showSolidNav ? "text-gray-900" : "text-white"

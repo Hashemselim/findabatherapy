@@ -11,6 +11,7 @@ export const STORAGE_BUCKETS = {
   logos: "listing-logos",
   photos: "listing-photos",
   documents: "client-documents",
+  agreements: "agreement-documents",
 } as const;
 
 export type BucketName = (typeof STORAGE_BUCKETS)[keyof typeof STORAGE_BUCKETS];
@@ -125,7 +126,7 @@ export function generateStoragePath(
   const uniqueId = crypto.randomUUID();
 
   if (type === "logo") {
-    return `${listingId}/logo.${ext}`;
+    return `${listingId}/logo-${uniqueId}.${ext}`;
   }
 
   return `${listingId}/${uniqueId}.${ext}`;
@@ -147,6 +148,8 @@ export function getPublicUrl(
 // =============================================================================
 
 export const DOCUMENT_MAX_SIZE = 10 * 1024 * 1024; // 10MB
+export const AGREEMENT_PDF_MAX_SIZE = 10 * 1024 * 1024; // 10MB
+export const AGREEMENT_SIGNATURE_MAX_SIZE = 2 * 1024 * 1024; // 2MB
 
 /**
  * Document count limits per client
@@ -176,6 +179,13 @@ export const ALLOWED_DOCUMENT_EXTENSIONS = [
   ".webp",
 ] as const;
 
+export const ALLOWED_AGREEMENT_DOCUMENT_TYPES = [
+  "application/pdf",
+] as const;
+
+export type AllowedAgreementDocumentType =
+  (typeof ALLOWED_AGREEMENT_DOCUMENT_TYPES)[number];
+
 /**
  * Validate document MIME type
  */
@@ -183,11 +193,23 @@ export function isValidDocumentType(mimeType: string): mimeType is AllowedDocume
   return ALLOWED_DOCUMENT_TYPES.includes(mimeType as AllowedDocumentType);
 }
 
+export function isValidAgreementDocumentType(
+  mimeType: string
+): mimeType is AllowedAgreementDocumentType {
+  return ALLOWED_AGREEMENT_DOCUMENT_TYPES.includes(
+    mimeType as AllowedAgreementDocumentType
+  );
+}
+
 /**
  * Validate document file size
  */
 export function isValidDocumentSize(size: number): boolean {
   return size <= DOCUMENT_MAX_SIZE;
+}
+
+export function isValidAgreementDocumentSize(size: number): boolean {
+  return size <= AGREEMENT_PDF_MAX_SIZE;
 }
 
 /**
@@ -204,6 +226,26 @@ export function generateDocumentPath(
   const ext = parts.length > 1 ? parts.pop()!.toLowerCase() : "pdf";
   const uniqueId = crypto.randomUUID();
   return `${profileId}/${clientId}/${uniqueId}.${ext}`;
+}
+
+export function generateAgreementDocumentPath(
+  profileId: string,
+  packetId: string,
+  filename: string
+): string {
+  const parts = filename.split(".");
+  const ext = parts.length > 1 ? parts.pop()!.toLowerCase() : "pdf";
+  const uniqueId = crypto.randomUUID();
+  return `${profileId}/packets/${packetId}/${uniqueId}.${ext}`;
+}
+
+export function generateAgreementArtifactPath(
+  profileId: string,
+  submissionId: string,
+  type: "bundle" | "signature",
+  ext: "pdf" | "png"
+): string {
+  return `${profileId}/submissions/${submissionId}/${type}.${ext}`;
 }
 
 /**

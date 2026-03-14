@@ -54,6 +54,12 @@ export interface CommunicationFilters {
   dateTo?: string;
 }
 
+const MANUAL_COMMUNICATION_FIELDS = [
+  "assessment_date",
+  "assessment_time",
+  "assessment_location",
+] as const;
+
 // =============================================================================
 // TEMPLATE QUERIES
 // =============================================================================
@@ -359,9 +365,21 @@ async function resolveFieldValues(
 /**
  * Populate merge fields in template content
  */
+function applyMergeFieldValues(
+  content: string,
+  fieldValues: Record<string, string>
+) {
+  let populated = content;
+  for (const [key, value] of Object.entries(fieldValues)) {
+    populated = populated.replace(new RegExp(`\\{${key}\\}`, "g"), value);
+  }
+  return populated;
+}
+
 export async function populateMergeFields(
   content: string,
-  clientId: string
+  clientId: string,
+  manualFieldValues?: Partial<Record<(typeof MANUAL_COMMUNICATION_FIELDS)[number], string>>
 ): Promise<ActionResult<string>> {
   const user = await getUser();
   const profileId = await getCurrentProfileId();
@@ -383,19 +401,12 @@ export async function populateMergeFields(
     parent_name: fields.parent_name || "there",
     insurance_name: fields.insurance_name || "your insurance provider",
     agency_name: fields.agency_name || "Our Agency",
-    // Manual fields keep their placeholders
-    assessment_date: "{assessment_date}",
-    assessment_time: "{assessment_time}",
-    assessment_location: "{assessment_location}",
+    assessment_date: manualFieldValues?.assessment_date?.trim() || "{assessment_date}",
+    assessment_time: manualFieldValues?.assessment_time?.trim() || "{assessment_time}",
+    assessment_location: manualFieldValues?.assessment_location?.trim() || "{assessment_location}",
   };
 
-  // Replace all merge fields
-  let populated = content;
-  for (const [key, value] of Object.entries(displayFields)) {
-    populated = populated.replace(new RegExp(`\\{${key}\\}`, "g"), value);
-  }
-
-  return { success: true, data: populated };
+  return { success: true, data: applyMergeFieldValues(content, displayFields) };
 }
 
 /**
@@ -477,6 +488,7 @@ export async function sendCommunication(params: {
   recipientEmail: string;
   recipientName?: string;
   cc?: string[];
+  manualFieldValues?: Partial<Record<(typeof MANUAL_COMMUNICATION_FIELDS)[number], string>>;
 }): Promise<ActionResult<{ communicationId: string }>> {
   const user = await getUser();
   const profileId = await getCurrentProfileId();
@@ -500,33 +512,33 @@ export async function sendCommunication(params: {
     return { success: false, error: "Invalid email address" };
   }
 
-  // Resolve merge fields once — reuse for both subject and body
-  const fieldsResult = await resolveFieldValues(params.clientId, profileId);
-  if (!fieldsResult.success) {
-    return { success: false, error: fieldsResult.error };
+  const [subjectResult, bodyResult] = await Promise.all([
+    populateMergeFields(params.subject, params.clientId, params.manualFieldValues),
+    populateMergeFields(params.body, params.clientId, params.manualFieldValues),
+  ]);
+
+  if (!subjectResult.success || !subjectResult.data) {
+    const errorMessage = subjectResult.success
+      ? "Failed to populate email subject"
+      : subjectResult.error;
+    return { success: false, error: errorMessage || "Failed to populate email subject" };
   }
-  const fields = fieldsResult.data!;
-  const displayFields: Record<string, string> = {
-    ...fields,
-    client_name: fields.client_name || "your child",
-    parent_name: fields.parent_name || "there",
-    insurance_name: fields.insurance_name || "your insurance provider",
-    agency_name: fields.agency_name || "Our Agency",
-    assessment_date: "{assessment_date}",
-    assessment_time: "{assessment_time}",
-    assessment_location: "{assessment_location}",
-  };
 
-  const applyMergeFields = (text: string) => {
-    let result = text;
-    for (const [key, value] of Object.entries(displayFields)) {
-      result = result.replace(new RegExp(`\\{${key}\\}`, "g"), value);
-    }
-    return result;
-  };
+  if (!bodyResult.success || !bodyResult.data) {
+    const errorMessage = bodyResult.success
+      ? "Failed to populate email body"
+      : bodyResult.error;
+    return { success: false, error: errorMessage || "Failed to populate email body" };
+  }
 
-  const resolvedBody = applyMergeFields(params.body);
-  const resolvedSubject = applyMergeFields(params.subject);
+  const resolvedSubject = subjectResult.data;
+  const resolvedBody = bodyResult.data;
+  const unresolvedManualFields = MANUAL_COMMUNICATION_FIELDS.filter((field) =>
+    resolvedSubject.includes(`{${field}}`) || resolvedBody.includes(`{${field}}`)
+  );
+  if (unresolvedManualFields.length > 0) {
+    return { success: false, error: "Fill in all required assessment details before sending." };
+  }
 
   // Sanitize body — strip script tags to prevent XSS in emails
   const sanitizedBody = resolvedBody

@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { getUser } from "@/lib/supabase/server";
 import { getClientById } from "@/lib/actions/clients";
+import { getAgreementPacketOptions } from "@/lib/actions/agreements";
 
 import { ClientFullDetail } from "./client-full-detail";
 
@@ -37,6 +38,7 @@ export default async function ClientDetailPage({ params }: ClientDetailPageProps
 
   const resolvedParams = await params;
   const result = await getClientById(resolvedParams.id);
+  const packetOptionsResult = await getAgreementPacketOptions();
 
   if (!result.success || !result.data) {
     notFound();
@@ -44,7 +46,10 @@ export default async function ClientDetailPage({ params }: ClientDetailPageProps
 
   return (
     <div className="flex h-full flex-col p-4 md:p-6">
-      <ClientFullDetail client={result.data} />
+      <ClientFullDetail
+        client={result.data}
+        agreementPackets={packetOptionsResult.success && packetOptionsResult.data ? packetOptionsResult.data : []}
+      />
     </div>
   );
 }

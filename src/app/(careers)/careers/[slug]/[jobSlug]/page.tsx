@@ -17,7 +17,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { BrandedLogo } from "@/components/branded/branded-logo";
 import { Separator } from "@/components/ui/separator";
 import { ApplyButton } from "@/components/jobs/apply-button";
 import { JsonLd } from "@/components/seo/json-ld";
@@ -233,13 +233,6 @@ export default async function BrandedJobPage({ params }: BrandedJobPageProps) {
 
   const salary = formatSalary(job);
 
-  const initials = provider.agencyName
-    .split(" ")
-    .map((w) => w[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
-
   return (
     <div
       className="min-h-screen"
@@ -271,20 +264,13 @@ export default async function BrandedJobPage({ params }: BrandedJobPageProps) {
           {/* Job Header */}
           <div className="px-6 py-8 sm:px-8">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-6">
-              <Avatar
-                className="h-16 w-16 border-2 sm:h-20 sm:w-20"
-                style={{ borderColor: brandColor }}
-              >
-                {provider.logoUrl ? (
-                  <AvatarImage src={provider.logoUrl} alt={provider.agencyName} />
-                ) : null}
-                <AvatarFallback
-                  className="text-xl font-semibold"
-                  style={{ backgroundColor: getLighterShade(brandColor, 0.15), color: brandColor }}
-                >
-                  {initials}
-                </AvatarFallback>
-              </Avatar>
+              <BrandedLogo
+                logoUrl={provider.logoUrl}
+                agencyName={provider.agencyName}
+                brandColor={brandColor}
+                variant="compact"
+                className="mx-0 shrink-0"
+              />
               <div className="flex-1 space-y-3">
                 <div>
                   <h1 className="text-2xl font-bold text-foreground sm:text-3xl">
@@ -500,17 +486,13 @@ export default async function BrandedJobPage({ params }: BrandedJobPageProps) {
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="flex items-center gap-3">
-                      <Avatar className="h-12 w-12 border border-border/60">
-                        {provider.logoUrl ? (
-                          <AvatarImage src={provider.logoUrl} alt={provider.agencyName} />
-                        ) : null}
-                        <AvatarFallback
-                          className="font-semibold"
-                          style={{ backgroundColor: getLighterShade(brandColor, 0.15), color: brandColor }}
-                        >
-                          {initials}
-                        </AvatarFallback>
-                      </Avatar>
+                      <BrandedLogo
+                        logoUrl={provider.logoUrl}
+                        agencyName={provider.agencyName}
+                        brandColor={brandColor}
+                        variant="compact"
+                        className="mx-0 max-w-[160px]"
+                      />
                       <div>
                         <p className="font-semibold">{provider.agencyName}</p>
                         {provider.isVerified && (
@@ -557,17 +539,13 @@ export default async function BrandedJobPage({ params }: BrandedJobPageProps) {
           >
             <div className="flex flex-col items-center gap-3 text-center sm:flex-row sm:justify-between sm:text-left">
               <div className="flex items-center gap-2">
-                <Avatar className="h-6 w-6 border border-border/60">
-                  {provider.logoUrl ? (
-                    <AvatarImage src={provider.logoUrl} alt={provider.agencyName} />
-                  ) : null}
-                  <AvatarFallback
-                    className="text-[10px] font-semibold"
-                    style={{ backgroundColor: getLighterShade(brandColor, 0.15), color: brandColor }}
-                  >
-                    {initials}
-                  </AvatarFallback>
-                </Avatar>
+                <BrandedLogo
+                  logoUrl={provider.logoUrl}
+                  agencyName={provider.agencyName}
+                  brandColor={brandColor}
+                  variant="footer"
+                  className="mx-0"
+                />
                 <Link
                   href={getProviderCareersPath(slug)}
                   className="text-sm font-medium text-foreground transition-colors"

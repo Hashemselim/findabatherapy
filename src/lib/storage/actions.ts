@@ -16,6 +16,46 @@ type ActionResult<T = void> =
   | { success: true; data?: T }
   | { success: false; error: string };
 
+function extractStoragePathFromPublicUrl(
+  publicUrl: string,
+  bucket: (typeof STORAGE_BUCKETS)[keyof typeof STORAGE_BUCKETS]
+) {
+  const marker = `/${bucket}/`;
+  const [, rawPath] = publicUrl.split(marker, 2);
+  if (!rawPath) {
+    return null;
+  }
+
+  return rawPath.split("?", 1)[0] || null;
+}
+
+function revalidateLogoSurfaces(params: {
+  listingSlug: string | null;
+  agreementPacketSlugs?: string[];
+}) {
+  revalidatePath("/dashboard/company");
+  revalidatePath("/dashboard/branding");
+  revalidatePath("/dashboard/onboarding/details");
+  revalidatePath("/dashboard/forms/agreements");
+
+  if (!params.listingSlug) {
+    return;
+  }
+
+  const slug = params.listingSlug;
+  revalidatePath(`/p/${slug}`);
+  revalidatePath(`/provider/${slug}`);
+  revalidatePath(`/contact/${slug}`);
+  revalidatePath(`/intake/${slug}/client`);
+  revalidatePath(`/resources/${slug}`);
+  revalidatePath(`/careers/${slug}`);
+  revalidatePath(`/site/${slug}`);
+
+  for (const packetSlug of params.agreementPacketSlugs || []) {
+    revalidatePath(`/agreements/${slug}/${packetSlug}`);
+  }
+}
+
 /**
  * Upload a logo for a listing
  */
@@ -47,7 +87,7 @@ export async function uploadLogo(
   // Get listing
   const { data: listing } = await supabase
     .from("listings")
-    .select("id, logo_url")
+    .select("id, slug, logo_url")
     .eq("profile_id", profileId)
     .single();
 
@@ -57,7 +97,10 @@ export async function uploadLogo(
 
   // Delete old logo if exists
   if (listing.logo_url) {
-    const oldPath = listing.logo_url.split(`${STORAGE_BUCKETS.logos}/`)[1];
+    const oldPath = extractStoragePathFromPublicUrl(
+      listing.logo_url,
+      STORAGE_BUCKETS.logos
+    );
     if (oldPath) {
       await supabase.storage.from(STORAGE_BUCKETS.logos).remove([oldPath]);
     }
@@ -98,7 +141,17 @@ export async function uploadLogo(
     return { success: false, error: "Failed to save logo" };
   }
 
-  revalidatePath("/dashboard/company");
+  const { data: agreementPackets } = await supabase
+    .from("agreement_packets")
+    .select("slug")
+    .eq("profile_id", profileId)
+    .is("deleted_at", null);
+
+  revalidateLogoSurfaces({
+    listingSlug: listing.slug ?? null,
+    agreementPacketSlugs: (agreementPackets || []).map((packet) => packet.slug),
+  });
+
   return { success: true, data: { url: urlData.publicUrl } };
 }
 
@@ -116,7 +169,7 @@ export async function deleteLogo(): Promise<ActionResult> {
   // Get listing
   const { data: listing } = await supabase
     .from("listings")
-    .select("id, logo_url")
+    .select("id, slug, logo_url")
     .eq("profile_id", profileId)
     .single();
 
@@ -129,7 +182,10 @@ export async function deleteLogo(): Promise<ActionResult> {
   }
 
   // Delete from storage
-  const path = listing.logo_url.split(`${STORAGE_BUCKETS.logos}/`)[1];
+  const path = extractStoragePathFromPublicUrl(
+    listing.logo_url,
+    STORAGE_BUCKETS.logos
+  );
   if (path) {
     await supabase.storage.from(STORAGE_BUCKETS.logos).remove([path]);
   }
@@ -147,7 +203,17 @@ export async function deleteLogo(): Promise<ActionResult> {
     return { success: false, error: "Failed to delete logo" };
   }
 
-  revalidatePath("/dashboard/company");
+  const { data: agreementPackets } = await supabase
+    .from("agreement_packets")
+    .select("slug")
+    .eq("profile_id", profileId)
+    .is("deleted_at", null);
+
+  revalidateLogoSurfaces({
+    listingSlug: listing.slug ?? null,
+    agreementPacketSlugs: (agreementPackets || []).map((packet) => packet.slug),
+  });
+
   return { success: true };
 }
 

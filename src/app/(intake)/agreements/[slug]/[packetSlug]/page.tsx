@@ -1,81 +1,65 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { Globe } from "lucide-react";
 
 import { BrandedLogo } from "@/components/branded/branded-logo";
 import { Button } from "@/components/ui/button";
 import { PreviewBanner } from "@/components/ui/preview-banner";
-import { getClientIntakePageData, getIntakeFieldsConfig, getIntakeTokenData, getPublicAgencyLocations, type PrefillData } from "@/lib/actions/intake";
+import { getAgreementPacketPublicPageData } from "@/lib/actions/agreements";
 import { getContrastingTextColor } from "@/lib/utils/brand-color";
 
-import { ClientIntakeForm } from "./client-intake-form";
+import { AgreementSigningForm } from "./agreement-signing-form";
 
-type ClientIntakePageParams = {
-  slug: string;
+type AgreementPageProps = {
+  params: Promise<{ slug: string; packetSlug: string }>;
+  searchParams: Promise<{ token?: string }>;
 };
 
-type ClientIntakePageProps = {
-  params: Promise<ClientIntakePageParams>;
-  searchParams: Promise<{ ref?: string; token?: string }>;
-};
-
-// Revalidate every 5 minutes (ISR)
 export const revalidate = 300;
 
-export async function generateMetadata({ params }: ClientIntakePageProps): Promise<Metadata> {
-  const { slug } = await params;
-  const result = await getClientIntakePageData(slug);
+export async function generateMetadata({ params }: AgreementPageProps): Promise<Metadata> {
+  const { slug, packetSlug } = await params;
+  const result = await getAgreementPacketPublicPageData(slug, packetSlug);
 
   if (!result.success || !result.data) {
     return {
-      title: "Client Intake Form",
+      title: "Agreement Form",
       robots: { index: false, follow: false },
     };
   }
 
-  const { profile } = result.data;
-
   return {
-    title: `Client Intake | ${profile.agencyName}`,
-    description: `Submit a client intake form for ${profile.agencyName}. Fill out the form and we'll be in touch shortly.`,
-    robots: { index: false, follow: false }, // Private form, not for search
+    title: `${result.data.packet.title} | ${result.data.profile.agencyName}`,
+    description: result.data.packet.description || `Review and sign the ${result.data.packet.title} form.`,
+    robots: { index: false, follow: false },
   };
 }
 
-// Helper to create a lighter shade of the brand color
-function getLighterShade(hexColor: string, opacity: number = 0.1) {
-  return `${hexColor}${Math.round(opacity * 255).toString(16).padStart(2, "0")}`;
+function getLighterShade(hexColor: string, opacity = 0.1) {
+  return `${hexColor}${Math.round(opacity * 255)
+    .toString(16)
+    .padStart(2, "0")}`;
 }
 
-export default async function ClientIntakePage({ params, searchParams }: ClientIntakePageProps) {
-  const { slug } = await params;
-  const { ref, token } = await searchParams;
-  const result = await getClientIntakePageData(slug);
+export default async function AgreementPacketPage({
+  params,
+  searchParams,
+}: AgreementPageProps) {
+  const { slug, packetSlug } = await params;
+  const { token } = await searchParams;
+  const result = await getAgreementPacketPublicPageData(slug, packetSlug, token);
 
   if (!result.success || !result.data) {
     notFound();
   }
 
-  const { listing, profile } = result.data;
-  const isPreview = profile.planTier === "free";
+  const { listing, profile, packet, link } = result.data;
+  const isPreview =
+    profile.planTier === "free" ||
+    (profile.subscriptionStatus !== "active" && profile.subscriptionStatus !== "trialing");
   const { background_color, show_powered_by } = profile.intakeFormSettings;
   const contrastColor = getContrastingTextColor(background_color);
-
-  // Load dynamic field configuration and agency locations in parallel
-  const [fieldsConfig, agencyLocations] = await Promise.all([
-    getIntakeFieldsConfig(listing.profileId),
-    getPublicAgencyLocations(listing.id),
-  ]);
-
-  // If a pre-fill token is provided, load existing client data
-  let prefillData: PrefillData | undefined;
-  if (token) {
-    const tokenResult = await getIntakeTokenData(token);
-    if (tokenResult.success && tokenResult.data) {
-      prefillData = tokenResult.data;
-    }
-  }
 
   return (
     <div
@@ -87,20 +71,17 @@ export default async function ClientIntakePage({ params, searchParams }: ClientI
       {isPreview && (
         <PreviewBanner
           variant="public"
-          message="This intake form is a preview — upgrade to receive submissions."
+          message="This agreement page is in preview mode - upgrade to collect signed submissions."
           triggerFeature="client_intake"
         />
       )}
-      {/* Main Content Container */}
-      <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 sm:py-12">
-        {/* White Card Container */}
+
+      <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
         <div className="overflow-hidden rounded-2xl bg-white shadow-2xl sm:rounded-3xl">
-          {/* Header Section with tinted background */}
           <div
             className="px-6 py-8 text-center sm:px-8 sm:py-12"
             style={{ backgroundColor: getLighterShade(background_color, 0.08) }}
           >
-            {/* Logo */}
             <div className="mx-auto mb-6">
               <BrandedLogo
                 logoUrl={listing.logoUrl}
@@ -110,24 +91,18 @@ export default async function ClientIntakePage({ params, searchParams }: ClientI
               />
             </div>
 
-            {/* Company Name & Form Title */}
             <div className="space-y-3">
               <h1 className="text-2xl font-bold text-foreground sm:text-3xl">
                 {profile.agencyName}
               </h1>
-
-              {/* Divider */}
               <div
                 className="mx-auto h-0.5 w-12 rounded-full"
                 style={{ backgroundColor: getLighterShade(background_color, 0.3) }}
               />
-
-              <h2 className="text-lg font-medium text-foreground">Client Intake Form</h2>
-              <p className="mx-auto max-w-lg text-base text-muted-foreground sm:text-lg">
-                Please fill out this form with your information. We&apos;ll review it and be in touch shortly.
+              <h2 className="text-lg font-medium text-foreground">{packet.title}</h2>
+              <p className="mx-auto max-w-2xl text-base text-muted-foreground sm:text-lg">
+                {packet.description || "Please review each document, confirm that you agree, and complete the signature section below."}
               </p>
-
-              {/* Website Link */}
               {profile.website && (
                 <div className="pt-2">
                   <Button
@@ -135,17 +110,9 @@ export default async function ClientIntakePage({ params, searchParams }: ClientI
                     variant="outline"
                     size="sm"
                     className="rounded-full"
-                    style={{
-                      borderColor: background_color,
-                      color: "#111827",
-                    }}
+                    style={{ borderColor: background_color, color: "#111827" }}
                   >
-                    <a
-                      href={profile.website}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="gap-2"
-                    >
+                    <a href={profile.website} target="_blank" rel="noopener noreferrer" className="gap-2">
                       <Globe className="h-4 w-4" />
                       Visit Website
                     </a>
@@ -155,22 +122,16 @@ export default async function ClientIntakePage({ params, searchParams }: ClientI
             </div>
           </div>
 
-          {/* Form Section */}
-          <div className={`px-6 py-8 sm:px-8 sm:py-10 ${isPreview ? "pointer-events-none select-none opacity-60" : ""}`}>
-            <ClientIntakeForm
-              listingId={listing.id}
-              profileId={listing.profileId}
+          <div className="px-6 py-8 sm:px-8 sm:py-10">
+            <AgreementSigningForm
+              packet={packet}
+              link={link}
               providerName={profile.agencyName}
               brandColor={background_color}
-              fieldsConfig={fieldsConfig}
-              agencyLocations={agencyLocations}
-              initialReferralSource={ref === "findabatherapy" ? "findabatherapy" : undefined}
-              prefillData={prefillData}
-              intakeToken={token}
+              disabled={isPreview}
             />
           </div>
 
-          {/* Footer */}
           <div
             className="px-6 py-4 sm:px-8"
             style={{ backgroundColor: getLighterShade(background_color, 0.05) }}
@@ -195,7 +156,6 @@ export default async function ClientIntakePage({ params, searchParams }: ClientI
           </div>
         </div>
 
-        {/* Powered by badge */}
         {show_powered_by ? (
           <div className="mt-6 text-center">
             <Link
@@ -203,9 +163,6 @@ export default async function ClientIntakePage({ params, searchParams }: ClientI
               className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-semibold shadow-lg transition-all hover:scale-105 hover:shadow-xl"
               style={{ color: background_color }}
             >
-              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-              </svg>
               Powered by Find ABA Therapy
             </Link>
           </div>

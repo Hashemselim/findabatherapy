@@ -8,7 +8,7 @@ import {
   Globe,
   Heart,
 } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { BrandedLogo } from "@/components/branded/branded-logo";
 import { getProviderWebsitePath } from "@/lib/utils/public-paths";
 import { useWebsite } from "./website-provider";
 
@@ -24,13 +24,6 @@ export function WebsiteFooter() {
 
   const primaryLocation =
     provider.locations.find((l) => l.isPrimary) || provider.locations[0];
-
-  const initials = provider.profile.agencyName
-    .split(" ")
-    .map((w) => w[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
 
   const quickLinks = [
     { label: "Home", href: basePath },
@@ -58,26 +51,13 @@ export function WebsiteFooter() {
           {/* Brand Column */}
           <div>
             <div className="flex items-center gap-3">
-              <Avatar
-                className="h-11 w-11 border-2"
-                style={{ borderColor: getLighterShade(brandColor, 0.2) }}
-              >
-                {provider.logoUrl ? (
-                  <AvatarImage
-                    src={provider.logoUrl}
-                    alt={provider.profile.agencyName}
-                  />
-                ) : null}
-                <AvatarFallback
-                  className="text-sm font-bold"
-                  style={{
-                    backgroundColor: getLighterShade(brandColor, 0.1),
-                    color: brandColor,
-                  }}
-                >
-                  {initials}
-                </AvatarFallback>
-              </Avatar>
+              <BrandedLogo
+                logoUrl={provider.logoUrl}
+                agencyName={provider.profile.agencyName}
+                brandColor={brandColor}
+                variant="compact"
+                className="mx-0 h-12 max-w-[160px]"
+              />
               <div>
                 <h3 className="text-lg font-semibold text-gray-900">
                   {provider.profile.agencyName}
