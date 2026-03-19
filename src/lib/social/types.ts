@@ -7,13 +7,8 @@ export type SocialCategory =
   | "quote"
   | "announcement";
 
-export type LayoutId =
-  | "bold-quote"
-  | "event-banner"
-  | "tip-card"
-  | "split-block"
-  | "announcement"
-  | "minimal";
+/** Single unified layout for all social post templates */
+export type LayoutId = "card";
 
 export interface SocialTemplate {
   id: string;
@@ -25,7 +20,8 @@ export interface SocialTemplate {
   layoutProps: {
     headline: string;
     subline?: string;
-    accent?: string;
+    /** Key into ICON_PATHS map in icons.ts */
+    icon: string;
   };
   /** MM-DD for dated templates, null for evergreen */
   eventDate: string | null;

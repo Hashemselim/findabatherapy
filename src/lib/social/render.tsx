@@ -17,7 +17,7 @@ export function renderSocialImage(
         brand={brand}
         headline={template.layoutProps.headline}
         subline={template.layoutProps.subline}
-        accent={template.layoutProps.accent}
+        icon={template.layoutProps.icon}
       />
     ),
     {
