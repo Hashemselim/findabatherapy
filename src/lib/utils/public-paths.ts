@@ -19,6 +19,10 @@ export function getProviderIntakePath(slug: string): string {
   return `/provider/${slug}/intake`;
 }
 
+export function getProviderDocumentUploadPath(slug: string): string {
+  return `/provider/${slug}/documents`;
+}
+
 export function getProviderResourcesPath(
   slug: string,
   suffix?: string

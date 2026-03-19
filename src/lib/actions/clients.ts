@@ -1,5 +1,8 @@
 "use server";
 
+import { randomBytes } from "crypto";
+
+import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 
 import { createClient as createSupabaseClient, getCurrentProfileId, getUser } from "@/lib/supabase/server";
@@ -38,6 +41,8 @@ import {
   DOCUMENT_MAX_SIZE,
 } from "@/lib/storage/config";
 import { getCurrentPlanTier } from "@/lib/plans/guards";
+import { getProviderDocumentUploadPath } from "@/lib/utils/public-paths";
+import { getRequestOrigin } from "@/lib/utils/domains";
 
 // =============================================================================
 // TYPES
@@ -46,6 +51,25 @@ import { getCurrentPlanTier } from "@/lib/plans/guards";
 type ActionResult<T = void> =
   | { success: true; data?: T }
   | { success: false; error: string };
+
+interface ValidatedClientDocumentUploadToken {
+  clientId: string;
+  profileId: string;
+}
+
+export interface ClientDocumentUploadAccessData {
+  clientId: string;
+  profileId: string;
+  clientName: string;
+  uploadedDocuments: Array<{
+    id: string;
+    label: string | null;
+    documentType: ClientDocument["document_type"] | null;
+    fileName: string | null;
+    fileSize: number | null;
+    createdAt: string;
+  }>;
+}
 
 export interface ClientListItem {
   id: string;
@@ -91,6 +115,116 @@ export interface ClientCounts {
   active: number;
   on_hold: number;
   discharged: number;
+}
+
+function generatePublicUploadToken(): string {
+  return randomBytes(16).toString("base64url");
+}
+
+function getClientDisplayName(client: {
+  child_first_name?: string | null;
+  child_last_name?: string | null;
+}) {
+  return [client.child_first_name, client.child_last_name].filter(Boolean).join(" ") || "your child";
+}
+
+async function getPublishedListingSlugForProfile(
+  profileId: string
+): Promise<string | null> {
+  const { createAdminClient } = await import("@/lib/supabase/server");
+  const supabase = await createAdminClient();
+
+  const { data: listings } = await supabase
+    .from("listings")
+    .select("slug")
+    .eq("profile_id", profileId)
+    .eq("status", "published")
+    .order("updated_at", { ascending: false })
+    .limit(1);
+
+  return listings?.[0]?.slug ?? null;
+}
+
+async function createClientDocumentUploadLinkForProfile(params: {
+  profileId: string;
+  clientId: string;
+}): Promise<ActionResult<{ token: string; url: string }>> {
+  const { createAdminClient } = await import("@/lib/supabase/server");
+  const supabase = await createAdminClient();
+
+  const { data: client } = await supabase
+    .from("clients")
+    .select("id")
+    .eq("id", params.clientId)
+    .eq("profile_id", params.profileId)
+    .is("deleted_at", null)
+    .single();
+
+  if (!client) {
+    return { success: false, error: "Client not found" };
+  }
+
+  const listingSlug = await getPublishedListingSlugForProfile(params.profileId);
+  if (!listingSlug) {
+    return { success: false, error: "No published listing found" };
+  }
+
+  const token = generatePublicUploadToken();
+  const { error } = await supabase.from("client_document_upload_tokens").insert({
+    client_id: params.clientId,
+    profile_id: params.profileId,
+    token,
+  });
+
+  if (error) {
+    console.error("[CLIENTS] Failed to create document upload token:", error);
+    return { success: false, error: "Failed to create document upload link" };
+  }
+
+  let siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://www.findabatherapy.org";
+  try {
+    const headersList = await headers();
+    siteUrl = getRequestOrigin(headersList, "therapy");
+  } catch {
+    // Fall back to env-based origin when there is no active request context.
+  }
+
+  return {
+    success: true,
+    data: {
+      token,
+      url: `${siteUrl}${getProviderDocumentUploadPath(listingSlug)}?token=${token}`,
+    },
+  };
+}
+
+async function validateClientDocumentUploadToken(
+  token: string
+): Promise<ActionResult<ValidatedClientDocumentUploadToken>> {
+  const { createAdminClient } = await import("@/lib/supabase/server");
+  const supabase = await createAdminClient();
+
+  const { data: tokenRow } = await supabase
+    .from("client_document_upload_tokens")
+    .select("client_id, profile_id, expires_at")
+    .eq("token", token)
+    .single();
+
+  if (!tokenRow) {
+    return { success: false, error: "Invalid or expired document upload link" };
+  }
+
+  if (new Date(tokenRow.expires_at) < new Date()) {
+    return { success: false, error: "This document upload link has expired" };
+  }
+
+  return {
+    success: true,
+    data: {
+      clientId: tokenRow.client_id,
+      profileId: tokenRow.profile_id,
+    },
+  };
 }
 
 // =============================================================================
@@ -1899,6 +2033,208 @@ export async function deleteClientDocument(documentId: string): Promise<ActionRe
   return { success: true };
 }
 
+export async function createClientDocumentUploadToken(
+  clientId: string
+): Promise<ActionResult<{ token: string; url: string }>> {
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
+    return { success: false, error: "Not authenticated" };
+  }
+
+  return createClientDocumentUploadLinkForProfile({ profileId, clientId });
+}
+
+export async function getClientDocumentUploadTokenData(
+  token: string
+): Promise<ActionResult<ClientDocumentUploadAccessData>> {
+  const validated = await validateClientDocumentUploadToken(token);
+  if (!validated.success) {
+    return { success: false, error: validated.error };
+  }
+
+  if (!validated.data) {
+    return { success: false, error: "Invalid or expired document upload link" };
+  }
+
+  const { createAdminClient } = await import("@/lib/supabase/server");
+  const supabase = await createAdminClient();
+
+  const [{ data: client }, { data: documents }] = await Promise.all([
+    supabase
+      .from("clients")
+      .select("id, child_first_name, child_last_name")
+      .eq("id", validated.data.clientId)
+      .is("deleted_at", null)
+      .single(),
+    supabase
+      .from("client_documents")
+      .select("id, label, document_type, file_name, file_size, created_at")
+      .eq("client_id", validated.data.clientId)
+      .is("deleted_at", null)
+      .order("created_at", { ascending: false }),
+  ]);
+
+  if (!client) {
+    return { success: false, error: "Client not found" };
+  }
+
+  return {
+    success: true,
+    data: {
+      clientId: validated.data.clientId,
+      profileId: validated.data.profileId,
+      clientName: getClientDisplayName(client),
+      uploadedDocuments: (documents || []).map((doc) => ({
+        id: doc.id,
+        label: doc.label,
+        documentType: doc.document_type as ClientDocument["document_type"] | null,
+        fileName: doc.file_name,
+        fileSize: typeof doc.file_size === "number" ? doc.file_size : null,
+        createdAt: doc.created_at,
+      })),
+    },
+  };
+}
+
+export async function submitPublicClientDocumentUpload(
+  token: string,
+  formData: FormData
+): Promise<ActionResult<{ id: string }>> {
+  const validated = await validateClientDocumentUploadToken(token);
+  if (!validated.success) {
+    return { success: false, error: validated.error };
+  }
+
+  if (!validated.data) {
+    return { success: false, error: "Invalid or expired document upload link" };
+  }
+
+  const file = formData.get("file") as File | null;
+  if (!file) {
+    return { success: false, error: "No file provided" };
+  }
+
+  if (!isValidDocumentType(file.type)) {
+    return {
+      success: false,
+      error: "Invalid file type. Allowed: PDF, DOC, DOCX, JPEG, PNG, WebP.",
+    };
+  }
+
+  if (!isValidDocumentSize(file.size)) {
+    return {
+      success: false,
+      error: `File too large. Maximum size is ${Math.round(DOCUMENT_MAX_SIZE / 1024 / 1024)}MB.`,
+    };
+  }
+
+  const arrayBuffer = await file.arrayBuffer();
+  if (!verifyDocumentMagicBytes(arrayBuffer, file.type)) {
+    return {
+      success: false,
+      error: "File content does not match its type. Please upload a valid file.",
+    };
+  }
+
+  const metadata = clientDocumentUploadSchema.safeParse({
+    label: formData.get("label") || file.name,
+    document_type: formData.get("document_type") || undefined,
+    file_description: formData.get("file_description") || undefined,
+    notes: formData.get("notes") || undefined,
+  });
+
+  if (!metadata.success) {
+    return {
+      success: false,
+      error: metadata.error.issues[0]?.message || "Invalid input",
+    };
+  }
+
+  const { createAdminClient } = await import("@/lib/supabase/server");
+  const supabase = await createAdminClient();
+
+  const { data: client } = await supabase
+    .from("clients")
+    .select("id")
+    .eq("id", validated.data.clientId)
+    .eq("profile_id", validated.data.profileId)
+    .is("deleted_at", null)
+    .single();
+
+  if (!client) {
+    return { success: false, error: "Client not found" };
+  }
+
+  const { count } = await supabase
+    .from("client_documents")
+    .select("id", { count: "exact", head: true })
+    .eq("client_id", validated.data.clientId)
+    .is("deleted_at", null);
+
+  if (count != null && count >= DOCUMENT_LIMITS.maxPerClient) {
+    return {
+      success: false,
+      error: `Document limit reached (${DOCUMENT_LIMITS.maxPerClient} per client). Please contact the provider for help.`,
+    };
+  }
+
+  const storagePath = generateDocumentPath(
+    validated.data.profileId,
+    validated.data.clientId,
+    file.name
+  );
+
+  const { error: uploadError } = await supabase.storage
+    .from(STORAGE_BUCKETS.documents)
+    .upload(storagePath, arrayBuffer, {
+      contentType: file.type,
+      upsert: false,
+    });
+
+  if (uploadError) {
+    console.error("[CLIENTS] Public document upload error:", uploadError);
+    return { success: false, error: "Failed to upload file" };
+  }
+
+  const { data: doc, error: insertError } = await supabase
+    .from("client_documents")
+    .insert({
+      client_id: validated.data.clientId,
+      document_type: metadata.data.document_type || null,
+      label: metadata.data.label,
+      file_path: storagePath,
+      file_name: file.name,
+      file_description: metadata.data.file_description || null,
+      file_size: file.size,
+      file_type: file.type,
+      upload_source: "intake_form",
+      notes: metadata.data.notes || null,
+    })
+    .select("id")
+    .single();
+
+  if (insertError || !doc) {
+    const { error: cleanupError } = await supabase.storage
+      .from(STORAGE_BUCKETS.documents)
+      .remove([storagePath]);
+    if (cleanupError) {
+      console.error("[CLIENTS] ORPHANED FILE — manual cleanup needed:", storagePath, cleanupError);
+    }
+    console.error("[CLIENTS] Failed to save public document:", insertError);
+    return { success: false, error: "Failed to save document" };
+  }
+
+  const listingSlug = await getPublishedListingSlugForProfile(validated.data.profileId);
+  revalidatePath(`/dashboard/clients/${validated.data.clientId}`);
+  if (listingSlug) {
+    revalidatePath(`/provider/${listingSlug}/documents`);
+    revalidatePath(`/site/${listingSlug}/documents`);
+    revalidatePath(`/intake/${listingSlug}/documents`);
+  }
+
+  return { success: true, data: { id: doc.id } };
+}
+
 // =============================================================================
 // CLIENT TASKS
 // =============================================================================
@@ -2454,7 +2790,7 @@ export async function submitPublicClientIntake(data: {
   turnstileToken: string;
   /** Dynamic field values from the configurable intake form */
   fields: Record<string, unknown>;
-}): Promise<ActionResult<{ clientId: string }>> {
+}): Promise<ActionResult<{ clientId: string; documentUploadUrl?: string }>> {
   // Verify Turnstile token
   if (data.turnstileToken) {
     const { env } = await import("@/env");
@@ -2632,5 +2968,20 @@ export async function submitPublicClientIntake(data: {
     console.error("[CLIENTS] Failed to create intake notification:", err);
   });
 
-  return { success: true, data: { clientId: client.id } };
+  let documentUploadUrl: string | undefined;
+  const documentUploadLink = await createClientDocumentUploadLinkForProfile({
+    profileId: data.profileId,
+    clientId: client.id,
+  });
+
+  if (documentUploadLink.success && documentUploadLink.data) {
+    documentUploadUrl = documentUploadLink.data.url;
+  } else if (!documentUploadLink.success) {
+    console.error(
+      "[CLIENTS] Failed to create document upload link after intake submission:",
+      documentUploadLink.error
+    );
+  }
+
+  return { success: true, data: { clientId: client.id, documentUploadUrl } };
 }

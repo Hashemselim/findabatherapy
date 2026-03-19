@@ -5,9 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { BrandedPageCard } from "@/components/dashboard/branded-page-card";
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
-import { SharePageHeaderActions } from "@/components/dashboard/share-page-header-actions";
 import { DashboardEmptyState } from "@/components/dashboard/ui";
+import { ClientSharePageActions } from "@/components/dashboard/forms/client-share-page-actions";
 import { IntakeFieldConfig } from "@/components/dashboard/intake/intake-field-config";
+import { getClientsList } from "@/lib/actions/clients";
 import { getProfile, createClient } from "@/lib/supabase/server";
 import { getIntakeFieldsConfig } from "@/lib/actions/intake";
 
@@ -34,12 +35,20 @@ export default async function IntakeFormPage() {
 
   // Load field config for the config panel
   const fieldsConfig = await getIntakeFieldsConfig(profile.id);
+  const clientsResult = await getClientsList();
+  const clients = clientsResult.data || [];
   const intakePath = `/intake/${listingSlug}/client`;
 
   return (
     <div className="space-y-3">
       <DashboardPageHeader title="Intake Form" description="Collect complete parent, child, and insurance details before the first call.">
-        <SharePageHeaderActions relativePath={intakePath} />
+        <ClientSharePageActions
+          clients={clients}
+          kind="intake"
+          previewPath={intakePath}
+          previewLabel="Preview Form"
+          shareLabel="Create Link"
+        />
       </DashboardPageHeader>
 
       <BrandedPageCard
@@ -54,9 +63,9 @@ export default async function IntakeFormPage() {
         showActions={false}
         defaultExpanded
         howItWorks={[
-          "A family completes your detailed intake questionnaire.",
-          "Information is organized for your team to review quickly.",
-          "You can prioritize follow-up based on readiness and fit.",
+          "Preview the branded intake form your families will see.",
+          "Create a reusable generic link for new families, or generate a client-specific link when you want the submission tied to the right child automatically.",
+          "Review the completed intake inside the client record and prioritize follow-up quickly.",
         ]}
       />
 

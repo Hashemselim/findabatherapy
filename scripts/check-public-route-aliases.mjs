@@ -16,6 +16,7 @@ const requiredRoutes = [
   { path: "/provider/:slug", reason: "Canonical provider brochure route" },
   { path: "/provider/:slug/contact", reason: "Canonical provider contact route" },
   { path: "/provider/:slug/intake", reason: "Canonical provider intake route" },
+  { path: "/provider/:slug/documents", reason: "Canonical provider document upload route" },
   { path: "/provider/:slug/resources", reason: "Canonical provider resources route" },
   { path: "/provider/:slug/resources/faq", reason: "Canonical provider FAQ route" },
   { path: "/provider/:slug/resources/glossary", reason: "Canonical provider glossary route" },

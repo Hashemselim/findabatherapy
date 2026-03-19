@@ -66,7 +66,7 @@ function matchesRoleJobsPath(pathname: string): RegExpMatchArray | null {
 }
 
 function isProviderControlledGoodabaPath(pathname: string): boolean {
-  return /^\/provider\/[^/]+\/(website|contact|intake|resources|careers|jobs)(\/.*)?$/.test(
+  return /^\/provider\/[^/]+\/(website|contact|intake|documents|resources|careers|jobs)(\/.*)?$/.test(
     pathname
   );
 }
@@ -76,7 +76,7 @@ function isLegacyProviderPath(pathname: string): boolean {
     /^\/p\/[^/]+$/.test(pathname) ||
     /^\/site\/[^/]+(\/.*)?$/.test(pathname) ||
     /^\/contact\/[^/]+$/.test(pathname) ||
-    /^\/intake\/[^/]+\/client$/.test(pathname) ||
+    /^\/intake\/[^/]+\/(client|documents)$/.test(pathname) ||
     /^\/resources\/[^/]+(\/.*)?$/.test(pathname) ||
     /^\/careers\/[^/]+(\/[^/]+)?$/.test(pathname)
   );
@@ -101,6 +101,11 @@ function mapLegacyProviderPath(pathname: string): string | null {
   const intakeMatch = pathname.match(/^\/intake\/([^/]+)\/client$/);
   if (intakeMatch) {
     return `/provider/${intakeMatch[1]}/intake`;
+  }
+
+  const documentsMatch = pathname.match(/^\/intake\/([^/]+)\/documents$/);
+  if (documentsMatch) {
+    return `/provider/${documentsMatch[1]}/documents`;
   }
 
   const resourcesMatch = pathname.match(/^\/resources\/([^/]+)(\/.*)?$/);

@@ -47,6 +47,8 @@ function revalidateLogoSurfaces(params: {
   revalidatePath(`/provider/${slug}`);
   revalidatePath(`/contact/${slug}`);
   revalidatePath(`/intake/${slug}/client`);
+  revalidatePath(`/intake/${slug}/documents`);
+  revalidatePath(`/provider/${slug}/documents`);
   revalidatePath(`/resources/${slug}`);
   revalidatePath(`/careers/${slug}`);
   revalidatePath(`/site/${slug}`);

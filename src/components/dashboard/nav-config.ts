@@ -17,6 +17,7 @@ import {
   CheckSquare,
   ClipboardList,
   FileInput,
+  FileUp,
   FileText,
   Globe,
   LayoutDashboard,
@@ -162,6 +163,11 @@ export const sectionNav: NavSectionConfig[] = [
         href: "/dashboard/forms/agreements",
         label: "Agreement Form",
         icon: FileText,
+      },
+      {
+        href: "/dashboard/forms/documents",
+        label: "Document Upload",
+        icon: FileUp,
       },
       {
         href: "/dashboard/forms/agency",

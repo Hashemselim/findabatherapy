@@ -98,6 +98,7 @@ import {
   getDocumentSignedUrl,
   downloadClientDocument,
   updateClientStatus,
+  createClientDocumentUploadToken,
 } from "@/lib/actions/clients";
 import type { ClientDetail } from "@/lib/actions/clients";
 import { TASK_STATUS_OPTIONS, DOCUMENT_TYPE_OPTIONS, type ClientTask } from "@/lib/validations/clients";
@@ -311,6 +312,8 @@ export function ClientFullDetail({ client, agreementPackets }: ClientFullDetailP
   // Intake token state
   const [intakeLinkCopied, setIntakeLinkCopied] = useState(false);
   const [intakeLinkLoading, setIntakeLinkLoading] = useState(false);
+  const [documentLinkCopied, setDocumentLinkCopied] = useState(false);
+  const [documentLinkLoading, setDocumentLinkLoading] = useState(false);
   const [agreementLinkDialogOpen, setAgreementLinkDialogOpen] = useState(false);
 
   // Document management state
@@ -481,6 +484,22 @@ export function ClientFullDetail({ client, agreementPackets }: ClientFullDetailP
       }
     } finally {
       setIntakeLinkLoading(false);
+    }
+  };
+
+  const handleCopyDocumentUploadLink = async () => {
+    setDocumentLinkLoading(true);
+    try {
+      const result = await createClientDocumentUploadToken(client.id);
+      if (result.success && result.data) {
+        await navigator.clipboard.writeText(result.data.url);
+        setDocumentLinkCopied(true);
+        setTimeout(() => setDocumentLinkCopied(false), 3000);
+      } else if (!result.success) {
+        toast.error(result.error);
+      }
+    } finally {
+      setDocumentLinkLoading(false);
     }
   };
 
@@ -1308,14 +1327,40 @@ export function ClientFullDetail({ client, agreementPackets }: ClientFullDetailP
               title="Documents"
               badgeCount={client.documents?.length}
               rightContent={
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleAddDocument}
-                >
-                  <Upload className="h-4 w-4 mr-1" />
-                  Upload
-                </Button>
+                <div className="flex items-center gap-1">
+                  <TooltipProvider delayDuration={300}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleCopyDocumentUploadLink}
+                          disabled={documentLinkLoading}
+                        >
+                          {documentLinkLoading ? (
+                            <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                          ) : documentLinkCopied ? (
+                            <Check className="mr-1 h-4 w-4 text-primary" />
+                          ) : (
+                            <Link2 className="mr-1 h-4 w-4" />
+                          )}
+                          {documentLinkCopied ? "Copied!" : "Upload Link"}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Copy a secure document upload link for this family</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleAddDocument}
+                  >
+                    <Upload className="h-4 w-4 mr-1" />
+                    Upload
+                  </Button>
+                </div>
               }
             />
 

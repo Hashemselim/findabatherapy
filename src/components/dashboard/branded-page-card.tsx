@@ -1,19 +1,38 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BookOpen, Briefcase, Check, ClipboardList, Copy, ExternalLink, Globe, LayoutTemplate, MessageSquare } from "lucide-react";
+import {
+  BookOpen,
+  Briefcase,
+  Check,
+  ClipboardList,
+  Copy,
+  ExternalLink,
+  FileUp,
+  Globe,
+  LayoutTemplate,
+  MessageSquare,
+} from "lucide-react";
 
 import { DashboardCard, type DashboardTone } from "@/components/dashboard/ui";
 import { Button } from "@/components/ui/button";
 import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
-type BrandedPageIconName = "contact" | "intake" | "resources" | "careers" | "agency" | "website";
+type BrandedPageIconName =
+  | "contact"
+  | "intake"
+  | "documents"
+  | "resources"
+  | "careers"
+  | "agency"
+  | "website";
 
 interface BrandedPageCardProps {
   title: string;
   sentence: string;
   relativePath: string;
+  displayPath?: string;
   iconName: BrandedPageIconName;
   howItWorks: string[];
   showActions?: boolean;
@@ -29,6 +48,10 @@ const variantMap = {
   intake: {
     Icon: ClipboardList,
     tone: "premium",
+  },
+  documents: {
+    Icon: FileUp,
+    tone: "info",
   },
   resources: {
     Icon: BookOpen,
@@ -52,6 +75,7 @@ export function BrandedPageCard({
   title,
   sentence,
   relativePath,
+  displayPath,
   iconName,
   howItWorks,
   showActions = true,
@@ -61,10 +85,12 @@ export function BrandedPageCard({
   const Icon = variant.Icon;
   const [copied, setCopied] = useState(false);
   const [fullUrl, setFullUrl] = useState(relativePath);
+  const [displayUrl, setDisplayUrl] = useState(displayPath ?? relativePath);
 
   useEffect(() => {
     setFullUrl(`${window.location.origin}${relativePath}`);
-  }, [relativePath]);
+    setDisplayUrl(`${window.location.origin}${displayPath ?? relativePath}`);
+  }, [displayPath, relativePath]);
 
   const handleCopy = async () => {
     try {
@@ -101,7 +127,7 @@ export function BrandedPageCard({
 
         <CardContent className="space-y-3.5 p-0 pt-3.5">
           <div className="flex flex-col gap-2 rounded-md border border-border/70 bg-white px-3 py-2 sm:flex-row sm:items-center">
-            <p className="min-w-0 flex-1 truncate font-mono text-xs text-muted-foreground">{fullUrl}</p>
+            <p className="min-w-0 flex-1 truncate font-mono text-xs text-muted-foreground">{displayUrl}</p>
             {showActions && (
               <div className="flex gap-2">
                 <Button size="sm" onClick={handleCopy} className="gap-1.5" variant={copied ? "outline-solid" : "default"}>
