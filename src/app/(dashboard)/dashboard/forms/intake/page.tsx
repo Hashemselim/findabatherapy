@@ -36,7 +36,7 @@ export default async function IntakeFormPage() {
   // Load field config for the config panel
   const fieldsConfig = await getIntakeFieldsConfig(profile.id);
   const clientsResult = await getClientsList();
-  const clients = clientsResult.data || [];
+  const clients = clientsResult.success ? (clientsResult.data ?? []) : [];
   const intakePath = `/intake/${listingSlug}/client`;
 
   return (

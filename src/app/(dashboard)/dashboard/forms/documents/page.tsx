@@ -33,7 +33,7 @@ export default async function DocumentUploadFormPage() {
 
   const documentUploadPath = getProviderDocumentUploadPath(listingSlug);
   const clientsResult = await getClientsList();
-  const clients = clientsResult.data || [];
+  const clients = clientsResult.success ? (clientsResult.data ?? []) : [];
 
   return (
     <div className="space-y-3">

@@ -146,8 +146,13 @@ export function ClientLinkDialog({
           ? await createIntakeToken(targetClientId)
           : await createClientDocumentUploadToken(targetClientId);
 
-      if (!result.success || !result.data) {
+      if (!result.success) {
         toast.error(result.error || "Failed to create share link.");
+        return;
+      }
+
+      if (!result.data) {
+        toast.error("Failed to create share link.");
         return;
       }
 
