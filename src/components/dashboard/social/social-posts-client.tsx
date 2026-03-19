@@ -409,7 +409,7 @@ function SocialPostCard({
   const categoryColor = CATEGORY_COLORS[template.category];
 
   return (
-    <DashboardCard className="overflow-hidden">
+    <DashboardCard className="flex flex-col overflow-hidden">
       {/* Image preview */}
       <div className="relative aspect-square bg-muted">
         {assetsReady ? (
@@ -421,8 +421,8 @@ function SocialPostCard({
         )}
       </div>
 
-      {/* Card body */}
-      <div className="space-y-3 p-4">
+      {/* Card body — flex col so buttons stick to bottom */}
+      <div className="flex flex-1 flex-col gap-3 p-4">
         <div className="flex items-start justify-between gap-2">
           <h3 className="text-sm font-semibold">{template.title}</h3>
           <Badge
@@ -434,21 +434,23 @@ function SocialPostCard({
         </div>
 
         {/* Caption preview — 4 lines visible, expandable only if very long */}
-        <p
-          className={`text-xs text-muted-foreground ${showFullCaption ? "" : "line-clamp-4"}`}
-        >
-          {template.caption}
-        </p>
-        {template.caption.length > 200 && (
-          <button
-            onClick={() => setShowFullCaption(!showFullCaption)}
-            className="text-xs font-medium text-primary hover:underline"
+        <div className="flex-1">
+          <p
+            className={`text-xs text-muted-foreground ${showFullCaption ? "" : "line-clamp-4"}`}
           >
-            {showFullCaption ? "Show less" : "Show more"}
-          </button>
-        )}
+            {template.caption}
+          </p>
+          {template.caption.length > 200 && (
+            <button
+              onClick={() => setShowFullCaption(!showFullCaption)}
+              className="mt-1 text-xs font-medium text-primary hover:underline"
+            >
+              {showFullCaption ? "Show less" : "Show more"}
+            </button>
+          )}
+        </div>
 
-        {/* Action buttons */}
+        {/* Action buttons — always at bottom */}
         <div className="flex gap-1.5">
           <Button
             size="sm"
