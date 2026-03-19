@@ -1,10 +1,13 @@
 "use server";
 
+import { headers } from "next/headers";
+
 import { createAdminClient } from "@/lib/supabase/server";
 import {
   type IntakeFieldsConfig,
   mergeWithDefaults,
 } from "@/lib/intake/field-registry";
+import { getRequestOrigin } from "@/lib/utils/domains";
 
 export interface IntakeFormSettings {
   background_color: string;
@@ -489,12 +492,15 @@ export async function createIntakeToken(
   }
 
   // Get the listing slug for URL construction
-  const { data: listing } = await supabase
+  const { data: publishedListings } = await supabase
     .from("listings")
     .select("slug")
     .eq("profile_id", profileId)
     .eq("status", "published")
-    .single();
+    .order("updated_at", { ascending: false })
+    .limit(1);
+
+  const listing = publishedListings?.[0];
 
   if (!listing) {
     return { success: false, error: "No published listing found" };
@@ -512,7 +518,13 @@ export async function createIntakeToken(
     return { success: false, error: "Failed to create intake token" };
   }
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://www.findabatherapy.org";
+  let siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://www.findabatherapy.org";
+  try {
+    const headersList = await headers();
+    siteUrl = getRequestOrigin(headersList, "therapy");
+  } catch {
+    // Fall back to env-based origin when there is no active request context.
+  }
   const url = `${siteUrl}/intake/${listing.slug}/client?token=${token}`;
 
   return { success: true, data: { url, token } };

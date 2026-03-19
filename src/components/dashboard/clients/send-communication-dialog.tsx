@@ -29,27 +29,29 @@ import {
   DashboardStatusBadge,
   type DashboardTone,
 } from "@/components/dashboard/ui";
-import { cn } from "@/lib/utils";
 import { PARENT_RELATIONSHIP_OPTIONS } from "@/lib/validations/clients";
 import {
   getTemplates,
-  populateMergeFields,
   sendCommunication,
   getAgencyBranding,
-  getClientMergeFieldValues,
+  getClientSendFieldValues,
+  getClientPreviewLink,
   type CommunicationTemplate,
 } from "@/lib/actions/communications";
 import type { AgencyBrandingData } from "@/lib/email/email-helpers";
 import {
   EmailEditor,
-  MERGE_FIELD_CATEGORIES,
   MERGE_FIELD_MAP,
   templateHtmlToMergeFieldHtml,
   mergeFieldHtmlToTemplate,
 } from "./email-editor";
+import { TemplateSubjectField } from "./template-subject-field";
+import { resolveCcEmails } from "./send-communication-dialog.utils";
+import { MANUAL_MERGE_FIELD_KEYS } from "@/lib/communications/merge-fields";
 import {
-  resolveCcEmails,
-} from "./send-communication-dialog.utils";
+  getMergeFieldLabel,
+  getUnresolvedMergeFields,
+} from "@/lib/communications/template-utils";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -71,12 +73,6 @@ const LIFECYCLE_STAGES: Record<
 const RELATIONSHIP_LABELS: Record<string, string> = Object.fromEntries(
   PARENT_RELATIONSHIP_OPTIONS.map((o) => [o.value, o.label])
 );
-
-/** Fields that require manual input — derived from merge field registry */
-const MANUAL_FIELDS = MERGE_FIELD_CATEGORIES.flatMap((c) => c.fields).filter(
-  (f) => f.manual
-);
-const MANUAL_FIELD_KEYS = MANUAL_FIELDS.map((f) => f.key);
 
 // ---------------------------------------------------------------------------
 // Types
@@ -171,21 +167,35 @@ export function SendCommunicationDialog({
     });
   }, [templatesByStage, currentStage]);
 
-  const selectedTemplate = validTemplates.find(
-    (t) => t.slug === selectedTemplateSlug
-  );
+  const bodyTemplate = useMemo(() => mergeFieldHtmlToTemplate(body), [body]);
 
   // Detect which manual fields are present in the current body
   const activeManualFields = useMemo(() => {
-    return MANUAL_FIELD_KEYS.filter(
-      (key) => body.includes(`data-merge-field="${key}"`) || body.includes(`{${key}}`)
+    return MANUAL_MERGE_FIELD_KEYS.filter(
+      (key) => subject.includes(`{${key}}`) || bodyTemplate.includes(`{${key}}`)
     );
-  }, [body]);
+  }, [bodyTemplate, subject]);
+
+  const unresolvedFields = useMemo(() => {
+    if (!fieldValues) return [];
+    return getUnresolvedMergeFields({
+      subject,
+      body: bodyTemplate,
+      cc: ccEmails,
+      values: fieldValues,
+      manualValues: manualFieldValues,
+    });
+  }, [bodyTemplate, ccEmails, fieldValues, manualFieldValues, subject]);
+
+  const unresolvedFieldLabels = unresolvedFields.map((field) =>
+    getMergeFieldLabel(field)
+  );
 
   const fromLine = branding
     ? `${branding.agencyName} <noreply@goodaba.com>`
     : "Loading...";
   const replyToLine = branding?.contactEmail || "\u2014";
+  const editorReady = !isLoading && !!branding && !!fieldValues;
 
   // ---------------------------------------------------------------------------
   // Effects
@@ -205,6 +215,7 @@ export function SendCommunicationDialog({
     setCcEmails([]);
     setCcInput("");
     setManualFieldValues({});
+    setFieldValues(null);
 
     const primaryEmails = recipients
       .filter((r) => r.isPrimary)
@@ -217,7 +228,16 @@ export function SendCommunicationDialog({
           : []
     );
 
-    Promise.all([getTemplates(), getAgencyBranding(), getClientMergeFieldValues(clientId)]).then(
+    Promise.all([
+      getTemplates(),
+      getAgencyBranding(),
+      getClientSendFieldValues({
+        clientId,
+        subject: "",
+        body: "",
+        cc: [],
+      }),
+    ]).then(
       ([templatesResult, brandingResult, fieldValuesResult]) => {
         if (templatesResult.success && templatesResult.data) {
           setTemplates(templatesResult.data);
@@ -229,12 +249,46 @@ export function SendCommunicationDialog({
         }
         if (fieldValuesResult.success && fieldValuesResult.data) {
           setFieldValues(fieldValuesResult.data);
+        } else {
+          setError((current) => current || "Failed to resolve template fields");
         }
         setIsLoading(false);
       }
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, clientId]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    let cancelled = false;
+    const timeoutId = window.setTimeout(() => {
+      getClientSendFieldValues({
+        clientId,
+        subject,
+        body: bodyTemplate,
+        cc: ccEmails,
+      }).then((result) => {
+        if (cancelled) return;
+
+        if (result.success && result.data) {
+          setFieldValues(result.data);
+          setError((current) =>
+            current === "Failed to resolve template fields" ? null : current
+          );
+          return;
+        }
+
+        setFieldValues(null);
+        setError((current) => current || "Failed to resolve template fields");
+      });
+    }, 150);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeoutId);
+    };
+  }, [bodyTemplate, ccEmails, clientId, open, subject]);
 
   // ---------------------------------------------------------------------------
   // Handlers
@@ -257,32 +311,18 @@ export function SendCommunicationDialog({
     if (slug === "custom") {
       setSubject("");
       setBody("");
+      setCcEmails([]);
+      setShowCcField(false);
       return;
     }
 
     const template = validTemplates.find((t) => t.slug === slug);
     if (!template) return;
 
-    // Populate auto merge fields via server action, then convert to pill HTML
-    startTransition(async () => {
-      const [subjectResult, bodyResult] = await Promise.all([
-        populateMergeFields(template.subject, clientId),
-        populateMergeFields(template.body, clientId),
-      ]);
-
-      const populatedSubject =
-        subjectResult.success && subjectResult.data
-          ? subjectResult.data
-          : template.subject;
-      const populatedBody =
-        bodyResult.success && bodyResult.data
-          ? bodyResult.data
-          : template.body;
-
-      setSubject(populatedSubject);
-      // Convert remaining {field} placeholders to merge-field pill HTML
-      setBody(templateHtmlToMergeFieldHtml(populatedBody));
-    });
+    setSubject(template.subject);
+    setCcEmails(template.cc || []);
+    setShowCcField((template.cc || []).length > 0);
+    setBody(templateHtmlToMergeFieldHtml(template.body));
   };
 
   const updateManualField = (key: string, value: string) => {
@@ -314,6 +354,10 @@ export function SendCommunicationDialog({
       setError("Please select at least one recipient");
       return;
     }
+    if (unresolvedFieldLabels.length > 0) {
+      setError(`Missing values for: ${unresolvedFieldLabels.join(", ")}`);
+      return;
+    }
 
     const resolvedCc = resolveCcEmails(ccEmails, ccInput);
     if (resolvedCc.invalidInput) {
@@ -328,18 +372,7 @@ export function SendCommunicationDialog({
 
     startTransition(async () => {
       // Convert pill HTML back to {field_name} syntax for server processing
-      let sendBody = mergeFieldHtmlToTemplate(body);
-
-      // Replace manual fields with user-provided values
-      for (const key of MANUAL_FIELD_KEYS) {
-        const value = manualFieldValues[key]?.trim();
-        if (value) {
-          sendBody = sendBody.replace(
-            new RegExp(`\\{${key}\\}`, "g"),
-            value
-          );
-        }
-      }
+      const sendBody = mergeFieldHtmlToTemplate(body);
 
       const selectedRecipients = recipients.filter((r) =>
         selectedEmails.includes(r.email)
@@ -589,16 +622,13 @@ export function SendCommunicationDialog({
 
           {/* Subject */}
           <div className="grid gap-1.5">
-            <Label htmlFor="subject" className="text-sm font-medium">
-              Subject
-            </Label>
-            <Input
+            <TemplateSubjectField
               id="subject"
               value={subject}
-              onChange={(e) => setSubject(e.target.value)}
+              label="Subject"
+              onChange={setSubject}
+              disabled={isPending || !editorReady}
               placeholder="Email subject line"
-              disabled={isPending}
-              className="h-9"
             />
           </div>
 
@@ -631,6 +661,12 @@ export function SendCommunicationDialog({
             </div>
           )}
 
+          {unresolvedFieldLabels.length > 0 && (
+            <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+              This template is missing values for: {unresolvedFieldLabels.join(", ")}. Remove those fields from the subject/body or fill them in before sending.
+            </div>
+          )}
+
           {/* Branded email body editor */}
           <div className="grid gap-1.5">
             <Label className="text-sm font-medium">Body</Label>
@@ -638,9 +674,13 @@ export function SendCommunicationDialog({
               content={body}
               onChange={setBody}
               branding={branding}
-              disabled={isPending}
+              disabled={isPending || !editorReady}
               placeholder="Write your email here..."
               fieldValues={fieldValues}
+              resolvePreviewLink={async (fieldKey) => {
+                const result = await getClientPreviewLink({ clientId, fieldKey });
+                return result.success ? result.data || null : null;
+              }}
             />
           </div>
 
@@ -673,6 +713,7 @@ export function SendCommunicationDialog({
               !subject.trim() ||
               !body.trim() ||
               selectedEmails.length === 0 ||
+              unresolvedFieldLabels.length > 0 ||
               !!successMessage
             }
           >

@@ -4,7 +4,7 @@ function withOptionalSuffix(base: string, suffix?: string): string {
 }
 
 export function getProviderBrochurePath(slug: string): string {
-  return `/provider/${slug}`;
+  return `/p/${slug}`;
 }
 
 export function getProviderWebsitePath(slug: string, suffix?: string): string {
