@@ -33,6 +33,7 @@ interface SocialPostsClientProps {
   upcoming: UpcomingTemplate[];
   profileId: string;
   assetsReady: boolean;
+  alreadyGenerating?: boolean;
   brandHash?: string;
 }
 
@@ -92,19 +93,44 @@ export function SocialPostsClient({
   upcoming,
   profileId,
   assetsReady: initialAssetsReady,
+  alreadyGenerating = false,
   brandHash = "",
 }: SocialPostsClientProps) {
   const [filter, setFilter] = useState<SocialCategory | "all">("all");
   const [assetsReady, setAssetsReady] = useState(initialAssetsReady);
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(alreadyGenerating);
   const [generationProgress, setGenerationProgress] = useState("");
   const [cacheBuster, setCacheBuster] = useState(brandHash);
 
-  // Trigger generation if assets aren't ready
+  // Trigger generation if assets aren't ready and not already generating elsewhere
   useEffect(() => {
-    if (!assetsReady && !isGenerating) {
+    if (assetsReady) return;
+
+    if (alreadyGenerating) {
+      // Another tab/visit already started generation — just poll for completion
       setIsGenerating(true);
-      setGenerationProgress("Starting generation...");
+      const interval = setInterval(async () => {
+        try {
+          const { checkSocialAssetsStatus } = await import(
+            "@/lib/actions/social"
+          );
+          const status = await checkSocialAssetsStatus();
+          if (status.success && status.data.ready) {
+            setAssetsReady(true);
+            setCacheBuster(status.data.brandHash);
+            setIsGenerating(false);
+            clearInterval(interval);
+          }
+        } catch {
+          // Keep polling
+        }
+      }, 5000);
+      return () => clearInterval(interval);
+    }
+
+    // No generation in progress — start one
+    if (!isGenerating) {
+      setIsGenerating(true);
 
       generateSocialAssets()
         .then((result) => {

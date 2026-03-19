@@ -61,7 +61,12 @@ export async function getSocialBrandData(): Promise<ActionResult<BrandData>> {
 
 /** Check if pre-generated assets exist and are current */
 export async function checkSocialAssetsStatus(): Promise<
-  ActionResult<{ ready: boolean; brandHash: string; assetCount: number }>
+  ActionResult<{
+    ready: boolean;
+    generating: boolean;
+    brandHash: string;
+    assetCount: number;
+  }>
 > {
   const brandResult = await getSocialBrandData();
   if (!brandResult.success) {
@@ -88,6 +93,7 @@ export async function checkSocialAssetsStatus(): Promise<
           success: true,
           data: {
             ready: true,
+            generating: false,
             brandHash: currentHash,
             assetCount: manifest.count || 0,
           },
@@ -98,9 +104,44 @@ export async function checkSocialAssetsStatus(): Promise<
     }
   }
 
+  // Check if generation is already in progress (lock file exists)
+  const { data: lockData } = await supabase.storage
+    .from(BUCKET)
+    .download(`${brand.profileId}/${currentHash}/generating.lock`);
+
+  if (lockData) {
+    try {
+      const lock = JSON.parse(await lockData.text()) as {
+        startedAt?: string;
+      };
+      // Lock is valid if started less than 5 minutes ago
+      if (lock.startedAt) {
+        const elapsed = Date.now() - new Date(lock.startedAt).getTime();
+        if (elapsed < 5 * 60 * 1000) {
+          return {
+            success: true,
+            data: {
+              ready: false,
+              generating: true,
+              brandHash: currentHash,
+              assetCount: 0,
+            },
+          };
+        }
+      }
+    } catch {
+      // Lock corrupt, allow regeneration
+    }
+  }
+
   return {
     success: true,
-    data: { ready: false, brandHash: currentHash, assetCount: 0 },
+    data: {
+      ready: false,
+      generating: false,
+      brandHash: currentHash,
+      assetCount: 0,
+    },
   };
 }
 
@@ -167,6 +208,15 @@ export async function generateSocialAssets(): Promise<
 
   try {
     const adminClient = await createAdminClient();
+
+    // Write lock file to prevent duplicate generation runs
+    const lockData = JSON.stringify({ startedAt: new Date().toISOString() });
+    await adminClient.storage
+      .from(BUCKET)
+      .upload(`${profileId}/${currentHash}/generating.lock`, lockData, {
+        contentType: "application/json",
+        upsert: true,
+      });
 
     // Clean up old versioned folders first
     await cleanupOldVersions(adminClient, profileId, currentHash);
@@ -238,6 +288,11 @@ export async function generateSocialAssets(): Promise<
         contentType: "application/json",
         upsert: true,
       });
+
+    // Remove lock file — generation complete
+    await adminClient.storage
+      .from(BUCKET)
+      .remove([`${profileId}/${currentHash}/generating.lock`]);
 
     return { success: true, data: { count: generatedCount } };
   } catch (error) {
