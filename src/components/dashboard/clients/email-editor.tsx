@@ -5,11 +5,13 @@ import {
   Extension,
   Mark,
   Node,
+  type Attributes,
   mergeAttributes,
 } from "@tiptap/core";
 import { NodeSelection } from "@tiptap/pm/state";
 import type { EditorView } from "@tiptap/pm/view";
 import type { Transaction } from "@tiptap/pm/state";
+import type { DOMOutputSpec } from "prosemirror-model";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import Link from "@tiptap/extension-link";
@@ -85,6 +87,19 @@ import {
 import { LINK_MERGE_FIELD_KEYS } from "@/lib/communications/merge-fields";
 
 export { MERGE_FIELD_CATEGORIES, MERGE_FIELD_MAP } from "@/lib/communications/merge-fields";
+
+declare module "@tiptap/core" {
+  interface Commands<ReturnType> {
+    textAlign: {
+      setTextAlign: (textAlign: "left" | "center") => ReturnType;
+      unsetTextAlign: () => ReturnType;
+    };
+    textColor: {
+      setTextColor: (color: string) => ReturnType;
+      unsetTextColor: () => ReturnType;
+    };
+  }
+}
 
 const TEXT_COLORS = [
   { value: "", label: "Default", swatch: "#0f172a" },
@@ -458,13 +473,13 @@ function deleteBlockAtPos(editor: Editor, pos: number): boolean {
     .run();
 }
 
-function renderSimpleTableSpec(payload: TableDraft): any[] {
+function renderSimpleTableSpec(payload: TableDraft): DOMOutputSpec {
   const headers = payload.headers.slice(0, SIMPLE_TABLE_LIMITS.maxColumns);
   const rows = payload.rows
     .slice(0, SIMPLE_TABLE_LIMITS.maxRows)
     .map((row) => row.slice(0, SIMPLE_TABLE_LIMITS.maxColumns));
 
-  const children: any[] = [];
+  const children: DOMOutputSpec[] = [];
 
   if (payload.includeHeader && headers.length > 0) {
     children.push([
@@ -549,15 +564,15 @@ const TextAlignExtension = Extension.create({
     return {
       setTextAlign:
         (textAlign: "left" | "center") =>
-        ({ commands }: { commands: { updateAttributes: (type: string, attributes: Record<string, string>) => boolean } }) =>
+        ({ commands }) =>
           commands.updateAttributes("paragraph", { textAlign }) ||
           commands.updateAttributes("heading", { textAlign }),
       unsetTextAlign:
         () =>
-        ({ commands }: { commands: { resetAttributes: (type: string, name: string) => boolean } }) =>
+        ({ commands }) =>
           commands.resetAttributes("paragraph", "textAlign") ||
           commands.resetAttributes("heading", "textAlign"),
-    } as any;
+    };
   },
 });
 
@@ -589,13 +604,13 @@ const TextColorMark = Mark.create({
     return {
       setTextColor:
         (color: string) =>
-        ({ commands }: { commands: { setMark: (name: string, attrs?: Record<string, string>) => boolean } }) =>
+        ({ commands }) =>
           commands.setMark("textColor", { color }),
       unsetTextColor:
         () =>
-        ({ commands }: { commands: { unsetMark: (name: string) => boolean } }) =>
+        ({ commands }) =>
           commands.unsetMark("textColor"),
-    } as any;
+    };
   },
 });
 
@@ -680,7 +695,7 @@ const SimpleTableNode = Node.create({
       decodeTablePayload(HTMLAttributes["data-table-payload"] as string | null),
       tablePreset
     );
-    return renderSimpleTableSpec(payload) as any;
+    return renderSimpleTableSpec(payload);
   },
 });
 
@@ -717,12 +732,12 @@ const BrandedCtaNode = Node.create({
     return [{ tag: "fab-branded-cta" }, { tag: "p[data-email-block='branded-card']" }];
   },
 
-  renderHTML({ HTMLAttributes }: { HTMLAttributes: Record<string, string> }) {
+  renderHTML({ HTMLAttributes }: { HTMLAttributes: Attributes }) {
     const fieldKey = (HTMLAttributes["data-field-key"] as string | undefined) || "contact_link";
     const label = (HTMLAttributes["data-label"] as string | undefined) || "Contact Form Link";
     const description = (HTMLAttributes["data-description"] as string | undefined) || "";
     const baseLabel = formatBrandedLinkLabel(label);
-    const buttonChildren: any[] = [
+    const buttonChildren: DOMOutputSpec = [
       "a",
       {
         href: `{${fieldKey}}`,
@@ -1054,10 +1069,10 @@ function TextColorMenu({
             key={color.label}
             onClick={() => {
               if (!color.value) {
-                (editor.chain() as any).focus().unsetTextColor().run();
+                editor.chain().focus().unsetTextColor().run();
                 return;
               }
-              (editor.chain() as any).focus().setTextColor(color.value).run();
+              editor.chain().focus().setTextColor(color.value).run();
             }}
           >
             <span
@@ -1461,7 +1476,7 @@ function EditorToolbar({
       <div className="mx-1 h-4 w-px bg-border" />
 
       <ToolbarButton
-        onClick={() => (editor.chain() as any).focus().setTextAlign("left").run()}
+        onClick={() => editor.chain().focus().setTextAlign("left").run()}
         active={editor.isActive({ textAlign: "left" })}
         title="Align left"
         disabled={disabled}
@@ -1469,7 +1484,7 @@ function EditorToolbar({
         <AlignLeft className="h-3.5 w-3.5" />
       </ToolbarButton>
       <ToolbarButton
-        onClick={() => (editor.chain() as any).focus().setTextAlign("center").run()}
+        onClick={() => editor.chain().focus().setTextAlign("center").run()}
         active={editor.isActive({ textAlign: "center" })}
         title="Align center"
         disabled={disabled}

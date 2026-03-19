@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { EditorContent, useEditor, type Editor } from "@tiptap/react";
+import type { JSONContent } from "@tiptap/core";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import { ChevronDown } from "lucide-react";
@@ -73,7 +74,7 @@ function subjectEditorToTemplate(editor: Editor): string {
   const json = editor.getJSON();
   const parts: string[] = [];
 
-  const visit = (node: any) => {
+  const visit = (node: JSONContent | null | undefined) => {
     if (!node) return;
 
     if (node.type === "text" && typeof node.text === "string") {

@@ -315,7 +315,6 @@ function resolveTemplateRows(
 ): CommunicationTemplate[] {
   const systemRows = rows.filter((row) => row.profile_id === null);
   const workspaceRows = rows.filter((row) => row.profile_id === profileId);
-  const systemById = new Map(systemRows.map((row) => [row.id, row]));
   const systemSlugLookup = new Set(systemRows.map((row) => row.slug));
 
   const explicitOverrides = new Map<string, CommunicationTemplateRow>();
@@ -1225,7 +1224,9 @@ export async function getAllCommunications(
 
   const communications = (data || []).map((row: Record<string, unknown>) => {
     const clients = row.clients as { child_first_name: string | null; child_last_name: string | null } | null;
-    const { clients: _joinedClients, ...rest } = row;
+    const rest = Object.fromEntries(
+      Object.entries(row).filter(([key]) => key !== "clients")
+    );
     return {
       ...rest,
       client_name: clients
