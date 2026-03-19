@@ -166,15 +166,15 @@ export function SocialPostsClient({
   };
 
   return (
-    <Tabs defaultValue="calendar">
+    <Tabs defaultValue="library">
       <TabsList>
-        <TabsTrigger value="calendar" className="gap-1.5">
-          <CalendarDays className="h-3.5 w-3.5" />
-          Calendar
-        </TabsTrigger>
         <TabsTrigger value="library" className="gap-1.5">
           <ImageIcon className="h-3.5 w-3.5" />
           Library
+        </TabsTrigger>
+        <TabsTrigger value="calendar" className="gap-1.5">
+          <CalendarDays className="h-3.5 w-3.5" />
+          Calendar
         </TabsTrigger>
       </TabsList>
 
