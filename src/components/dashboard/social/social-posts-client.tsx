@@ -61,22 +61,25 @@ function ImageWithLoader({
   alt: string;
   className?: string;
   spinnerSize?: string;
-  /** If true, retry loading every 3s on error (for images being generated) */
+  /** If true, retry loading every 4s on error (for images being generated) */
   retryOnError?: boolean;
 }) {
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState(false);
-  const [retryKey, setRetryKey] = useState(0);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
-    if (error && retryOnError) {
+    if (error && retryOnError && retryCount < 30) {
       const timer = setTimeout(() => {
         setError(false);
-        setRetryKey((k) => k + 1);
-      }, 3000);
+        setRetryCount((c) => c + 1);
+      }, 4000);
       return () => clearTimeout(timer);
     }
-  }, [error, retryOnError]);
+  }, [error, retryOnError, retryCount]);
+
+  // Bust browser cache on retries by appending query param
+  const imgSrc = retryCount > 0 ? `${src}?r=${retryCount}` : src;
 
   return (
     <div className="relative h-full w-full">
@@ -90,8 +93,8 @@ function ImageWithLoader({
       {!error && (
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          key={retryKey}
-          src={src}
+          key={retryCount}
+          src={imgSrc}
           alt={alt}
           className={`${className} transition-opacity duration-300 ${loaded ? "opacity-100" : "opacity-0"}`}
           loading="lazy"
