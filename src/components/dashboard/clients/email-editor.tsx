@@ -11,7 +11,7 @@ import {
 import { NodeSelection } from "@tiptap/pm/state";
 import type { EditorView } from "@tiptap/pm/view";
 import type { Transaction } from "@tiptap/pm/state";
-import type { DOMOutputSpec } from "prosemirror-model";
+import type { DOMOutputSpec } from "@tiptap/pm/model";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import Link from "@tiptap/extension-link";
