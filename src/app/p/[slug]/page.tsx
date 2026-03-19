@@ -336,24 +336,24 @@ export default async function BrandedAgencyPage({ params, searchParams }: Brande
         {show_powered_by ? (
           <div className="mt-6 text-center">
             <Link
-              href="/"
+              href="https://www.goodaba.com"
               className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-semibold shadow-lg transition-all hover:scale-105 hover:shadow-xl"
               style={{ color: brandColor }}
             >
               <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
               </svg>
-              Powered by Find ABA Therapy
+              Powered by GoodABA
             </Link>
           </div>
         ) : (
           <div className="mt-6 text-center">
             <Link
-              href="/"
+              href="https://www.goodaba.com"
               className="inline-flex items-center gap-1.5 rounded-full bg-white/20 px-4 py-2 text-xs font-medium backdrop-blur-xs transition-colors hover:bg-white/30"
               style={{ color: contrastColor }}
             >
-              Powered by Find ABA Therapy
+              Powered by GoodABA
             </Link>
           </div>
         )}

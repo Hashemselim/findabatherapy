@@ -220,7 +220,7 @@ export function IntakeSettingsCard({
           <div className="flex items-center justify-between rounded-lg border border-border/60 bg-muted/30 p-4">
             <div className="space-y-0.5">
               <Label htmlFor="show-powered-by" className="text-sm font-medium">
-                Show &quot;Powered by FindABATherapy&quot;
+                Show &quot;Powered by GoodABA&quot;
               </Label>
               <p className="text-sm text-muted-foreground">
                 Display a small attribution link at the bottom of the form.
@@ -268,7 +268,7 @@ export function IntakeSettingsCard({
                 <>
                   <div className="mx-auto my-3 h-px w-8 bg-border/50" />
                   <p className="text-center text-[10px] text-muted-foreground">
-                    Powered by FindABATherapy
+                    Powered by GoodABA
                   </p>
                 </>
               )}

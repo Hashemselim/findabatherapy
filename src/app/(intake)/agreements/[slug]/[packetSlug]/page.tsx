@@ -159,21 +159,21 @@ export default async function AgreementPacketPage({
         {show_powered_by ? (
           <div className="mt-6 text-center">
             <Link
-              href="/"
+              href="https://www.goodaba.com"
               className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-semibold shadow-lg transition-all hover:scale-105 hover:shadow-xl"
               style={{ color: background_color }}
             >
-              Powered by Find ABA Therapy
+              Powered by GoodABA
             </Link>
           </div>
         ) : (
           <div className="mt-6 text-center">
             <Link
-              href="/"
+              href="https://www.goodaba.com"
               className="inline-flex items-center gap-1.5 rounded-full bg-white/20 px-4 py-2 text-xs font-medium backdrop-blur-xs transition-colors hover:bg-white/30"
               style={{ color: contrastColor }}
             >
-              Powered by Find ABA Therapy
+              Powered by GoodABA
             </Link>
           </div>
         )}

@@ -150,7 +150,7 @@ export function CareersPageSettings({
                 Hide &quot;Powered by&quot; Badge
               </Label>
               <p className="text-sm text-muted-foreground">
-                Remove the Find ABA Therapy badge from your careers page
+                Remove the GoodABA badge from your careers page
               </p>
             </div>
             <div className="flex items-center gap-2">

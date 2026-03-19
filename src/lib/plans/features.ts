@@ -313,7 +313,7 @@ export const FEATURE_METADATA: Record<
   },
   hasWebsiteWatermarkRemoval: {
     name: "Website Watermark Removal",
-    description: "Remove the 'Powered by FindABATherapy' watermark from your provider website",
+    description: "Remove the 'Powered by GoodABA' watermark from your provider website",
     upgradeMessage: "Upgrade to Pro to remove the watermark from your website",
   },
   hasCustomDomain: {
