@@ -83,9 +83,9 @@ export default async function SocialPostsPage() {
   const assetsReady = statusResult.success && statusResult.data?.ready;
   const brandHash = (statusResult.success && statusResult.data?.brandHash) || "";
 
-  // Get upcoming templates — 90-day window for calendar view
+  // Get ALL dated templates for calendar view — full year window
   // Serialize Date objects to ISO strings for client component
-  const upcoming = getUpcomingTemplates(90).map((t) => ({
+  const upcoming = getUpcomingTemplates(365).map((t) => ({
     ...t,
     nextOccurrence: t.nextOccurrence.toISOString(),
   }));
