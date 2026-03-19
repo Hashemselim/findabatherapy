@@ -263,7 +263,7 @@ function SocialPostCard({
             ) : (
               <Copy className="h-3.5 w-3.5 shrink-0" />
             )}
-            <span className="truncate">{imageCopied ? "Copied!" : "Copy Image"}</span>
+            <span className="truncate">{imageCopied ? "Copied!" : "Image"}</span>
           </Button>
           <Button
             size="sm"
