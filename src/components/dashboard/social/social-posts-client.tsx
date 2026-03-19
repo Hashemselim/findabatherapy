@@ -433,13 +433,13 @@ function SocialPostCard({
           </Badge>
         </div>
 
-        {/* Caption preview */}
+        {/* Caption preview — 4 lines visible, expandable only if very long */}
         <p
-          className={`text-xs text-muted-foreground ${showFullCaption ? "" : "line-clamp-2"}`}
+          className={`text-xs text-muted-foreground ${showFullCaption ? "" : "line-clamp-4"}`}
         >
           {template.caption}
         </p>
-        {template.caption.length > 120 && (
+        {template.caption.length > 200 && (
           <button
             onClick={() => setShowFullCaption(!showFullCaption)}
             className="text-xs font-medium text-primary hover:underline"
