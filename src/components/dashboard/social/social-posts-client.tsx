@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
   CalendarDays,
   Copy,
@@ -238,6 +238,22 @@ function CalendarRow({
   const [captionCopied, setCaptionCopied] = useState(false);
   const [imageCopied, setImageCopied] = useState(false);
   const [showFullCaption, setShowFullCaption] = useState(false);
+  const [isClamped, setIsClamped] = useState(false);
+  const captionRef = useRef<HTMLParagraphElement>(null);
+
+  // Detect if text is actually overflowing the line-clamp
+  const checkClamped = useCallback(() => {
+    const el = captionRef.current;
+    if (el && !showFullCaption) {
+      setIsClamped(el.scrollHeight > el.clientHeight);
+    }
+  }, [showFullCaption]);
+
+  useEffect(() => {
+    checkClamped();
+    window.addEventListener("resize", checkClamped);
+    return () => window.removeEventListener("resize", checkClamped);
+  }, [checkClamped]);
 
   async function copyCaption() {
     await navigator.clipboard.writeText(
@@ -320,18 +336,27 @@ function CalendarRow({
           </Badge>
         </div>
 
-        {/* Caption preview */}
+        {/* Caption preview — only show "Show more" if text actually overflows */}
         <p
+          ref={captionRef}
           className={`text-xs text-muted-foreground ${showFullCaption ? "" : "line-clamp-2"}`}
         >
           {template.caption}
         </p>
-        {template.caption.length > 120 && (
+        {isClamped && !showFullCaption && (
           <button
-            onClick={() => setShowFullCaption(!showFullCaption)}
-            className="text-xs font-medium text-primary hover:underline"
+            onClick={() => setShowFullCaption(true)}
+            className="self-start text-xs font-medium text-primary hover:underline"
           >
-            {showFullCaption ? "Show less" : "Show more"}
+            Show more
+          </button>
+        )}
+        {showFullCaption && (
+          <button
+            onClick={() => setShowFullCaption(false)}
+            className="self-start text-xs font-medium text-primary hover:underline"
+          >
+            Show less
           </button>
         )}
 
@@ -394,6 +419,21 @@ function SocialPostCard({
   const [captionCopied, setCaptionCopied] = useState(false);
   const [imageCopied, setImageCopied] = useState(false);
   const [showFullCaption, setShowFullCaption] = useState(false);
+  const [isClamped, setIsClamped] = useState(false);
+  const libCaptionRef = useRef<HTMLParagraphElement>(null);
+
+  const checkLibClamped = useCallback(() => {
+    const el = libCaptionRef.current;
+    if (el && !showFullCaption) {
+      setIsClamped(el.scrollHeight > el.clientHeight);
+    }
+  }, [showFullCaption]);
+
+  useEffect(() => {
+    checkLibClamped();
+    window.addEventListener("resize", checkLibClamped);
+    return () => window.removeEventListener("resize", checkLibClamped);
+  }, [checkLibClamped]);
 
   async function copyCaption() {
     await navigator.clipboard.writeText(
@@ -451,19 +491,28 @@ function SocialPostCard({
           </Badge>
         </div>
 
-        {/* Caption preview — 4 lines visible, expandable only if very long */}
+        {/* Caption preview — 4 lines, show more only if actually overflowing */}
         <div className="flex-1">
           <p
+            ref={libCaptionRef}
             className={`text-xs text-muted-foreground ${showFullCaption ? "" : "line-clamp-4"}`}
           >
             {template.caption}
           </p>
-          {template.caption.length > 200 && (
+          {isClamped && !showFullCaption && (
             <button
-              onClick={() => setShowFullCaption(!showFullCaption)}
+              onClick={() => setShowFullCaption(true)}
               className="mt-1 text-xs font-medium text-primary hover:underline"
             >
-              {showFullCaption ? "Show less" : "Show more"}
+              Show more
+            </button>
+          )}
+          {showFullCaption && (
+            <button
+              onClick={() => setShowFullCaption(false)}
+              className="mt-1 text-xs font-medium text-primary hover:underline"
+            >
+              Show less
             </button>
           )}
         </div>
