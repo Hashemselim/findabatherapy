@@ -566,7 +566,7 @@ export const SOCIAL_TEMPLATES: SocialTemplate[] = [
     layoutProps: {
       headline: "What Is\nPairing?",
       subline: "Connection Before Correction",
-      icon: "handshake",
+      icon: "heart-handshake",
     },
     eventDate: null,
   },
@@ -614,7 +614,7 @@ export const SOCIAL_TEMPLATES: SocialTemplate[] = [
     layoutProps: {
       headline: "Learning in\nNatural Environments",
       subline: "Learning Is Everywhere",
-      icon: "leaf",
+      icon: "sun",
     },
     eventDate: null,
   },

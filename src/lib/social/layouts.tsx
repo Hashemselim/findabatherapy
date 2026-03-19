@@ -1,6 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 import type { BrandData } from "./types";
-import { ICON_PATHS } from "./icons";
+import { ICON_SVG } from "./icons";
 
 interface LayoutComponentProps {
   brand: BrandData;
@@ -30,7 +30,12 @@ function shadeColor(hex: string, amount: number): string {
 
 function CardLayout({ brand, headline, subline, icon }: LayoutComponentProps) {
   const darkBrand = shadeColor(brand.brandColor, 0.3);
-  const iconPath = icon ? ICON_PATHS[icon] : undefined;
+  // Build a data URI SVG for the icon so Satori renders it as an image
+  const iconDataUri = icon && ICON_SVG[icon]
+    ? `data:image/svg+xml,${encodeURIComponent(
+        `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICON_SVG[icon]}</svg>`
+      )}`
+    : undefined;
 
   return (
     <div
@@ -58,7 +63,7 @@ function CardLayout({ brand, headline, subline, icon }: LayoutComponentProps) {
         }}
       >
         {/* Icon circle — overlapping top edge */}
-        {iconPath && (
+        {iconDataUri && (
           <div
             style={{
               display: "flex",
@@ -72,9 +77,7 @@ function CardLayout({ brand, headline, subline, icon }: LayoutComponentProps) {
               marginBottom: 36,
             }}
           >
-            <svg width="60" height="60" viewBox="0 0 24 24" fill="none">
-              <path d={iconPath} fill="#ffffff" />
-            </svg>
+            <img src={iconDataUri} alt="" width={60} height={60} />
           </div>
         )}
 
