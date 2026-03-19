@@ -8,6 +8,7 @@ import {
   Check,
   ImageIcon,
   Loader2,
+  X,
 } from "lucide-react";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -61,47 +62,49 @@ function ImageWithLoader({
   alt: string;
   className?: string;
   spinnerSize?: string;
-  /** If true, retry loading every 4s on error (for images being generated) */
+  /** If true, retry loading on error with jittered backoff */
   retryOnError?: boolean;
 }) {
   const [loaded, setLoaded] = useState(false);
-  const [error, setError] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
+  const imgRef = useRef<HTMLImageElement>(null);
 
-  useEffect(() => {
-    if (error && retryOnError && retryCount < 30) {
-      const timer = setTimeout(() => {
-        setError(false);
-        setRetryCount((c) => c + 1);
-      }, 4000);
-      return () => clearTimeout(timer);
-    }
-  }, [error, retryOnError, retryCount]);
+  // On error, schedule a retry by updating the src with a cache-buster.
+  // Keep the <img> mounted so the browser's lazy-loading observer stays active.
+  const handleError = useCallback(() => {
+    if (!retryOnError || retryCount >= 30) return;
+    // Jittered backoff: 2-5s base + random jitter to avoid thundering herd
+    const delay = 2000 + Math.random() * 3000;
+    const timer = setTimeout(() => {
+      setRetryCount((c) => c + 1);
+    }, delay);
+    return () => clearTimeout(timer);
+  }, [retryOnError, retryCount]);
 
   // Bust browser cache on retries by appending query param
   const imgSrc = retryCount > 0 ? `${src}?r=${retryCount}` : src;
 
   return (
     <div className="relative h-full w-full">
-      {(!loaded || error) && (
+      {!loaded && (
         <div className="absolute inset-0 flex items-center justify-center">
           <Loader2
             className={`${spinnerSize} animate-spin text-muted-foreground`}
           />
         </div>
       )}
-      {!error && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          key={retryCount}
-          src={imgSrc}
-          alt={alt}
-          className={`${className} transition-opacity duration-300 ${loaded ? "opacity-100" : "opacity-0"}`}
-          loading="lazy"
-          onLoad={() => setLoaded(true)}
-          onError={() => setError(true)}
-        />
-      )}
+      {/* Always keep <img> mounted so loading="lazy" intersection observer works */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        ref={imgRef}
+        key={retryCount}
+        src={imgSrc}
+        alt={alt}
+        className={`${className} transition-opacity duration-300 ${loaded ? "opacity-100" : "opacity-0"}`}
+        loading="lazy"
+        onLoad={() => setLoaded(true)}
+        onError={handleError}
+      />
     </div>
   );
 }
@@ -116,43 +119,75 @@ export function SocialPostsClient({
 }: SocialPostsClientProps) {
   const [filter, setFilter] = useState<SocialCategory | "all">("all");
   const [assetsReady, setAssetsReady] = useState(initialAssetsReady);
-  const [isGenerating, setIsGenerating] = useState(alreadyGenerating);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [generationProgress, setGenerationProgress] = useState("");
   const [cacheBuster, setCacheBuster] = useState(brandHash);
 
-  // Trigger generation if assets aren't ready and not already generating elsewhere
+  // Build image URL helper (needed for probe check)
+  const buildImageUrl = useCallback(
+    (templateId: string) => {
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+      const hash = cacheBuster || brandHash;
+      return hash
+        ? `${supabaseUrl}/storage/v1/object/public/social-posts/${profileId}/${hash}/${templateId}.png`
+        : `${supabaseUrl}/storage/v1/object/public/social-posts/${profileId}/${templateId}.png`;
+    },
+    [profileId, cacheBuster, brandHash]
+  );
+
+  // Trigger generation only if assets truly don't exist.
+  // Probe an actual image URL first to guard against intermittent manifest failures.
   useEffect(() => {
     if (assetsReady) return;
 
-    if (alreadyGenerating) {
-      // Another tab/visit already started generation — just poll for completion
-      setIsGenerating(true);
-      const interval = setInterval(async () => {
+    let cancelled = false;
+
+    async function checkAndGenerate() {
+      // Probe a real image to see if assets actually exist despite manifest failure
+      if (brandHash && templates.length > 0) {
         try {
-          const { checkSocialAssetsStatus } = await import(
-            "@/lib/actions/social"
-          );
-          const status = await checkSocialAssetsStatus();
-          if (status.success && status.data.ready) {
+          const probeUrl = buildImageUrl(templates[0].id);
+          const probeRes = await fetch(probeUrl, { method: "HEAD" });
+          if (probeRes.ok && !cancelled) {
+            // Images exist — manifest check was a false negative
             setAssetsReady(true);
-            setCacheBuster(status.data.brandHash);
-            setIsGenerating(false);
-            clearInterval(interval);
+            return;
           }
         } catch {
-          // Keep polling
+          // Probe failed — assets likely don't exist, proceed to generation
         }
-      }, 5000);
-      return () => clearInterval(interval);
-    }
+      }
 
-    // No generation in progress — start one (fire and forget)
-    // Images will appear progressively as each one is uploaded
-    if (!isGenerating) {
+      if (cancelled) return;
+
+      if (alreadyGenerating) {
+        // Another tab/visit already started generation — just poll for completion
+        setIsGenerating(true);
+        const interval = setInterval(async () => {
+          try {
+            const { checkSocialAssetsStatus } = await import(
+              "@/lib/actions/social"
+            );
+            const status = await checkSocialAssetsStatus();
+            if (status.success && status.data.ready) {
+              setAssetsReady(true);
+              setCacheBuster(status.data.brandHash);
+              setIsGenerating(false);
+              clearInterval(interval);
+            }
+          } catch {
+            // Keep polling
+          }
+        }, 5000);
+        return;
+      }
+
+      // No generation in progress — start one
       setIsGenerating(true);
 
       generateSocialAssets()
         .then((result) => {
+          if (cancelled) return;
           if (result.success) {
             setAssetsReady(true);
             setGenerationProgress("");
@@ -161,12 +196,17 @@ export function SocialPostsClient({
           }
         })
         .catch(() => {
-          setGenerationProgress("Generation failed. Try refreshing.");
+          if (!cancelled) {
+            setGenerationProgress("Generation failed. Try refreshing.");
+          }
         })
         .finally(() => {
-          setIsGenerating(false);
+          if (!cancelled) setIsGenerating(false);
         });
     }
+
+    checkAndGenerate();
+    return () => { cancelled = true; };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const filteredTemplates =
@@ -174,14 +214,7 @@ export function SocialPostsClient({
       ? templates
       : templates.filter((t) => t.category === filter);
 
-  // Build image URL with hash in path (not query param) to bust CDN cache
-  const getImageUrl = (templateId: string) => {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const hash = cacheBuster || brandHash;
-    return hash
-      ? `${supabaseUrl}/storage/v1/object/public/social-posts/${profileId}/${hash}/${templateId}.png`
-      : `${supabaseUrl}/storage/v1/object/public/social-posts/${profileId}/${templateId}.png`;
-  };
+  const getImageUrl = buildImageUrl;
 
   return (
     <Tabs defaultValue="library">
@@ -224,7 +257,6 @@ export function SocialPostsClient({
                 key={template.id}
                 template={template}
                 imageUrl={getImageUrl(template.id)}
-                assetsReady={assetsReady}
                 daysUntil={template.daysUntil}
               />
             ))}
@@ -251,18 +283,61 @@ export function SocialPostsClient({
           ))}
         </div>
 
-        <div className="grid grid-cols-1 items-stretch gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {filteredTemplates.map((template) => (
-            <SocialPostCard
-              key={template.id}
-              template={template}
-              imageUrl={getImageUrl(template.id)}
-              assetsReady={assetsReady}
-            />
-          ))}
+        <div className="rounded-xl bg-background p-3">
+          <div className="grid grid-cols-1 items-stretch gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {filteredTemplates.map((template) => (
+              <SocialPostCard
+                key={template.id}
+                template={template}
+                imageUrl={getImageUrl(template.id)}
+              />
+            ))}
+          </div>
         </div>
       </TabsContent>
     </Tabs>
+  );
+}
+
+// ---------- Image Lightbox Modal ----------
+
+function ImageLightbox({
+  src,
+  alt,
+  onClose,
+}: {
+  src: string;
+  alt: string;
+  onClose: () => void;
+}) {
+  // Close on Escape key
+  useEffect(() => {
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    document.addEventListener("keydown", handleKey);
+    return () => document.removeEventListener("keydown", handleKey);
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+      onClick={onClose}
+    >
+      <button
+        onClick={onClose}
+        className="absolute right-4 top-4 rounded-full bg-white/10 p-2 text-white backdrop-blur-sm transition-colors hover:bg-white/20"
+      >
+        <X className="h-6 w-6" />
+      </button>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={src}
+        alt={alt}
+        className="max-h-[85vh] max-w-[85vw] rounded-lg shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      />
+    </div>
   );
 }
 
@@ -271,18 +346,17 @@ export function SocialPostsClient({
 function CalendarRow({
   template,
   imageUrl,
-  assetsReady,
   daysUntil,
 }: {
   template: SocialTemplate & { nextOccurrence: string };
   imageUrl: string;
-  assetsReady: boolean;
   daysUntil: number;
 }) {
   const [captionCopied, setCaptionCopied] = useState(false);
   const [imageCopied, setImageCopied] = useState(false);
   const [showFullCaption, setShowFullCaption] = useState(false);
   const [isClamped, setIsClamped] = useState(false);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
   const captionRef = useRef<HTMLParagraphElement>(null);
 
   // Detect if text is actually overflowing the line-clamp
@@ -343,104 +417,128 @@ function CalendarRow({
         : `In ${daysUntil} days`;
 
   return (
-    <DashboardCard className="flex flex-col gap-4 p-4 sm:flex-row sm:items-start">
-      {/* Date badge */}
-      <div className="flex shrink-0 flex-col items-center justify-center rounded-lg bg-primary/5 px-4 py-2 text-center">
-        <span className="text-xs font-medium uppercase text-muted-foreground">
-          {monthName}
-        </span>
-        <span className="text-2xl font-bold text-primary">{dayNum}</span>
-        <span className="text-[10px] text-muted-foreground">{daysLabel}</span>
-      </div>
-
-      {/* Image thumbnail — always try loading, retries on 404 */}
-      <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-lg bg-muted">
-        <ImageWithLoader
+    <>
+      {lightboxOpen && (
+        <ImageLightbox
           src={imageUrl}
           alt={template.title}
-          spinnerSize="h-5 w-5"
-          retryOnError={!assetsReady}
+          onClose={() => setLightboxOpen(false)}
         />
-      </div>
-
-      {/* Content */}
-      <div className="flex min-w-0 flex-1 flex-col gap-2">
-        <div className="flex items-start justify-between gap-2">
-          <h3 className="text-sm font-semibold">{template.title}</h3>
-          <Badge
-            variant="outline"
-            className={`shrink-0 text-[10px] ${categoryColor}`}
-          >
-            {CATEGORY_LABELS[template.category]}
-          </Badge>
+      )}
+      <DashboardCard className="flex flex-col gap-4 p-4 sm:flex-row sm:items-start">
+        {/* Date badge */}
+        <div className="flex shrink-0 flex-col items-center justify-center rounded-lg bg-primary/5 px-4 py-2 text-center sm:self-start">
+          <span className="text-xs font-medium uppercase text-muted-foreground">
+            {monthName}
+          </span>
+          <span className="text-2xl font-bold text-primary">{dayNum}</span>
+          <span className="text-[10px] text-muted-foreground">{daysLabel}</span>
         </div>
 
-        {/* Caption preview — only show "Show more" if text actually overflows */}
-        <p
-          ref={captionRef}
-          className={`text-xs text-muted-foreground ${showFullCaption ? "" : "line-clamp-2"}`}
+        {/* Mobile: full-width image like library view */}
+        <button
+          type="button"
+          className="relative aspect-square w-full overflow-hidden rounded-lg bg-muted sm:hidden"
+          onClick={() => setLightboxOpen(true)}
         >
-          {template.caption}
-        </p>
-        {isClamped && !showFullCaption && (
-          <button
-            onClick={() => setShowFullCaption(true)}
-            className="self-start text-xs font-medium text-primary hover:underline"
-          >
-            Show more
-          </button>
-        )}
-        {showFullCaption && (
-          <button
-            onClick={() => setShowFullCaption(false)}
-            className="self-start text-xs font-medium text-primary hover:underline"
-          >
-            Show less
-          </button>
-        )}
+          <ImageWithLoader
+            src={imageUrl}
+            alt={template.title}
+            retryOnError
+          />
+        </button>
 
-        {/* Actions */}
-        <div className="flex gap-1.5">
-          <Button
-            size="sm"
-            variant="outline"
-            className="gap-1 text-xs"
-            onClick={copyImage}
+        {/* Desktop: larger clickable thumbnail */}
+        <button
+          type="button"
+          className="relative hidden h-36 w-36 shrink-0 cursor-pointer overflow-hidden rounded-lg bg-muted transition-shadow hover:ring-2 hover:ring-primary/30 sm:block"
+          onClick={() => setLightboxOpen(true)}
+        >
+          <ImageWithLoader
+            src={imageUrl}
+            alt={template.title}
+            spinnerSize="h-5 w-5"
+            retryOnError
+          />
+        </button>
 
-          >
-            {imageCopied ? (
-              <Check className="h-3.5 w-3.5 text-emerald-600" />
-            ) : (
-              <Copy className="h-3.5 w-3.5" />
-            )}
-            {imageCopied ? "Copied!" : "Image"}
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            className="gap-1 text-xs"
-            onClick={copyCaption}
-          >
-            {captionCopied ? (
-              <Check className="h-3.5 w-3.5 text-emerald-600" />
-            ) : (
-              <Copy className="h-3.5 w-3.5" />
-            )}
-            {captionCopied ? "Copied!" : "Caption"}
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            className="shrink-0 px-2"
-            onClick={downloadImage}
+        {/* Content */}
+        <div className="flex min-w-0 flex-1 flex-col gap-2">
+          <div className="flex items-start justify-between gap-2">
+            <h3 className="text-sm font-semibold">{template.title}</h3>
+            <Badge
+              variant="outline"
+              className={`shrink-0 text-[10px] ${categoryColor}`}
+            >
+              {CATEGORY_LABELS[template.category]}
+            </Badge>
+          </div>
 
-            title="Download image"
+          {/* Caption preview — only show "Show more" if text actually overflows */}
+          <p
+            ref={captionRef}
+            className={`text-xs text-muted-foreground ${showFullCaption ? "" : "line-clamp-2"}`}
           >
-            <Download className="h-4 w-4" />
-          </Button>
+            {template.caption}
+          </p>
+          {isClamped && !showFullCaption && (
+            <button
+              onClick={() => setShowFullCaption(true)}
+              className="self-start text-xs font-medium text-primary hover:underline"
+            >
+              Show more
+            </button>
+          )}
+          {showFullCaption && (
+            <button
+              onClick={() => setShowFullCaption(false)}
+              className="self-start text-xs font-medium text-primary hover:underline"
+            >
+              Show less
+            </button>
+          )}
+
+          {/* Actions */}
+          <div className="flex gap-1.5">
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-1 text-xs"
+              onClick={copyImage}
+            >
+              {imageCopied ? (
+                <Check className="h-3.5 w-3.5 text-emerald-600" />
+              ) : (
+                <Copy className="h-3.5 w-3.5" />
+              )}
+              {imageCopied ? "Copied!" : "Image"}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-1 text-xs"
+              onClick={copyCaption}
+            >
+              {captionCopied ? (
+                <Check className="h-3.5 w-3.5 text-emerald-600" />
+              ) : (
+                <Copy className="h-3.5 w-3.5" />
+              )}
+              {captionCopied ? "Copied!" : "Caption"}
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="shrink-0 px-2"
+              onClick={downloadImage}
+              title="Download image"
+            >
+              <Download className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
-      </div>
-    </DashboardCard>
+      </DashboardCard>
+    </>
   );
 }
 
@@ -449,11 +547,9 @@ function CalendarRow({
 function SocialPostCard({
   template,
   imageUrl,
-  assetsReady,
 }: {
   template: SocialTemplate;
   imageUrl: string;
-  assetsReady: boolean;
 }) {
   const [captionCopied, setCaptionCopied] = useState(false);
   const [imageCopied, setImageCopied] = useState(false);
@@ -512,7 +608,7 @@ function SocialPostCard({
         <ImageWithLoader
           src={imageUrl}
           alt={template.title}
-          retryOnError={!assetsReady}
+          retryOnError
         />
       </div>
 
