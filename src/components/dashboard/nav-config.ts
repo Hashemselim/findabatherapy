@@ -24,6 +24,7 @@ import {
   Mail,
   MapPin,
   MessageSquare,
+  Network,
   Palette,
   User,
   UserCheck,
@@ -100,6 +101,12 @@ export const mainNavItems: NavItemConfig[] = [
     href: "/dashboard/clients/communications",
     label: "Communications",
     icon: Mail,
+  },
+  {
+    href: "/dashboard/referrals",
+    label: "Referrals",
+    icon: Network,
+    quickLink: true,
   },
 ];
 

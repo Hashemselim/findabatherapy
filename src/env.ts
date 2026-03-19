@@ -37,6 +37,8 @@ const envSchema = z.object({
   TURNSTILE_SECRET_KEY: z.string().min(1),
   // Google Maps API for geocoding and places autocomplete
   GOOGLE_MAPS_API_KEY: z.string().min(1),
+  // Firecrawl for optional referral-source website enrichment
+  FIRECRAWL_API_KEY: z.string().optional(),
   // Resend for transactional emails (optional - emails disabled if not set)
   RESEND_API_KEY: z.string().optional(),
   // Email address for sending emails (defaults to onboarding@resend.dev for testing)
@@ -58,6 +60,7 @@ const parsed = envSchema.safeParse({
   SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
   TURNSTILE_SECRET_KEY: process.env.TURNSTILE_SECRET_KEY,
   GOOGLE_MAPS_API_KEY: process.env.GOOGLE_MAPS_API_KEY,
+  FIRECRAWL_API_KEY: process.env.FIRECRAWL_API_KEY,
   RESEND_API_KEY: process.env.RESEND_API_KEY,
   EMAIL_FROM: process.env.EMAIL_FROM,
   EMAIL_FROM_THERAPY: process.env.EMAIL_FROM_THERAPY,
