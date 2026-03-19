@@ -514,3 +514,21 @@ export async function guardReferralTracking(): Promise<GuardResult> {
 
   return { allowed: true };
 }
+
+/**
+ * Guard: Check if user can access social posts
+ */
+export async function guardSocialPosts(): Promise<GuardResult> {
+  const tier = await getCurrentPlanTier();
+  const features = getPlanFeatures(tier);
+
+  if (!features.hasSocialPosts) {
+    return {
+      allowed: false,
+      reason: "Social posts is a Pro feature",
+      requiredPlan: "pro",
+    };
+  }
+
+  return { allowed: true };
+}

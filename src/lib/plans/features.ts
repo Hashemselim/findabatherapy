@@ -42,6 +42,9 @@ export interface PlanFeatures {
   hasTaskAutomation: boolean;
   hasCredentialTracking: boolean;
 
+  // Social Posts
+  hasSocialPosts: boolean;
+
   // Provider Website
   hasWebsiteWatermarkRemoval: boolean;
   hasCustomDomain: boolean;
@@ -109,6 +112,7 @@ export const PLAN_CONFIGS: Record<PlanTier, PlanConfig> = {
       hasReferralTracking: false,
       hasTaskAutomation: false,
       hasCredentialTracking: false,
+      hasSocialPosts: false,
       hasWebsiteWatermarkRemoval: false,
       hasCustomDomain: false,
       searchPriority: "standard",
@@ -156,6 +160,7 @@ export const PLAN_CONFIGS: Record<PlanTier, PlanConfig> = {
       hasReferralTracking: true,
       hasTaskAutomation: true,
       hasCredentialTracking: true,
+      hasSocialPosts: true,
       hasWebsiteWatermarkRemoval: true,
       hasCustomDomain: true,
       searchPriority: "priority",
@@ -310,6 +315,11 @@ export const FEATURE_METADATA: Record<
     name: "Credential Tracking",
     description: "Track employee credentials and expiration dates",
     upgradeMessage: "Upgrade to Pro to track employee credentials",
+  },
+  hasSocialPosts: {
+    name: "Social Posts",
+    description: "Branded social media post templates for your ABA practice",
+    upgradeMessage: "Upgrade to Pro for branded social media post templates",
   },
   hasWebsiteWatermarkRemoval: {
     name: "Website Watermark Removal",
