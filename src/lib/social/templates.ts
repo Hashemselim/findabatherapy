@@ -13,7 +13,7 @@ export const SOCIAL_TEMPLATES: SocialTemplate[] = [
     layoutId: "card",
     layoutProps: {
       headline: "Happy BCBA\nAppreciation Day",
-      subline: "Thank you for making a difference",
+      subline: "Heroes of ABA",
       icon: "award",
     },
     eventDate: "03-15",
@@ -30,7 +30,7 @@ export const SOCIAL_TEMPLATES: SocialTemplate[] = [
     layoutId: "card",
     layoutProps: {
       headline: "Happy RBT\nAppreciation Day",
-      subline: "The backbone of ABA therapy",
+      subline: "Heart of Every Session",
       icon: "heart",
     },
     eventDate: "10-02",
@@ -46,7 +46,7 @@ export const SOCIAL_TEMPLATES: SocialTemplate[] = [
     layoutId: "card",
     layoutProps: {
       headline: "ABA Day",
-      subline: "Celebrating the science of behavior",
+      subline: "Science That Changes Lives",
       icon: "chart",
     },
     eventDate: "03-20",
@@ -62,7 +62,7 @@ export const SOCIAL_TEMPLATES: SocialTemplate[] = [
     layoutId: "card",
     layoutProps: {
       headline: "Behavior Analysis\nWeek",
-      subline: "Understanding behavior. Creating change.",
+      subline: "Where Science Meets Heart",
       icon: "brain",
     },
     eventDate: "03-08",
@@ -79,7 +79,7 @@ export const SOCIAL_TEMPLATES: SocialTemplate[] = [
     layoutId: "card",
     layoutProps: {
       headline: "Better Hearing &\nSpeech Month",
-      subline: "Collaboration makes the difference",
+      subline: "Better Together",
       icon: "mic",
     },
     eventDate: "05-01",
@@ -96,7 +96,7 @@ export const SOCIAL_TEMPLATES: SocialTemplate[] = [
     layoutId: "card",
     layoutProps: {
       headline: "Occupational\nTherapy Month",
-      subline: "Supporting independence together",
+      subline: "Building Independence Daily",
       icon: "hand",
     },
     eventDate: "04-01",
@@ -113,7 +113,7 @@ export const SOCIAL_TEMPLATES: SocialTemplate[] = [
     layoutId: "card",
     layoutProps: {
       headline: "Special\nEducation Day",
-      subline: "Every child deserves to thrive",
+      subline: "Every Child Deserves More",
       icon: "graduation",
     },
     eventDate: "12-02",
@@ -130,7 +130,7 @@ export const SOCIAL_TEMPLATES: SocialTemplate[] = [
     layoutId: "card",
     layoutProps: {
       headline: "Developmental\nDisabilities\nAwareness Month",
-      subline: "Inclusion starts with understanding",
+      subline: "See the Ability",
       icon: "users",
     },
     eventDate: "03-01",
@@ -149,7 +149,7 @@ export const SOCIAL_TEMPLATES: SocialTemplate[] = [
     layoutId: "card",
     layoutProps: {
       headline: "Autism\nAcceptance\nMonth",
-      subline: "Celebrate. Accept. Include.",
+      subline: "Accept. Include. Celebrate",
       icon: "infinity",
     },
     eventDate: "04-01",
@@ -166,7 +166,7 @@ export const SOCIAL_TEMPLATES: SocialTemplate[] = [
     layoutId: "card",
     layoutProps: {
       headline: "World Autism\nAwareness Day",
-      subline: "April 2nd",
+      subline: "Understanding Starts Today",
       icon: "globe",
     },
     eventDate: "04-02",
@@ -183,7 +183,7 @@ export const SOCIAL_TEMPLATES: SocialTemplate[] = [
     layoutId: "card",
     layoutProps: {
       headline: "Autistic\nPride Day",
-      subline: "Celebrating neurodiversity",
+      subline: "Proudly Neurodivergent",
       icon: "sparkles",
     },
     eventDate: "06-18",
@@ -200,7 +200,7 @@ export const SOCIAL_TEMPLATES: SocialTemplate[] = [
     layoutId: "card",
     layoutProps: {
       headline: "Disability\nEmployment\nAwareness Month",
-      subline: "Inclusive workplaces are stronger",
+      subline: "Inclusion Is Strength",
       icon: "briefcase",
     },
     eventDate: "10-01",
@@ -217,7 +217,7 @@ export const SOCIAL_TEMPLATES: SocialTemplate[] = [
     layoutId: "card",
     layoutProps: {
       headline: "AAC Awareness\nMonth",
-      subline: "Communication is a right",
+      subline: "Every Voice Matters",
       icon: "message",
     },
     eventDate: "10-01",
@@ -234,7 +234,7 @@ export const SOCIAL_TEMPLATES: SocialTemplate[] = [
     layoutId: "card",
     layoutProps: {
       headline: "World\nKindness Day",
-      subline: "Patience. Acceptance. Inclusion.",
+      subline: "Be the Kindness",
       icon: "heart",
     },
     eventDate: "11-13",
@@ -252,7 +252,7 @@ export const SOCIAL_TEMPLATES: SocialTemplate[] = [
     layoutId: "card",
     layoutProps: {
       headline: "Happy\nNew Year",
-      subline: "Here\u2019s to growth and new milestones",
+      subline: "New Beginnings Ahead",
       icon: "sparkles",
     },
     eventDate: "01-01",
@@ -269,7 +269,7 @@ export const SOCIAL_TEMPLATES: SocialTemplate[] = [
     layoutId: "card",
     layoutProps: {
       headline: "Martin Luther\nKing Jr. Day",
-      subline: "Equality. Justice. Compassion.",
+      subline: "Dream. Lead. Change",
       icon: "scale",
     },
     eventDate: "01-20",
@@ -285,7 +285,7 @@ export const SOCIAL_TEMPLATES: SocialTemplate[] = [
     layoutId: "card",
     layoutProps: {
       headline: "Happy\nValentine\u2019s Day",
-      subline: "Celebrating love in all its forms",
+      subline: "Love in Every Form",
       icon: "heart",
     },
     eventDate: "02-14",
@@ -301,7 +301,7 @@ export const SOCIAL_TEMPLATES: SocialTemplate[] = [
     layoutId: "card",
     layoutProps: {
       headline: "Memorial Day",
-      subline: "Honoring those who served",
+      subline: "Honor. Remember. Serve",
       icon: "flag",
     },
     eventDate: "05-26",
@@ -317,7 +317,7 @@ export const SOCIAL_TEMPLATES: SocialTemplate[] = [
     layoutId: "card",
     layoutProps: {
       headline: "Happy 4th\nof July",
-      subline: "Celebrate safely!",
+      subline: "Land of the Free",
       icon: "star",
     },
     eventDate: "07-04",
@@ -334,7 +334,7 @@ export const SOCIAL_TEMPLATES: SocialTemplate[] = [
     layoutId: "card",
     layoutProps: {
       headline: "Happy\nLabor Day",
-      subline: "Thank you to our dedicated team",
+      subline: "You Deserve This Rest",
       icon: "wrench",
     },
     eventDate: "09-01",
@@ -350,7 +350,7 @@ export const SOCIAL_TEMPLATES: SocialTemplate[] = [
     layoutId: "card",
     layoutProps: {
       headline: "Happy\nThanksgiving",
-      subline: "Grateful for our community",
+      subline: "Grateful for You",
       icon: "home",
     },
     eventDate: "11-27",
@@ -366,7 +366,7 @@ export const SOCIAL_TEMPLATES: SocialTemplate[] = [
     layoutId: "card",
     layoutProps: {
       headline: "Merry\nChristmas",
-      subline: "Warmth, joy, and cherished moments",
+      subline: "Joy to the World",
       icon: "gift",
     },
     eventDate: "12-25",
@@ -382,7 +382,7 @@ export const SOCIAL_TEMPLATES: SocialTemplate[] = [
     layoutId: "card",
     layoutProps: {
       headline: "Happy\nMother\u2019s Day",
-      subline: "You are seen and appreciated",
+      subline: "For the Moms Who Give Everything",
       icon: "flower",
     },
     eventDate: "05-11",
@@ -398,7 +398,7 @@ export const SOCIAL_TEMPLATES: SocialTemplate[] = [
     layoutId: "card",
     layoutProps: {
       headline: "Happy\nFather\u2019s Day",
-      subline: "Your dedication matters",
+      subline: "Dads Make a Difference",
       icon: "shield",
     },
     eventDate: "06-15",
@@ -417,7 +417,7 @@ export const SOCIAL_TEMPLATES: SocialTemplate[] = [
     layoutId: "card",
     layoutProps: {
       headline: "Back to School\nSeason",
-      subline: "Tips for a smooth transition",
+      subline: "Ready. Set. Learn",
       icon: "book",
     },
     eventDate: "08-15",
@@ -434,7 +434,7 @@ export const SOCIAL_TEMPLATES: SocialTemplate[] = [
     layoutId: "card",
     layoutProps: {
       headline: "Summer Break\nTips",
-      subline: "Stay structured. Stay connected.",
+      subline: "Fun in the Sun",
       icon: "sun",
     },
     eventDate: "06-01",
@@ -450,7 +450,7 @@ export const SOCIAL_TEMPLATES: SocialTemplate[] = [
     layoutId: "card",
     layoutProps: {
       headline: "Spring Into\nProgress",
-      subline: "Fresh starts. Renewed goals.",
+      subline: "Bloom Where You Grow",
       icon: "sprout",
     },
     eventDate: "03-20",
@@ -466,7 +466,7 @@ export const SOCIAL_TEMPLATES: SocialTemplate[] = [
     layoutId: "card",
     layoutProps: {
       headline: "Fall Routine\nReset",
-      subline: "Consistency is key",
+      subline: "Reset. Refocus. Thrive",
       icon: "calendar",
     },
     eventDate: "09-22",
@@ -483,7 +483,7 @@ export const SOCIAL_TEMPLATES: SocialTemplate[] = [
     layoutId: "card",
     layoutProps: {
       headline: "Holiday Season\nTips",
-      subline: "Small preparations, big difference",
+      subline: "Navigate the Holidays",
       icon: "snowflake",
     },
     eventDate: "12-01",
@@ -499,7 +499,7 @@ export const SOCIAL_TEMPLATES: SocialTemplate[] = [
     layoutId: "card",
     layoutProps: {
       headline: "New Year\nNew Goals",
-      subline: "Supporting your family\u2019s journey",
+      subline: "Aim Higher This Year",
       icon: "target",
     },
     eventDate: "01-05",
@@ -518,7 +518,7 @@ export const SOCIAL_TEMPLATES: SocialTemplate[] = [
     layoutId: "card",
     layoutProps: {
       headline: "The Power of Positive\nReinforcement",
-      subline: "Catch them doing something great!",
+      subline: "Catch the Good",
       icon: "thumbsup",
     },
     eventDate: null,
@@ -534,7 +534,7 @@ export const SOCIAL_TEMPLATES: SocialTemplate[] = [
     layoutId: "card",
     layoutProps: {
       headline: "Visual Schedules\nWork",
-      subline: "Reduce anxiety. Increase independence.",
+      subline: "See It. Do It",
       icon: "clipboard",
     },
     eventDate: null,
@@ -550,7 +550,7 @@ export const SOCIAL_TEMPLATES: SocialTemplate[] = [
     layoutId: "card",
     layoutProps: {
       headline: "Consistency Is\nEverything",
-      subline: "Same strategies. Faster progress.",
+      subline: "Stay the Course",
       icon: "refresh",
     },
     eventDate: null,
@@ -565,7 +565,7 @@ export const SOCIAL_TEMPLATES: SocialTemplate[] = [
     layoutId: "card",
     layoutProps: {
       headline: "What Is\nPairing?",
-      subline: "Trust and connection come first",
+      subline: "Connection Before Correction",
       icon: "handshake",
     },
     eventDate: null,
@@ -581,7 +581,7 @@ export const SOCIAL_TEMPLATES: SocialTemplate[] = [
     layoutId: "card",
     layoutProps: {
       headline: "Skills That\nTransfer",
-      subline: "Generalization is the goal",
+      subline: "Skills for Every Setting",
       icon: "share",
     },
     eventDate: null,
@@ -597,7 +597,7 @@ export const SOCIAL_TEMPLATES: SocialTemplate[] = [
     layoutId: "card",
     layoutProps: {
       headline: "Data Drives\nDecisions",
-      subline: "We don\u2019t guess \u2014 we measure",
+      subline: "Measure What Matters",
       icon: "chart",
     },
     eventDate: null,
@@ -613,7 +613,7 @@ export const SOCIAL_TEMPLATES: SocialTemplate[] = [
     layoutId: "card",
     layoutProps: {
       headline: "Learning in\nNatural Environments",
-      subline: "The best learning is everyday life",
+      subline: "Learning Is Everywhere",
       icon: "leaf",
     },
     eventDate: null,
@@ -629,7 +629,7 @@ export const SOCIAL_TEMPLATES: SocialTemplate[] = [
     layoutId: "card",
     layoutProps: {
       headline: "Self-Care for\nABA Families",
-      subline: "You can\u2019t pour from an empty cup",
+      subline: "Take Care of You",
       icon: "heartpulse",
     },
     eventDate: null,
@@ -645,7 +645,7 @@ export const SOCIAL_TEMPLATES: SocialTemplate[] = [
     layoutId: "card",
     layoutProps: {
       headline: "Communication\nComes First",
-      subline: "Every behavior is communication",
+      subline: "Listen With Your Eyes",
       icon: "message",
     },
     eventDate: null,
@@ -661,7 +661,7 @@ export const SOCIAL_TEMPLATES: SocialTemplate[] = [
     layoutId: "card",
     layoutProps: {
       headline: "Celebrate\nSmall Wins",
-      subline: "Every step forward matters",
+      subline: "Every Win Counts",
       icon: "trophy",
     },
     eventDate: null,
@@ -679,7 +679,7 @@ export const SOCIAL_TEMPLATES: SocialTemplate[] = [
     layoutId: "card",
     layoutProps: {
       headline: "Different,\nNot Less",
-      subline: "Every individual brings unique strengths",
+      subline: "Uniquely Brilliant",
       icon: "puzzle",
     },
     eventDate: null,
@@ -695,7 +695,7 @@ export const SOCIAL_TEMPLATES: SocialTemplate[] = [
     layoutId: "card",
     layoutProps: {
       headline: "Progress,\nNot Perfection",
-      subline: "Every step forward is a victory",
+      subline: "Keep Moving Forward",
       icon: "trending",
     },
     eventDate: null,
@@ -711,7 +711,7 @@ export const SOCIAL_TEMPLATES: SocialTemplate[] = [
     layoutId: "card",
     layoutProps: {
       headline: "It Takes\na Village",
-      subline: "Together, we accomplish more",
+      subline: "Stronger Together",
       icon: "users",
     },
     eventDate: null,
@@ -727,7 +727,7 @@ export const SOCIAL_TEMPLATES: SocialTemplate[] = [
     layoutId: "card",
     layoutProps: {
       headline: "Believe in\nTheir Potential",
-      subline: "Everyone has the capacity to grow",
+      subline: "Unlimited Potential",
       icon: "rocket",
     },
     eventDate: null,
@@ -743,7 +743,7 @@ export const SOCIAL_TEMPLATES: SocialTemplate[] = [
     layoutId: "card",
     layoutProps: {
       headline: "Compassion\nin Action",
-      subline: "Meeting people where they are",
+      subline: "Lead With Compassion",
       icon: "handshake",
     },
     eventDate: null,
@@ -759,7 +759,7 @@ export const SOCIAL_TEMPLATES: SocialTemplate[] = [
     layoutId: "card",
     layoutProps: {
       headline: "Every Child\nCan Learn",
-      subline: "The question isn\u2019t if \u2014 it\u2019s how",
+      subline: "The Question Is How",
       icon: "lightbulb",
     },
     eventDate: null,
@@ -776,7 +776,7 @@ export const SOCIAL_TEMPLATES: SocialTemplate[] = [
     layoutId: "card",
     layoutProps: {
       headline: "We\u2019re Hiring!",
-      subline: "Join our team and make a difference",
+      subline: "Join Our Mission",
       icon: "userplus",
     },
     eventDate: null,
@@ -792,7 +792,7 @@ export const SOCIAL_TEMPLATES: SocialTemplate[] = [
     layoutId: "card",
     layoutProps: {
       headline: "Now Accepting\nNew Clients",
-      subline: "Reach out to start your journey",
+      subline: "Start Your Journey",
       icon: "door",
     },
     eventDate: null,
@@ -808,7 +808,7 @@ export const SOCIAL_TEMPLATES: SocialTemplate[] = [
     layoutId: "card",
     layoutProps: {
       headline: "New Location\nOpening Soon",
-      subline: "Bringing ABA services closer to you",
+      subline: "Now Even Closer",
       icon: "mappin",
     },
     eventDate: null,
@@ -824,7 +824,7 @@ export const SOCIAL_TEMPLATES: SocialTemplate[] = [
     layoutId: "card",
     layoutProps: {
       headline: "Thank You\nto Our Families",
-      subline: "Your trust inspires us every day",
+      subline: "You Inspire Us",
       icon: "heart",
     },
     eventDate: null,
