@@ -83,8 +83,12 @@ export default async function SocialPostsPage() {
   const assetsReady = statusResult.success && statusResult.data?.ready;
   const brandHash = (statusResult.success && statusResult.data?.brandHash) || "";
 
-  // Get upcoming templates
-  const upcoming = getUpcomingTemplates();
+  // Get upcoming templates — 90-day window for calendar view
+  // Serialize Date objects to ISO strings for client component
+  const upcoming = getUpcomingTemplates(90).map((t) => ({
+    ...t,
+    nextOccurrence: t.nextOccurrence.toISOString(),
+  }));
 
   return (
     <div className="space-y-3">

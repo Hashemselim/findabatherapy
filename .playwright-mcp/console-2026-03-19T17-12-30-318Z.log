@@ -1,0 +1,3 @@
+[   35814ms] [ERROR] Failed to load resource: the server responded with a status of 400 () @ https://ltihdvlduohufwcfwops.supabase.co/storage/v1/object/public/social-posts/4b89b671-f862-41e8-82d9-210770fdf75d/aba-day.png:0
+[   36089ms] [ERROR] Failed to load resource: the server responded with a status of 400 () @ https://ltihdvlduohufwcfwops.supabase.co/storage/v1/object/public/social-posts/4b89b671-f862-41e8-82d9-210770fdf75d/aba-day.png:0
+[   36137ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://ltihdvlduohufwcfwops.supabase.co/favicon.ico:0

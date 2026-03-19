@@ -20,7 +20,7 @@ const BUCKET = STORAGE_BUCKETS.socialPosts;
  * Content version — bump this to force regeneration of all images
  * when templates or layouts change (without brand data changing).
  */
-const CONTENT_VERSION = "v3";
+const CONTENT_VERSION = "v4";
 
 /** Hash brand inputs + content version to detect when regeneration is needed */
 function hashBrand(brand: BrandData): string {

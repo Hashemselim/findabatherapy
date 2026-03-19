@@ -1,0 +1,2 @@
+[ 1112834ms] [WARNING] Detected `scroll-behavior: smooth` on the `<html>` element. In a future version, Next.js will no longer automatically disable smooth scrolling during route transitions. To prepare for this change, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior @ http://localhost:3001/ingest/static/posthog-recorder.js?v=1.318.1:0
+[ 1766625ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://ltihdvlduohufwcfwops.supabase.co/favicon.ico:0

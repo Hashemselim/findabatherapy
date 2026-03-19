@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useTransition } from "react";
 import {
-  Calendar,
+  CalendarDays,
   Copy,
   Download,
   Check,
@@ -24,7 +24,8 @@ import { generateSocialAssets } from "@/lib/actions/social";
 
 interface UpcomingTemplate extends SocialTemplate {
   daysUntil: number;
-  nextOccurrence: Date;
+  /** ISO string — serialized from server */
+  nextOccurrence: string;
 }
 
 interface SocialPostsClientProps {
@@ -86,11 +87,11 @@ export function SocialPostsClient({
   };
 
   return (
-    <Tabs defaultValue="upcoming">
+    <Tabs defaultValue="calendar">
       <TabsList>
-        <TabsTrigger value="upcoming" className="gap-1.5">
-          <Calendar className="h-3.5 w-3.5" />
-          Upcoming
+        <TabsTrigger value="calendar" className="gap-1.5">
+          <CalendarDays className="h-3.5 w-3.5" />
+          Calendar
         </TabsTrigger>
         <TabsTrigger value="library" className="gap-1.5">
           <ImageIcon className="h-3.5 w-3.5" />
@@ -105,7 +106,8 @@ export function SocialPostsClient({
         </div>
       )}
 
-      <TabsContent value="upcoming" className="mt-3">
+      {/* ===== Calendar Tab — list view sorted by date ===== */}
+      <TabsContent value="calendar" className="mt-3">
         {upcoming.length === 0 ? (
           <DashboardCard className="p-5 sm:p-6">
             <p className="text-sm text-muted-foreground">
@@ -114,9 +116,9 @@ export function SocialPostsClient({
             </p>
           </DashboardCard>
         ) : (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="space-y-3">
             {upcoming.map((template) => (
-              <SocialPostCard
+              <CalendarRow
                 key={template.id}
                 template={template}
                 imageUrl={getImageUrl(template.id)}
@@ -128,6 +130,7 @@ export function SocialPostsClient({
         )}
       </TabsContent>
 
+      {/* ===== Library Tab — grid with filters ===== */}
       <TabsContent value="library" className="mt-3 space-y-4">
         {/* Category filter chips */}
         <div className="flex flex-wrap gap-2">
@@ -161,18 +164,18 @@ export function SocialPostsClient({
   );
 }
 
-// ---------- Individual Card ----------
+// ---------- Calendar Row (list view) ----------
 
-function SocialPostCard({
+function CalendarRow({
   template,
   imageUrl,
   assetsReady,
   daysUntil,
 }: {
-  template: SocialTemplate;
+  template: SocialTemplate & { nextOccurrence: string };
   imageUrl: string;
   assetsReady: boolean;
-  daysUntil?: number;
+  daysUntil: number;
 }) {
   const [captionCopied, setCaptionCopied] = useState(false);
   const [imageCopied, setImageCopied] = useState(false);
@@ -195,7 +198,153 @@ function SocialPostCard({
       setImageCopied(true);
       setTimeout(() => setImageCopied(false), 2000);
     } catch {
-      // Fallback: download
+      downloadImage();
+    }
+  }
+
+  function downloadImage() {
+    const a = document.createElement("a");
+    a.href = imageUrl;
+    a.download = `${template.id}.png`;
+    a.click();
+  }
+
+  const categoryColor = CATEGORY_COLORS[template.category];
+
+  // Format the event date nicely
+  const eventDate = new Date(template.nextOccurrence);
+  const monthName = eventDate.toLocaleDateString("en-US", { month: "short" });
+  const dayNum = eventDate.getDate();
+
+  const daysLabel =
+    daysUntil <= 0
+      ? "Today"
+      : daysUntil === 1
+        ? "Tomorrow"
+        : `In ${daysUntil} days`;
+
+  return (
+    <DashboardCard className="flex flex-col gap-4 p-4 sm:flex-row sm:items-start">
+      {/* Date badge */}
+      <div className="flex shrink-0 flex-col items-center justify-center rounded-lg bg-primary/5 px-4 py-2 text-center">
+        <span className="text-xs font-medium uppercase text-muted-foreground">
+          {monthName}
+        </span>
+        <span className="text-2xl font-bold text-primary">{dayNum}</span>
+        <span className="text-[10px] text-muted-foreground">{daysLabel}</span>
+      </div>
+
+      {/* Image thumbnail */}
+      <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-lg bg-muted">
+        {assetsReady ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={imageUrl}
+            alt={template.title}
+            className="h-full w-full object-cover"
+            loading="lazy"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center">
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          </div>
+        )}
+      </div>
+
+      {/* Content */}
+      <div className="flex min-w-0 flex-1 flex-col gap-2">
+        <div className="flex items-start justify-between gap-2">
+          <h3 className="text-sm font-semibold">{template.title}</h3>
+          <Badge
+            variant="outline"
+            className={`shrink-0 text-[10px] ${categoryColor}`}
+          >
+            {CATEGORY_LABELS[template.category]}
+          </Badge>
+        </div>
+
+        {/* Caption preview */}
+        <p className="line-clamp-2 text-xs text-muted-foreground">
+          {template.caption}
+        </p>
+
+        {/* Actions */}
+        <div className="flex gap-1.5">
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-1 text-xs"
+            onClick={copyImage}
+            disabled={!assetsReady}
+          >
+            {imageCopied ? (
+              <Check className="h-3.5 w-3.5 text-emerald-600" />
+            ) : (
+              <Copy className="h-3.5 w-3.5" />
+            )}
+            {imageCopied ? "Copied!" : "Image"}
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-1 text-xs"
+            onClick={copyCaption}
+          >
+            {captionCopied ? (
+              <Check className="h-3.5 w-3.5 text-emerald-600" />
+            ) : (
+              <Copy className="h-3.5 w-3.5" />
+            )}
+            {captionCopied ? "Copied!" : "Caption"}
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="shrink-0 px-2"
+            onClick={downloadImage}
+            disabled={!assetsReady}
+            title="Download image"
+          >
+            <Download className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+    </DashboardCard>
+  );
+}
+
+// ---------- Library Card (grid view) ----------
+
+function SocialPostCard({
+  template,
+  imageUrl,
+  assetsReady,
+}: {
+  template: SocialTemplate;
+  imageUrl: string;
+  assetsReady: boolean;
+}) {
+  const [captionCopied, setCaptionCopied] = useState(false);
+  const [imageCopied, setImageCopied] = useState(false);
+
+  async function copyCaption() {
+    await navigator.clipboard.writeText(
+      `${template.caption}\n\n${template.hashtags}`
+    );
+    setCaptionCopied(true);
+    setTimeout(() => setCaptionCopied(false), 2000);
+  }
+
+  async function copyImage() {
+    try {
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      await navigator.clipboard.write([
+        new ClipboardItem({ "image/png": blob }),
+      ]);
+      setImageCopied(true);
+      setTimeout(() => setImageCopied(false), 2000);
+    } catch {
       downloadImage();
     }
   }
@@ -231,18 +380,7 @@ function SocialPostCard({
       {/* Card body */}
       <div className="space-y-3 p-4">
         <div className="flex items-start justify-between gap-2">
-          <div>
-            <h3 className="text-sm font-semibold">{template.title}</h3>
-            {daysUntil !== undefined && (
-              <p className="text-xs text-muted-foreground">
-                {daysUntil <= 0
-                  ? "Today!"
-                  : daysUntil === 1
-                    ? "Tomorrow"
-                    : `In ${daysUntil} days`}
-              </p>
-            )}
-          </div>
+          <h3 className="text-sm font-semibold">{template.title}</h3>
           <Badge
             variant="outline"
             className={`shrink-0 text-[10px] ${categoryColor}`}
@@ -250,6 +388,11 @@ function SocialPostCard({
             {CATEGORY_LABELS[template.category]}
           </Badge>
         </div>
+
+        {/* Caption preview */}
+        <p className="line-clamp-3 text-xs text-muted-foreground">
+          {template.caption}
+        </p>
 
         {/* Action buttons */}
         <div className="flex gap-1.5">
@@ -265,7 +408,9 @@ function SocialPostCard({
             ) : (
               <Copy className="h-3.5 w-3.5 shrink-0" />
             )}
-            <span className="truncate">{imageCopied ? "Copied!" : "Image"}</span>
+            <span className="truncate">
+              {imageCopied ? "Copied!" : "Image"}
+            </span>
           </Button>
           <Button
             size="sm"
@@ -278,7 +423,9 @@ function SocialPostCard({
             ) : (
               <Copy className="h-3.5 w-3.5 shrink-0" />
             )}
-            <span className="truncate">{captionCopied ? "Copied!" : "Caption"}</span>
+            <span className="truncate">
+              {captionCopied ? "Copied!" : "Caption"}
+            </span>
           </Button>
           <Button
             size="sm"
