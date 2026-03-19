@@ -12,6 +12,7 @@ export const STORAGE_BUCKETS = {
   photos: "listing-photos",
   documents: "client-documents",
   agreements: "agreement-documents",
+  socialPosts: "social-posts",
 } as const;
 
 export type BucketName = (typeof STORAGE_BUCKETS)[keyof typeof STORAGE_BUCKETS];
