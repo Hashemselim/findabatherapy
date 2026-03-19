@@ -250,43 +250,43 @@ function SocialPostCard({
         </div>
 
         {/* Action buttons */}
-        <div className="flex gap-2">
+        <div className="flex gap-1.5">
           <Button
             size="sm"
             variant="outline"
-            className="flex-1 gap-1.5 text-xs"
+            className="min-w-0 flex-1 gap-1 text-xs"
             onClick={copyImage}
             disabled={!assetsReady}
           >
             {imageCopied ? (
-              <Check className="h-3.5 w-3.5 text-emerald-600" />
+              <Check className="h-3.5 w-3.5 shrink-0 text-emerald-600" />
             ) : (
-              <Copy className="h-3.5 w-3.5" />
+              <Copy className="h-3.5 w-3.5 shrink-0" />
             )}
-            {imageCopied ? "Copied!" : "Copy Image"}
+            <span className="truncate">{imageCopied ? "Copied!" : "Copy Image"}</span>
           </Button>
           <Button
             size="sm"
             variant="outline"
-            className="flex-1 gap-1.5 text-xs"
+            className="min-w-0 flex-1 gap-1 text-xs"
             onClick={copyCaption}
           >
             {captionCopied ? (
-              <Check className="h-3.5 w-3.5 text-emerald-600" />
+              <Check className="h-3.5 w-3.5 shrink-0 text-emerald-600" />
             ) : (
-              <Copy className="h-3.5 w-3.5" />
+              <Copy className="h-3.5 w-3.5 shrink-0" />
             )}
-            {captionCopied ? "Copied!" : "Copy Caption"}
+            <span className="truncate">{captionCopied ? "Copied!" : "Caption"}</span>
           </Button>
           <Button
-            size="icon"
+            size="sm"
             variant="ghost"
-            className="h-8 w-8 shrink-0"
+            className="shrink-0 px-2"
             onClick={downloadImage}
             disabled={!assetsReady}
             title="Download image"
           >
-            <Download className="h-3.5 w-3.5" />
+            <Download className="h-4 w-4" />
           </Button>
         </div>
       </div>

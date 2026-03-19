@@ -42,39 +42,38 @@ function CardLayout({ brand, headline, subline, icon }: LayoutComponentProps) {
         justifyContent: "center",
         alignItems: "center",
         backgroundColor: brand.brandColor,
-        padding: 80,
+        padding: 120,
       }}
     >
-      {/* White card */}
+      {/* White card — compact, centered */}
       <div
         style={{
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          backgroundColor: "rgba(255, 255, 255, 0.93)",
-          borderRadius: 32,
-          padding: "70px 60px 50px",
+          backgroundColor: "rgba(255, 255, 255, 0.95)",
+          borderRadius: 28,
+          padding: "60px 50px 44px",
           width: "100%",
           flex: 1,
-          position: "relative",
         }}
       >
-        {/* Icon circle — positioned at top, overlapping card edge */}
+        {/* Icon circle — overlapping top edge */}
         {iconPath && (
           <div
             style={{
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              width: 140,
-              height: 140,
-              borderRadius: 70,
+              width: 120,
+              height: 120,
+              borderRadius: 60,
               backgroundColor: darkBrand,
-              marginTop: -110,
-              marginBottom: 40,
+              marginTop: -100,
+              marginBottom: 36,
             }}
           >
-            <svg width="70" height="70" viewBox="0 0 24 24" fill="none">
+            <svg width="56" height="56" viewBox="0 0 24 24" fill="none">
               <path d={iconPath} fill="#ffffff" />
             </svg>
           </div>
@@ -83,12 +82,12 @@ function CardLayout({ brand, headline, subline, icon }: LayoutComponentProps) {
         {/* Headline */}
         <span
           style={{
-            fontSize: 64,
+            fontSize: 72,
             fontWeight: 800,
             color: "#1a1a1a",
             textAlign: "center",
-            lineHeight: 1.1,
-            letterSpacing: -2,
+            lineHeight: 1.08,
+            letterSpacing: -2.5,
           }}
         >
           {headline}
@@ -98,10 +97,10 @@ function CardLayout({ brand, headline, subline, icon }: LayoutComponentProps) {
         <div
           style={{
             display: "flex",
-            width: 60,
-            height: 4,
+            width: 56,
+            height: 5,
             backgroundColor: brand.brandColor,
-            borderRadius: 2,
+            borderRadius: 3,
             marginTop: 28,
             marginBottom: 24,
           }}
@@ -111,11 +110,11 @@ function CardLayout({ brand, headline, subline, icon }: LayoutComponentProps) {
         {subline && (
           <span
             style={{
-              fontSize: 24,
+              fontSize: 28,
               fontWeight: 600,
-              color: "#666666",
+              color: "#555555",
               textAlign: "center",
-              letterSpacing: 3,
+              letterSpacing: 4,
               textTransform: "uppercase",
             }}
           >
@@ -131,23 +130,23 @@ function CardLayout({ brand, headline, subline, icon }: LayoutComponentProps) {
           style={{
             display: "flex",
             alignItems: "center",
-            gap: 16,
+            gap: 18,
           }}
         >
           {brand.logoUrl && (
             <img
               src={brand.logoUrl}
               alt=""
-              width={48}
-              height={48}
-              style={{ borderRadius: 10, objectFit: "cover" }}
+              width={56}
+              height={56}
+              style={{ borderRadius: 12, objectFit: "cover" }}
             />
           )}
           <span
             style={{
-              fontSize: 28,
-              fontWeight: 600,
-              color: "#444444",
+              fontSize: 34,
+              fontWeight: 700,
+              color: "#333333",
             }}
           >
             {brand.agencyName}
