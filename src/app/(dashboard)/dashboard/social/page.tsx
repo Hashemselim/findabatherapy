@@ -81,6 +81,7 @@ export default async function SocialPostsPage() {
   // Check if assets are pre-generated
   const statusResult = await checkSocialAssetsStatus();
   const assetsReady = statusResult.success && statusResult.data?.ready;
+  const brandHash = (statusResult.success && statusResult.data?.brandHash) || "";
 
   // Get upcoming templates
   const upcoming = getUpcomingTemplates();
@@ -96,6 +97,7 @@ export default async function SocialPostsPage() {
         upcoming={upcoming}
         profileId={brand.profileId}
         assetsReady={assetsReady || false}
+        brandHash={brandHash}
       />
     </div>
   );

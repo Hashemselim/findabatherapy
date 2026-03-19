@@ -32,6 +32,7 @@ interface SocialPostsClientProps {
   upcoming: UpcomingTemplate[];
   profileId: string;
   assetsReady: boolean;
+  brandHash?: string;
 }
 
 const FILTER_CATEGORIES: { value: SocialCategory | "all"; label: string }[] = [
@@ -50,10 +51,12 @@ export function SocialPostsClient({
   upcoming,
   profileId,
   assetsReady: initialAssetsReady,
+  brandHash = "",
 }: SocialPostsClientProps) {
   const [filter, setFilter] = useState<SocialCategory | "all">("all");
   const [assetsReady, setAssetsReady] = useState(initialAssetsReady);
   const [generating, startGeneration] = useTransition();
+  const [cacheBuster, setCacheBuster] = useState(brandHash);
 
   // Trigger generation if assets aren't ready
   useEffect(() => {
@@ -62,6 +65,7 @@ export function SocialPostsClient({
         const result = await generateSocialAssets();
         if (result.success) {
           setAssetsReady(true);
+          setCacheBuster(Date.now().toString());
         }
       });
     }
@@ -72,10 +76,11 @@ export function SocialPostsClient({
       ? templates
       : templates.filter((t) => t.category === filter);
 
-  // Build image URL helper (client-side, uses public bucket URL)
+  // Build image URL helper (client-side, uses public bucket URL with cache-busting)
   const getImageUrl = (templateId: string) => {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    return `${supabaseUrl}/storage/v1/object/public/social-posts/${profileId}/${templateId}.png`;
+    const base = `${supabaseUrl}/storage/v1/object/public/social-posts/${profileId}/${templateId}.png`;
+    return cacheBuster ? `${base}?v=${cacheBuster}` : base;
   };
 
   return (
