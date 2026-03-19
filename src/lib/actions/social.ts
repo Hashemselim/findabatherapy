@@ -16,9 +16,15 @@ type ActionResult<T = void> =
 
 const BUCKET = STORAGE_BUCKETS.socialPosts;
 
-/** Hash brand inputs to detect when regeneration is needed */
+/**
+ * Content version — bump this to force regeneration of all images
+ * when templates or layouts change (without brand data changing).
+ */
+const CONTENT_VERSION = "v3";
+
+/** Hash brand inputs + content version to detect when regeneration is needed */
 function hashBrand(brand: BrandData): string {
-  const input = `${brand.agencyName}|${brand.logoUrl || ""}|${brand.brandColor}`;
+  const input = `${CONTENT_VERSION}|${brand.agencyName}|${brand.logoUrl || ""}|${brand.brandColor}`;
   return crypto.createHash("md5").update(input).digest("hex").slice(0, 12);
 }
 
@@ -66,10 +72,10 @@ export async function checkSocialAssetsStatus(): Promise<
   const currentHash = hashBrand(brand);
   const supabase = await createClient();
 
-  // Check for manifest file that tracks generation state
+  // Check for manifest file inside the hash-versioned folder
   const { data: manifestData } = await supabase.storage
     .from(BUCKET)
-    .download(`${brand.profileId}/manifest.json`);
+    .download(`${brand.profileId}/${currentHash}/manifest.json`);
 
   if (manifestData) {
     try {
@@ -98,6 +104,50 @@ export async function checkSocialAssetsStatus(): Promise<
   };
 }
 
+/** Delete old versioned folders for a profile */
+async function cleanupOldVersions(
+  adminClient: Awaited<ReturnType<typeof createAdminClient>>,
+  profileId: string,
+  currentHash: string
+) {
+  try {
+    // List all folders under the profile
+    const { data: folders } = await adminClient.storage
+      .from(BUCKET)
+      .list(profileId, { limit: 100 });
+
+    if (!folders) return;
+
+    // Find old hash folders (directories that aren't the current hash)
+    for (const folder of folders) {
+      if (folder.name !== currentHash && folder.id === null) {
+        // It's a folder (id is null for folders) — list and delete its contents
+        const { data: files } = await adminClient.storage
+          .from(BUCKET)
+          .list(`${profileId}/${folder.name}`, { limit: 200 });
+
+        if (files && files.length > 0) {
+          const paths = files.map(
+            (f) => `${profileId}/${folder.name}/${f.name}`
+          );
+          await adminClient.storage.from(BUCKET).remove(paths);
+        }
+      }
+    }
+
+    // Also clean up any old flat files (from previous path scheme)
+    const oldFiles = folders.filter(
+      (f) => f.name.endsWith(".png") || f.name === "manifest.json"
+    );
+    if (oldFiles.length > 0) {
+      const oldPaths = oldFiles.map((f) => `${profileId}/${f.name}`);
+      await adminClient.storage.from(BUCKET).remove(oldPaths);
+    }
+  } catch {
+    // Cleanup is best-effort, don't fail generation
+  }
+}
+
 /** Generate all social post images and upload to storage */
 export async function generateSocialAssets(): Promise<
   ActionResult<{ count: number }>
@@ -116,8 +166,10 @@ export async function generateSocialAssets(): Promise<
   const currentHash = hashBrand(brand);
 
   try {
-    // Use admin client (service role) for storage writes to bypass RLS
     const adminClient = await createAdminClient();
+
+    // Clean up old versioned folders first
+    await cleanupOldVersions(adminClient, profileId, currentHash);
 
     const { renderSocialImage } = await import("@/lib/social/render");
     let generatedCount = 0;
@@ -127,7 +179,8 @@ export async function generateSocialAssets(): Promise<
         const imageResponse = renderSocialImage(template, brand);
         const imageBuffer = await imageResponse.arrayBuffer();
 
-        const path = `${profileId}/${template.id}.png`;
+        // Store in hash-versioned folder: {profileId}/{hash}/{templateId}.png
+        const path = `${profileId}/${currentHash}/${template.id}.png`;
         await adminClient.storage.from(BUCKET).upload(path, imageBuffer, {
           contentType: "image/png",
           upsert: true,
@@ -139,7 +192,7 @@ export async function generateSocialAssets(): Promise<
       }
     }
 
-    // Write manifest to track generation state
+    // Write manifest inside the hash folder
     const manifest = JSON.stringify({
       brandHash: currentHash,
       count: generatedCount,
@@ -148,7 +201,7 @@ export async function generateSocialAssets(): Promise<
 
     await adminClient.storage
       .from(BUCKET)
-      .upload(`${profileId}/manifest.json`, manifest, {
+      .upload(`${profileId}/${currentHash}/manifest.json`, manifest, {
         contentType: "application/json",
         upsert: true,
       });
@@ -158,13 +211,4 @@ export async function generateSocialAssets(): Promise<
     console.error("Failed to generate social assets:", error);
     return { success: false, error: "Failed to generate assets" };
   }
-}
-
-/** Get the public URL for a pre-generated social post image */
-export async function getSocialImageUrl(
-  profileId: string,
-  templateId: string
-): Promise<string> {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  return `${supabaseUrl}/storage/v1/object/public/${BUCKET}/${profileId}/${templateId}.png`;
 }

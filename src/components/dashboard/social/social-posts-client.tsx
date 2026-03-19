@@ -76,11 +76,13 @@ export function SocialPostsClient({
       ? templates
       : templates.filter((t) => t.category === filter);
 
-  // Build image URL helper (client-side, uses public bucket URL with cache-busting)
+  // Build image URL with hash in path (not query param) to bust CDN cache
   const getImageUrl = (templateId: string) => {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const base = `${supabaseUrl}/storage/v1/object/public/social-posts/${profileId}/${templateId}.png`;
-    return cacheBuster ? `${base}?v=${cacheBuster}` : base;
+    const hash = cacheBuster || brandHash;
+    return hash
+      ? `${supabaseUrl}/storage/v1/object/public/social-posts/${profileId}/${hash}/${templateId}.png`
+      : `${supabaseUrl}/storage/v1/object/public/social-posts/${profileId}/${templateId}.png`;
   };
 
   return (
