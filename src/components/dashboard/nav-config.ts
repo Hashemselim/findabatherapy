@@ -26,6 +26,7 @@ import {
   MapPin,
   MessageSquare,
   Palette,
+  Share2,
   User,
   UserCheck,
   UserCircle,
@@ -251,6 +252,12 @@ export const sectionNav: NavSectionConfig[] = [
         icon: BarChart3,
         quickLink: true,
         aliases: ["/dashboard/client-growth/analytics", "/dashboard/analytics"],
+      },
+      {
+        href: "/dashboard/social",
+        label: "Social Posts",
+        icon: Share2,
+        proBadge: true,
       },
       {
         href: "/dashboard/settings/users",
