@@ -16,17 +16,17 @@ export const ICON_PATHS: Record<string, string> = {
   chart:
     "M4 5a1 1 0 0 1 2 0v14a1 1 0 0 1-2 0V5zm5 4a1 1 0 0 1 2 0v10a1 1 0 0 1-2 0V9zm5-2a1 1 0 0 1 2 0v12a1 1 0 0 1-2 0V7zm5 5a1 1 0 0 1 2 0v7a1 1 0 0 1-2 0v-7z",
 
-  // Microscope — for behavior analysis (science of behavior)
+  // Magnifying glass with chart — for behavior analysis (science)
   brain:
-    "M12 4.5a1 1 0 0 1 1 1V7h1a1 1 0 0 1 0 2h-1v2.28A4.5 4.5 0 0 1 12 20a4.5 4.5 0 0 1-4.45-3.83l-2.3 2.3a1 1 0 0 1-1.42-1.42l3.23-3.23A4.48 4.48 0 0 1 7.5 11.5c0-1.44.68-2.72 1.73-3.54a1 1 0 0 1-.23-.46V5.5a1 1 0 0 1 1-1h.5V3a1 1 0 0 1 2 0v1.5h.5zM12 13a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5z",
+    "M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z",
 
   // Microphone — for speech/hearing
   mic:
     "M12 1a4 4 0 0 0-4 4v6a4 4 0 0 0 8 0V5a4 4 0 0 0-4-4zM6 10a1 1 0 0 0-2 0 8 8 0 0 0 7 7.93V20H8a1 1 0 0 0 0 2h8a1 1 0 0 0 0-2h-3v-2.07A8 8 0 0 0 20 10a1 1 0 0 0-2 0 6 6 0 0 1-12 0z",
 
-  // Puzzle / accessibility — for OT (daily living skills)
+  // Raised hand — for OT (daily living skills / accessibility)
   hand:
-    "M20.5 11H19V7c0-1.1-.9-2-2-2h-4V3.5a2.5 2.5 0 0 0-5 0V5H4c-1.1 0-2 .9-2 2v3.8h1.5a2.5 2.5 0 0 1 0 5H2V19c0 1.1.9 2 2 2h3.8v-1.5a2.5 2.5 0 0 1 5 0V21H16c1.1 0 2-.9 2-2v-4h1.5a2.5 2.5 0 0 0 0-5z",
+    "M18 7c0-.55-.45-1-1-1s-1 .45-1 1v5h-1V4c0-.55-.45-1-1-1s-1 .45-1 1v8h-1V3c0-.55-.45-1-1-1s-1 .45-1 1v9H9V5c0-.55-.45-1-1-1s-1 .45-1 1v10c0 .28.11.53.29.71l.01.01L7 16v2c0 2.21 1.79 4 4 4h4c2.21 0 4-1.79 4-4v-7c0-.55-.45-1-1-1s-1 .45-1 1v3h-1V7z",
 
   // Graduation cap — for special education
   graduation:
@@ -154,7 +154,7 @@ export const ICON_PATHS: Record<string, string> = {
 
   // Rocket — for believe in potential
   rocket:
-    "M12 2C8.14 2 5 5.14 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.86-3.14-7-7-7zm0 2c1.1 0 2 .9 2 2a2 2 0 0 1-2 2 2 2 0 0 1-2-2c0-1.1.9-2 2-2zm-4 9.39C6.56 11.9 5.78 10.12 5.29 8.5h2.14c.36.91.83 1.79 1.4 2.6L7.96 13.4c-.24-.62-.6-1.3-.96-2.01zM12 20.92c-1.21-1.69-5-7.48-5-11.92a5 5 0 0 1 10 0c0 4.44-3.79 10.23-5 11.92z",
+    "M12 2.5c-1.1 0-2.1.4-2.85 1.15l-.35.35-3.5-1.17.58 3.69-.27.42A10.81 10.81 0 0 0 4 12c0 2.13.62 4.1 1.67 5.77L4 22l4.23-1.67A10.9 10.9 0 0 0 12 21.5c5.52 0 10-4.03 10-9s-4.48-10-10-10zm0 3a2 2 0 1 1 0 4 2 2 0 0 1 0-4z",
 
   // Lightbulb — for "every child can learn"
   lightbulb:
