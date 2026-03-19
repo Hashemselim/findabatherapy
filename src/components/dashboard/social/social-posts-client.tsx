@@ -47,6 +47,46 @@ const FILTER_CATEGORIES: { value: SocialCategory | "all"; label: string }[] = [
   { value: "announcement", label: "Announcements" },
 ];
 
+// ---------- Image with loading state ----------
+
+function ImageWithLoader({
+  src,
+  alt,
+  className = "h-full w-full object-cover",
+  spinnerSize = "h-8 w-8",
+}: {
+  src: string;
+  alt: string;
+  className?: string;
+  spinnerSize?: string;
+}) {
+  const [loaded, setLoaded] = useState(false);
+  const [error, setError] = useState(false);
+
+  return (
+    <div className="relative h-full w-full">
+      {(!loaded || error) && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <Loader2
+            className={`${spinnerSize} animate-spin text-muted-foreground`}
+          />
+        </div>
+      )}
+      {!error && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={src}
+          alt={alt}
+          className={`${className} transition-opacity ${loaded ? "opacity-100" : "opacity-0"}`}
+          loading="lazy"
+          onLoad={() => setLoaded(true)}
+          onError={() => setError(true)}
+        />
+      )}
+    </div>
+  );
+}
+
 export function SocialPostsClient({
   templates,
   upcoming,
@@ -179,6 +219,7 @@ function CalendarRow({
 }) {
   const [captionCopied, setCaptionCopied] = useState(false);
   const [imageCopied, setImageCopied] = useState(false);
+  const [showFullCaption, setShowFullCaption] = useState(false);
 
   async function copyCaption() {
     await navigator.clipboard.writeText(
@@ -237,12 +278,10 @@ function CalendarRow({
       {/* Image thumbnail */}
       <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-lg bg-muted">
         {assetsReady ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <ImageWithLoader
             src={imageUrl}
             alt={template.title}
-            className="h-full w-full object-cover"
-            loading="lazy"
+            spinnerSize="h-5 w-5"
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center">
@@ -264,9 +303,19 @@ function CalendarRow({
         </div>
 
         {/* Caption preview */}
-        <p className="line-clamp-2 text-xs text-muted-foreground">
+        <p
+          className={`text-xs text-muted-foreground ${showFullCaption ? "" : "line-clamp-2"}`}
+        >
           {template.caption}
         </p>
+        {template.caption.length > 120 && (
+          <button
+            onClick={() => setShowFullCaption(!showFullCaption)}
+            className="text-xs font-medium text-primary hover:underline"
+          >
+            {showFullCaption ? "Show less" : "Show more"}
+          </button>
+        )}
 
         {/* Actions */}
         <div className="flex gap-1.5">
@@ -326,6 +375,7 @@ function SocialPostCard({
 }) {
   const [captionCopied, setCaptionCopied] = useState(false);
   const [imageCopied, setImageCopied] = useState(false);
+  const [showFullCaption, setShowFullCaption] = useState(false);
 
   async function copyCaption() {
     await navigator.clipboard.writeText(
@@ -363,13 +413,7 @@ function SocialPostCard({
       {/* Image preview */}
       <div className="relative aspect-square bg-muted">
         {assetsReady ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={imageUrl}
-            alt={template.title}
-            className="h-full w-full object-cover"
-            loading="lazy"
-          />
+          <ImageWithLoader src={imageUrl} alt={template.title} />
         ) : (
           <div className="flex h-full w-full items-center justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -390,9 +434,19 @@ function SocialPostCard({
         </div>
 
         {/* Caption preview */}
-        <p className="line-clamp-3 text-xs text-muted-foreground">
+        <p
+          className={`text-xs text-muted-foreground ${showFullCaption ? "" : "line-clamp-2"}`}
+        >
           {template.caption}
         </p>
+        {template.caption.length > 120 && (
+          <button
+            onClick={() => setShowFullCaption(!showFullCaption)}
+            className="text-xs font-medium text-primary hover:underline"
+          >
+            {showFullCaption ? "Show less" : "Show more"}
+          </button>
+        )}
 
         {/* Action buttons */}
         <div className="flex gap-1.5">
