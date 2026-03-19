@@ -172,24 +172,57 @@ export async function generateSocialAssets(): Promise<
     await cleanupOldVersions(adminClient, profileId, currentHash);
 
     const { renderSocialImage } = await import("@/lib/social/render");
+
+    // Pre-fetch logo as base64 data URL so Satori doesn't fetch it 50 times
+    let logoDataUrl: string | null = null;
+    if (brand.logoUrl) {
+      try {
+        const logoRes = await fetch(brand.logoUrl);
+        const logoBuffer = await logoRes.arrayBuffer();
+        const base64 = Buffer.from(logoBuffer).toString("base64");
+        const contentType = logoRes.headers.get("content-type") || "image/png";
+        logoDataUrl = `data:${contentType};base64,${base64}`;
+      } catch {
+        // Fall back to URL — Satori will fetch each time
+      }
+    }
+
+    const brandWithCachedLogo: BrandData = {
+      ...brand,
+      logoUrl: logoDataUrl || brand.logoUrl,
+    };
+
+    // Process in parallel batches of 10
+    const BATCH_SIZE = 10;
     let generatedCount = 0;
 
-    for (const template of SOCIAL_TEMPLATES) {
-      try {
-        const imageResponse = renderSocialImage(template, brand);
-        const imageBuffer = await imageResponse.arrayBuffer();
+    for (let i = 0; i < SOCIAL_TEMPLATES.length; i += BATCH_SIZE) {
+      const batch = SOCIAL_TEMPLATES.slice(i, i + BATCH_SIZE);
 
-        // Store in hash-versioned folder: {profileId}/{hash}/{templateId}.png
-        const path = `${profileId}/${currentHash}/${template.id}.png`;
-        await adminClient.storage.from(BUCKET).upload(path, imageBuffer, {
-          contentType: "image/png",
-          upsert: true,
-        });
+      const results = await Promise.allSettled(
+        batch.map(async (template) => {
+          const imageResponse = renderSocialImage(template, brandWithCachedLogo);
+          const imageBuffer = await imageResponse.arrayBuffer();
 
-        generatedCount++;
-      } catch (err) {
-        console.error(`Failed to generate social post ${template.id}:`, err);
-      }
+          const path = `${profileId}/${currentHash}/${template.id}.png`;
+          await adminClient.storage.from(BUCKET).upload(path, imageBuffer, {
+            contentType: "image/png",
+            upsert: true,
+          });
+        })
+      );
+
+      generatedCount += results.filter((r) => r.status === "fulfilled").length;
+
+      // Log failures
+      results.forEach((r, idx) => {
+        if (r.status === "rejected") {
+          console.error(
+            `Failed to generate social post ${batch[idx].id}:`,
+            r.reason
+          );
+        }
+      });
     }
 
     // Write manifest inside the hash folder
