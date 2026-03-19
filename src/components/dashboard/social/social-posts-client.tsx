@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useTransition } from "react";
+import { useState, useEffect } from "react";
 import {
   CalendarDays,
   Copy,
@@ -96,19 +96,32 @@ export function SocialPostsClient({
 }: SocialPostsClientProps) {
   const [filter, setFilter] = useState<SocialCategory | "all">("all");
   const [assetsReady, setAssetsReady] = useState(initialAssetsReady);
-  const [generating, startGeneration] = useTransition();
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generationProgress, setGenerationProgress] = useState("");
   const [cacheBuster, setCacheBuster] = useState(brandHash);
 
   // Trigger generation if assets aren't ready
   useEffect(() => {
-    if (!assetsReady && !generating) {
-      startGeneration(async () => {
-        const result = await generateSocialAssets();
-        if (result.success) {
-          setAssetsReady(true);
-          setCacheBuster(Date.now().toString());
-        }
-      });
+    if (!assetsReady && !isGenerating) {
+      setIsGenerating(true);
+      setGenerationProgress("Starting generation...");
+
+      generateSocialAssets()
+        .then((result) => {
+          if (result.success) {
+            setAssetsReady(true);
+            setCacheBuster(Date.now().toString());
+            setGenerationProgress("");
+          } else {
+            setGenerationProgress(`Error: ${result.error}`);
+          }
+        })
+        .catch(() => {
+          setGenerationProgress("Generation failed. Try refreshing.");
+        })
+        .finally(() => {
+          setIsGenerating(false);
+        });
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -139,10 +152,15 @@ export function SocialPostsClient({
         </TabsTrigger>
       </TabsList>
 
-      {generating && (
+      {isGenerating && (
         <div className="mt-3 flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-primary">
           <Loader2 className="h-4 w-4 animate-spin" />
-          Generating your branded posts... This may take a minute.
+          Generating your branded posts... This takes 1-2 minutes for all 50 images.
+        </div>
+      )}
+      {generationProgress && !isGenerating && generationProgress.startsWith("Error") && (
+        <div className="mt-3 flex items-center gap-2 rounded-lg border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+          {generationProgress}
         </div>
       )}
 
@@ -189,7 +207,7 @@ export function SocialPostsClient({
           ))}
         </div>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 items-stretch gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filteredTemplates.map((template) => (
             <SocialPostCard
               key={template.id}
@@ -409,7 +427,7 @@ function SocialPostCard({
   const categoryColor = CATEGORY_COLORS[template.category];
 
   return (
-    <DashboardCard className="flex flex-col overflow-hidden">
+    <DashboardCard className="flex h-full flex-col overflow-hidden">
       {/* Image preview */}
       <div className="relative aspect-square bg-muted">
         {assetsReady ? (
