@@ -242,12 +242,14 @@ export async function generateSocialAssets(): Promise<
       logoUrl: logoDataUrl || brand.logoUrl,
     };
 
-    // Process in parallel batches of 10
+    // Process in parallel batches — images appear progressively as each uploads
     const BATCH_SIZE = 10;
     let generatedCount = 0;
+    const totalStart = Date.now();
 
     for (let i = 0; i < SOCIAL_TEMPLATES.length; i += BATCH_SIZE) {
       const batch = SOCIAL_TEMPLATES.slice(i, i + BATCH_SIZE);
+      const batchStart = Date.now();
 
       const results = await Promise.allSettled(
         batch.map(async (template) => {
@@ -263,6 +265,9 @@ export async function generateSocialAssets(): Promise<
       );
 
       generatedCount += results.filter((r) => r.status === "fulfilled").length;
+      console.log(
+        `[social] Batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(SOCIAL_TEMPLATES.length / BATCH_SIZE)}: ${results.filter((r) => r.status === "fulfilled").length}/${batch.length} ok in ${Date.now() - batchStart}ms`
+      );
 
       // Log failures
       results.forEach((r, idx) => {
@@ -274,6 +279,10 @@ export async function generateSocialAssets(): Promise<
         }
       });
     }
+
+    console.log(
+      `[social] Total: ${generatedCount}/${SOCIAL_TEMPLATES.length} images in ${Date.now() - totalStart}ms`
+    );
 
     // Write manifest inside the hash folder
     const manifest = JSON.stringify({

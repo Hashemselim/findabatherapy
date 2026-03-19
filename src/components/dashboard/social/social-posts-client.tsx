@@ -55,14 +55,28 @@ function ImageWithLoader({
   alt,
   className = "h-full w-full object-cover",
   spinnerSize = "h-8 w-8",
+  retryOnError = false,
 }: {
   src: string;
   alt: string;
   className?: string;
   spinnerSize?: string;
+  /** If true, retry loading every 3s on error (for images being generated) */
+  retryOnError?: boolean;
 }) {
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState(false);
+  const [retryKey, setRetryKey] = useState(0);
+
+  useEffect(() => {
+    if (error && retryOnError) {
+      const timer = setTimeout(() => {
+        setError(false);
+        setRetryKey((k) => k + 1);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [error, retryOnError]);
 
   return (
     <div className="relative h-full w-full">
@@ -76,9 +90,10 @@ function ImageWithLoader({
       {!error && (
         // eslint-disable-next-line @next/next/no-img-element
         <img
+          key={retryKey}
           src={src}
           alt={alt}
-          className={`${className} transition-opacity ${loaded ? "opacity-100" : "opacity-0"}`}
+          className={`${className} transition-opacity duration-300 ${loaded ? "opacity-100" : "opacity-0"}`}
           loading="lazy"
           onLoad={() => setLoaded(true)}
           onError={() => setError(true)}
@@ -128,7 +143,8 @@ export function SocialPostsClient({
       return () => clearInterval(interval);
     }
 
-    // No generation in progress — start one
+    // No generation in progress — start one (fire and forget)
+    // Images will appear progressively as each one is uploaded
     if (!isGenerating) {
       setIsGenerating(true);
 
@@ -136,7 +152,6 @@ export function SocialPostsClient({
         .then((result) => {
           if (result.success) {
             setAssetsReady(true);
-            setCacheBuster(Date.now().toString());
             setGenerationProgress("");
           } else {
             setGenerationProgress(`Error: ${result.error}`);
@@ -335,19 +350,14 @@ function CalendarRow({
         <span className="text-[10px] text-muted-foreground">{daysLabel}</span>
       </div>
 
-      {/* Image thumbnail */}
+      {/* Image thumbnail — always try loading, retries on 404 */}
       <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-lg bg-muted">
-        {assetsReady ? (
-          <ImageWithLoader
-            src={imageUrl}
-            alt={template.title}
-            spinnerSize="h-5 w-5"
-          />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center">
-            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-          </div>
-        )}
+        <ImageWithLoader
+          src={imageUrl}
+          alt={template.title}
+          spinnerSize="h-5 w-5"
+          retryOnError={!assetsReady}
+        />
       </div>
 
       {/* Content */}
@@ -393,7 +403,7 @@ function CalendarRow({
             variant="outline"
             className="gap-1 text-xs"
             onClick={copyImage}
-            disabled={!assetsReady}
+
           >
             {imageCopied ? (
               <Check className="h-3.5 w-3.5 text-emerald-600" />
@@ -420,7 +430,7 @@ function CalendarRow({
             variant="ghost"
             className="shrink-0 px-2"
             onClick={downloadImage}
-            disabled={!assetsReady}
+
             title="Download image"
           >
             <Download className="h-4 w-4" />
@@ -496,13 +506,11 @@ function SocialPostCard({
     <DashboardCard className="flex h-full flex-col overflow-hidden">
       {/* Image preview */}
       <div className="relative aspect-square bg-muted">
-        {assetsReady ? (
-          <ImageWithLoader src={imageUrl} alt={template.title} />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          </div>
-        )}
+        <ImageWithLoader
+          src={imageUrl}
+          alt={template.title}
+          retryOnError={!assetsReady}
+        />
       </div>
 
       {/* Card body — flex col so buttons stick to bottom */}
@@ -550,7 +558,7 @@ function SocialPostCard({
             variant="outline"
             className="min-w-0 flex-1 gap-1 text-xs"
             onClick={copyImage}
-            disabled={!assetsReady}
+
           >
             {imageCopied ? (
               <Check className="h-3.5 w-3.5 shrink-0 text-emerald-600" />
@@ -581,7 +589,7 @@ function SocialPostCard({
             variant="ghost"
             className="shrink-0 px-2"
             onClick={downloadImage}
-            disabled={!assetsReady}
+
             title="Download image"
           >
             <Download className="h-4 w-4" />
