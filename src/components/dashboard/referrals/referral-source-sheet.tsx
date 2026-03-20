@@ -7,7 +7,7 @@ import {
   Globe,
   Loader2,
   Mail,
-  MapPin,
+
   Phone,
   Plus,
   Sparkles,
@@ -41,7 +41,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from "@/components/ui/sheet";
-import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
+
 import { Textarea } from "@/components/ui/textarea";
 import { DashboardTabsList, DashboardTabsTrigger } from "@/components/dashboard/ui";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
@@ -61,7 +61,7 @@ interface ReferralSourceSheetProps {
 export function ReferralSourceSheet({
   sourceId,
   onClose,
-  templates,
+  templates: _templates,
   onSendEmail,
 }: ReferralSourceSheetProps) {
   const router = useRouter();
@@ -225,7 +225,7 @@ export function ReferralSourceSheet({
       >
         {loading || !source ? (
           <div className="flex flex-1 items-center justify-center">
-            <VisuallyHidden><SheetTitle>Loading source details</SheetTitle></VisuallyHidden>
+            <SheetTitle className="sr-only">Loading source details</SheetTitle>
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         ) : (

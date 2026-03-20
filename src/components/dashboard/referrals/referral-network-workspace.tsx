@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useMemo, useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Search, Telescope } from "lucide-react";
+import { Search, Telescope } from "lucide-react";
 import { toast } from "sonner";
 
 import { cn } from "@/lib/utils";
@@ -22,8 +22,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { DashboardCard, DashboardStatusBadge, DashboardTabsList, DashboardTabsTrigger } from "@/components/dashboard/ui";
-import { Tabs, TabsContent } from "@/components/ui/tabs";
+import { DashboardCard, DashboardTabsList, DashboardTabsTrigger } from "@/components/dashboard/ui";
+import { Tabs } from "@/components/ui/tabs";
 import {
   ReferralNetworkTable,
   type SortKey,
@@ -108,7 +108,7 @@ export function ReferralNetworkWorkspace({
   locations,
 }: ReferralNetworkWorkspaceProps) {
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
 
   // Filters
   const [stageTab, setStageTab] = useState("all");

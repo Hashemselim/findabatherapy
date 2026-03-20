@@ -72,7 +72,7 @@ function SortHeader({
   label,
   sortKey,
   currentKey,
-  currentDir,
+  currentDir: _currentDir,
   onSort,
   className,
 }: {
