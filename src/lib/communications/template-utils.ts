@@ -3,6 +3,7 @@ import {
   MANUAL_MERGE_FIELD_KEYS,
   MERGE_FIELD_MAP,
 } from "./merge-fields";
+import sanitizeHtml from "sanitize-html";
 
 const MERGE_FIELD_PATTERN = /\{([a-z0-9_]+)\}/gi;
 const URL_PATTERN = /\bhttps?:\/\/[^\s<]+/gi;
@@ -221,13 +222,79 @@ export function renderHtmlTemplateWithValues(
 }
 
 export function sanitizeEmailHtml(html: string): string {
-  return html
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
-    .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, "")
-    .replace(/\s+on\w+=(["']).*?\1/gi, "")
-    .replace(/\s+(href|src)=(["'])\s*(javascript|vbscript|data):.*?\2/gi, "")
-    .replace(/\s+(class|contenteditable|spellcheck|draggable)=(["']).*?\2/gi, "")
-    .replace(/\s+data-[\w-]+=(["']).*?\1/gi, "");
+  return sanitizeHtml(html, {
+    allowedTags: [
+      "a",
+      "b",
+      "blockquote",
+      "br",
+      "div",
+      "em",
+      "h1",
+      "h2",
+      "h3",
+      "hr",
+      "img",
+      "li",
+      "ol",
+      "p",
+      "span",
+      "strong",
+      "table",
+      "tbody",
+      "td",
+      "th",
+      "thead",
+      "tr",
+      "u",
+      "ul",
+    ],
+    allowedAttributes: {
+      a: ["href", "target", "rel", "style"],
+      div: ["align", "style"],
+      h1: ["align", "style"],
+      h2: ["align", "style"],
+      h3: ["align", "style"],
+      img: ["alt", "height", "src", "style", "width"],
+      ol: ["style"],
+      p: ["align", "style"],
+      span: ["style"],
+      table: ["border", "cellpadding", "cellspacing", "role", "style", "width"],
+      tbody: ["style"],
+      td: ["align", "colspan", "rowspan", "style", "valign", "width"],
+      th: ["align", "colspan", "rowspan", "style", "valign", "width"],
+      thead: ["style"],
+      tr: ["align", "style", "valign"],
+      ul: ["style"],
+    },
+    allowedSchemes: ["http", "https", "mailto", "tel"],
+    allowedSchemesByTag: {
+      img: ["http", "https"],
+    },
+    allowProtocolRelative: false,
+    disallowedTagsMode: "discard",
+    enforceHtmlBoundary: true,
+    parseStyleAttributes: false,
+    transformTags: {
+      a: (tagName: string, attribs: Record<string, string>) => {
+        const href = attribs.href?.trim();
+        if (!href) {
+          const { target: _target, rel: _rel, ...rest } = attribs;
+          return { tagName, attribs: rest };
+        }
+
+        return {
+          tagName,
+          attribs: {
+            ...attribs,
+            href,
+            rel: "noopener noreferrer nofollow",
+            target: attribs.target || "_blank",
+          },
+        };
+      },
+    },
+  });
 }
 
 export function getUnresolvedMergeFields(params: {

@@ -35,7 +35,6 @@ import {
   sendCommunication,
   getAgencyBranding,
   getClientSendFieldValues,
-  getClientPreviewLink,
   type CommunicationTemplate,
 } from "@/lib/actions/communications";
 import type { AgencyBrandingData } from "@/lib/email/email-helpers";
@@ -677,10 +676,6 @@ export function SendCommunicationDialog({
               disabled={isPending || !editorReady}
               placeholder="Write your email here..."
               fieldValues={fieldValues}
-              resolvePreviewLink={async (fieldKey) => {
-                const result = await getClientPreviewLink({ clientId, fieldKey });
-                return result.success ? result.data || null : null;
-              }}
             />
           </div>
 

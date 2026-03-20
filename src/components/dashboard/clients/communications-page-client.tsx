@@ -6,6 +6,7 @@ import {
   AlertCircle,
   ArrowRight,
   CheckCircle2,
+  Clock,
   Mail,
   XCircle,
 } from "lucide-react";
@@ -38,12 +39,14 @@ import { CommunicationTemplatesManager } from "./communication-templates-manager
 import type { ClientCommunication } from "@/lib/actions/communications";
 
 const STATUS_ICON = {
+  pending: Clock,
   sent: CheckCircle2,
   failed: XCircle,
   bounced: AlertCircle,
 } as const;
 
 const STATUS_STYLE = {
+  pending: "info",
   sent: "success",
   failed: "danger",
   bounced: "warning",

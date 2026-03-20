@@ -21,6 +21,7 @@ import {
 } from "@/lib/actions/communications";
 
 const STATUS_CONFIG: Record<string, { icon: typeof CheckCircle2; tone: DashboardTone; label: string }> = {
+  pending: { icon: Clock, tone: "info", label: "Pending" },
   sent: { icon: CheckCircle2, tone: "success", label: "Sent" },
   failed: { icon: XCircle, tone: "danger", label: "Failed" },
   bounced: { icon: AlertCircle, tone: "warning", label: "Bounced" },

@@ -101,7 +101,7 @@ export interface ClientCommunication {
   body: string;
   recipient_email: string;
   recipient_name: string | null;
-  status: "sent" | "failed" | "bounced";
+  status: "pending" | "sent" | "failed" | "bounced";
   sent_at: string;
   sent_by: string | null;
   created_at: string;
@@ -268,15 +268,16 @@ async function ensureTemplateSlug(
     let query = supabase
       .from("communication_templates")
       .select("id")
-      .eq("profile_id", profileId)
-      .eq("slug", candidate);
+      .eq("slug", candidate)
+      .or(`profile_id.is.null,profile_id.eq.${profileId}`)
+      .limit(1);
 
     if (excludeId) {
       query = query.neq("id", excludeId);
     }
 
-    const { data } = await query.maybeSingle();
-    if (!data) {
+    const { data } = await query;
+    if (!data?.length) {
       return candidate;
     }
 
@@ -1173,7 +1174,13 @@ export async function getClientCommunications(
     return { success: false, error: "Failed to load communications" };
   }
 
-  return { success: true, data: data as ClientCommunication[] };
+  return {
+    success: true,
+    data: ((data || []) as ClientCommunication[]).map((communication) => ({
+      ...communication,
+      body: sanitizeEmailHtml(communication.body || ""),
+    })),
+  };
 }
 
 export async function getAllCommunications(
@@ -1229,6 +1236,7 @@ export async function getAllCommunications(
     );
     return {
       ...rest,
+      body: sanitizeEmailHtml((rest.body as string) || ""),
       client_name: clients
         ? [clients.child_first_name, clients.child_last_name].filter(Boolean).join(" ")
         : "Unknown",
@@ -1295,14 +1303,7 @@ export async function getClientSendFieldValues(params: {
     return { success: false, error: "Not authenticated" };
   }
 
-  return resolveSendFieldValues({
-    clientId: params.clientId,
-    profileId,
-    userId: user.id,
-    subject: params.subject,
-    body: params.body,
-    cc: params.cc,
-  });
+  return resolveFieldValues(params.clientId, profileId);
 }
 
 export async function getTemplateEditorFieldValues(): Promise<
@@ -1325,40 +1326,6 @@ export async function getClientPreviewLink(params: {
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {
     return { success: false, error: "Not authenticated" };
-  }
-
-  if (params.fieldKey === "intake_link") {
-    const intakeResult = await createIntakeToken(params.clientId);
-    if (!intakeResult.success || !intakeResult.data?.url) {
-      return {
-        success: false,
-        error:
-          !intakeResult.success && intakeResult.error
-            ? intakeResult.error
-            : "Failed to create intake link",
-      };
-    }
-
-    return { success: true, data: intakeResult.data.url };
-  }
-
-  if (params.fieldKey === "agreement_link") {
-    const agreementResult = await createAssignedAgreementLink({
-      clientId: params.clientId,
-      profileId,
-      userId: user.id,
-    });
-    if (!agreementResult.success || !agreementResult.data) {
-      return {
-        success: false,
-        error:
-          !agreementResult.success && agreementResult.error
-            ? agreementResult.error
-            : "Failed to create agreement link",
-      };
-    }
-
-    return { success: true, data: agreementResult.data };
   }
 
   const fieldValuesResult = await resolveFieldValues(params.clientId, profileId);
@@ -1508,6 +1475,28 @@ export async function sendCommunication(params: {
   }
 
   const agencyData = await getAgencyBrandingData(profileId);
+  const { data: comm, error: insertError } = await supabase
+    .from("client_communications")
+    .insert({
+      client_id: params.clientId,
+      profile_id: profileId,
+      template_slug: params.templateSlug,
+      subject: resolvedSubject,
+      body: sanitizedBody,
+      recipient_email: params.recipientEmail,
+      recipient_name: params.recipientName || null,
+      status: "pending",
+      sent_at: new Date().toISOString(),
+      sent_by: user.id,
+    })
+    .select("id")
+    .single();
+
+  if (insertError || !comm?.id) {
+    console.error("[COMMUNICATIONS] Failed to create pending communication:", insertError);
+    return { success: false, error: "Failed to queue communication" };
+  }
+
   let sendSuccess = false;
   let sendError: string | undefined;
 
@@ -1516,8 +1505,8 @@ export async function sendCommunication(params: {
     const apiKey = process.env.RESEND_API_KEY;
 
     if (!apiKey) {
-      console.warn("[COMMUNICATIONS] Resend API key not configured, skipping email send");
-      sendSuccess = true;
+      console.warn("[COMMUNICATIONS] Resend API key not configured");
+      sendError = "Email sending is not configured";
     } else {
       const resend = new Resend(apiKey);
       const { agencyEmailWrapper } = await import("@/lib/email/email-helpers");
@@ -1547,26 +1536,24 @@ export async function sendCommunication(params: {
     sendError = error instanceof Error ? error.message : "Failed to send email";
   }
 
-  const { data: comm, error: insertError } = await supabase
+  const { error: updateError } = await supabase
     .from("client_communications")
-    .insert({
-      client_id: params.clientId,
-      profile_id: profileId,
-      template_slug: params.templateSlug,
-      subject: resolvedSubject,
-      body: sanitizedBody,
-      recipient_email: params.recipientEmail,
-      recipient_name: params.recipientName || null,
+    .update({
       status: sendSuccess ? "sent" : "failed",
       sent_at: new Date().toISOString(),
-      sent_by: user.id,
     })
-    .select("id")
-    .single();
+    .eq("id", comm.id)
+    .eq("profile_id", profileId);
 
-  if (insertError) {
-    console.error("[COMMUNICATIONS] Failed to log communication:", insertError.message, insertError.code, insertError.details);
-    return { success: false, error: "Failed to log communication" };
+  if (updateError) {
+    console.error("[COMMUNICATIONS] Failed to finalize communication status:", updateError);
+    if (!sendSuccess) {
+      return { success: false, error: sendError || "Failed to send email" };
+    }
+
+    revalidatePath("/dashboard/clients");
+    revalidatePath("/dashboard/clients/communications");
+    return { success: true, data: { communicationId: comm.id } };
   }
 
   if (!sendSuccess) {

@@ -180,10 +180,27 @@ describe("formatBrandedLinkLabel", () => {
 
 describe("sanitizeEmailHtml", () => {
   it("removes unsafe handlers and editor-only metadata while preserving styles", () => {
-    expect(
-      sanitizeEmailHtml(
-        '<p class="editor" data-merge-field="client_name" style="color:#0866FF" onclick="alert(1)">Hi</p><a href="javascript:alert(1)" data-table-payload="{&quot;x&quot;:1}">Open</a>'
-      )
-    ).toBe('<p style="color:#0866FF">Hi</p><a>Open</a>');
+    const sanitized = sanitizeEmailHtml(
+      '<p class="editor" data-merge-field="client_name" style="color:#0866FF" onclick="alert(1)">Hi</p><a href="javascript:alert(1)" data-table-payload="{&quot;x&quot;:1}">Open</a>'
+    );
+
+    expect(sanitized).toContain('<p style="color:#0866FF">Hi</p>');
+    expect(sanitized).toContain(">Open</a>");
+    expect(sanitized).not.toContain("class=");
+    expect(sanitized).not.toContain("data-merge-field=");
+    expect(sanitized).not.toContain("data-table-payload=");
+    expect(sanitized).not.toContain("javascript:");
+  });
+
+  it("removes unquoted event handlers and unsafe sources", () => {
+    const sanitized = sanitizeEmailHtml(
+      '<img src=x onerror=alert(1)><a href=https://example.com onclick=alert(1)>Open</a>'
+    );
+
+    expect(sanitized).toContain("<img");
+    expect(sanitized).toContain('src="x"');
+    expect(sanitized).toContain('href="https://example.com"');
+    expect(sanitized).not.toContain("onerror=");
+    expect(sanitized).not.toContain("onclick=");
   });
 });
