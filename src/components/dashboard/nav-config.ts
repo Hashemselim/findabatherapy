@@ -105,8 +105,8 @@ export const mainNavItems: NavItemConfig[] = [
     icon: Mail,
   },
   {
-    href: "/dashboard/referrals",
-    label: "Referrals",
+    href: "/dashboard/referrals/sources",
+    label: "Referral Network",
     icon: Network,
     quickLink: true,
   },

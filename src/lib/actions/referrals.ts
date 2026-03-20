@@ -1542,7 +1542,13 @@ async function upsertImportedSource(params: {
   return { mode: "inserted" as const, id: result.data?.id || "" };
 }
 
-export async function enrichReferralSource(sourceId: string): Promise<ActionResult> {
+export interface EnrichResult {
+  found: string[];
+  stageChanged: boolean;
+  newStage?: string;
+}
+
+export async function enrichReferralSource(sourceId: string): Promise<ActionResult<EnrichResult>> {
   const detailResult = await getReferralSourceDetail(sourceId);
   if (!detailResult.success || !detailResult.data) {
     return { success: false, error: detailResult.success ? "Source not found" : detailResult.error };
@@ -1553,6 +1559,10 @@ export async function enrichReferralSource(sourceId: string): Promise<ActionResu
 
   const source = detailResult.data;
   const enrichment = await enrichSourceFromWebsite(source);
+
+  const newStage = source.stage === "discovered" && (enrichment.publicEmail || enrichment.contactFormUrl || source.phone)
+    ? "ready_to_contact"
+    : source.stage;
 
   const { error } = await ctx.supabase
     .from("referral_sources")
@@ -1568,19 +1578,30 @@ export async function enrichReferralSource(sourceId: string): Promise<ActionResu
       confidence_score: enrichment.confidenceScore,
       contactability_score: enrichment.contactabilityScore,
       priority_score: enrichment.priorityScore,
-      stage: source.stage === "discovered" && (enrichment.publicEmail || enrichment.contactFormUrl || source.phone)
-        ? "ready_to_contact"
-        : source.stage,
+      stage: newStage,
     })
     .eq("id", sourceId)
     .eq("profile_id", ctx.profileId);
 
   if (error) return { success: false, error: "Failed to enrich referral source" };
 
+  // Build a list of what was found
+  const found: string[] = [];
+  if (enrichment.publicEmail && enrichment.publicEmail !== source.public_email) found.push("email");
+  if (enrichment.contactFormUrl && enrichment.contactFormUrl !== source.contact_form_url) found.push("contact form");
+  if (enrichment.referralInstructions && enrichment.referralInstructions !== source.referral_instructions) found.push("referral instructions");
+
   revalidatePath("/dashboard/referrals");
   revalidatePath("/dashboard/referrals/sources");
   revalidatePath(`/dashboard/referrals/sources/${sourceId}`);
-  return { success: true };
+  return {
+    success: true,
+    data: {
+      found,
+      stageChanged: newStage !== source.stage,
+      newStage: newStage !== source.stage ? newStage : undefined,
+    },
+  };
 }
 
 export async function runReferralImport(input: Parameters<typeof referralImportRequestSchema["parse"]>[0]): Promise<ActionResult<{ jobIds: string[]; discovered: number }>> {

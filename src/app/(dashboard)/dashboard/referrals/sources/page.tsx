@@ -4,14 +4,14 @@ import { getUser } from "@/lib/supabase/server";
 import { getLocations } from "@/lib/actions/locations";
 import { getReferralTemplates, listReferralSources } from "@/lib/actions/referrals";
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
-import { ReferralSourcesPageClient } from "@/components/dashboard/referrals/referral-sources-page-client";
+import { ReferralNetworkWorkspace } from "@/components/dashboard/referrals/referral-network-workspace";
 
 export default async function ReferralSourcesPage() {
   const user = await getUser();
   if (!user) redirect("/auth/sign-in");
 
   const [sourcesResult, templatesResult, locationsResult] = await Promise.all([
-    listReferralSources(undefined, 1, 200),
+    listReferralSources(undefined, 1, 500),
     getReferralTemplates(),
     getLocations(),
   ]);
@@ -19,12 +19,12 @@ export default async function ReferralSourcesPage() {
   return (
     <div className="space-y-3">
       <DashboardPageHeader
-        title="Referral Sources"
-        description="Discover nearby doctors and partner offices, enrich them, and send outreach."
+        title="Referral Network"
+        description="Discover, enrich, and reach out to nearby referral sources."
       />
 
-      <ReferralSourcesPageClient
-        initialSources={sourcesResult.success && sourcesResult.data ? sourcesResult.data.sources : []}
+      <ReferralNetworkWorkspace
+        sources={sourcesResult.success && sourcesResult.data ? sourcesResult.data.sources : []}
         templates={templatesResult.success && templatesResult.data ? templatesResult.data : []}
         locations={
           locationsResult.success && locationsResult.data

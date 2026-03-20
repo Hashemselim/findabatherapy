@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { PropsWithChildren } from "react";
 
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
+import { Toaster } from "@/components/ui/sonner";
 import { type CompanyProfile } from "@/components/dashboard/dashboard-sidebar";
 import { getListing } from "@/lib/actions/listings";
 import { createGoodABALayoutMetadata } from "@/lib/seo/goodaba-metadata";
@@ -44,6 +45,7 @@ export default async function DashboardLayout({ children }: PropsWithChildren) {
       companyProfile={companyProfile}
     >
       {children}
+      <Toaster richColors position="bottom-right" />
     </DashboardShell>
   );
 }

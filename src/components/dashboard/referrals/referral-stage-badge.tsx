@@ -16,7 +16,7 @@ const STAGE_TONES: Record<string, DashboardTone> = {
 
 export function ReferralStageBadge({ stage }: { stage: string }) {
   return (
-    <DashboardStatusBadge tone={STAGE_TONES[stage] || "default"} className="text-xs">
+    <DashboardStatusBadge tone={STAGE_TONES[stage] || "default"} className="text-xs capitalize">
       {stage.replace(/_/g, " ")}
     </DashboardStatusBadge>
   );
