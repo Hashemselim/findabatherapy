@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Poppins } from "next/font/google";
+import { Inter } from "next/font/google";
 import { PropsWithChildren } from "react";
 
 import "./globals.css";
@@ -11,9 +11,8 @@ import {
   generateWebSiteSchema,
 } from "@/lib/seo/schemas";
 
-const poppins = Poppins({
+const inter = Inter({
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
   variable: "--font-poppins",
 });
 
@@ -107,7 +106,7 @@ export default function RootLayout({ children }: PropsWithChildren) {
       <head>
         <JsonLd data={[generateOrganizationSchema(), generateWebSiteSchema()]} />
       </head>
-      <body className={`${poppins.variable} min-h-screen`}>
+      <body className={`${inter.variable} min-h-screen`}>
         <Providers>{children}</Providers>
       </body>
     </html>

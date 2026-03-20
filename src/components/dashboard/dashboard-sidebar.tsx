@@ -304,7 +304,7 @@ export function DashboardSidebar({
                   {hasActiveChild && !isOpen && (
                     <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-primary" />
                   )}
-                  <SectionIcon className="h-[18px] w-[18px] shrink-0" aria-hidden />
+                  <SectionIcon className="h-[18px] w-[18px] shrink-0 text-[#222222]" aria-hidden />
                   <span className="flex-1 text-left">{section.label}</span>
                   <div className="flex items-center gap-1.5">
                     {!isOpen && sectionBadgeTotal > 0 && (
@@ -321,7 +321,7 @@ export function DashboardSidebar({
                     />
                   </div>
                 </CollapsibleTrigger>
-                <CollapsibleContent className="space-y-0.5 pb-1 pl-3 pt-0.5">
+                <CollapsibleContent className="space-y-0.5 pb-1 pl-6 pt-0.5">
                   {section.items.map((item) =>
                     renderNavLink(item, pathname, isOnboardingComplete, isDemo, getBadgeCount)
                   )}
@@ -497,7 +497,7 @@ function renderNavLink(
       <Icon
         className={cn(
           "h-[18px] w-[18px] shrink-0",
-          isActive && "text-primary"
+          isActive ? "text-primary" : "text-[#222222]"
         )}
         aria-hidden
       />

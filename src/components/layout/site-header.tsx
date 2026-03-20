@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { LayoutDashboard, Menu, UserRound } from "lucide-react";
+import { ChevronRight, LayoutDashboard, Menu, UserRound } from "lucide-react";
 
 import { siteConfig } from "@/config/site";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,6 @@ import {
   Sheet,
   SheetClose,
   SheetContent,
-  SheetDescription,
   SheetHeader,
   SheetTitle,
   SheetTrigger,
@@ -19,6 +18,11 @@ const primaryNav = [
   { href: "/search", label: "Search" },
   { href: "/learn", label: "Learn" },
 ];
+
+function SiteLogo() {
+  /* eslint-disable-next-line @next/next/no-img-element */
+  return <img src="/logo-full.png" alt={siteConfig.name} className="h-7 w-auto" />;
+}
 
 export async function SiteHeader() {
   const user = await getUser();
@@ -73,58 +77,80 @@ export async function SiteHeader() {
           )}
         </div>
 
+        {/* Mobile menu */}
         <Sheet>
           <SheetTrigger asChild>
-            <Button variant="outline" className="h-10 w-10 rounded-lg border-border/60 p-0 lg:hidden [&_svg]:size-6" aria-label="Toggle navigation">
-              <Menu aria-hidden />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-10 w-10 shrink-0 rounded-full lg:hidden"
+              aria-label="Toggle navigation"
+            >
+              <Menu className="h-5 w-5" />
             </Button>
           </SheetTrigger>
-          <SheetContent side="right" className="w-72 sm:w-80">
-            <SheetHeader>
+          <SheetContent
+            side="right"
+            className="w-[min(21.5rem,calc(100vw-1rem))] border-border/60 bg-background p-0 sm:w-80"
+          >
+            <SheetHeader className="sr-only">
               <SheetTitle>{siteConfig.name}</SheetTitle>
-              <SheetDescription>{siteConfig.tagline}</SheetDescription>
             </SheetHeader>
-            <div className="mt-6 flex flex-col gap-4 text-base">
-              {primaryNav.map((item) => (
-                <SheetClose asChild key={item.href}>
-                  <Button
-                    asChild
-                    variant="ghost"
-                    className="justify-start text-base font-medium"
-                  >
-                    <Link href={item.href}>{item.label}</Link>
-                  </Button>
-                </SheetClose>
-              ))}
+            <div className="border-b border-border/60 px-6 pb-5 pt-6">
+              <SiteLogo />
+              <p className="mt-3 text-[15px] leading-6 text-muted-foreground">
+                {siteConfig.tagline}
+              </p>
             </div>
-            <div className="mt-8 border-t pt-6">
-              <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">For Providers</span>
-              <div className="mt-3 flex flex-col gap-2">
+
+            <div className="flex flex-1 flex-col px-6 pb-6 pt-5">
+              {/* Nav items */}
+              <div className="overflow-hidden rounded-2xl border border-border/60 bg-accent/30">
+                {primaryNav.map((item) => (
+                  <SheetClose asChild key={item.href}>
+                    <Link
+                      href={item.href}
+                      className="flex min-h-14 items-center justify-between border-b border-border/60 px-5 py-4 text-[17px] font-semibold text-foreground transition-colors last:border-b-0 hover:bg-accent"
+                    >
+                      <span>{item.label}</span>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground/50" />
+                    </Link>
+                  </SheetClose>
+                ))}
+              </div>
+
+              {/* Provider CTAs */}
+              <div className="mt-6 space-y-2.5 border-t border-border/60 pt-5">
+                <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                  For Providers
+                </p>
                 <SheetClose asChild>
-                  <Button
-                    asChild
-                    className="rounded-full border border-[#0866FF] bg-[#0866FF] text-base font-medium text-white hover:bg-[#0866FF]"
+                  <Link
+                    href="/get-listed"
+                    className="flex h-12 items-center justify-center rounded-full bg-[#0866FF] px-5 text-base font-bold text-white shadow-xs shadow-[#0866FF]/25 transition-all hover:bg-[#0866FF]/92"
                   >
-                    <Link href="/get-listed">Get Listed</Link>
-                  </Button>
+                    Get Listed
+                  </Link>
                 </SheetClose>
                 {user ? (
                   <SheetClose asChild>
-                    <Button asChild variant="outline" className="rounded-full text-base font-medium">
-                      <Link href="/dashboard/clients/pipeline" className="gap-2">
-                        <LayoutDashboard className="h-4 w-4" aria-hidden />
-                        Dashboard
-                      </Link>
-                    </Button>
+                    <Link
+                      href="/dashboard/clients/pipeline"
+                      className="flex min-h-12 items-center gap-2 rounded-2xl border border-border/60 bg-accent/30 px-4 py-3.5 text-base font-semibold text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                    >
+                      <LayoutDashboard className="h-4 w-4" aria-hidden />
+                      Dashboard
+                    </Link>
                   </SheetClose>
                 ) : (
                   <SheetClose asChild>
-                    <Button asChild variant="outline" className="rounded-full text-base font-medium">
-                      <Link href="/auth/sign-in" className="gap-2">
-                        <UserRound className="h-4 w-4" aria-hidden />
-                        Sign In
-                      </Link>
-                    </Button>
+                    <Link
+                      href="/auth/sign-in"
+                      className="flex min-h-12 items-center gap-2 rounded-2xl border border-border/60 bg-accent/30 px-4 py-3.5 text-base font-semibold text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                    >
+                      <UserRound className="h-4 w-4" aria-hidden />
+                      Sign In
+                    </Link>
                   </SheetClose>
                 )}
               </div>

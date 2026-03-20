@@ -16,7 +16,6 @@ import {
   Building2,
   CheckSquare,
   ClipboardList,
-  FileInput,
   FileUp,
   FileText,
   Globe,
@@ -28,6 +27,7 @@ import {
   Network,
   Palette,
   Share2,
+  Sparkles,
   User,
   UserCheck,
   UserCircle,
@@ -141,9 +141,9 @@ export const persistentItems: NavItemConfig[] = [
 
 export const sectionNav: NavSectionConfig[] = [
   {
-    id: "forms",
-    label: "Forms",
-    icon: FileInput,
+    id: "toolkit",
+    label: "ABA Toolkit",
+    icon: Sparkles,
     defaultOpen: false,
     items: [
       {
@@ -188,6 +188,11 @@ export const sectionNav: NavSectionConfig[] = [
         label: "Family Resources",
         icon: BookOpen,
         aliases: ["/dashboard/intake-pages/resources"],
+      },
+      {
+        href: "/dashboard/social",
+        label: "Social Posts",
+        icon: Share2,
       },
       {
         href: "/dashboard/branding",
@@ -259,12 +264,6 @@ export const sectionNav: NavSectionConfig[] = [
         icon: BarChart3,
         quickLink: true,
         aliases: ["/dashboard/client-growth/analytics", "/dashboard/analytics"],
-      },
-      {
-        href: "/dashboard/social",
-        label: "Social Posts",
-        icon: Share2,
-        proBadge: true,
       },
       {
         href: "/dashboard/settings/users",
