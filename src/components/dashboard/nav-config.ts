@@ -9,7 +9,6 @@
  */
 
 import {
-  BarChart3,
   Bell,
   BookOpen,
   Briefcase,
@@ -98,11 +97,6 @@ export const mainNavItems: NavItemConfig[] = [
     exactMatch: true,
     quickLink: true,
     aliases: ["/dashboard/operations/clients"],
-  },
-  {
-    href: "/dashboard/clients/communications",
-    label: "Communications",
-    icon: Mail,
   },
   {
     href: "/dashboard/referrals/sources",
@@ -195,9 +189,9 @@ export const sectionNav: NavSectionConfig[] = [
         icon: Share2,
       },
       {
-        href: "/dashboard/branding",
-        label: "Brand Style",
-        icon: Palette,
+        href: "/dashboard/clients/communications",
+        label: "Communications",
+        icon: Mail,
       },
     ],
   },
@@ -253,17 +247,15 @@ export const sectionNav: NavSectionConfig[] = [
         ],
       },
       {
+        href: "/dashboard/branding",
+        label: "Brand Style",
+        icon: Palette,
+      },
+      {
         href: "/dashboard/settings/locations",
         label: "Locations",
         icon: MapPin,
         aliases: ["/dashboard/client-growth/locations", "/dashboard/locations"],
-      },
-      {
-        href: "/dashboard/settings/analytics",
-        label: "Analytics",
-        icon: BarChart3,
-        quickLink: true,
-        aliases: ["/dashboard/client-growth/analytics", "/dashboard/analytics"],
       },
       {
         href: "/dashboard/settings/users",
