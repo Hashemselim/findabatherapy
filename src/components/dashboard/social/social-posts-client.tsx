@@ -7,6 +7,7 @@ import {
   Download,
   Check,
   ImageIcon,
+  Lock,
   Loader2,
   X,
 } from "lucide-react";
@@ -36,6 +37,8 @@ interface SocialPostsClientProps {
   assetsReady: boolean;
   alreadyGenerating?: boolean;
   brandHash?: string;
+  previewMode?: boolean;
+  previewAgencyName?: string;
 }
 
 const FILTER_CATEGORIES: { value: SocialCategory | "all"; label: string }[] = [
@@ -116,6 +119,8 @@ export function SocialPostsClient({
   assetsReady: initialAssetsReady,
   alreadyGenerating = false,
   brandHash = "",
+  previewMode = false,
+  previewAgencyName = "Acorn ABA Therapy",
 }: SocialPostsClientProps) {
   const [filter, setFilter] = useState<SocialCategory | "all">("all");
   const [assetsReady, setAssetsReady] = useState(initialAssetsReady);
@@ -126,6 +131,11 @@ export function SocialPostsClient({
   // Build image URL helper (needed for probe check)
   const buildImageUrl = useCallback(
     (templateId: string) => {
+      if (previewMode) {
+        const template = templates.find((item) => item.id === templateId);
+        if (!template) return "";
+        return buildPreviewImageUrl(template, previewAgencyName);
+      }
       const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
       const hash = cacheBuster || brandHash;
       return hash
@@ -138,6 +148,7 @@ export function SocialPostsClient({
   // Trigger generation only if assets truly don't exist.
   // Probe an actual image URL first to guard against intermittent manifest failures.
   useEffect(() => {
+    if (previewMode) return;
     if (assetsReady) return;
 
     let cancelled = false;
@@ -207,7 +218,7 @@ export function SocialPostsClient({
 
     checkAndGenerate();
     return () => { cancelled = true; };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [assetsReady, alreadyGenerating, brandHash, buildImageUrl, previewMode, templates]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const filteredTemplates =
     filter === "all"
@@ -258,6 +269,7 @@ export function SocialPostsClient({
                 template={template}
                 imageUrl={getImageUrl(template.id)}
                 daysUntil={template.daysUntil}
+                previewMode={previewMode}
               />
             ))}
           </div>
@@ -290,6 +302,7 @@ export function SocialPostsClient({
                 key={template.id}
                 template={template}
                 imageUrl={getImageUrl(template.id)}
+                previewMode={previewMode}
               />
             ))}
           </div>
@@ -297,6 +310,53 @@ export function SocialPostsClient({
       </TabsContent>
     </Tabs>
   );
+}
+
+function buildPreviewImageUrl(template: SocialTemplate, agencyName: string) {
+  const palette: Record<SocialCategory, { bg: string; accent: string; panel: string }> = {
+    aba_observance: { bg: "#E9F2FF", accent: "#2563EB", panel: "#D9E8FF" },
+    autism_observance: { bg: "#F2EAFE", accent: "#7C3AED", panel: "#E5D6FF" },
+    national_holiday: { bg: "#FFF0F0", accent: "#DC2626", panel: "#FFD7D7" },
+    seasonal: { bg: "#FFF7E6", accent: "#D97706", panel: "#FFE7B5" },
+    aba_tip: { bg: "#EAF8F1", accent: "#059669", panel: "#D4F3E3" },
+    quote: { bg: "#FFF0F7", accent: "#DB2777", panel: "#FFD6EA" },
+    announcement: { bg: "#EEF2FF", accent: "#4F46E5", panel: "#DDE2FF" },
+  };
+
+  const colors = palette[template.category];
+  const captionPreview = template.caption.slice(0, 120);
+  const captionLineOne = captionPreview.slice(0, 58);
+  const captionLineTwo = captionPreview.slice(58, 116);
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1080" viewBox="0 0 1080 1080">
+      <rect width="1080" height="1080" fill="${colors.bg}" />
+      <circle cx="130" cy="130" r="90" fill="${colors.panel}" />
+      <circle cx="940" cy="180" r="120" fill="${colors.panel}" />
+      <circle cx="930" cy="930" r="160" fill="${colors.panel}" />
+      <rect x="86" y="86" width="908" height="908" rx="48" fill="white" stroke="${colors.panel}" stroke-width="8"/>
+      <text x="130" y="180" font-family="Arial, sans-serif" font-size="34" font-weight="700" fill="${colors.accent}">${escapeXml(agencyName)}</text>
+      <text x="130" y="245" font-family="Arial, sans-serif" font-size="64" font-weight="700" fill="#172033">${escapeXml(template.layoutProps.headline)}</text>
+      <text x="130" y="310" font-family="Arial, sans-serif" font-size="30" fill="#516077">${escapeXml(template.layoutProps.subline || template.title)}</text>
+      <rect x="130" y="378" width="820" height="260" rx="32" fill="${colors.panel}" />
+      <text x="170" y="462" font-family="Arial, sans-serif" font-size="28" font-weight="700" fill="${colors.accent}">${escapeXml(CATEGORY_LABELS[template.category])}</text>
+      <text x="170" y="530" font-family="Arial, sans-serif" font-size="34" font-weight="700" fill="#172033">${escapeXml(template.title)}</text>
+      <text x="170" y="606" font-family="Arial, sans-serif" font-size="27" fill="#516077">${escapeXml(captionLineOne)}</text>
+      <text x="170" y="648" font-family="Arial, sans-serif" font-size="27" fill="#516077">${escapeXml(captionLineTwo)}${template.caption.length > 116 ? "..." : ""}</text>
+      <rect x="130" y="862" width="280" height="70" rx="35" fill="${colors.accent}" />
+      <text x="270" y="906" text-anchor="middle" font-family="Arial, sans-serif" font-size="28" font-weight="700" fill="white">Preview Only</text>
+    </svg>
+  `;
+
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+}
+
+function escapeXml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
 }
 
 // ---------- Image Lightbox Modal ----------
@@ -347,10 +407,12 @@ function CalendarRow({
   template,
   imageUrl,
   daysUntil,
+  previewMode = false,
 }: {
   template: SocialTemplate & { nextOccurrence: string };
   imageUrl: string;
   daysUntil: number;
+  previewMode?: boolean;
 }) {
   const [captionCopied, setCaptionCopied] = useState(false);
   const [imageCopied, setImageCopied] = useState(false);
@@ -374,6 +436,7 @@ function CalendarRow({
   }, [checkClamped]);
 
   async function copyCaption() {
+    if (previewMode) return;
     await navigator.clipboard.writeText(
       `${template.caption}\n\n${template.hashtags}`
     );
@@ -382,6 +445,7 @@ function CalendarRow({
   }
 
   async function copyImage() {
+    if (previewMode) return;
     try {
       const response = await fetch(imageUrl);
       const blob = await response.blob();
@@ -396,6 +460,7 @@ function CalendarRow({
   }
 
   function downloadImage() {
+    if (previewMode) return;
     const a = document.createElement("a");
     a.href = imageUrl;
     a.download = `${template.id}.png`;
@@ -436,28 +501,38 @@ function CalendarRow({
         </div>
 
         {/* Mobile: full-width image like library view */}
-        <button
-          type="button"
-          className="relative aspect-square w-full overflow-hidden rounded-lg bg-muted sm:hidden"
-          onClick={() => setLightboxOpen(true)}
-        >
-          <ImageWithLoader
-            src={imageUrl}
-            alt={template.title}
-            retryOnError
-          />
+      <button
+        type="button"
+        className="relative aspect-square w-full overflow-hidden rounded-lg bg-muted sm:hidden"
+        onClick={() => setLightboxOpen(true)}
+      >
+        {previewMode && (
+          <div className="absolute right-2 top-2 z-10 rounded-full bg-background/92 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-foreground shadow-sm">
+            Preview
+          </div>
+        )}
+        <ImageWithLoader
+          src={imageUrl}
+          alt={template.title}
+          retryOnError
+        />
         </button>
 
         {/* Desktop: larger clickable thumbnail */}
-        <button
-          type="button"
-          className="relative hidden h-36 w-36 shrink-0 cursor-pointer overflow-hidden rounded-lg bg-muted transition-shadow hover:ring-2 hover:ring-primary/30 sm:block"
-          onClick={() => setLightboxOpen(true)}
-        >
-          <ImageWithLoader
-            src={imageUrl}
-            alt={template.title}
-            spinnerSize="h-5 w-5"
+      <button
+        type="button"
+        className="relative hidden h-36 w-36 shrink-0 cursor-pointer overflow-hidden rounded-lg bg-muted transition-shadow hover:ring-2 hover:ring-primary/30 sm:block"
+        onClick={() => setLightboxOpen(true)}
+      >
+        {previewMode && (
+          <div className="absolute right-2 top-2 z-10 rounded-full bg-background/92 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-foreground shadow-sm">
+            Preview
+          </div>
+        )}
+        <ImageWithLoader
+          src={imageUrl}
+          alt={template.title}
+          spinnerSize="h-5 w-5"
             retryOnError
           />
         </button>
@@ -505,32 +580,39 @@ function CalendarRow({
               variant="outline"
               className="gap-1 text-xs"
               onClick={copyImage}
+              disabled={previewMode}
             >
-              {imageCopied ? (
+              {previewMode ? (
+                <Lock className="h-3.5 w-3.5" />
+              ) : imageCopied ? (
                 <Check className="h-3.5 w-3.5 text-emerald-600" />
               ) : (
                 <Copy className="h-3.5 w-3.5" />
               )}
-              {imageCopied ? "Copied!" : "Image"}
+              {previewMode ? "Upgrade to copy" : imageCopied ? "Copied!" : "Image"}
             </Button>
             <Button
               size="sm"
               variant="outline"
               className="gap-1 text-xs"
               onClick={copyCaption}
+              disabled={previewMode}
             >
-              {captionCopied ? (
+              {previewMode ? (
+                <Lock className="h-3.5 w-3.5" />
+              ) : captionCopied ? (
                 <Check className="h-3.5 w-3.5 text-emerald-600" />
               ) : (
                 <Copy className="h-3.5 w-3.5" />
               )}
-              {captionCopied ? "Copied!" : "Caption"}
+              {previewMode ? "Upgrade to copy" : captionCopied ? "Copied!" : "Caption"}
             </Button>
             <Button
               size="sm"
               variant="ghost"
               className="shrink-0 px-2"
               onClick={downloadImage}
+              disabled={previewMode}
               title="Download image"
             >
               <Download className="h-4 w-4" />
@@ -547,9 +629,11 @@ function CalendarRow({
 function SocialPostCard({
   template,
   imageUrl,
+  previewMode = false,
 }: {
   template: SocialTemplate;
   imageUrl: string;
+  previewMode?: boolean;
 }) {
   const [captionCopied, setCaptionCopied] = useState(false);
   const [imageCopied, setImageCopied] = useState(false);
@@ -571,6 +655,7 @@ function SocialPostCard({
   }, [checkLibClamped]);
 
   async function copyCaption() {
+    if (previewMode) return;
     await navigator.clipboard.writeText(
       `${template.caption}\n\n${template.hashtags}`
     );
@@ -579,6 +664,7 @@ function SocialPostCard({
   }
 
   async function copyImage() {
+    if (previewMode) return;
     try {
       const response = await fetch(imageUrl);
       const blob = await response.blob();
@@ -593,6 +679,7 @@ function SocialPostCard({
   }
 
   function downloadImage() {
+    if (previewMode) return;
     const a = document.createElement("a");
     a.href = imageUrl;
     a.download = `${template.id}.png`;
@@ -605,6 +692,11 @@ function SocialPostCard({
     <DashboardCard className="flex h-full flex-col overflow-hidden">
       {/* Image preview */}
       <div className="relative aspect-square bg-muted">
+        {previewMode && (
+          <div className="absolute right-2 top-2 z-10 rounded-full bg-background/92 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-foreground shadow-sm">
+            Preview
+          </div>
+        )}
         <ImageWithLoader
           src={imageUrl}
           alt={template.title}
@@ -657,15 +749,17 @@ function SocialPostCard({
             variant="outline"
             className="min-w-0 flex-1 gap-1 text-xs"
             onClick={copyImage}
-
+            disabled={previewMode}
           >
-            {imageCopied ? (
+            {previewMode ? (
+              <Lock className="h-3.5 w-3.5 shrink-0" />
+            ) : imageCopied ? (
               <Check className="h-3.5 w-3.5 shrink-0 text-emerald-600" />
             ) : (
               <Copy className="h-3.5 w-3.5 shrink-0" />
             )}
             <span className="truncate">
-              {imageCopied ? "Copied!" : "Image"}
+              {previewMode ? "Upgrade to copy" : imageCopied ? "Copied!" : "Image"}
             </span>
           </Button>
           <Button
@@ -673,14 +767,17 @@ function SocialPostCard({
             variant="outline"
             className="min-w-0 flex-1 gap-1 text-xs"
             onClick={copyCaption}
+            disabled={previewMode}
           >
-            {captionCopied ? (
+            {previewMode ? (
+              <Lock className="h-3.5 w-3.5 shrink-0" />
+            ) : captionCopied ? (
               <Check className="h-3.5 w-3.5 shrink-0 text-emerald-600" />
             ) : (
               <Copy className="h-3.5 w-3.5 shrink-0" />
             )}
             <span className="truncate">
-              {captionCopied ? "Copied!" : "Caption"}
+              {previewMode ? "Upgrade to copy" : captionCopied ? "Copied!" : "Caption"}
             </span>
           </Button>
           <Button
@@ -688,7 +785,7 @@ function SocialPostCard({
             variant="ghost"
             className="shrink-0 px-2"
             onClick={downloadImage}
-
+            disabled={previewMode}
             title="Download image"
           >
             <Download className="h-4 w-4" />

@@ -4,7 +4,6 @@ import { Share2 } from "lucide-react";
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
 import { DashboardCard, DashboardEmptyState } from "@/components/dashboard/ui";
 import { PreviewBanner } from "@/components/ui/preview-banner";
-import { PreviewOverlay } from "@/components/ui/preview-overlay";
 import { getUser } from "@/lib/supabase/server";
 import { getCurrentPlanTier } from "@/lib/plans/guards";
 import { getSocialBrandData, checkSocialAssetsStatus } from "@/lib/actions/social";
@@ -26,6 +25,11 @@ export default async function SocialPostsPage() {
   const planTier = await getCurrentPlanTier();
   const isPreview = planTier === "free";
 
+  const upcoming = getUpcomingTemplates(365).map((t) => ({
+    ...t,
+    nextOccurrence: t.nextOccurrence.toISOString(),
+  }));
+
   if (isPreview) {
     return (
       <div className="space-y-3">
@@ -38,19 +42,17 @@ export default async function SocialPostsPage() {
           title="Social Posts"
           description="Branded social media templates for your ABA practice"
         />
-        <PreviewOverlay isPreview>
-          <DashboardEmptyState
-            icon={Share2}
-            title="Branded Social Posts"
-            description="Get ready-to-use, branded social media posts for holidays, ABA tips, and announcements."
-            benefits={[
-              "50+ curated post templates",
-              "Branded with your logo and colors",
-              "Copy image and caption with one click",
-              "Upcoming holidays and events calendar",
-            ]}
-          />
-        </PreviewOverlay>
+        <DashboardCard className="border-amber-200/70 bg-amber-50/40 p-4 text-sm text-muted-foreground">
+          Preview your branded post library with demo artwork. Copying captions and images unlocks on Pro.
+        </DashboardCard>
+        <SocialPostsClient
+          templates={SOCIAL_TEMPLATES}
+          upcoming={upcoming}
+          profileId="preview-social"
+          assetsReady
+          previewMode
+          previewAgencyName="Acorn ABA Therapy"
+        />
       </div>
     );
   }
@@ -85,13 +87,6 @@ export default async function SocialPostsPage() {
     statusResult.success && statusResult.data?.generating;
   const brandHash =
     (statusResult.success && statusResult.data?.brandHash) || "";
-
-  // Get ALL dated templates for calendar view — full year window
-  // Serialize Date objects to ISO strings for client component
-  const upcoming = getUpcomingTemplates(365).map((t) => ({
-    ...t,
-    nextOccurrence: t.nextOccurrence.toISOString(),
-  }));
 
   return (
     <div className="space-y-3">

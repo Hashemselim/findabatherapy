@@ -39,6 +39,7 @@ interface ReferralNetworkTableProps {
   sortKey: SortKey;
   sortDirection: SortDirection;
   onSortChange: (key: SortKey) => void;
+  previewMode?: boolean;
 }
 
 function getCategoryLabel(value: string) {
@@ -108,6 +109,7 @@ export function ReferralNetworkTable({
   sortKey,
   sortDirection,
   onSortChange,
+  previewMode = false,
 }: ReferralNetworkTableProps) {
   const allSelected = sources.length > 0 && sources.every((s) => selectedIds.has(s.id));
   const someSelected = sources.some((s) => selectedIds.has(s.id)) && !allSelected;
@@ -150,6 +152,7 @@ export function ReferralNetworkTable({
               checked={allSelected ? true : someSelected ? "indeterminate" : false}
               onCheckedChange={toggleAll}
               aria-label="Select all"
+              disabled={previewMode}
             />
           </DashboardTableHead>
           <SortHeader label="Name" sortKey="name" currentKey={sortKey} currentDir={sortDirection} onSort={onSortChange} className={COL.name} />
@@ -165,14 +168,18 @@ export function ReferralNetworkTable({
         {sources.map((source) => (
           <DashboardTableRow
             key={source.id}
-            className="cursor-pointer"
-            onClick={() => onRowClick(source)}
+            className={previewMode ? "" : "cursor-pointer"}
+            onClick={() => {
+              if (previewMode) return;
+              onRowClick(source);
+            }}
           >
             <DashboardTableCell className={COL.checkbox} onClick={(e) => e.stopPropagation()}>
               <Checkbox
                 checked={selectedIds.has(source.id)}
                 onCheckedChange={() => toggleOne(source.id)}
                 aria-label={`Select ${source.name}`}
+                disabled={previewMode}
               />
             </DashboardTableCell>
             <DashboardTableCell className={COL.name}>
@@ -194,6 +201,7 @@ export function ReferralNetworkTable({
                 phone={source.phone}
                 website={source.website}
                 contactFormUrl={source.contact_form_url}
+                disabled={previewMode}
               />
             </DashboardTableCell>
             <DashboardTableCell className={COL.stage}>
@@ -218,7 +226,7 @@ export function ReferralNetworkTable({
             <DashboardTableCell className={COL.actions} onClick={(e) => e.stopPropagation()}>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0" disabled={previewMode}>
                     <MoreHorizontal className="h-3.5 w-3.5" />
                   </Button>
                 </DropdownMenuTrigger>

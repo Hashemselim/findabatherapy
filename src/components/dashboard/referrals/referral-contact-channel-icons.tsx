@@ -15,6 +15,7 @@ interface ChannelIconsProps {
   website?: string | null;
   contactFormUrl?: string | null;
   className?: string;
+  disabled?: boolean;
 }
 
 type ChannelAction =
@@ -26,8 +27,31 @@ interface ChannelItem {
   action: ChannelAction;
 }
 
-function CopyableIcon({ icon, action }: { icon: React.ReactNode; action: ChannelAction }) {
+function CopyableIcon({
+  icon,
+  action,
+  disabled = false,
+}: {
+  icon: React.ReactNode;
+  action: ChannelAction;
+  disabled?: boolean;
+}) {
   const [copied, setCopied] = useState(false);
+
+  if (disabled) {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span className="rounded p-0.5 text-muted-foreground/45">
+            {icon}
+          </span>
+        </TooltipTrigger>
+        <TooltipContent side="top" className="text-xs">
+          Upgrade to use
+        </TooltipContent>
+      </Tooltip>
+    );
+  }
 
   if (action.type === "link") {
     return (
@@ -86,6 +110,7 @@ export function ReferralContactChannelIcons({
   website,
   contactFormUrl,
   className,
+  disabled = false,
 }: ChannelIconsProps) {
   const channels: (ChannelItem | null)[] = [
     email ? { icon: <Mail className={iconClass} />, action: { type: "copy", value: email, label: email } } : null,
@@ -115,7 +140,7 @@ export function ReferralContactChannelIcons({
     <TooltipProvider delayDuration={200}>
       <div className={cn("flex items-center gap-1.5", className)}>
         {activeChannels.map((item, idx) => (
-          <CopyableIcon key={idx} icon={item.icon} action={item.action} />
+          <CopyableIcon key={idx} icon={item.icon} action={item.action} disabled={disabled} />
         ))}
       </div>
     </TooltipProvider>

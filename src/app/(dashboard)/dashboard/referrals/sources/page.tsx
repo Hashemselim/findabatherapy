@@ -1,15 +1,17 @@
 import { redirect } from "next/navigation";
-import { Network } from "lucide-react";
-
 import { getUser } from "@/lib/supabase/server";
 import { getLocations } from "@/lib/actions/locations";
 import { getReferralTemplates, listReferralSources } from "@/lib/actions/referrals";
 import { getCurrentPlanTier } from "@/lib/plans/guards";
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
-import { DashboardEmptyState } from "@/components/dashboard/ui";
+import { DashboardCard } from "@/components/dashboard/ui";
 import { ReferralNetworkWorkspace } from "@/components/dashboard/referrals/referral-network-workspace";
 import { PreviewBanner } from "@/components/ui/preview-banner";
-import { PreviewOverlay } from "@/components/ui/preview-overlay";
+import {
+  DEMO_REFERRAL_LOCATIONS,
+  DEMO_REFERRAL_NETWORK_SOURCES,
+  DEMO_REFERRAL_TEMPLATES,
+} from "@/lib/demo/feature-previews";
 
 export default async function ReferralSourcesPage() {
   const user = await getUser();
@@ -30,19 +32,15 @@ export default async function ReferralSourcesPage() {
           title="Referral Network"
           description="Discover, enrich, and reach out to nearby referral sources."
         />
-        <PreviewOverlay isPreview label="Preview">
-          <DashboardEmptyState
-            icon={Network}
-            title="Referral Network Workspace"
-            description="Build a referral pipeline with discovered sources, outreach templates, notes, and follow-up tracking."
-            benefits={[
-              "Discover nearby pediatricians and therapy partners",
-              "Save contacts, notes, and next steps in one place",
-              "Track outreach stages from new to active referrer",
-              "Send individual or bulk referral emails from templates",
-            ]}
-          />
-        </PreviewOverlay>
+        <DashboardCard className="border-amber-200/70 bg-amber-50/40 p-4 text-sm text-muted-foreground">
+          Explore a sample referral workspace with example providers, stages, and contact channels. Outreach and discovery tools unlock on Pro.
+        </DashboardCard>
+        <ReferralNetworkWorkspace
+          sources={DEMO_REFERRAL_NETWORK_SOURCES}
+          templates={DEMO_REFERRAL_TEMPLATES}
+          locations={DEMO_REFERRAL_LOCATIONS}
+          previewMode
+        />
       </div>
     );
   }

@@ -48,6 +48,7 @@ interface ReferralNetworkWorkspaceProps {
   sources: ReferralSourceListItem[];
   templates: ReferralTemplate[];
   locations: LocationOption[];
+  previewMode?: boolean;
 }
 
 /* ─────────────────────────── stage tabs ─────────────────────── */
@@ -106,6 +107,7 @@ export function ReferralNetworkWorkspace({
   sources,
   templates,
   locations,
+  previewMode = false,
 }: ReferralNetworkWorkspaceProps) {
   const router = useRouter();
   const [, startTransition] = useTransition();
@@ -219,27 +221,32 @@ export function ReferralNetworkWorkspace({
   }
 
   function handleRowClick(source: ReferralSourceListItem) {
+    if (previewMode) return;
     setSheetSourceId(source.id);
   }
 
   function handleQuickEmail(source: ReferralSourceListItem) {
+    if (previewMode) return;
     setEmailSourceIds([source.id]);
     setEmailSourceName(source.name);
     setEmailOpen(true);
   }
 
   function handleBulkEmail() {
+    if (previewMode) return;
     setEmailSourceIds([...selectedIds]);
     setEmailSourceName(undefined);
     setEmailOpen(true);
   }
 
   function handleBulkStageChange() {
+    if (previewMode) return;
     setStageChangeIds([...selectedIds]);
     setStageChangeOpen(true);
   }
 
   function handleStageChange(sourceId: string, stage: string) {
+    if (previewMode) return;
     startTransition(async () => {
       const result = await updateReferralSourceStage(sourceId, stage as ReferralSourceStage);
       if (!result.success) {
@@ -252,6 +259,7 @@ export function ReferralNetworkWorkspace({
   }
 
   function handleEnrich(sourceId: string) {
+    if (previewMode) return;
     const sourceName = sources.find((s) => s.id === sourceId)?.name ?? "Source";
     const toastId = toast.loading(`Enriching ${sourceName}...`, { description: "Crawling website for contact info" });
     startTransition(async () => {
@@ -274,6 +282,7 @@ export function ReferralNetworkWorkspace({
   }
 
   function handleBulkEnrich() {
+    if (previewMode) return;
     const count = selectedIds.size;
     const toastId = toast.loading(`Enriching ${count} source${count !== 1 ? "s" : ""}...`, { description: "This may take a moment" });
     startTransition(async () => {
@@ -296,6 +305,7 @@ export function ReferralNetworkWorkspace({
   }
 
   function handleBulkArchive() {
+    if (previewMode) return;
     startTransition(async () => {
       let successCount = 0;
       for (const id of selectedIds) {
@@ -375,9 +385,15 @@ export function ReferralNetworkWorkspace({
               ))}
             </SelectContent>
           </Select>
-          <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => setDiscoverOpen(true)}>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 text-xs"
+            onClick={() => setDiscoverOpen(true)}
+            disabled={previewMode}
+          >
             <Telescope className="mr-1.5 h-3.5 w-3.5" />
-            Discover
+            {previewMode ? "Discover (Preview)" : "Discover"}
           </Button>
         </div>
       </DashboardCard>
@@ -390,6 +406,7 @@ export function ReferralNetworkWorkspace({
         onEnrich={handleBulkEnrich}
         onArchive={handleBulkArchive}
         onClear={() => setSelectedIds(new Set())}
+        disabled={previewMode}
       />
 
       {/* Table */}
@@ -405,43 +422,44 @@ export function ReferralNetworkWorkspace({
           sortKey={sortKey}
           sortDirection={sortDirection}
           onSortChange={handleSortChange}
+          previewMode={previewMode}
         />
       </DashboardCard>
 
-      {/* Detail sheet */}
-      <ReferralSourceSheet
-        sourceId={sheetSourceId}
-        onClose={() => setSheetSourceId(null)}
-        templates={templates}
-        onSendEmail={(id, name) => {
-          setEmailSourceIds([id]);
-          setEmailSourceName(name);
-          setEmailOpen(true);
-        }}
-      />
+      {!previewMode && (
+        <>
+          <ReferralSourceSheet
+            sourceId={sheetSourceId}
+            onClose={() => setSheetSourceId(null)}
+            templates={templates}
+            onSendEmail={(id, name) => {
+              setEmailSourceIds([id]);
+              setEmailSourceName(name);
+              setEmailOpen(true);
+            }}
+          />
 
-      {/* Email dialog */}
-      <ReferralSendDialog
-        open={emailOpen}
-        onOpenChange={setEmailOpen}
-        templates={templates}
-        sourceIds={emailSourceIds}
-        sourceName={emailSourceName}
-      />
+          <ReferralSendDialog
+            open={emailOpen}
+            onOpenChange={setEmailOpen}
+            templates={templates}
+            sourceIds={emailSourceIds}
+            sourceName={emailSourceName}
+          />
 
-      {/* Discover dialog */}
-      <ReferralDiscoverDialog
-        open={discoverOpen}
-        onOpenChange={setDiscoverOpen}
-        locations={locations}
-      />
+          <ReferralDiscoverDialog
+            open={discoverOpen}
+            onOpenChange={setDiscoverOpen}
+            locations={locations}
+          />
 
-      {/* Stage change dialog */}
-      <ReferralStageChangeDialog
-        open={stageChangeOpen}
-        onOpenChange={setStageChangeOpen}
-        sourceIds={stageChangeIds}
-      />
+          <ReferralStageChangeDialog
+            open={stageChangeOpen}
+            onOpenChange={setStageChangeOpen}
+            sourceIds={stageChangeIds}
+          />
+        </>
+      )}
     </div>
   );
 }
