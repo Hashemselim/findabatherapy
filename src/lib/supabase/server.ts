@@ -91,6 +91,10 @@ export async function createClient() {
   );
 }
 
+export function hasAdminClientEnv() {
+  return Boolean(env.SUPABASE_SERVICE_ROLE_KEY);
+}
+
 /**
  * Creates a Supabase admin client with service role key for privileged operations.
  * Use this for operations that need to bypass RLS (e.g., creating profiles on signup, analytics).
@@ -102,13 +106,15 @@ export async function createClient() {
  * The SSR variant's createServerClient does not bypass RLS even with service role key.
  */
 export async function createAdminClient() {
-  if (!env.SUPABASE_SERVICE_ROLE_KEY) {
+  if (!hasAdminClientEnv()) {
     throw new Error("SUPABASE_SERVICE_ROLE_KEY is required for admin operations");
   }
 
+  const serviceRoleKey = env.SUPABASE_SERVICE_ROLE_KEY as string;
+
   return createSupabaseClient(
     env.NEXT_PUBLIC_SUPABASE_URL,
-    env.SUPABASE_SERVICE_ROLE_KEY,
+    serviceRoleKey,
     {
       auth: {
         autoRefreshToken: false,

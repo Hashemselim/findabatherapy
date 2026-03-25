@@ -1,4 +1,4 @@
-import { createClient, createAdminClient } from "@/lib/supabase/server";
+import { createClient, createAdminClient, hasAdminClientEnv } from "@/lib/supabase/server";
 import { getEffectivePlanTier, type PlanTier } from "@/lib/plans/features";
 import { calculateDistance } from "@/lib/geo/distance";
 import { filterPublicProfiles } from "@/lib/public-visibility";
@@ -435,6 +435,10 @@ export async function getHomepageFeaturedListings(limit: number = 3): Promise<Se
   // Use admin client for the addons query to bypass RLS — the profile_addons
   // table only allows users to read their own rows, but this public-facing
   // query needs to read across all profiles with active homepage placements.
+  if (!hasAdminClientEnv()) {
+    return [];
+  }
+
   const adminClient = await createAdminClient();
   const { data: addons, error: addonError } = await adminClient
     .from("profile_addons")

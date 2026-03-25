@@ -5,21 +5,21 @@ import { headers } from "next/headers";
 
 import { createClient, getCurrentMembership, getCurrentProfileId, getProfile, getUser } from "@/lib/supabase/server";
 import { calculateDistance } from "@/lib/geo/distance";
-import { agencyEmailWrapper, type AgencyBrandingData } from "@/lib/email/email-helpers";
+import { type AgencyBrandingData } from "@/lib/email/email-helpers";
 import { guardReferralTracking } from "@/lib/plans/guards";
-import { getFromEmail, getRequestOrigin } from "@/lib/utils/domains";
+import { getRequestOrigin } from "@/lib/utils/domains";
 import { getProviderBrochurePath } from "@/lib/utils/public-paths";
 import {
-  referralBulkSendSchema,
   referralContactSchema,
+  referralInboxDraftSchema,
   referralImportRequestSchema,
   referralNoteSchema,
   referralSourceSchema,
   referralTaskSchema,
   referralTemplateSchema,
   referralTouchpointSchema,
-  type ReferralBulkSendInput,
   type ReferralContactInput,
+  type ReferralInboxDraftInput,
   type ReferralNoteInput,
   type ReferralSourceCategory,
   type ReferralSourceInput,
@@ -139,6 +139,21 @@ export interface ReferralCampaign {
   failed_count: number;
   launched_at: string | null;
   created_at: string;
+}
+
+export interface ReferralInboxDraft {
+  sourceId: string;
+  sourceName: string;
+  recipientEmail: string;
+  recipientName: string;
+  subject: string;
+  body: string;
+}
+
+export interface ReferralInboxDraftSkip {
+  sourceId: string;
+  sourceName: string;
+  reason: "do_not_contact" | "no_email" | "not_found";
 }
 
 export interface ReferralImportJob {
@@ -276,6 +291,39 @@ const DEFAULT_REFERRAL_TEMPLATES: ReferralTemplateInput[] = [
   },
 ];
 
+function getReferralTemplateDeduplicationKey(template: {
+  template_type?: string | null;
+  name?: string | null;
+  subject?: string | null;
+  body?: string | null;
+}) {
+  return [
+    template.template_type?.trim().toLowerCase() || "custom",
+    template.name?.trim().toLowerCase() || "",
+    template.subject?.trim() || "",
+    template.body?.trim() || "",
+  ].join("::");
+}
+
+function dedupeReferralTemplates<T extends {
+  template_type?: string | null;
+  name?: string | null;
+  subject?: string | null;
+  body?: string | null;
+}>(templates: T[]) {
+  const seen = new Set<string>();
+
+  return templates.filter((template) => {
+    const key = getReferralTemplateDeduplicationKey(template);
+    if (seen.has(key)) {
+      return false;
+    }
+
+    seen.add(key);
+    return true;
+  });
+}
+
 function normalizeOptionalString(value?: string | null) {
   const trimmed = value?.trim();
   return trimmed ? trimmed : null;
@@ -290,14 +338,6 @@ function normalizeUrl(value?: string | null) {
 
 function renderTemplate(template: string, values: Record<string, string>) {
   return template.replace(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g, (_, key: string) => values[key] ?? "");
-}
-
-function plainTextToHtml(text: string) {
-  const escaped = text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-  return escaped.replace(/\n/g, "<br />");
 }
 
 function getContactability(params: {
@@ -484,15 +524,30 @@ async function ensureDefaultReferralTemplates(profileId: string) {
   const supabase = await createClient();
   const { data: existing } = await supabase
     .from("referral_templates")
-    .select("id")
+    .select("template_type, name, subject, body")
     .eq("profile_id", profileId)
     .is("archived_at", null)
-    .limit(1);
+    .eq("is_active", true);
 
-  if (existing && existing.length > 0) return;
+  const existingKeys = new Set(
+    (existing || []).map((template) => getReferralTemplateDeduplicationKey(template))
+  );
+  const missingDefaults = DEFAULT_REFERRAL_TEMPLATES.filter(
+    (template) =>
+      !existingKeys.has(
+        getReferralTemplateDeduplicationKey({
+          template_type: template.templateType,
+          name: template.name,
+          subject: template.subject,
+          body: template.body,
+        })
+      )
+  );
+
+  if (missingDefaults.length === 0) return;
 
   await supabase.from("referral_templates").insert(
-    DEFAULT_REFERRAL_TEMPLATES.map((template) => ({
+    missingDefaults.map((template) => ({
       profile_id: profileId,
       name: template.name,
       template_type: template.templateType,
@@ -796,116 +851,6 @@ async function getReferralRecipient(sourceId: string, contactId?: string | null)
     recipientName,
     contactId: selectedContact?.id || null,
   };
-}
-
-async function sendReferralEmailInternal(params: {
-  sourceId: string;
-  campaignId?: string | null;
-  templateId?: string | null;
-  contactId?: string | null;
-  subject: string;
-  body: string;
-}) {
-  const ctxResult = await getPaidAuthedContext();
-  if (!ctxResult.success) {
-    return { success: false, error: ctxResult.error } as ActionResult<{ touchpointId: string }>;
-  }
-  const ctx = ctxResult.data;
-
-  if (!params.subject.trim() || !params.body.trim()) {
-    return { success: false, error: "Subject and body are required" } as ActionResult<{ touchpointId: string }>;
-  }
-
-  try {
-    const recipient = await getReferralRecipient(params.sourceId, params.contactId);
-
-    if (recipient.detail.do_not_contact) {
-      return { success: false, error: "This referral source is marked do not contact" };
-    }
-
-    const agency = await getAgencyReferralContext(ctx.profileId);
-    const mergedValues = getSourceMergeValues(recipient.detail, agency);
-    const resolvedSubject = renderTemplate(params.subject, mergedValues).trim();
-    const resolvedBody = renderTemplate(params.body, mergedValues).trim();
-    const html = agencyEmailWrapper(plainTextToHtml(resolvedBody), agency.branding);
-
-    let sendSuccess = false;
-    let sendError: string | undefined;
-
-    try {
-      const apiKey = process.env.RESEND_API_KEY;
-      if (!apiKey) {
-        sendSuccess = true;
-      } else {
-        const { Resend } = await import("resend");
-        const resend = new Resend(apiKey);
-        const { error } = await resend.emails.send({
-          from: `${agency.branding.agencyName} <${getFromEmail("goodaba")}>`,
-          to: [recipient.recipientEmail],
-          replyTo: agency.branding.contactEmail || undefined,
-          subject: resolvedSubject,
-          html,
-        });
-        if (error) {
-          sendError = error.message;
-        } else {
-          sendSuccess = true;
-        }
-      }
-    } catch (error) {
-      sendError = error instanceof Error ? error.message : "Failed to send email";
-    }
-
-    const { data: touchpoint, error: touchpointError } = await ctx.supabase
-      .from("referral_touchpoints")
-      .insert({
-        source_id: params.sourceId,
-        contact_id: recipient.contactId,
-        profile_id: ctx.profileId,
-        campaign_id: params.campaignId || null,
-        template_id: params.templateId || null,
-        created_by_user_id: ctx.user.id,
-        touchpoint_type: "email",
-        outcome: sendSuccess ? "sent" : "failed",
-        subject: resolvedSubject,
-        body: resolvedBody,
-        recipient_email: recipient.recipientEmail,
-        recipient_name: recipient.recipientName,
-        touched_at: new Date().toISOString(),
-      })
-      .select("id")
-      .single();
-
-    if (touchpointError || !touchpoint) {
-      return { success: false, error: "Failed to log outreach" };
-    }
-
-    await ctx.supabase
-      .from("referral_sources")
-      .update({
-        stage: sendSuccess ? "contacted" : recipient.detail.stage,
-        last_contacted_at: new Date().toISOString(),
-        next_follow_up_at: recipient.detail.next_follow_up_at || new Date(Date.now() + 7 * 86400000).toISOString(),
-      })
-      .eq("id", params.sourceId)
-      .eq("profile_id", ctx.profileId);
-
-    revalidatePath("/dashboard/referrals");
-    revalidatePath("/dashboard/referrals/sources");
-    revalidatePath(`/dashboard/referrals/sources/${params.sourceId}`);
-    revalidatePath("/dashboard/referrals/campaigns");
-
-    if (!sendSuccess) {
-      return { success: false, error: sendError || "Failed to send email" };
-    }
-
-    return { success: true, data: { touchpointId: touchpoint.id } };
-  } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Failed to send referral email",
-    };
-  }
 }
 
 export async function getReferralOverview(): Promise<ActionResult<ReferralOverview>> {
@@ -1415,7 +1360,10 @@ export async function getReferralTemplates(): Promise<ActionResult<ReferralTempl
     .order("updated_at", { ascending: false });
 
   if (error) return { success: false, error: "Failed to load templates" };
-  return { success: true, data: (data || []) as ReferralTemplate[] };
+  return {
+    success: true,
+    data: dedupeReferralTemplates((data || []) as ReferralTemplate[]),
+  };
 }
 
 export async function saveReferralTemplate(input: ReferralTemplateInput, templateId?: string): Promise<ActionResult<{ id: string }>> {
@@ -1875,91 +1823,62 @@ export async function runReferralImport(input: Parameters<typeof referralImportR
   return { success: true, data: { jobIds, discovered } };
 }
 
-export async function sendReferralEmail(params: {
-  sourceId: string;
-  contactId?: string | null;
-  templateId?: string | null;
-  subject: string;
-  body: string;
-}): Promise<ActionResult<{ touchpointId: string }>> {
-  const result = await sendReferralEmailInternal(params);
-  if (!result.success) {
-    return { success: false, error: result.error || "Failed to send referral email" };
-  }
-  return { success: true, data: result.data };
-}
-
-export async function bulkSendReferralEmails(input: ReferralBulkSendInput): Promise<ActionResult<{ campaignId: string; sent: number; failed: number }>> {
+export async function prepareReferralInboxDrafts(
+  input: ReferralInboxDraftInput
+): Promise<ActionResult<{ drafts: ReferralInboxDraft[]; skipped: ReferralInboxDraftSkip[] }>> {
   const ctxResult = await getPaidAuthedContext();
   if (!ctxResult.success) return { success: false, error: ctxResult.error };
   const ctx = ctxResult.data;
 
-  const parsed = referralBulkSendSchema.safeParse(input);
-  if (!parsed.success) return { success: false, error: "Invalid bulk send request" };
+  const parsed = referralInboxDraftSchema.safeParse(input);
+  if (!parsed.success) return { success: false, error: "Invalid inbox draft request" };
 
-  const { data: campaign, error: campaignError } = await ctx.supabase
-    .from("referral_campaigns")
-    .insert({
-      profile_id: ctx.profileId,
-      template_id: parsed.data.templateId || null,
-      name: parsed.data.campaignName.trim(),
-      status: "queued",
-      subject: parsed.data.subject.trim(),
-      body: parsed.data.body.trim(),
-      total_recipients: parsed.data.sourceIds.length,
-      created_by_user_id: ctx.user.id,
-      launched_at: new Date().toISOString(),
-      filters: {
-        sourceIds: parsed.data.sourceIds,
-      },
-    })
-    .select("id")
-    .single();
-
-  if (campaignError || !campaign) return { success: false, error: "Failed to create campaign" };
-
-  let sent = 0;
-  let failed = 0;
+  const agency = await getAgencyReferralContext(ctx.profileId);
+  const drafts: ReferralInboxDraft[] = [];
+  const skipped: ReferralInboxDraftSkip[] = [];
+  const testRecipientEmails = parsed.data.testRecipientEmails || [];
+  const overriddenRecipientEmail = testRecipientEmails.join(",");
 
   for (const sourceId of parsed.data.sourceIds) {
-    const detailResult = await getReferralSourceDetail(sourceId);
-    if (!detailResult.success || !detailResult.data) {
-      failed += 1;
-      continue;
-    }
+    try {
+      const recipient = await getReferralRecipient(sourceId);
 
-    const source = detailResult.data;
-    if (source.do_not_contact || source.contactability === "no_channel_found") {
-      failed += 1;
-      continue;
-    }
+      if (recipient.detail.do_not_contact) {
+        skipped.push({
+          sourceId,
+          sourceName: recipient.detail.name,
+          reason: "do_not_contact",
+        });
+        continue;
+      }
 
-    const sendResult = await sendReferralEmailInternal({
-      sourceId,
-      campaignId: campaign.id,
-      templateId: parsed.data.templateId || null,
-      subject: parsed.data.subject,
-      body: parsed.data.body,
-    });
+      const mergedValues = getSourceMergeValues(recipient.detail, agency);
+      const resolvedSubject = renderTemplate(parsed.data.subject, mergedValues).trim();
+      const resolvedBody = renderTemplate(parsed.data.body, mergedValues).trim();
 
-    if (sendResult.success) {
-      sent += 1;
-    } else {
-      failed += 1;
+      drafts.push({
+        sourceId,
+        sourceName: recipient.detail.name,
+        recipientEmail: overriddenRecipientEmail || recipient.recipientEmail,
+        recipientName: overriddenRecipientEmail ? "Test recipient" : recipient.recipientName,
+        subject: resolvedSubject,
+        body: resolvedBody,
+      });
+    } catch (error) {
+      const detailResult = await getReferralSourceDetail(sourceId);
+      const sourceName = detailResult.success && detailResult.data ? detailResult.data.name : "Referral source";
+      const reason =
+        error instanceof Error && error.message.includes("No public email")
+          ? "no_email"
+          : "not_found";
+
+      skipped.push({
+        sourceId,
+        sourceName,
+        reason,
+      });
     }
   }
 
-  await ctx.supabase
-    .from("referral_campaigns")
-    .update({
-      status: failed > 0 && sent === 0 ? "failed" : "completed",
-      sent_count: sent,
-      failed_count: failed,
-    })
-    .eq("id", campaign.id)
-    .eq("profile_id", ctx.profileId);
-
-  revalidatePath("/dashboard/referrals/campaigns");
-  revalidatePath("/dashboard/referrals/sources");
-  return { success: true, data: { campaignId: campaign.id, sent, failed } };
+  return { success: true, data: { drafts, skipped } };
 }

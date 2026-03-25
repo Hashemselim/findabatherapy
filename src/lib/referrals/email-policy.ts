@@ -1,0 +1,1 @@
+export const REFERRAL_INBOX_DRAFT_WINDOW_LIMIT = 10;

@@ -266,12 +266,11 @@ export const referralImportRequestSchema = z.object({
   enrichWebsites: z.boolean().optional().default(true),
 });
 
-export const referralBulkSendSchema = z.object({
-  sourceIds: z.array(z.string().uuid()).min(1),
-  templateId: z.string().uuid().optional().nullable(),
+export const referralInboxDraftSchema = z.object({
+  sourceIds: z.array(z.string().uuid()).min(1).max(50),
   subject: z.string().min(2).max(250),
   body: z.string().min(2).max(50000),
-  campaignName: z.string().min(2).max(120),
+  testRecipientEmails: z.array(z.string().email()).max(5).optional().default([]),
 });
 
 export type ReferralSourceCategory = z.infer<typeof referralSourceCategorySchema>;
@@ -290,4 +289,4 @@ export type ReferralTaskInput = z.infer<typeof referralTaskSchema>;
 export type ReferralTouchpointInput = z.infer<typeof referralTouchpointSchema>;
 export type ReferralTemplateInput = z.infer<typeof referralTemplateSchema>;
 export type ReferralImportRequestInput = z.infer<typeof referralImportRequestSchema>;
-export type ReferralBulkSendInput = z.infer<typeof referralBulkSendSchema>;
+export type ReferralInboxDraftInput = z.infer<typeof referralInboxDraftSchema>;
