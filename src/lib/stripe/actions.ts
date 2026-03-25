@@ -14,7 +14,6 @@ import {
 } from "@/lib/supabase/server";
 import { CHECKOUT_URLS, BILLING_PORTAL_CONFIG, getPriceId, getFeaturedPriceId, type BillingInterval } from "./config";
 import { getRequestOrigin, getValidatedOrigin } from "@/lib/utils/domains";
-import { getWorkspaceSeatSummary } from "@/lib/actions/workspace-users";
 
 type ActionResult<T = void> =
   | { success: true; data?: T }
@@ -41,20 +40,6 @@ export async function getBillingPortalRestriction(
   const resolvedProfileId = profileId || (await getCurrentProfileId());
   if (!resolvedProfileId) {
     return { success: false, error: "Not authenticated" };
-  }
-
-  const seatSummaryResult = await getWorkspaceSeatSummary(resolvedProfileId);
-  if (!seatSummaryResult.success || !seatSummaryResult.data) {
-    return { success: false, error: "Failed to evaluate seat usage" };
-  }
-
-  if (seatSummaryResult.data.usedSeats > 1) {
-    return {
-      success: true,
-      data: {
-        reason: "Manage seats in-app before opening the Stripe portal. This workspace currently uses more than one seat.",
-      },
-    };
   }
 
   return { success: true, data: { reason: null } };

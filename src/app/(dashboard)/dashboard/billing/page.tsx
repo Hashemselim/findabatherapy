@@ -46,7 +46,7 @@ import { FeaturedLocationAction } from "@/components/billing/featured-location-a
 import { AddonCard } from "@/components/billing/addon-card";
 import { DashboardCallout, DashboardCard, DashboardEmptyState, DashboardStatusBadge } from "@/components/dashboard/ui";
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
-import { getSubscription, getPendingDowngrade, getFeaturedAddonPrices, getFeaturedLocations, getBillingPortalRestriction } from "@/lib/stripe/actions";
+import { getSubscription, getPendingDowngrade, getFeaturedAddonPrices, getFeaturedLocations } from "@/lib/stripe/actions";
 import { getActiveAddons } from "@/lib/actions/addons";
 import { getWorkspaceSeatSummary } from "@/lib/actions/workspace-users";
 import { STRIPE_PLANS } from "@/lib/stripe/config";
@@ -71,14 +71,13 @@ export default async function DashboardBillingPage() {
     .eq("id", profileId)
     .single();
 
-  const [subscriptionResult, pendingDowngradeResult, featuredPricingResult, featuredLocationsResult, addonsResult, seatSummaryResult, billingPortalRestrictionResult] = await Promise.all([
+  const [subscriptionResult, pendingDowngradeResult, featuredPricingResult, featuredLocationsResult, addonsResult, seatSummaryResult] = await Promise.all([
     getSubscription(),
     getPendingDowngrade(),
     getFeaturedAddonPrices(),
     getFeaturedLocations(),
     getActiveAddons(profileId),
     getWorkspaceSeatSummary(profileId),
-    getBillingPortalRestriction(profileId),
   ]);
 
   const subscription = subscriptionResult.success ? subscriptionResult.data : null;
@@ -88,9 +87,6 @@ export default async function DashboardBillingPage() {
     : [];
   const activeAddons = addonsResult.success && addonsResult.data ? addonsResult.data : [];
   const seatSummary = seatSummaryResult.success ? seatSummaryResult.data : null;
-  const billingPortalRestriction = billingPortalRestrictionResult.success
-    ? billingPortalRestrictionResult.data?.reason || null
-    : "Failed to validate billing portal availability";
 
   const planTier = profile?.plan_tier || "free";
 
@@ -120,6 +116,9 @@ export default async function DashboardBillingPage() {
   const effectivePlanTier = (planTier !== "free" && isActiveSubscription) ? planTier : "free";
   const isFreePlan = effectivePlanTier === "free";
   const isPro = effectivePlanTier === "pro";
+  const canOpenBillingPortal =
+    membership.role === "owner" &&
+    Boolean(profile?.stripe_customer_id);
 
   // Format the renewal date
   const renewalDate = subscription?.currentPeriodEnd
@@ -188,15 +187,21 @@ export default async function DashboardBillingPage() {
         title="Plan & Billing"
         description="Manage your subscription, upgrade your plan, and access billing portal."
       >
-        {!isFreePlan && membership.role === "owner" && profile?.stripe_customer_id && !billingPortalRestriction ? (
+        {canOpenBillingPortal ? (
           <BillingPortalButton variant="outline" size="sm" className="w-full border-border/60 hover:bg-muted/60 sm:w-auto">
             <ExternalLink className="mr-2 h-4 w-4" />
             Manage Subscription
           </BillingPortalButton>
+        ) : hasIncompletePayment && membership.role === "owner" ? (
+          <Button asChild size="sm" className="w-full gap-2 sm:w-auto">
+            <Link href={`/dashboard/billing/checkout?plan=${planTier}&interval=${billingInterval}`}>
+              Complete Upgrade
+            </Link>
+          </Button>
         ) : membership.role === "owner" ? (
           <Button asChild size="sm" className="w-full gap-2 sm:w-auto">
             <Link href="/dashboard/onboarding/plan">
-              {hasIncompletePayment ? "Complete Upgrade" : "Go Live"}
+              Go Live
             </Link>
           </Button>
         ) : null}
@@ -266,16 +271,6 @@ export default async function DashboardBillingPage() {
             icon={AlertCircle}
             title="Subscription Cancelling"
             description={`Your subscription will end on ${renewalDate}. You'll retain access to premium features until then.`}
-            className="rounded-none border-x-0 border-t-0 shadow-none"
-          />
-        )}
-
-        {membership.role === "owner" && billingPortalRestriction && (
-          <DashboardCallout
-            tone="warning"
-            icon={AlertCircle}
-            title="Billing portal temporarily unavailable"
-            description={billingPortalRestriction}
             className="rounded-none border-x-0 border-t-0 shadow-none"
           />
         )}
@@ -671,11 +666,7 @@ export default async function DashboardBillingPage() {
                   Payments are securely processed by Stripe
                 </p>
               </div>
-              {!billingPortalRestriction ? (
-                <BillingPortalButton className="w-full sm:w-auto" />
-              ) : (
-                <p className="text-sm text-muted-foreground">{billingPortalRestriction}</p>
-              )}
+              <BillingPortalButton className="w-full sm:w-auto" />
             </div>
           </CardContent>
         </DashboardCard>

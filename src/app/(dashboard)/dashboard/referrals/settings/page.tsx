@@ -2,12 +2,17 @@ import { redirect } from "next/navigation";
 
 import { getUser } from "@/lib/supabase/server";
 import { getReferralImportJobs, getReferralTemplates } from "@/lib/actions/referrals";
+import { getCurrentPlanTier } from "@/lib/plans/guards";
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
 import { ReferralSettingsClient } from "@/components/dashboard/referrals/referral-settings-client";
 
 export default async function ReferralSettingsPage() {
   const user = await getUser();
   if (!user) redirect("/auth/sign-in");
+
+  if ((await getCurrentPlanTier()) === "free") {
+    redirect("/dashboard/referrals/sources");
+  }
 
   const [templatesResult, importJobsResult] = await Promise.all([
     getReferralTemplates(),

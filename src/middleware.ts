@@ -488,9 +488,20 @@ export async function middleware(request: NextRequest) {
     }
 
     const flow = await loadOnboardingFlowForUser(supabase, user.id);
+    const isOnboardingPath = pathname.startsWith("/dashboard/onboarding");
+    const isOnboardingPaymentReturn =
+      pathname === "/dashboard/onboarding/plan" &&
+      (request.nextUrl.searchParams.get("payment") === "success" ||
+        request.nextUrl.searchParams.get("payment") === "cancelled");
 
     if (!flow.isComplete && !isAllowedPreOnboardingPath(pathname)) {
       return NextResponse.redirect(new URL(flow.firstIncompletePath, request.url));
+    }
+
+    if (flow.isComplete && isOnboardingPath && !isOnboardingPaymentReturn) {
+      return NextResponse.redirect(
+        new URL("/dashboard/clients/pipeline", request.url)
+      );
     }
   }
 

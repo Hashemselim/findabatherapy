@@ -5,6 +5,7 @@ import {
   createAdminClient,
   getCurrentProfileId,
 } from "@/lib/supabase/server";
+import { guardSocialPosts } from "@/lib/plans/guards";
 import { SOCIAL_TEMPLATES } from "@/lib/social/templates";
 import { type BrandData } from "@/lib/social/types";
 import { STORAGE_BUCKETS } from "@/lib/storage/config";
@@ -30,6 +31,11 @@ function hashBrand(brand: BrandData): string {
 
 /** Get brand data for the current user */
 export async function getSocialBrandData(): Promise<ActionResult<BrandData>> {
+  const access = await guardSocialPosts();
+  if (!access.allowed) {
+    return { success: false, error: access.reason };
+  }
+
   const profileId = await getCurrentProfileId();
   if (!profileId) {
     return { success: false, error: "Not authenticated" };

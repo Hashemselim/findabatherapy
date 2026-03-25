@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { getUser } from "@/lib/supabase/server";
 import { getReferralSourceDetail, getReferralTemplates } from "@/lib/actions/referrals";
+import { getCurrentPlanTier } from "@/lib/plans/guards";
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
 import { ReferralSourceDetailClient } from "@/components/dashboard/referrals/referral-source-detail-client";
 
@@ -12,6 +13,10 @@ export default async function ReferralSourceDetailPage({
 }) {
   const user = await getUser();
   if (!user) redirect("/auth/sign-in");
+
+  if ((await getCurrentPlanTier()) === "free") {
+    redirect("/dashboard/referrals/sources");
+  }
 
   const { id } = await params;
 

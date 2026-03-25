@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, getCurrentProfileId } from "@/lib/supabase/server";
+import { guardSocialPosts } from "@/lib/plans/guards";
 import { getTemplateById } from "@/lib/social/templates";
 import { renderSocialImage } from "@/lib/social/render";
 import type { BrandData } from "@/lib/social/types";
@@ -16,6 +17,11 @@ export async function GET(
   const profileId = await getCurrentProfileId();
   if (!profileId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const access = await guardSocialPosts();
+  if (!access.allowed) {
+    return NextResponse.json({ error: access.reason }, { status: 403 });
   }
 
   // Get template

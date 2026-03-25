@@ -6,6 +6,7 @@ import { headers } from "next/headers";
 import { createClient, getCurrentMembership, getCurrentProfileId, getProfile, getUser } from "@/lib/supabase/server";
 import { calculateDistance } from "@/lib/geo/distance";
 import { agencyEmailWrapper, type AgencyBrandingData } from "@/lib/email/email-helpers";
+import { guardReferralTracking } from "@/lib/plans/guards";
 import { getFromEmail, getRequestOrigin } from "@/lib/utils/domains";
 import { getProviderBrochurePath } from "@/lib/utils/public-paths";
 import {
@@ -30,6 +31,13 @@ import {
 
 type ActionResult<T = void> =
   | { success: true; data?: T }
+  | { success: false; error: string };
+
+type PaidAuthedContext =
+  NonNullable<Awaited<ReturnType<typeof getAuthedContext>>>;
+
+type PaidAuthedContextResult =
+  | { success: true; data: PaidAuthedContext }
   | { success: false; error: string };
 
 export interface ReferralSourceListItem {
@@ -458,6 +466,20 @@ async function getAuthedContext() {
   };
 }
 
+async function getPaidAuthedContext(): Promise<PaidAuthedContextResult> {
+  const ctx = await getAuthedContext();
+  if (!ctx) {
+    return { success: false, error: "Not authenticated" };
+  }
+
+  const access = await guardReferralTracking();
+  if (!access.allowed) {
+    return { success: false, error: access.reason };
+  }
+
+  return { success: true, data: ctx };
+}
+
 async function ensureDefaultReferralTemplates(profileId: string) {
   const supabase = await createClient();
   const { data: existing } = await supabase
@@ -784,10 +806,11 @@ async function sendReferralEmailInternal(params: {
   subject: string;
   body: string;
 }) {
-  const ctx = await getAuthedContext();
-  if (!ctx) {
-    return { success: false, error: "Not authenticated" } as ActionResult<{ touchpointId: string }>;
+  const ctxResult = await getPaidAuthedContext();
+  if (!ctxResult.success) {
+    return { success: false, error: ctxResult.error } as ActionResult<{ touchpointId: string }>;
   }
+  const ctx = ctxResult.data;
 
   if (!params.subject.trim() || !params.body.trim()) {
     return { success: false, error: "Subject and body are required" } as ActionResult<{ touchpointId: string }>;
@@ -886,8 +909,9 @@ async function sendReferralEmailInternal(params: {
 }
 
 export async function getReferralOverview(): Promise<ActionResult<ReferralOverview>> {
-  const ctx = await getAuthedContext();
-  if (!ctx) return { success: false, error: "Not authenticated" };
+  const ctxResult = await getPaidAuthedContext();
+  if (!ctxResult.success) return { success: false, error: ctxResult.error };
+  const ctx = ctxResult.data;
 
   const [
     sourceCountsResult,
@@ -956,8 +980,9 @@ export async function listReferralSources(filters?: {
   onlyReachable?: boolean;
   onlyReady?: boolean;
 }, page: number = 1, pageSize: number = 50): Promise<ActionResult<{ sources: ReferralSourceListItem[]; total: number }>> {
-  const ctx = await getAuthedContext();
-  if (!ctx) return { success: false, error: "Not authenticated" };
+  const ctxResult = await getPaidAuthedContext();
+  if (!ctxResult.success) return { success: false, error: ctxResult.error };
+  const ctx = ctxResult.data;
 
   let query = ctx.supabase
     .from("referral_sources")
@@ -997,8 +1022,9 @@ export async function listReferralSources(filters?: {
 }
 
 export async function getReferralSourceDetail(sourceId: string): Promise<ActionResult<ReferralSourceDetail>> {
-  const ctx = await getAuthedContext();
-  if (!ctx) return { success: false, error: "Not authenticated" };
+  const ctxResult = await getPaidAuthedContext();
+  if (!ctxResult.success) return { success: false, error: ctxResult.error };
+  const ctx = ctxResult.data;
 
   const { data: source, error } = await ctx.supabase
     .from("referral_sources")
@@ -1061,8 +1087,9 @@ export async function getReferralSourceDetail(sourceId: string): Promise<ActionR
 }
 
 export async function saveReferralSource(input: ReferralSourceInput, sourceId?: string): Promise<ActionResult<{ id: string }>> {
-  const ctx = await getAuthedContext();
-  if (!ctx) return { success: false, error: "Not authenticated" };
+  const ctxResult = await getPaidAuthedContext();
+  if (!ctxResult.success) return { success: false, error: ctxResult.error };
+  const ctx = ctxResult.data;
 
   const parsed = referralSourceSchema.safeParse(input);
   if (!parsed.success) {
@@ -1140,8 +1167,9 @@ export async function saveReferralSource(input: ReferralSourceInput, sourceId?: 
 }
 
 export async function updateReferralSourceStage(sourceId: string, stage: ReferralSourceStage): Promise<ActionResult> {
-  const ctx = await getAuthedContext();
-  if (!ctx) return { success: false, error: "Not authenticated" };
+  const ctxResult = await getPaidAuthedContext();
+  if (!ctxResult.success) return { success: false, error: ctxResult.error };
+  const ctx = ctxResult.data;
 
   const { error } = await ctx.supabase
     .from("referral_sources")
@@ -1161,8 +1189,9 @@ export async function updateReferralSourceStage(sourceId: string, stage: Referra
 }
 
 export async function saveReferralContact(input: ReferralContactInput, contactId?: string): Promise<ActionResult<{ id: string }>> {
-  const ctx = await getAuthedContext();
-  if (!ctx) return { success: false, error: "Not authenticated" };
+  const ctxResult = await getPaidAuthedContext();
+  if (!ctxResult.success) return { success: false, error: ctxResult.error };
+  const ctx = ctxResult.data;
 
   const parsed = referralContactSchema.safeParse(input);
   if (!parsed.success) return { success: false, error: "Invalid contact data" };
@@ -1208,8 +1237,9 @@ export async function saveReferralContact(input: ReferralContactInput, contactId
 }
 
 export async function addReferralNote(input: ReferralNoteInput): Promise<ActionResult<{ id: string }>> {
-  const ctx = await getAuthedContext();
-  if (!ctx) return { success: false, error: "Not authenticated" };
+  const ctxResult = await getPaidAuthedContext();
+  if (!ctxResult.success) return { success: false, error: ctxResult.error };
+  const ctx = ctxResult.data;
 
   const parsed = referralNoteSchema.safeParse(input);
   if (!parsed.success) return { success: false, error: "Invalid note" };
@@ -1241,8 +1271,9 @@ export async function addReferralNote(input: ReferralNoteInput): Promise<ActionR
 }
 
 export async function saveReferralTask(input: ReferralTaskInput, taskId?: string): Promise<ActionResult<{ id: string }>> {
-  const ctx = await getAuthedContext();
-  if (!ctx) return { success: false, error: "Not authenticated" };
+  const ctxResult = await getPaidAuthedContext();
+  if (!ctxResult.success) return { success: false, error: ctxResult.error };
+  const ctx = ctxResult.data;
 
   const parsed = referralTaskSchema.safeParse(input);
   if (!parsed.success) return { success: false, error: "Invalid task data" };
@@ -1293,8 +1324,9 @@ export async function saveReferralTask(input: ReferralTaskInput, taskId?: string
 }
 
 export async function updateReferralTaskStatus(taskId: string, status: "pending" | "in_progress" | "completed"): Promise<ActionResult> {
-  const ctx = await getAuthedContext();
-  if (!ctx) return { success: false, error: "Not authenticated" };
+  const ctxResult = await getPaidAuthedContext();
+  if (!ctxResult.success) return { success: false, error: ctxResult.error };
+  const ctx = ctxResult.data;
 
   const { data: task } = await ctx.supabase
     .from("referral_tasks")
@@ -1322,8 +1354,9 @@ export async function updateReferralTaskStatus(taskId: string, status: "pending"
 }
 
 export async function logReferralTouchpoint(input: ReferralTouchpointInput): Promise<ActionResult<{ id: string }>> {
-  const ctx = await getAuthedContext();
-  if (!ctx) return { success: false, error: "Not authenticated" };
+  const ctxResult = await getPaidAuthedContext();
+  if (!ctxResult.success) return { success: false, error: ctxResult.error };
+  const ctx = ctxResult.data;
 
   const parsed = referralTouchpointSchema.safeParse(input);
   if (!parsed.success) return { success: false, error: "Invalid touchpoint data" };
@@ -1366,8 +1399,9 @@ export async function logReferralTouchpoint(input: ReferralTouchpointInput): Pro
 }
 
 export async function getReferralTemplates(): Promise<ActionResult<ReferralTemplate[]>> {
-  const ctx = await getAuthedContext();
-  if (!ctx) return { success: false, error: "Not authenticated" };
+  const ctxResult = await getPaidAuthedContext();
+  if (!ctxResult.success) return { success: false, error: ctxResult.error };
+  const ctx = ctxResult.data;
 
   await ensureDefaultReferralTemplates(ctx.profileId);
 
@@ -1385,8 +1419,9 @@ export async function getReferralTemplates(): Promise<ActionResult<ReferralTempl
 }
 
 export async function saveReferralTemplate(input: ReferralTemplateInput, templateId?: string): Promise<ActionResult<{ id: string }>> {
-  const ctx = await getAuthedContext();
-  if (!ctx) return { success: false, error: "Not authenticated" };
+  const ctxResult = await getPaidAuthedContext();
+  if (!ctxResult.success) return { success: false, error: ctxResult.error };
+  const ctx = ctxResult.data;
 
   const parsed = referralTemplateSchema.safeParse(input);
   if (!parsed.success) return { success: false, error: "Invalid template data" };
@@ -1430,8 +1465,9 @@ export async function saveReferralTemplate(input: ReferralTemplateInput, templat
 }
 
 export async function getReferralCampaigns(): Promise<ActionResult<ReferralCampaign[]>> {
-  const ctx = await getAuthedContext();
-  if (!ctx) return { success: false, error: "Not authenticated" };
+  const ctxResult = await getPaidAuthedContext();
+  if (!ctxResult.success) return { success: false, error: ctxResult.error };
+  const ctx = ctxResult.data;
 
   const { data, error } = await ctx.supabase
     .from("referral_campaigns")
@@ -1445,8 +1481,9 @@ export async function getReferralCampaigns(): Promise<ActionResult<ReferralCampa
 }
 
 export async function getReferralImportJobs(): Promise<ActionResult<ReferralImportJob[]>> {
-  const ctx = await getAuthedContext();
-  if (!ctx) return { success: false, error: "Not authenticated" };
+  const ctxResult = await getPaidAuthedContext();
+  if (!ctxResult.success) return { success: false, error: ctxResult.error };
+  const ctx = ctxResult.data;
 
   const { data, error } = await ctx.supabase
     .from("referral_import_jobs")
@@ -1554,8 +1591,9 @@ export async function enrichReferralSource(sourceId: string): Promise<ActionResu
     return { success: false, error: detailResult.success ? "Source not found" : detailResult.error };
   }
 
-  const ctx = await getAuthedContext();
-  if (!ctx) return { success: false, error: "Not authenticated" };
+  const ctxResult = await getPaidAuthedContext();
+  if (!ctxResult.success) return { success: false, error: ctxResult.error };
+  const ctx = ctxResult.data;
 
   const source = detailResult.data;
   const enrichment = await enrichSourceFromWebsite(source);
@@ -1605,8 +1643,9 @@ export async function enrichReferralSource(sourceId: string): Promise<ActionResu
 }
 
 export async function runReferralImport(input: Parameters<typeof referralImportRequestSchema["parse"]>[0]): Promise<ActionResult<{ jobIds: string[]; discovered: number }>> {
-  const ctx = await getAuthedContext();
-  if (!ctx) return { success: false, error: "Not authenticated" };
+  const ctxResult = await getPaidAuthedContext();
+  if (!ctxResult.success) return { success: false, error: ctxResult.error };
+  const ctx = ctxResult.data;
 
   const parsed = referralImportRequestSchema.safeParse(input);
   if (!parsed.success) return { success: false, error: "Invalid import request" };
@@ -1851,8 +1890,9 @@ export async function sendReferralEmail(params: {
 }
 
 export async function bulkSendReferralEmails(input: ReferralBulkSendInput): Promise<ActionResult<{ campaignId: string; sent: number; failed: number }>> {
-  const ctx = await getAuthedContext();
-  if (!ctx) return { success: false, error: "Not authenticated" };
+  const ctxResult = await getPaidAuthedContext();
+  if (!ctxResult.success) return { success: false, error: ctxResult.error };
+  const ctx = ctxResult.data;
 
   const parsed = referralBulkSendSchema.safeParse(input);
   if (!parsed.success) return { success: false, error: "Invalid bulk send request" };
