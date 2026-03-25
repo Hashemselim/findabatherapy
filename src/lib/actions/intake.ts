@@ -7,6 +7,7 @@ import {
   type IntakeFieldsConfig,
   mergeWithDefaults,
 } from "@/lib/intake/field-registry";
+import { isPublicProfileVisible } from "@/lib/public-visibility";
 import { getRequestOrigin } from "@/lib/utils/domains";
 
 export interface IntakeFormSettings {
@@ -58,10 +59,12 @@ export async function getContactPageData(
       logo_url,
       profiles!inner (
         agency_name,
+        contact_email,
         website,
         plan_tier,
         subscription_status,
-        intake_form_settings
+        intake_form_settings,
+        is_seeded
       ),
       listing_attribute_values (
         attribute_key,
@@ -78,11 +81,17 @@ export async function getContactPageData(
 
   const profile = listing.profiles as unknown as {
     agency_name: string;
+    contact_email: string | null;
     website: string | null;
     plan_tier: string;
     subscription_status: string | null;
     intake_form_settings: IntakeFormSettings | null;
+    is_seeded: boolean;
   };
+
+  if (!isPublicProfileVisible(profile)) {
+    return { success: false, error: "Provider not found" };
+  }
 
   // Check if provider has premium plan with active subscription
   const isActiveSubscription =
@@ -194,10 +203,12 @@ export async function getClientIntakePageData(
       client_intake_enabled,
       profiles!inner (
         agency_name,
+        contact_email,
         website,
         plan_tier,
         subscription_status,
-        intake_form_settings
+        intake_form_settings,
+        is_seeded
       )
     `)
     .eq("slug", slug)
@@ -210,11 +221,17 @@ export async function getClientIntakePageData(
 
   const profile = listing.profiles as unknown as {
     agency_name: string;
+    contact_email: string | null;
     website: string | null;
     plan_tier: string;
     subscription_status: string | null;
     intake_form_settings: IntakeFormSettings | null;
+    is_seeded: boolean;
   };
+
+  if (!isPublicProfileVisible(profile)) {
+    return { success: false, error: "Provider not found" };
+  }
 
   // Check if provider has premium plan with active subscription
   const isActiveSubscription =
@@ -282,10 +299,12 @@ export async function getClientResourcesPageData(
       logo_url,
       profiles!inner (
         agency_name,
+        contact_email,
         website,
         plan_tier,
         subscription_status,
-        intake_form_settings
+        intake_form_settings,
+        is_seeded
       )
     `)
     .eq("slug", slug)
@@ -298,11 +317,17 @@ export async function getClientResourcesPageData(
 
   const profile = listing.profiles as unknown as {
     agency_name: string;
+    contact_email: string | null;
     website: string | null;
     plan_tier: string;
     subscription_status: string | null;
     intake_form_settings: IntakeFormSettings | null;
+    is_seeded: boolean;
   };
+
+  if (!isPublicProfileVisible(profile)) {
+    return { success: false, error: "Provider not found" };
+  }
 
   const defaultSettings: IntakeFormSettings = {
     background_color: "#0866FF",

@@ -7,6 +7,7 @@ import { contactFormSchema, type ContactFormData, type InquiryStatus } from "@/l
 import { verifyTurnstileToken } from "@/lib/turnstile";
 import { sendProviderInquiryNotification, sendFamilyInquiryConfirmation } from "@/lib/email/notifications";
 import { createNotification } from "@/lib/actions/notifications";
+import { isPublicProfileVisible } from "@/lib/public-visibility";
 
 type ActionResult<T = void> =
   | { success: true; data?: T }
@@ -76,7 +77,7 @@ export async function submitInquiry(
   // Verify listing exists and is published
   const { data: listing, error: listingError } = await supabase
     .from("listings")
-    .select("id, slug, profile_id, logo_url, profiles!inner(plan_tier, subscription_status, contact_email, agency_name, website, contact_phone)")
+    .select("id, slug, profile_id, logo_url, profiles!inner(plan_tier, subscription_status, contact_email, agency_name, website, contact_phone, is_seeded)")
     .eq("id", listingId)
     .eq("status", "published")
     .single();
@@ -92,7 +93,12 @@ export async function submitInquiry(
     agency_name: string;
     website: string | null;
     contact_phone: string | null;
+    is_seeded: boolean;
   };
+
+  if (!isPublicProfileVisible(profile)) {
+    return { success: false, error: "Provider not found" };
+  }
   const providerSlug = listing.slug;
   const brandColor =
     (

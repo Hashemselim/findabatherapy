@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getAllCities, STATE_NAMES } from "@/lib/data/cities";
 import { INSURANCES } from "@/lib/data/insurances";
 import { ARTICLES } from "@/lib/content/articles";
+import { filterPublicProfiles } from "@/lib/public-visibility";
 import { getBaseUrl } from "@/lib/utils/domains";
 
 // Use therapy domain for main sitemap (safe - never returns localhost in production)
@@ -15,11 +16,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Get all published listings for provider pages
   const { data: listings } = await supabase
     .from("listings")
-    .select("slug, updated_at")
+    .select("slug, updated_at, profiles!inner(contact_email, is_seeded)")
     .eq("status", "published")
     .order("updated_at", { ascending: false });
 
-  const providerPages: MetadataRoute.Sitemap = (listings || []).map((listing) => ({
+  const providerPages: MetadataRoute.Sitemap = filterPublicProfiles(
+    listings || [],
+    (listing) =>
+      listing.profiles as {
+        contact_email?: string | null;
+        is_seeded?: boolean | null;
+      }
+  ).map((listing) => ({
     url: `${BASE_URL}/provider/${listing.slug}`,
     lastModified: new Date(listing.updated_at),
     changeFrequency: "weekly",

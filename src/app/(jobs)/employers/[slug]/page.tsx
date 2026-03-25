@@ -41,6 +41,7 @@ import { generateJobsSiteOrganizationSchema } from "@/lib/seo/job-schemas";
 import { getVideoEmbedUrl } from "@/lib/storage/config";
 import { brandColors } from "@/config/brands";
 import type { PlanTier } from "@/lib/plans/features";
+import { isPublicProfileVisible } from "@/lib/public-visibility";
 import { getJobsEmployersPath } from "@/lib/utils/public-paths";
 
 interface EmployerPageProps {
@@ -110,7 +111,8 @@ async function getEmployerBySlug(slug: string): Promise<EmployerProfile | null> 
         contact_email,
         contact_phone,
         plan_tier,
-        subscription_status
+        subscription_status,
+        is_seeded
       )
     `)
     .eq("slug", slug)
@@ -130,7 +132,12 @@ async function getEmployerBySlug(slug: string): Promise<EmployerProfile | null> 
     contact_phone: string | null;
     plan_tier: string;
     subscription_status: string | null;
+    is_seeded: boolean;
   };
+
+  if (!isPublicProfileVisible(profile)) {
+    return null;
+  }
 
   // Determine subscription status
   const isActiveSubscription =

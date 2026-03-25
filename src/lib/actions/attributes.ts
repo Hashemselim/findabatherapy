@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { createClient, getCurrentProfileId } from "@/lib/supabase/server";
+import { toUserFacingSupabaseError } from "@/lib/supabase/user-facing-errors";
 
 type ActionResult<T = void> =
   | { success: true; data?: T }
@@ -47,7 +48,14 @@ export async function getAttributes(): Promise<ActionResult<ListingAttributes>> 
     .eq("listing_id", listing.id);
 
   if (error) {
-    return { success: false, error: error.message };
+    return {
+      success: false,
+      error: toUserFacingSupabaseError({
+        action: "ATTRIBUTES:getAttributes",
+        error,
+        fallback: "We could not load your listing attributes.",
+      }),
+    };
   }
 
   // Build attributes object with defaults
@@ -214,7 +222,14 @@ export async function setAttributes(
     .insert(records);
 
   if (error) {
-    return { success: false, error: error.message };
+    return {
+      success: false,
+      error: toUserFacingSupabaseError({
+        action: "ATTRIBUTES:setAttributes",
+        error,
+        fallback: "We could not save your listing attributes. Please try again.",
+      }),
+    };
   }
 
   revalidatePath("/dashboard");
@@ -261,7 +276,14 @@ export async function clearAttributes(keys: string[]): Promise<ActionResult> {
     .in("attribute_key", keys);
 
   if (error) {
-    return { success: false, error: error.message };
+    return {
+      success: false,
+      error: toUserFacingSupabaseError({
+        action: "ATTRIBUTES:clearAttributes",
+        error,
+        fallback: "We could not clear those listing attributes. Please try again.",
+      }),
+    };
   }
 
   revalidatePath("/dashboard");
@@ -297,7 +319,14 @@ export async function clearAllAttributes(): Promise<ActionResult> {
     .eq("listing_id", listing.id);
 
   if (error) {
-    return { success: false, error: error.message };
+    return {
+      success: false,
+      error: toUserFacingSupabaseError({
+        action: "ATTRIBUTES:clearAllAttributes",
+        error,
+        fallback: "We could not clear your listing attributes. Please try again.",
+      }),
+    };
   }
 
   revalidatePath("/dashboard");

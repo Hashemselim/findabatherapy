@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { createClient, createAdminClient, getCurrentProfileId } from "@/lib/supabase/server";
+import { toUserFacingSupabaseError } from "@/lib/supabase/user-facing-errors";
 
 type ActionResult<T = void> =
   | { success: true; data?: T }
@@ -79,7 +80,14 @@ export async function linkGoogleBusiness(
     .eq("id", locationId);
 
   if (error) {
-    return { success: false, error: error.message };
+    return {
+      success: false,
+      error: toUserFacingSupabaseError({
+        action: "GOOGLE_BUSINESS:linkGoogleBusiness",
+        error,
+        fallback: "We could not link this Google Business location. Please try again.",
+      }),
+    };
   }
 
   revalidatePath("/dashboard");
@@ -127,7 +135,14 @@ export async function unlinkGoogleBusiness(locationId: string): Promise<ActionRe
     .eq("id", locationId);
 
   if (error) {
-    return { success: false, error: error.message };
+    return {
+      success: false,
+      error: toUserFacingSupabaseError({
+        action: "GOOGLE_BUSINESS:unlinkGoogleBusiness",
+        error,
+        fallback: "We could not unlink this Google Business location. Please try again.",
+      }),
+    };
   }
 
   revalidatePath("/dashboard");
@@ -206,7 +221,14 @@ export async function refreshGoogleRating(locationId: string): Promise<ActionRes
       .eq("id", locationId);
 
     if (error) {
-      return { success: false, error: error.message };
+      return {
+        success: false,
+        error: toUserFacingSupabaseError({
+          action: "GOOGLE_BUSINESS:refreshGoogleRating",
+          error,
+          fallback: "We could not refresh the Google rating. Please try again.",
+        }),
+      };
     }
 
     revalidatePath("/dashboard");
@@ -398,7 +420,14 @@ export async function getGoogleReviews(
     .order("rating", { ascending: false });
 
   if (error) {
-    return { success: false, error: error.message };
+    return {
+      success: false,
+      error: toUserFacingSupabaseError({
+        action: "GOOGLE_BUSINESS:getGoogleReviews",
+        error,
+        fallback: "We could not load your Google reviews.",
+      }),
+    };
   }
 
   const formattedReviews: GoogleReview[] = (reviews || []).map((r) => ({
@@ -521,7 +550,14 @@ export async function toggleShowGoogleReviews(
     .eq("id", locationId);
 
   if (error) {
-    return { success: false, error: error.message };
+    return {
+      success: false,
+      error: toUserFacingSupabaseError({
+        action: "GOOGLE_BUSINESS:toggleShowGoogleReviews",
+        error,
+        fallback: "We could not update the Google reviews visibility. Please try again.",
+      }),
+    };
   }
 
   revalidatePath("/dashboard");

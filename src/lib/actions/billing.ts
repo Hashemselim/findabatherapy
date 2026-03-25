@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient, getCurrentProfileId, requireProfileRole } from "@/lib/supabase/server";
+import { toUserFacingSupabaseError } from "@/lib/supabase/user-facing-errors";
 import { getWorkspaceSeatSummary } from "@/lib/actions/workspace-users";
 
 type ActionResult<T = void> =
@@ -136,7 +137,14 @@ export async function resetPlanToFree(): Promise<ActionResult> {
     .eq("id", membership.profile_id);
 
   if (error) {
-    return { success: false, error: error.message };
+    return {
+      success: false,
+      error: toUserFacingSupabaseError({
+        action: "BILLING:resetPlanToFree",
+        error,
+        fallback: "We could not reset the plan to Free. Please try again.",
+      }),
+    };
   }
 
   return { success: true };

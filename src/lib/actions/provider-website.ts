@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { isPublicProfileVisible } from "@/lib/public-visibility";
 import { STORAGE_BUCKETS } from "@/lib/storage/config";
 
 type ActionResult<T = void> =
@@ -126,7 +127,8 @@ export async function getProviderWebsiteData(
         website,
         plan_tier,
         subscription_status,
-        intake_form_settings
+        intake_form_settings,
+        is_seeded
       )
     `
     )
@@ -149,11 +151,16 @@ export async function getProviderWebsiteData(
     website: string | null;
     plan_tier: string;
     subscription_status: string | null;
+    is_seeded: boolean;
     intake_form_settings: {
       background_color?: string;
       show_powered_by?: boolean;
     } | null;
   };
+
+  if (!isPublicProfileVisible(profile)) {
+    return { success: false, error: "Provider not found" };
+  }
 
   // Parallel fetch: locations, attributes, photos, job count, custom domain
   const [

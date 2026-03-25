@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { createClient, createAdminClient, getCurrentProfileId } from "@/lib/supabase/server";
+import { toUserFacingSupabaseError } from "@/lib/supabase/user-facing-errors";
 import { geocodeAddress } from "@/lib/geo/geocode";
 import { stripe } from "@/lib/stripe";
 import { getEffectivePlanTier } from "@/lib/plans/features";
@@ -98,7 +99,14 @@ export async function getLocations(): Promise<ActionResult<LocationData[]>> {
     .order("created_at", { ascending: true });
 
   if (error) {
-    return { success: false, error: error.message };
+    return {
+      success: false,
+      error: toUserFacingSupabaseError({
+        action: "LOCATIONS:getLocations",
+        error,
+        fallback: "We could not load your locations.",
+      }),
+    };
   }
 
   return {
@@ -289,7 +297,14 @@ export async function addLocation(data: {
     .single();
 
   if (error) {
-    return { success: false, error: error.message };
+    return {
+      success: false,
+      error: toUserFacingSupabaseError({
+        action: "LOCATIONS:addLocation",
+        error,
+        fallback: "We could not save this location. Please try again.",
+      }),
+    };
   }
 
   revalidatePath("/dashboard");
@@ -416,7 +431,14 @@ export async function updateLocation(
     .eq("id", locationId);
 
   if (error) {
-    return { success: false, error: error.message };
+    return {
+      success: false,
+      error: toUserFacingSupabaseError({
+        action: "LOCATIONS:updateLocation",
+        error,
+        fallback: "We could not update this location. Please try again.",
+      }),
+    };
   }
 
   revalidatePath("/dashboard");
@@ -485,7 +507,14 @@ export async function deleteLocation(locationId: string): Promise<ActionResult> 
   const { error } = await supabase.from("locations").delete().eq("id", locationId);
 
   if (error) {
-    return { success: false, error: error.message };
+    return {
+      success: false,
+      error: toUserFacingSupabaseError({
+        action: "LOCATIONS:deleteLocation",
+        error,
+        fallback: "We could not delete this location. Please try again.",
+      }),
+    };
   }
 
   // If we deleted the primary location, make another one primary
@@ -551,7 +580,14 @@ export async function setPrimaryLocation(locationId: string): Promise<ActionResu
     .eq("id", locationId);
 
   if (error) {
-    return { success: false, error: error.message };
+    return {
+      success: false,
+      error: toUserFacingSupabaseError({
+        action: "LOCATIONS:setPrimaryLocation",
+        error,
+        fallback: "We could not update your primary location. Please try again.",
+      }),
+    };
   }
 
   revalidatePath("/dashboard");

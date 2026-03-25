@@ -1,5 +1,6 @@
 import { unstable_noStore as noStore } from "next/cache";
 
+import { filterPublicProfiles, isPublicProfileVisible } from "@/lib/public-visibility";
 import { createAdminClient } from "@/lib/supabase/server";
 import {
   type PositionType,
@@ -195,6 +196,85 @@ function resolveJobLocation(job: {
   return extractDbLocation(job.locations);
 }
 
+type ListingMapEntry = {
+  profile_id: string;
+  logo_url: string | null;
+  slug: string;
+};
+
+async function getVisiblePublishedListingMap(
+  supabase: Awaited<ReturnType<typeof createAdminClient>>,
+  profileIds: string[]
+): Promise<Map<string, ListingMapEntry>> {
+  const uniqueProfileIds = Array.from(new Set(profileIds.filter(Boolean)));
+  if (uniqueProfileIds.length === 0) {
+    return new Map();
+  }
+
+  const { data: listings } = await supabase
+    .from("listings")
+    .select("profile_id, logo_url, slug, profiles!inner(contact_email, is_seeded)")
+    .eq("status", "published")
+    .in("profile_id", uniqueProfileIds);
+
+  const visibleRows = filterPublicProfiles(
+    listings || [],
+    (listing) =>
+      listing.profiles as {
+        contact_email?: string | null;
+        is_seeded?: boolean | null;
+      }
+  );
+
+  const listingMap = new Map<string, ListingMapEntry>();
+  for (const listing of visibleRows) {
+    if (!listing.slug || listingMap.has(listing.profile_id)) {
+      continue;
+    }
+
+    listingMap.set(listing.profile_id, {
+      profile_id: listing.profile_id,
+      logo_url: listing.logo_url,
+      slug: listing.slug,
+    });
+  }
+
+  return listingMap;
+}
+
+async function getVisiblePublishedListingBySlug(
+  supabase: Awaited<ReturnType<typeof createAdminClient>>,
+  slug: string
+): Promise<ListingMapEntry | null> {
+  const { data: listing, error } = await supabase
+    .from("listings")
+    .select("profile_id, logo_url, slug, profiles!inner(contact_email, is_seeded)")
+    .eq("slug", slug)
+    .eq("status", "published")
+    .single();
+
+  if (error || !listing) {
+    return null;
+  }
+
+  if (
+    !isPublicProfileVisible(
+      listing.profiles as {
+        contact_email?: string | null;
+        is_seeded?: boolean | null;
+      }
+    )
+  ) {
+    return null;
+  }
+
+  return {
+    profile_id: listing.profile_id,
+    logo_url: listing.logo_url,
+    slug: listing.slug,
+  };
+}
+
 // =============================================================================
 // JOB QUERIES
 // =============================================================================
@@ -251,11 +331,13 @@ export async function getPublishedJobBySlug(
   }
 
   // Get logo URL and slug from listing
-  const { data: listing } = await supabase
-    .from("listings")
-    .select("logo_url, slug")
-    .eq("profile_id", job.profile_id)
-    .single();
+  const listing = (
+    await getVisiblePublishedListingMap(supabase, [job.profile_id])
+  ).get(job.profile_id);
+
+  if (!listing) {
+    return null;
+  }
 
   const profile = job.profiles as unknown as {
     id: string;
@@ -436,19 +518,11 @@ export async function searchJobs(
 
     // Get logo URLs and slugs for all providers
     const profileIds = [...new Set((jobs || []).map((j) => j.profile_id))];
-    const { data: listings } = profileIds.length > 0 ? await supabase
-      .from("listings")
-      .select("profile_id, logo_url, slug")
-      .in("profile_id", profileIds) : { data: [] };
-
-    const listingMap = new Map<string, { logo_url: string | null; slug: string }>();
-    listings?.forEach((l) => {
-      listingMap.set(l.profile_id, { logo_url: l.logo_url, slug: l.slug });
-    });
+    const listingMap = await getVisiblePublishedListingMap(supabase, profileIds);
 
     // Filter by state first (if provided) using OR logic:
     // service_states contains state OR custom_state = state OR location.state = state
-    let filteredJobs = jobs || [];
+    let filteredJobs = (jobs || []).filter((job) => listingMap.has(job.profile_id));
     if (filters.state) {
       const stateCode = getStateCode(filters.state) || filters.state.toUpperCase();
       filteredJobs = filteredJobs.filter((job) =>
@@ -588,28 +662,22 @@ export async function searchJobs(
 
     // Get logo URLs and slugs for all providers
     const profileIds = [...new Set((jobs || []).map((j) => j.profile_id))];
-    const { data: listings } = profileIds.length > 0 ? await supabase
-      .from("listings")
-      .select("profile_id, logo_url, slug")
-      .in("profile_id", profileIds) : { data: [] };
-
-    const listingMap = new Map<string, { logo_url: string | null; slug: string }>();
-    listings?.forEach((l) => {
-      listingMap.set(l.profile_id, { logo_url: l.logo_url, slug: l.slug });
-    });
+    const listingMap = await getVisiblePublishedListingMap(supabase, profileIds);
 
     // Filter by state using OR logic
     const stateCode = getStateCode(filters.state!) || filters.state!.toUpperCase();
-    const filteredJobs = (jobs || []).filter((job) =>
-      jobMatchesState(
-        {
-          service_states: job.service_states as string[] | null,
-          custom_state: job.custom_state as string | null,
-          locations: job.locations as DbLocation | DbLocation[] | null,
-        },
-        stateCode
-      )
-    );
+    const filteredJobs = (jobs || [])
+      .filter((job) => listingMap.has(job.profile_id))
+      .filter((job) =>
+        jobMatchesState(
+          {
+            service_states: job.service_states as string[] | null,
+            custom_state: job.custom_state as string | null,
+            locations: job.locations as DbLocation | DbLocation[] | null,
+          },
+          stateCode
+        )
+      );
 
     // Transform results
     const results: JobSearchResult[] = filteredJobs.map((job) => {
@@ -703,10 +771,7 @@ export async function searchJobs(
       break;
   }
 
-  // Apply pagination
-  query = query.range(offset, offset + limit - 1);
-
-  const { data: jobs, error, count } = await query;
+  const { data: jobs, error } = await query.limit(500);
 
   if (error) {
     console.error("[JOBS] Search error:", JSON.stringify(error, null, 2));
@@ -718,18 +783,12 @@ export async function searchJobs(
 
   // Get logo URLs and slugs for all providers
   const profileIds = [...new Set((jobs || []).map((j) => j.profile_id))];
-  const { data: listings } = profileIds.length > 0 ? await supabase
-    .from("listings")
-    .select("profile_id, logo_url, slug")
-    .in("profile_id", profileIds) : { data: [] };
-
-  const listingMap = new Map<string, { logo_url: string | null; slug: string }>();
-  listings?.forEach((l) => {
-    listingMap.set(l.profile_id, { logo_url: l.logo_url, slug: l.slug });
-  });
+  const listingMap = await getVisiblePublishedListingMap(supabase, profileIds);
 
   // Transform results
-  const results: JobSearchResult[] = (jobs || []).map((job) => {
+  const results: JobSearchResult[] = (jobs || [])
+    .filter((job) => listingMap.has(job.profile_id))
+    .map((job) => {
     const profile = job.profiles as unknown as {
       id: string;
       agency_name: string;
@@ -775,7 +834,7 @@ export async function searchJobs(
       location,
       serviceStates: job.service_states as string[] | null,
     };
-  });
+      });
 
   // Sort by plan tier for relevance: Featured → Paid (equal priority) → Free → then by date
   // This matches therapy search sorting logic
@@ -794,11 +853,12 @@ export async function searchJobs(
     });
   }
 
-  const total = count || 0;
+  const total = results.length;
+  const paginatedResults = results.slice(offset, offset + limit);
   const totalPages = Math.ceil(total / limit);
 
   return {
-    jobs: results,
+    jobs: paginatedResults,
     total,
     page,
     totalPages,
@@ -879,17 +939,10 @@ export async function getJobsByState(
 
   // Get logo URLs and slugs
   const profileIds = [...new Set(filteredJobs.map((j) => j.profile_id))];
-  const { data: listings } = profileIds.length > 0 ? await supabase
-    .from("listings")
-    .select("profile_id, logo_url, slug")
-    .in("profile_id", profileIds) : { data: [] };
+  const listingMap = await getVisiblePublishedListingMap(supabase, profileIds);
 
-  const listingMap = new Map<string, { logo_url: string | null; slug: string }>();
-  listings?.forEach((l) => {
-    listingMap.set(l.profile_id, { logo_url: l.logo_url, slug: l.slug });
-  });
-
-  const results: JobSearchResult[] = filteredJobs.slice(0, limit).map((job) => {
+  const visibleJobs = filteredJobs.filter((job) => listingMap.has(job.profile_id));
+  const results: JobSearchResult[] = visibleJobs.slice(0, limit).map((job) => {
     const profile = job.profiles as unknown as {
       id: string;
       agency_name: string;
@@ -936,7 +989,7 @@ export async function getJobsByState(
     };
   });
 
-  return { jobs: results, total: filteredJobs.length };
+  return { jobs: results, total: visibleJobs.length };
 }
 
 /**
@@ -1031,17 +1084,10 @@ export async function getJobsByCity(
 
   // Get logo URLs and slugs
   const profileIds = [...new Set(filteredJobs.map((j) => j.profile_id))];
-  const { data: listings } = profileIds.length > 0 ? await supabase
-    .from("listings")
-    .select("profile_id, logo_url, slug")
-    .in("profile_id", profileIds) : { data: [] };
+  const listingMap = await getVisiblePublishedListingMap(supabase, profileIds);
 
-  const listingMap = new Map<string, { logo_url: string | null; slug: string }>();
-  listings?.forEach((l) => {
-    listingMap.set(l.profile_id, { logo_url: l.logo_url, slug: l.slug });
-  });
-
-  const results: JobSearchResult[] = filteredJobs.slice(0, limit).map((job) => {
+  const visibleJobs = filteredJobs.filter((job) => listingMap.has(job.profile_id));
+  const results: JobSearchResult[] = visibleJobs.slice(0, limit).map((job) => {
     const profile = job.profiles as unknown as {
       id: string;
       agency_name: string;
@@ -1088,7 +1134,7 @@ export async function getJobsByCity(
     };
   });
 
-  return { jobs: results, total: filteredJobs.length };
+  return { jobs: results, total: visibleJobs.length };
 }
 
 /**
@@ -1102,13 +1148,8 @@ export async function getJobsByProvider(
   const supabase = await createAdminClient();
 
   // First, look up the listing by slug to get the profile_id
-  const { data: listing, error: listingError } = await supabase
-    .from("listings")
-    .select("profile_id, logo_url, slug")
-    .eq("slug", providerSlug)
-    .single();
-
-  if (listingError || !listing) {
+  const listing = await getVisiblePublishedListingBySlug(supabase, providerSlug);
+  if (!listing) {
     return [];
   }
 
@@ -1250,17 +1291,11 @@ export async function getFeaturedJobs(limit = 6): Promise<JobSearchResult[]> {
 
   // Get logo URLs and slugs from listings
   const profileIds = [...new Set(jobs.map((j) => j.profile_id))];
-  const { data: listings } = await supabase
-    .from("listings")
-    .select("profile_id, logo_url, slug")
-    .in("profile_id", profileIds);
+  const listingMap = await getVisiblePublishedListingMap(supabase, profileIds);
 
-  const listingMap = new Map<string, { logo_url: string | null; slug: string }>();
-  listings?.forEach((l) => {
-    listingMap.set(l.profile_id, { logo_url: l.logo_url, slug: l.slug });
-  });
-
-  const results: JobSearchResult[] = jobs.map((job) => {
+  const results: JobSearchResult[] = jobs
+    .filter((job) => listingMap.has(job.profile_id))
+    .map((job) => {
     const profile = job.profiles as unknown as {
       id: string;
       agency_name: string;
@@ -1305,7 +1340,7 @@ export async function getFeaturedJobs(limit = 6): Promise<JobSearchResult[]> {
       location,
       serviceStates: job.service_states as string[] | null,
     };
-  });
+      });
 
   // Sort: Featured → Paid (equal priority) → Free → then by date
   results.sort((a, b) => {
@@ -1332,12 +1367,15 @@ export async function getTotalJobCount(): Promise<number> {
 
   const supabase = await createAdminClient();
 
-  const { count } = await supabase
+  const { data: jobs } = await supabase
     .from("job_postings")
-    .select("id", { count: "exact", head: true })
+    .select("profile_id")
     .eq("status", "published");
-
-  return count || 0;
+  const listingMap = await getVisiblePublishedListingMap(
+    supabase,
+    (jobs || []).map((job) => job.profile_id)
+  );
+  return (jobs || []).filter((job) => listingMap.has(job.profile_id)).length;
 }
 
 /**
@@ -1355,6 +1393,7 @@ export async function getJobCountsByState(): Promise<Map<string, number>> {
     .select(`
       service_states,
       custom_state,
+      profile_id,
       locations (
         state
       )
@@ -1365,9 +1404,16 @@ export async function getJobCountsByState(): Promise<Map<string, number>> {
     return new Map();
   }
 
+  const listingMap = await getVisiblePublishedListingMap(
+    supabase,
+    data.map((job) => job.profile_id)
+  );
+
   const counts = new Map<string, number>();
 
-  data.forEach((job) => {
+  data
+    .filter((job) => listingMap.has(job.profile_id))
+    .forEach((job) => {
     // Track which states this job has been counted for
     const jobStates = new Set<string>();
 
@@ -1398,7 +1444,7 @@ export async function getJobCountsByState(): Promise<Map<string, number>> {
       const currentCount = counts.get(state) || 0;
       counts.set(state, currentCount + 1);
     });
-  });
+    });
 
   return counts;
 }
@@ -1446,7 +1492,9 @@ export async function getAllEmployers(options?: {
         id,
         agency_name,
         plan_tier,
-        subscription_status
+        subscription_status,
+        contact_email,
+        is_seeded
       )
     `)
     .eq("status", "published");
@@ -1456,11 +1504,20 @@ export async function getAllEmployers(options?: {
     return [];
   }
 
-  if (listings.length === 0) {
+  const visibleListings = filterPublicProfiles(
+    listings,
+    (listing) =>
+      listing.profiles as {
+        contact_email?: string | null;
+        is_seeded?: boolean | null;
+      }
+  );
+
+  if (visibleListings.length === 0) {
     return [];
   }
 
-  const profileIds = listings.map((l) => l.profile_id);
+  const profileIds = visibleListings.map((l) => l.profile_id);
 
   // Get job counts for each profile
   const { data: jobCounts } = await supabase
@@ -1493,7 +1550,7 @@ export async function getAllEmployers(options?: {
   // Build employer list
   const employers: EmployerListItem[] = [];
 
-  listings.forEach((listing) => {
+  visibleListings.forEach((listing) => {
     // Skip listings without a slug (required for routing)
     if (!listing.slug) {
       return;
@@ -1564,7 +1621,12 @@ export async function getTotalEmployerCount(): Promise<number> {
     return 0;
   }
 
-  const uniqueProfileIds = new Set(data.map((d) => d.profile_id));
+  const listingMap = await getVisiblePublishedListingMap(
+    supabase,
+    data.map((job) => job.profile_id)
+  );
+  const uniqueProfileIds = new Set(
+    data.map((d) => d.profile_id).filter((profileId) => listingMap.has(profileId))
+  );
   return uniqueProfileIds.size;
 }
-

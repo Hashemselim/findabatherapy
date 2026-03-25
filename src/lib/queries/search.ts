@@ -1,6 +1,7 @@
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { getEffectivePlanTier, type PlanTier } from "@/lib/plans/features";
 import { calculateDistance } from "@/lib/geo/distance";
+import { filterPublicProfiles } from "@/lib/public-visibility";
 import { getStateForms, sortSearchResultsByRelevance } from "@/lib/utils/location-utils";
 
 export interface SearchFilters {
@@ -139,7 +140,9 @@ export async function searchListings(
       profiles!inner (
         agency_name,
         plan_tier,
-        subscription_status
+        subscription_status,
+        contact_email,
+        is_seeded
       ),
       locations!inner (
         city,
@@ -199,8 +202,17 @@ export async function searchListings(
     };
   }
 
+  const visibleRows = filterPublicProfiles(
+    data || [],
+    (listing) =>
+      listing.profiles as {
+        contact_email?: string | null;
+        is_seeded?: boolean | null;
+      }
+  );
+
   // Transform results
-  const listings: SearchResultListing[] = (data || []).map((listing) => {
+  const listings: SearchResultListing[] = visibleRows.map((listing) => {
     const profile = listing.profiles as unknown as {
       agency_name: string;
       plan_tier: string;
@@ -349,7 +361,9 @@ export async function getFeaturedListings(limit: number = 6): Promise<SearchResu
       profiles!inner (
         agency_name,
         plan_tier,
-        subscription_status
+        subscription_status,
+        contact_email,
+        is_seeded
       ),
       locations!inner (
         city,
@@ -367,7 +381,16 @@ export async function getFeaturedListings(limit: number = 6): Promise<SearchResu
     return [];
   }
 
-  return data.map((listing) => {
+  const visibleRows = filterPublicProfiles(
+    data,
+    (listing) =>
+      listing.profiles as {
+        contact_email?: string | null;
+        is_seeded?: boolean | null;
+      }
+  );
+
+  return visibleRows.map((listing) => {
     const profile = listing.profiles as unknown as {
       agency_name: string;
       plan_tier: string;
@@ -442,7 +465,9 @@ export async function getHomepageFeaturedListings(limit: number = 3): Promise<Se
       profiles!inner (
         agency_name,
         plan_tier,
-        subscription_status
+        subscription_status,
+        contact_email,
+        is_seeded
       ),
       locations (
         city,
@@ -461,8 +486,17 @@ export async function getHomepageFeaturedListings(limit: number = 3): Promise<Se
   }
 
   // Deduplicate by listing ID (in case query returns duplicates)
+  const visibleRows = filterPublicProfiles(
+    data,
+    (listing) =>
+      listing.profiles as {
+        contact_email?: string | null;
+        is_seeded?: boolean | null;
+      }
+  );
+
   const seenIds = new Set<string>();
-  const uniqueListings = data.filter((listing) => {
+  const uniqueListings = visibleRows.filter((listing) => {
     if (seenIds.has(listing.id)) return false;
     seenIds.add(listing.id);
     return true;
@@ -554,7 +588,9 @@ export async function searchLocations(
         profiles!inner (
           agency_name,
           plan_tier,
-          subscription_status
+          subscription_status,
+          contact_email,
+          is_seeded
         )
       )
     `,
@@ -619,9 +655,22 @@ export async function searchLocations(
     };
   }
 
+  const visibleRows = filterPublicProfiles(
+    data || [],
+    (location) =>
+      (
+        location.listings as {
+          profiles?: {
+            contact_email?: string | null;
+            is_seeded?: boolean | null;
+          };
+        }
+      ).profiles
+  );
+
   // We need to get location counts per listing for the "other locations" indicator
   // First, get unique listing IDs
-  const listingIds = Array.from(new Set((data || []).map((loc) => loc.listing_id)));
+  const listingIds = Array.from(new Set(visibleRows.map((loc) => loc.listing_id)));
 
   // Get location counts per listing
   const locationCounts: Record<string, number> = {};
@@ -639,7 +688,7 @@ export async function searchLocations(
   }
 
   // Transform results
-  const locations: SearchResultLocation[] = (data || []).map((location) => {
+  const locations: SearchResultLocation[] = visibleRows.map((location) => {
     const listing = location.listings as unknown as {
       id: string;
       slug: string;
@@ -971,7 +1020,9 @@ async function fetchAllRealListings(
         profiles!inner (
           agency_name,
           plan_tier,
-          subscription_status
+          subscription_status,
+          contact_email,
+          is_seeded
         )
       )
     `
@@ -1009,8 +1060,21 @@ async function fetchAllRealListings(
     return [];
   }
 
+  const visibleRows = filterPublicProfiles(
+    data,
+    (location) =>
+      (
+        location.listings as {
+          profiles?: {
+            contact_email?: string | null;
+            is_seeded?: boolean | null;
+          };
+        }
+      ).profiles
+  );
+
   // Get location counts per listing
-  const listingIds = Array.from(new Set(data.map((loc) => loc.listing_id)));
+  const listingIds = Array.from(new Set(visibleRows.map((loc) => loc.listing_id)));
   const locationCounts: Record<string, number> = {};
   if (listingIds.length > 0) {
     const { data: countData } = await supabase
@@ -1026,7 +1090,7 @@ async function fetchAllRealListings(
   }
 
   // Transform results
-  return data.map((location) => {
+  return visibleRows.map((location) => {
     const listing = location.listings as unknown as {
       id: string;
       slug: string;

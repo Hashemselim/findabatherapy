@@ -3,7 +3,9 @@
 import { revalidatePath } from "next/cache";
 
 import { isDevOnboardingPreviewEnabled } from "@/lib/onboarding-preview";
-import { createClient, getCurrentProfileId } from "@/lib/supabase/server";
+import { createClient, getCurrentProfileId, getUser } from "@/lib/supabase/server";
+import { toUserFacingSupabaseError } from "@/lib/supabase/user-facing-errors";
+import { createWorkspaceForUser } from "@/lib/workspace/memberships";
 import type {
   CompanyBasics,
   CompanyDetails,
@@ -25,6 +27,54 @@ function unauthenticatedResult<T = void>(data?: T): ActionResult<T> {
   return { success: false, error: "Not authenticated" };
 }
 
+function normalizeOnboardingIntent(value: unknown): OnboardingIntent {
+  if (value === "therapy" || value === "jobs" || value === "both") {
+    return value;
+  }
+  if (value === "context_jobs" || value === "jobs_only") {
+    return "jobs";
+  }
+  return "both";
+}
+
+async function ensureCurrentUserWorkspace(
+  fallback?: {
+    agencyName?: string;
+    contactEmail?: string;
+  }
+): Promise<ActionResult<{ profileId: string }>> {
+  const user = await getUser();
+  if (!user?.id || !user.email) {
+    return unauthenticatedResult();
+  }
+
+  const agencyName =
+    fallback?.agencyName?.trim() ||
+    user.user_metadata?.agency_name ||
+    user.user_metadata?.full_name ||
+    user.user_metadata?.name ||
+    user.email.split("@")[0] ||
+    "My Agency";
+  const contactEmail = (fallback?.contactEmail || user.email).trim().toLowerCase();
+  const planTier = user.user_metadata?.selected_plan === "pro" ? "pro" : "free";
+  const billingInterval =
+    user.user_metadata?.billing_interval === "annual" ||
+    user.user_metadata?.billing_interval === "year"
+      ? "year"
+      : "month";
+
+  await createWorkspaceForUser({
+    userId: user.id,
+    email: contactEmail,
+    agencyName,
+    planTier,
+    billingInterval,
+    primaryIntent: normalizeOnboardingIntent(user.user_metadata?.selected_intent),
+  });
+
+  return { success: true, data: { profileId: user.id } };
+}
+
 /**
  * Generate a URL-friendly slug from agency name
  */
@@ -42,27 +92,81 @@ function generateSlug(agencyName: string): string {
 export async function updateProfileBasics(
   data: CompanyBasics
 ): Promise<ActionResult> {
-  const profileId = await getCurrentProfileId();
+  let profileId = await getCurrentProfileId();
   if (!profileId) {
-    return unauthenticatedResult();
+    const ensuredWorkspace = await ensureCurrentUserWorkspace({
+      agencyName: data.agencyName,
+      contactEmail: data.contactEmail,
+    });
+    if (!ensuredWorkspace.success) {
+      return { success: false, error: ensuredWorkspace.error };
+    }
+    if (!ensuredWorkspace.data) {
+      return { success: false, error: "Not authenticated" };
+    }
+    profileId = ensuredWorkspace.data.profileId;
   }
 
   const supabase = await createClient();
+  const profileUpdates = {
+    agency_name: data.agencyName,
+    contact_email: data.contactEmail,
+    contact_phone: data.contactPhone || null,
+    website: data.website || null,
+    updated_at: new Date().toISOString(),
+  };
 
-  const { error } = await supabase
+  const { data: updatedProfiles, error } = await supabase
     .from("profiles")
-    .upsert({
-      id: profileId,
-      agency_name: data.agencyName,
-      contact_email: data.contactEmail,
-      contact_phone: data.contactPhone || null,
-      website: data.website || null,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", profileId);
+    .update(profileUpdates)
+    .eq("id", profileId)
+    .select("id");
 
   if (error) {
-    return { success: false, error: error.message };
+    return {
+      success: false,
+      error: toUserFacingSupabaseError({
+        action: "ONBOARDING:updateProfileBasics",
+        error,
+        fallback: "We could not save your agency details. Please try again.",
+      }),
+    };
+  }
+
+  if (!updatedProfiles?.length) {
+    const ensuredWorkspace = await ensureCurrentUserWorkspace({
+      agencyName: data.agencyName,
+      contactEmail: data.contactEmail,
+    });
+    if (!ensuredWorkspace.success) {
+      return { success: false, error: ensuredWorkspace.error };
+    }
+    if (!ensuredWorkspace.data) {
+      return { success: false, error: "Profile not found" };
+    }
+
+    profileId = ensuredWorkspace.data.profileId;
+
+    const retry = await supabase
+      .from("profiles")
+      .update(profileUpdates)
+      .eq("id", profileId)
+      .select("id");
+
+    if (retry.error) {
+      return {
+        success: false,
+        error: toUserFacingSupabaseError({
+          action: "ONBOARDING:updateProfileBasicsRetry",
+          error: retry.error,
+          fallback: "We could not save your agency details. Please try again.",
+        }),
+      };
+    }
+
+    if (!retry.data?.length) {
+      return { success: false, error: "Profile not found" };
+    }
   }
 
   revalidatePath("/dashboard");
@@ -93,7 +197,14 @@ export async function updateProfilePlan(
       .eq("id", profileId);
 
     if (error) {
-      return { success: false, error: error.message };
+      return {
+        success: false,
+        error: toUserFacingSupabaseError({
+          action: "ONBOARDING:updateProfilePlan",
+          error,
+          fallback: "We could not save your plan selection. Please try again.",
+        }),
+      };
     }
   }
 
@@ -120,7 +231,14 @@ export async function updateProfileIntent(intent: OnboardingIntent): Promise<Act
     .eq("id", profileId);
 
   if (error) {
-    return { success: false, error: error.message };
+    return {
+      success: false,
+      error: toUserFacingSupabaseError({
+        action: "ONBOARDING:updateProfileIntent",
+        error,
+        fallback: "We could not save your onboarding preference. Please try again.",
+      }),
+    };
   }
 
   revalidatePath("/dashboard/onboarding");
@@ -160,7 +278,14 @@ export async function updateListingDetails(
       .eq("id", existingListing.id);
 
     if (error) {
-      return { success: false, error: error.message };
+      return {
+        success: false,
+        error: toUserFacingSupabaseError({
+          action: "ONBOARDING:updateListingDetails",
+          error,
+          fallback: "We could not save your agency details. Please try again.",
+        }),
+      };
     }
 
     // Save services_offered to listing_attribute_values
@@ -228,7 +353,14 @@ export async function updateListingDetails(
     .single();
 
   if (error) {
-    return { success: false, error: error.message };
+    return {
+      success: false,
+      error: toUserFacingSupabaseError({
+        action: "ONBOARDING:createListing",
+        error,
+        fallback: "We could not create your listing. Please try again.",
+      }),
+    };
   }
 
   // Save services_offered to listing_attribute_values for new listing
@@ -297,14 +429,28 @@ export async function updateListingLocation(
       .eq("id", existingLocation.id);
 
     if (error) {
-      return { success: false, error: error.message };
+      return {
+        success: false,
+        error: toUserFacingSupabaseError({
+          action: "ONBOARDING:updateListingLocation",
+          error,
+          fallback: "We could not save your location. Please try again.",
+        }),
+      };
     }
   } else {
     // Create new location
     const { error } = await supabase.from("locations").insert(locationData);
 
     if (error) {
-      return { success: false, error: error.message };
+      return {
+        success: false,
+        error: toUserFacingSupabaseError({
+          action: "ONBOARDING:createListingLocation",
+          error,
+          fallback: "We could not save your location. Please try again.",
+        }),
+      };
     }
   }
 
@@ -375,14 +521,28 @@ export async function updateListingLocationWithServices(
       .eq("id", existingLocation.id);
 
     if (error) {
-      return { success: false, error: error.message };
+      return {
+        success: false,
+        error: toUserFacingSupabaseError({
+          action: "ONBOARDING:updateLocationWithServices",
+          error,
+          fallback: "We could not save your location details. Please try again.",
+        }),
+      };
     }
   } else {
     // Create new location
     const { error } = await supabase.from("locations").insert(locationData);
 
     if (error) {
-      return { success: false, error: error.message };
+      return {
+        success: false,
+        error: toUserFacingSupabaseError({
+          action: "ONBOARDING:createLocationWithServices",
+          error,
+          fallback: "We could not save your location details. Please try again.",
+        }),
+      };
     }
   }
 
@@ -448,7 +608,14 @@ export async function updateBasicAttributes(
     });
 
   if (error) {
-    return { success: false, error: error.message };
+    return {
+      success: false,
+      error: toUserFacingSupabaseError({
+        action: "ONBOARDING:updateBasicAttributes",
+        error,
+        fallback: "We could not save your accepted insurances. Please try again.",
+      }),
+    };
   }
 
   return { success: true };
@@ -520,7 +687,14 @@ export async function updateListingAttributes(
     .insert(attributes);
 
   if (error) {
-    return { success: false, error: error.message };
+    return {
+      success: false,
+      error: toUserFacingSupabaseError({
+        action: "ONBOARDING:updateListingAttributes",
+        error,
+        fallback: "We could not save your service details. Please try again.",
+      }),
+    };
   }
 
   return { success: true };
@@ -566,7 +740,14 @@ export async function completeOnboarding(
     .eq("id", profileId);
 
   if (profileError) {
-    return { success: false, error: profileError.message };
+    return {
+      success: false,
+      error: toUserFacingSupabaseError({
+        action: "ONBOARDING:completeProfile",
+        error: profileError,
+        fallback: "We could not complete onboarding. Please try again.",
+      }),
+    };
   }
 
   // If publishing, update listing status
@@ -581,7 +762,14 @@ export async function completeOnboarding(
       .eq("id", listing.id);
 
     if (listingError) {
-      return { success: false, error: listingError.message };
+      return {
+        success: false,
+        error: toUserFacingSupabaseError({
+          action: "ONBOARDING:publishListing",
+          error: listingError,
+          fallback: "We could not publish your listing. Please try again.",
+        }),
+      };
     }
   }
 
@@ -717,7 +905,14 @@ export async function updatePremiumAttributes(data: {
       .insert(attributes);
 
     if (error) {
-      return { success: false, error: error.message };
+      return {
+        success: false,
+        error: toUserFacingSupabaseError({
+          action: "ONBOARDING:updatePremiumAttributes",
+          error,
+          fallback: "We could not save your premium details. Please try again.",
+        }),
+      };
     }
   }
 

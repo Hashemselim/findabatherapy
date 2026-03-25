@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 
 import { createClient, getCurrentProfileId } from "@/lib/supabase/server";
+import { toUserFacingSupabaseError } from "@/lib/supabase/user-facing-errors";
+import { isPublicProfileVisible } from "@/lib/public-visibility";
 import { STORAGE_BUCKETS } from "@/lib/storage/config";
 
 type ActionResult<T = void> =
@@ -129,7 +131,8 @@ export async function getListing(): Promise<ActionResult<ListingWithRelations>> 
         website,
         plan_tier,
         subscription_status,
-        intake_form_settings
+        intake_form_settings,
+        is_seeded
       )
     `)
     .eq("profile_id", profileId)
@@ -139,7 +142,14 @@ export async function getListing(): Promise<ActionResult<ListingWithRelations>> 
     if (listingError.code === "PGRST116") {
       return { success: false, error: "No listing found" };
     }
-    return { success: false, error: listingError.message };
+    return {
+      success: false,
+      error: toUserFacingSupabaseError({
+        action: "LISTINGS:getListing",
+        error: listingError,
+        fallback: "We could not load your listing.",
+      }),
+    };
   }
 
   // Get all locations
@@ -273,7 +283,14 @@ export async function updateListing(data: {
     .eq("profile_id", profileId);
 
   if (error) {
-    return { success: false, error: error.message };
+    return {
+      success: false,
+      error: toUserFacingSupabaseError({
+        action: "LISTINGS:updateListingDetails",
+        error,
+        fallback: "We could not save your listing details. Please try again.",
+      }),
+    };
   }
 
   revalidatePath("/dashboard");
@@ -318,7 +335,14 @@ export async function updateAgencyName(agencyName: string): Promise<ActionResult
     .eq("id", profileId);
 
   if (profileError) {
-    return { success: false, error: profileError.message };
+    return {
+      success: false,
+      error: toUserFacingSupabaseError({
+        action: "LISTINGS:updateAgencyNameProfile",
+        error: profileError,
+        fallback: "We could not save your agency name. Please try again.",
+      }),
+    };
   }
 
   // Generate new slug and check for uniqueness
@@ -351,7 +375,14 @@ export async function updateAgencyName(agencyName: string): Promise<ActionResult
     .eq("profile_id", profileId);
 
   if (listingError) {
-    return { success: false, error: listingError.message };
+    return {
+      success: false,
+      error: toUserFacingSupabaseError({
+        action: "LISTINGS:updateAgencyNameListing",
+        error: listingError,
+        fallback: "We could not save your agency name. Please try again.",
+      }),
+    };
   }
 
   revalidatePath("/dashboard");
@@ -402,7 +433,14 @@ export async function updateListingStatus(
     .eq("profile_id", profileId);
 
   if (error) {
-    return { success: false, error: error.message };
+    return {
+      success: false,
+      error: toUserFacingSupabaseError({
+        action: "LISTINGS:updateListingStatus",
+        error,
+        fallback: "We could not update your listing status. Please try again.",
+      }),
+    };
   }
 
   revalidatePath("/dashboard");
@@ -597,8 +635,14 @@ export async function updateListingAttributes(data: {
     });
 
     if (insertError) {
-      console.error(`Failed to insert attribute ${attr.attribute_key}:`, insertError);
-      return { success: false, error: `Failed to save ${attr.attribute_key}: ${insertError.message}` };
+      return {
+        success: false,
+        error: toUserFacingSupabaseError({
+          action: `LISTINGS:saveAttribute:${attr.attribute_key}`,
+          error: insertError,
+          fallback: "We could not save one of your listing attributes. Please try again.",
+        }),
+      };
     }
   }
 
@@ -633,7 +677,14 @@ export async function updateCompanyContact(data: {
     .eq("id", profileId);
 
   if (error) {
-    return { success: false, error: error.message };
+    return {
+      success: false,
+      error: toUserFacingSupabaseError({
+        action: "LISTINGS:updateCompanyContact",
+        error,
+        fallback: "We could not save your company contact details. Please try again.",
+      }),
+    };
   }
 
   revalidatePath("/dashboard");
@@ -685,7 +736,14 @@ export async function updateContactFormEnabled(enabled: boolean): Promise<Action
   });
 
   if (error) {
-    return { success: false, error: error.message };
+    return {
+      success: false,
+      error: toUserFacingSupabaseError({
+        action: "LISTINGS:updateContactFormEnabled",
+        error,
+        fallback: "We could not update your contact form setting. Please try again.",
+      }),
+    };
   }
 
   revalidatePath("/dashboard");
@@ -734,7 +792,14 @@ export async function updateClientIntakeEnabled(enabled: boolean): Promise<Actio
     .eq("profile_id", profileId);
 
   if (error) {
-    return { success: false, error: error.message };
+    return {
+      success: false,
+      error: toUserFacingSupabaseError({
+        action: "LISTINGS:updateClientIntakeEnabled",
+        error,
+        fallback: "We could not update your client intake setting. Please try again.",
+      }),
+    };
   }
 
   revalidatePath("/dashboard");
@@ -845,7 +910,14 @@ export async function updateCareersPageSettings(data: {
     .eq("profile_id", profileId);
 
   if (error) {
-    return { success: false, error: error.message };
+    return {
+      success: false,
+      error: toUserFacingSupabaseError({
+        action: "LISTINGS:updateCareersPageSettings",
+        error,
+        fallback: "We could not save your careers page settings. Please try again.",
+      }),
+    };
   }
 
   revalidatePath("/dashboard/careers");
@@ -888,7 +960,14 @@ export async function updateCareersHideBadge(hideBadge: boolean): Promise<Action
     .eq("profile_id", profileId);
 
   if (error) {
-    return { success: false, error: error.message };
+    return {
+      success: false,
+      error: toUserFacingSupabaseError({
+        action: "LISTINGS:updateCareersHideBadge",
+        error,
+        fallback: "We could not update your careers badge setting. Please try again.",
+      }),
+    };
   }
 
   revalidatePath("/dashboard/careers");
@@ -928,7 +1007,8 @@ export async function getListingBySlug(
         website,
         plan_tier,
         subscription_status,
-        intake_form_settings
+        intake_form_settings,
+        is_seeded
       )
     `)
     .eq("slug", slug)
@@ -939,7 +1019,14 @@ export async function getListingBySlug(
     if (listingError.code === "PGRST116") {
       return { success: false, error: "Listing not found" };
     }
-    return { success: false, error: listingError.message };
+    return {
+      success: false,
+      error: toUserFacingSupabaseError({
+        action: "LISTINGS:getListingBySlug",
+        error: listingError,
+        fallback: "We could not load this listing.",
+      }),
+    };
   }
 
   // Parallel fetch: locations, attributes, and photos
@@ -990,7 +1077,12 @@ export async function getListingBySlug(
     plan_tier: string;
     subscription_status: string | null;
     intake_form_settings: { background_color?: string; show_powered_by?: boolean } | null;
+    is_seeded: boolean;
   };
+
+  if (!isPublicProfileVisible(profile)) {
+    return { success: false, error: "Listing not found" };
+  }
 
   const intakeSettings = profile.intake_form_settings || null;
 

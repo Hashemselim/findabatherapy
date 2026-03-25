@@ -98,6 +98,7 @@ async function seedUser() {
     agency_name: config.agencyName,
     contact_email: config.email,
     plan_tier: config.planTier,
+    is_seeded: true,
     billing_interval: "month",
     primary_intent: "both",
     onboarding_completed_at: isReset ? null : new Date().toISOString(),

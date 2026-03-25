@@ -13,6 +13,7 @@ import {
   getCurrentProfileId,
   getUser,
 } from "@/lib/supabase/server";
+import { isPublicProfileVisible } from "@/lib/public-visibility";
 import {
   AGREEMENT_PDF_MAX_SIZE,
   ALLOWED_AGREEMENT_DOCUMENT_TYPES,
@@ -1193,10 +1194,12 @@ export async function getAgreementPacketPublicPageData(
       status,
       profiles!inner (
         agency_name,
+        contact_email,
         website,
         plan_tier,
         subscription_status,
-        intake_form_settings
+        intake_form_settings,
+        is_seeded
       )
     `)
     .eq("slug", providerSlug)
@@ -1209,19 +1212,26 @@ export async function getAgreementPacketPublicPageData(
 
   const profile = unwrapOne(listing.profiles as unknown as {
     agency_name: string;
+    contact_email: string | null;
     website: string | null;
     plan_tier: string;
     subscription_status: string | null;
     intake_form_settings: BrandingSettings | null;
+    is_seeded: boolean;
   } | {
     agency_name: string;
+    contact_email: string | null;
     website: string | null;
     plan_tier: string;
     subscription_status: string | null;
     intake_form_settings: BrandingSettings | null;
+    is_seeded: boolean;
   }[]);
   if (!profile) {
     return { success: false, error: "Provider profile not found" };
+  }
+  if (!isPublicProfileVisible(profile)) {
+    return { success: false, error: "Provider not found" };
   }
 
   const { data: packet } = await adminSupabase

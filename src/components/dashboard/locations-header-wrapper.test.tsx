@@ -26,8 +26,8 @@ describe("LocationsPageContent", () => {
       />
     );
 
-    expect(screen.getByText("Free plan includes up to 3 locations")).toBeInTheDocument();
-    expect(screen.queryByText(/Preview mode/i)).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Add Location" })).toBeInTheDocument();
+    expect(screen.getByText("Free plan includes up to 3 locations")).toBeTruthy();
+    expect(screen.queryByText(/Preview mode/i)).toBeNull();
+    expect(screen.getByRole("button", { name: "Add Location" })).toBeTruthy();
   });
 });

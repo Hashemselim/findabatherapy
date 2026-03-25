@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 
+import { filterPublicProfiles } from "@/lib/public-visibility";
 import { createClient } from "@/lib/supabase/server";
 import { STATE_NAMES } from "@/lib/data/cities";
 import { getBaseUrl } from "@/lib/utils/domains";
@@ -80,11 +81,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Get employers with career pages
   const { data: employers } = await supabase
     .from("listings")
-    .select("slug, updated_at")
+    .select("slug, updated_at, profiles!inner(contact_email, is_seeded)")
     .eq("status", "published")
     .eq("has_career_page", true);
 
-  const employerCareerPages: MetadataRoute.Sitemap = (employers || []).map(
+  const employerCareerPages: MetadataRoute.Sitemap = filterPublicProfiles(
+    employers || [],
+    (employer) =>
+      employer.profiles as {
+        contact_email?: string | null;
+        is_seeded?: boolean | null;
+      }
+  ).map(
     (employer) => ({
       url: `${BASE_URL}/provider/${employer.slug}/careers`,
       lastModified: new Date(employer.updated_at),

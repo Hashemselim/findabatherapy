@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { createClient, getCurrentProfileId } from "@/lib/supabase/server";
+import { toUserFacingSupabaseError } from "@/lib/supabase/user-facing-errors";
 import {
   createJobPostingSchema,
   updateJobPostingSchema,
@@ -168,7 +169,14 @@ export async function getJobPostings(): Promise<ActionResult<JobPostingSummary[]
     .order("created_at", { ascending: false });
 
   if (error) {
-    return { success: false, error: error.message };
+    return {
+      success: false,
+      error: toUserFacingSupabaseError({
+        action: "JOBS:getJobPostings",
+        error,
+        fallback: "We could not load your job postings.",
+      }),
+    };
   }
 
   // Get application counts per job
@@ -247,7 +255,14 @@ export async function getJobPosting(id: string): Promise<ActionResult<JobPosting
     if (error.code === "PGRST116") {
       return { success: false, error: "Job posting not found" };
     }
-    return { success: false, error: error.message };
+    return {
+      success: false,
+      error: toUserFacingSupabaseError({
+        action: "JOBS:getJobPosting",
+        error,
+        fallback: "We could not load this job posting.",
+      }),
+    };
   }
 
   // Get application count
@@ -404,7 +419,14 @@ export async function createJobPosting(data: CreateJobPostingData): Promise<Acti
     .single();
 
   if (insertError) {
-    return { success: false, error: insertError.message };
+    return {
+      success: false,
+      error: toUserFacingSupabaseError({
+        action: "JOBS:createJobPosting",
+        error: insertError,
+        fallback: "We could not create your job posting. Please try again.",
+      }),
+    };
   }
 
   revalidatePath("/dashboard/jobs");
@@ -494,7 +516,14 @@ export async function updateJobPosting(
     .eq("id", id);
 
   if (updateError) {
-    return { success: false, error: updateError.message };
+    return {
+      success: false,
+      error: toUserFacingSupabaseError({
+        action: "JOBS:updateJobPosting",
+        error: updateError,
+        fallback: "We could not save your job posting. Please try again.",
+      }),
+    };
   }
 
   revalidatePath("/dashboard/jobs");
@@ -553,7 +582,14 @@ export async function updateJobStatus(
     .eq("id", id);
 
   if (updateError) {
-    return { success: false, error: updateError.message };
+    return {
+      success: false,
+      error: toUserFacingSupabaseError({
+        action: "JOBS:updateJobStatus",
+        error: updateError,
+        fallback: "We could not update the job status. Please try again.",
+      }),
+    };
   }
 
   revalidatePath("/dashboard/jobs");
@@ -593,7 +629,14 @@ export async function deleteJobPosting(id: string): Promise<ActionResult> {
     .eq("id", id);
 
   if (deleteError) {
-    return { success: false, error: deleteError.message };
+    return {
+      success: false,
+      error: toUserFacingSupabaseError({
+        action: "JOBS:deleteJobPosting",
+        error: deleteError,
+        fallback: "We could not delete the job posting. Please try again.",
+      }),
+    };
   }
 
   revalidatePath("/dashboard/jobs");

@@ -26,6 +26,7 @@ import { createAdminClient } from "@/lib/supabase/server";
 import { POSITION_TYPES, EMPLOYMENT_TYPES, BENEFITS_OPTIONS } from "@/lib/validations/jobs";
 import { generateJobPostingSchema } from "@/lib/seo/job-schemas";
 import type { PlanTier } from "@/lib/plans/features";
+import { isPublicProfileVisible } from "@/lib/public-visibility";
 import { getContrastingTextColor } from "@/lib/utils/brand-color";
 import { getProviderCareersPath } from "@/lib/utils/public-paths";
 
@@ -58,6 +59,7 @@ async function getProviderBySlug(slug: string): Promise<ProviderProfile | null> 
       logo_url
     `)
     .eq("slug", slug)
+    .eq("status", "published")
     .single();
 
   if (listingError || !listing) {
@@ -69,15 +71,21 @@ async function getProviderBySlug(slug: string): Promise<ProviderProfile | null> 
     .select(`
       id,
       agency_name,
+      contact_email,
       website,
       plan_tier,
       subscription_status,
-      intake_form_settings
+      intake_form_settings,
+      is_seeded
     `)
     .eq("id", listing.profile_id)
     .single();
 
   if (profileError || !profile) {
+    return null;
+  }
+
+  if (!isPublicProfileVisible(profile)) {
     return null;
   }
 
