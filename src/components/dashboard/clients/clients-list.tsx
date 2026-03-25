@@ -37,6 +37,7 @@ import {
 interface ClientsListProps {
   initialClients: ClientListItem[];
   initialCounts: ClientCounts;
+  previewMode?: boolean;
 }
 
 function loadCollapsedGroups(): {
@@ -77,7 +78,11 @@ function saveCollapsedGroups(state: Record<ClientStatus, boolean>) {
   }
 }
 
-export function ClientsList({ initialClients, initialCounts }: ClientsListProps) {
+export function ClientsList({
+  initialClients,
+  initialCounts,
+  previewMode = false,
+}: ClientsListProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -233,14 +238,15 @@ export function ClientsList({ initialClients, initialCounts }: ClientsListProps)
           sortKey={sortKey}
           sortDirection={sortDirection}
           onSortChange={handleSortChange}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
+          onEdit={previewMode ? undefined : handleEdit}
+          onDelete={previewMode ? undefined : handleDelete}
           emptyStateTitle={emptyState.title}
           emptyStateDescription={emptyState.description}
+          previewMode={previewMode}
         />
       </div>
 
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+      <AlertDialog open={!previewMode && deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Client</AlertDialogTitle>

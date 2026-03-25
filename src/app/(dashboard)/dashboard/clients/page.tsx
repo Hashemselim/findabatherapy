@@ -5,7 +5,6 @@ import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
 import { PreviewBanner, LockedButton } from "@/components/ui/preview-banner";
-import { PreviewOverlay } from "@/components/ui/preview-overlay";
 import { getUser } from "@/lib/supabase/server";
 import { getClients } from "@/lib/actions/clients";
 import { getCurrentPlanTier } from "@/lib/plans/guards";
@@ -85,14 +84,13 @@ export default async function ClientsPage() {
           </Button>
         )}
       </DashboardPageHeader>
-      <PreviewOverlay isPreview={isPreview}>
-        <DashboardCard className="p-5 sm:p-6">
-          <ClientsList
-            initialClients={clients}
-            initialCounts={counts}
-          />
-        </DashboardCard>
-      </PreviewOverlay>
+      <DashboardCard className="p-5 sm:p-6">
+        <ClientsList
+          initialClients={clients}
+          initialCounts={counts}
+          previewMode={isPreview}
+        />
+      </DashboardCard>
     </div>
   );
 }

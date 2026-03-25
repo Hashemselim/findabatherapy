@@ -60,16 +60,19 @@ interface ClientsTableProps {
   onDelete?: (clientId: string) => void;
   emptyStateTitle: string;
   emptyStateDescription: string;
+  previewMode?: boolean;
 }
 
 function ContactCell({
   name,
   phone,
   email,
+  interactive = true,
 }: {
   name: string | null;
   phone: string | null;
   email: string | null;
+  interactive?: boolean;
 }) {
   const [copiedPhone, setCopiedPhone] = useState(false);
   const [copiedEmail, setCopiedEmail] = useState(false);
@@ -97,84 +100,102 @@ function ContactCell({
         <div className="flex items-center gap-2">
           {phone && (
             <div className="group/btn inline-flex items-center gap-1">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      window.location.href = `tel:${phone}`;
-                    }}
-                    className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
-                  >
-                    <Phone className="h-3 w-3" />
-                    <span className="tabular-nums">{phone}</span>
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent side="bottom" className="text-xs">
-                  Click to call
-                </TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    type="button"
-                    onClick={(e) => handleCopy(phone, "phone", e)}
-                    className="ml-0.5 rounded p-0.5 opacity-0 transition-opacity group-hover/btn:opacity-100 hover:bg-muted focus-visible:opacity-100"
-                    aria-label="Copy phone number"
-                  >
-                    {copiedPhone ? (
-                      <Check className="h-3 w-3 text-primary" />
-                    ) : (
-                      <Copy className="h-3 w-3" />
-                    )}
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent side="bottom" className="text-xs">
-                  Copy phone
-                </TooltipContent>
-              </Tooltip>
+              {interactive ? (
+                <>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          window.location.href = `tel:${phone}`;
+                        }}
+                        className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
+                      >
+                        <Phone className="h-3 w-3" />
+                        <span className="tabular-nums">{phone}</span>
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="text-xs">
+                      Click to call
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        onClick={(e) => handleCopy(phone, "phone", e)}
+                        className="ml-0.5 rounded p-0.5 opacity-0 transition-opacity group-hover/btn:opacity-100 hover:bg-muted focus-visible:opacity-100"
+                        aria-label="Copy phone number"
+                      >
+                        {copiedPhone ? (
+                          <Check className="h-3 w-3 text-primary" />
+                        ) : (
+                          <Copy className="h-3 w-3" />
+                        )}
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="text-xs">
+                      Copy phone
+                    </TooltipContent>
+                  </Tooltip>
+                </>
+              ) : (
+                <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                  <Phone className="h-3 w-3" />
+                  <span className="tabular-nums">{phone}</span>
+                </span>
+              )}
             </div>
           )}
           {email && (
             <div className="group/btn inline-flex items-center gap-1">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      window.location.href = `mailto:${email}`;
-                    }}
-                    className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
-                  >
-                    <Mail className="h-3 w-3" />
-                    <span className="max-w-[140px] truncate">{email}</span>
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent side="bottom" className="text-xs">
-                  Click to email
-                </TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    type="button"
-                    onClick={(e) => handleCopy(email, "email", e)}
-                    className="ml-0.5 rounded p-0.5 opacity-0 transition-opacity group-hover/btn:opacity-100 hover:bg-muted focus-visible:opacity-100"
-                    aria-label="Copy email"
-                  >
-                    {copiedEmail ? (
-                      <Check className="h-3 w-3 text-primary" />
-                    ) : (
-                      <Copy className="h-3 w-3" />
-                    )}
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent side="bottom" className="text-xs">
-                  Copy email
-                </TooltipContent>
-              </Tooltip>
+              {interactive ? (
+                <>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          window.location.href = `mailto:${email}`;
+                        }}
+                        className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
+                      >
+                        <Mail className="h-3 w-3" />
+                        <span className="max-w-[140px] truncate">{email}</span>
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="text-xs">
+                      Click to email
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        onClick={(e) => handleCopy(email, "email", e)}
+                        className="ml-0.5 rounded p-0.5 opacity-0 transition-opacity group-hover/btn:opacity-100 hover:bg-muted focus-visible:opacity-100"
+                        aria-label="Copy email"
+                      >
+                        {copiedEmail ? (
+                          <Check className="h-3 w-3 text-primary" />
+                        ) : (
+                          <Copy className="h-3 w-3" />
+                        )}
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="text-xs">
+                      Copy email
+                    </TooltipContent>
+                  </Tooltip>
+                </>
+              ) : (
+                <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                  <Mail className="h-3 w-3" />
+                  <span className="max-w-[140px] truncate">{email}</span>
+                </span>
+              )}
             </div>
           )}
         </div>
@@ -194,6 +215,7 @@ export function ClientsTable({
   onDelete,
   emptyStateTitle,
   emptyStateDescription,
+  previewMode = false,
 }: ClientsTableProps) {
   const router = useRouter();
 
@@ -334,6 +356,7 @@ export function ClientsTable({
                             name={client.primary_parent_name}
                             phone={client.primary_parent_phone}
                             email={client.primary_parent_email}
+                            interactive={!previewMode}
                           />
                         </DashboardTableCell>
                         <DashboardTableCell className="hidden px-5 py-4 lg:table-cell">
@@ -357,46 +380,48 @@ export function ClientsTable({
                         </DashboardTableCell>
                         <DashboardTableCell className="px-3 py-4">
                           <div className="flex items-center justify-end gap-1">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 opacity-0 transition-opacity group-hover:opacity-100"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="w-[160px]">
-                                {onEdit && (
-                                  <DropdownMenuItem
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      onEdit(client.id);
-                                    }}
+                            {!previewMode && (
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 opacity-0 transition-opacity group-hover:opacity-100"
+                                    onClick={(e) => e.stopPropagation()}
                                   >
-                                    <Pencil className="mr-2 h-4 w-4" />
-                                    Edit
-                                  </DropdownMenuItem>
-                                )}
-                                {onDelete && (
-                                  <>
-                                    <DropdownMenuSeparator />
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-[160px]">
+                                  {onEdit && (
                                     <DropdownMenuItem
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        onDelete(client.id);
+                                        onEdit(client.id);
                                       }}
-                                      className="text-destructive focus:text-destructive"
                                     >
-                                      <Trash2 className="mr-2 h-4 w-4" />
-                                      Delete
+                                      <Pencil className="mr-2 h-4 w-4" />
+                                      Edit
                                     </DropdownMenuItem>
-                                  </>
-                                )}
-                              </DropdownMenuContent>
-                            </DropdownMenu>
+                                  )}
+                                  {onDelete && (
+                                    <>
+                                      <DropdownMenuSeparator />
+                                      <DropdownMenuItem
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          onDelete(client.id);
+                                        }}
+                                        className="text-destructive focus:text-destructive"
+                                      >
+                                        <Trash2 className="mr-2 h-4 w-4" />
+                                        Delete
+                                      </DropdownMenuItem>
+                                    </>
+                                  )}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            )}
                             <ChevronRight className="h-4 w-4 text-muted-foreground/40 transition-colors group-hover:text-muted-foreground" />
                           </div>
                         </DashboardTableCell>

@@ -52,12 +52,25 @@ interface ClientDetailPanelProps {
   client: ClientDetailType | null;
   onBack?: () => void;
   showBackButton?: boolean;
+  previewMode?: boolean;
 }
 
-function CopyButton({ value, label }: { value: string; label: string }) {
+function CopyButton({
+  value,
+  label,
+  disabled = false,
+}: {
+  value: string;
+  label: string;
+  disabled?: boolean;
+}) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
+    if (disabled) {
+      return;
+    }
+
     await navigator.clipboard.writeText(value);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -70,8 +83,9 @@ function CopyButton({ value, label }: { value: string; label: string }) {
           <Button
             variant="ghost"
             size="icon"
-            className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+            className="h-6 w-6 opacity-0 transition-opacity group-hover:opacity-100"
             onClick={handleCopy}
+            disabled={disabled}
           >
             {copied ? (
               <Check className="h-3.5 w-3.5 text-primary" />
@@ -81,7 +95,7 @@ function CopyButton({ value, label }: { value: string; label: string }) {
           </Button>
         </TooltipTrigger>
         <TooltipContent>
-          <p>{copied ? "Copied!" : `Copy ${label}`}</p>
+          <p>{disabled ? "Available on paid plans" : copied ? "Copied!" : `Copy ${label}`}</p>
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
@@ -92,10 +106,12 @@ function FieldRow({
   label,
   value,
   copyable = false,
+  previewMode = false,
 }: {
   label: string;
   value: string | null | undefined;
   copyable?: boolean;
+  previewMode?: boolean;
 }) {
   if (!value) return null;
 
@@ -104,7 +120,9 @@ function FieldRow({
       <span className="text-xs sm:text-sm text-muted-foreground shrink-0">{label}</span>
       <div className="flex items-center gap-1">
         <span className="text-sm wrap-break-word sm:text-right">{value}</span>
-        {copyable && <CopyButton value={value} label={label.toLowerCase()} />}
+        {copyable && (
+          <CopyButton value={value} label={label.toLowerCase()} disabled={previewMode} />
+        )}
       </div>
     </div>
   );
@@ -131,6 +149,7 @@ export function ClientDetailPanel({
   client,
   onBack,
   showBackButton,
+  previewMode = false,
 }: ClientDetailPanelProps) {
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
     child: true,
@@ -188,12 +207,14 @@ export function ClientDetailPanel({
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             <ClientStatusBadge status={client.status} />
-            <Button variant="outline" size="sm" className="shrink-0" asChild>
-              <Link href={`/dashboard/clients/${client.id}`}>
-                <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
-                Full View
-              </Link>
-            </Button>
+            {!previewMode && (
+              <Button variant="outline" size="sm" className="shrink-0" asChild>
+                <Link href={`/dashboard/clients/${client.id}`}>
+                  <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
+                  Full View
+                </Link>
+              </Button>
+            )}
           </div>
         </div>
 
@@ -205,12 +226,19 @@ export function ClientDetailPanel({
                 {[primaryParent.first_name, primaryParent.last_name].filter(Boolean).join(" ")}
               </span>
             ) : null}
-            <ClientQuickActions
-              phone={primaryParent.phone}
-              email={primaryParent.email}
-              size="default"
-            />
+            {!previewMode && (
+              <ClientQuickActions
+                phone={primaryParent.phone}
+                email={primaryParent.email}
+                size="default"
+              />
+            )}
           </div>
+        )}
+        {previewMode && (
+          <p className="text-xs text-muted-foreground">
+            Preview only. Go Live to contact families, copy details, open links, and manage tasks.
+          </p>
         )}
       </CardHeader>
 
@@ -231,7 +259,7 @@ export function ClientDetailPanel({
           </CollapsibleTrigger>
           <CollapsibleContent>
             <div className="rounded-lg border p-2 sm:p-3 mt-2 space-y-1">
-              <FieldRow label="Name" value={displayName} copyable />
+              <FieldRow label="Name" value={displayName} copyable previewMode={previewMode} />
               <FieldRow
                 label="Date of Birth"
                 value={
@@ -239,16 +267,17 @@ export function ClientDetailPanel({
                     ? format(new Date(client.child_date_of_birth), "MMMM d, yyyy")
                     : null
                 }
+                previewMode={previewMode}
               />
-              <FieldRow label="Age" value={age !== null ? `${age} years` : null} />
+              <FieldRow label="Age" value={age !== null ? `${age} years` : null} previewMode={previewMode} />
               {client.child_diagnosis && client.child_diagnosis.length > 0 && (
-                <FieldRow label="Diagnosis" value={client.child_diagnosis.join(", ")} />
+                <FieldRow label="Diagnosis" value={client.child_diagnosis.join(", ")} previewMode={previewMode} />
               )}
-              <FieldRow label="School" value={client.child_school_name} />
-              <FieldRow label="Grade" value={client.child_grade_level} />
-              <FieldRow label="District" value={client.child_school_district} />
-              <FieldRow label="Pediatrician" value={client.child_pediatrician_name} />
-              <FieldRow label="Pediatrician Phone" value={client.child_pediatrician_phone} copyable />
+              <FieldRow label="School" value={client.child_school_name} previewMode={previewMode} />
+              <FieldRow label="Grade" value={client.child_grade_level} previewMode={previewMode} />
+              <FieldRow label="District" value={client.child_school_district} previewMode={previewMode} />
+              <FieldRow label="Pediatrician" value={client.child_pediatrician_name} previewMode={previewMode} />
+              <FieldRow label="Pediatrician Phone" value={client.child_pediatrician_phone} copyable previewMode={previewMode} />
               {client.child_primary_concerns && (
                 <div className="pt-2">
                   <p className="text-sm text-muted-foreground mb-1">Primary Concerns</p>
@@ -299,11 +328,13 @@ export function ClientDetailPanel({
                             <p className="text-sm text-muted-foreground">{relationshipLabel}</p>
                           )}
                         </div>
-                        <ClientQuickActions phone={parent.phone} email={parent.email} />
+                        {!previewMode && (
+                          <ClientQuickActions phone={parent.phone} email={parent.email} />
+                        )}
                       </div>
                       <div className="mt-2 space-y-1">
-                        <FieldRow label="Phone" value={parent.phone} copyable />
-                        <FieldRow label="Email" value={parent.email} copyable />
+                        <FieldRow label="Phone" value={parent.phone} copyable previewMode={previewMode} />
+                        <FieldRow label="Email" value={parent.email} copyable previewMode={previewMode} />
                       </div>
                     </div>
                   );
@@ -353,9 +384,9 @@ export function ClientDetailPanel({
                         </div>
                       </div>
                       <div className="mt-2 space-y-1">
-                        <FieldRow label="Member ID" value={insurance.member_id} copyable />
-                        <FieldRow label="Group #" value={insurance.group_number} copyable />
-                        <FieldRow label="Plan" value={insurance.plan_name} />
+                        <FieldRow label="Member ID" value={insurance.member_id} copyable previewMode={previewMode} />
+                        <FieldRow label="Group #" value={insurance.group_number} copyable previewMode={previewMode} />
+                        <FieldRow label="Plan" value={insurance.plan_name} previewMode={previewMode} />
                         <FieldRow
                           label="Effective"
                           value={
@@ -363,6 +394,7 @@ export function ClientDetailPanel({
                               ? format(new Date(insurance.effective_date), "MM/dd/yyyy")
                               : null
                           }
+                          previewMode={previewMode}
                         />
                         <FieldRow
                           label="Expires"
@@ -371,12 +403,14 @@ export function ClientDetailPanel({
                               ? format(new Date(insurance.expiration_date), "MM/dd/yyyy")
                               : null
                           }
+                          previewMode={previewMode}
                         />
                         {(insurance.copay_amount || insurance.coinsurance_percentage) && (
                           <>
                             <FieldRow
                               label="Copay"
                               value={insurance.copay_amount ? `$${insurance.copay_amount}` : null}
+                              previewMode={previewMode}
                             />
                             <FieldRow
                               label="Coinsurance"
@@ -385,6 +419,7 @@ export function ClientDetailPanel({
                                   ? `${insurance.coinsurance_percentage}%`
                                   : null
                               }
+                              previewMode={previewMode}
                             />
                           </>
                         )}
@@ -439,8 +474,8 @@ export function ClientDetailPanel({
                         )}
                       </div>
                       <div className="mt-2 space-y-1">
-                        <FieldRow label="Auth #" value={auth.auth_reference_number} copyable />
-                        <FieldRow label="Billing Code" value={auth.billing_code} />
+                        <FieldRow label="Auth #" value={auth.auth_reference_number} copyable previewMode={previewMode} />
+                        <FieldRow label="Billing Code" value={auth.billing_code} previewMode={previewMode} />
                         <FieldRow
                           label="Units"
                           value={
@@ -448,6 +483,7 @@ export function ClientDetailPanel({
                               ? `${auth.units_used || 0} / ${auth.units_requested}`
                               : null
                           }
+                          previewMode={previewMode}
                         />
                         <FieldRow
                           label="Period"
@@ -459,6 +495,7 @@ export function ClientDetailPanel({
                                 )}`
                               : null
                           }
+                          previewMode={previewMode}
                         />
                       </div>
                     </div>
@@ -528,14 +565,16 @@ export function ClientDetailPanel({
                 {openSections.tasks ? "Hide" : "Show"}
               </span>
             </CollapsibleTrigger>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 w-8 sm:h-7 sm:w-auto sm:px-2 shrink-0"
-              onClick={() => setTaskDialogOpen(true)}
-            >
-              <Plus className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
-            </Button>
+            {!previewMode && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 sm:h-7 sm:w-auto sm:px-2 shrink-0"
+                onClick={() => setTaskDialogOpen(true)}
+              >
+                <Plus className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
+              </Button>
+            )}
           </div>
           <CollapsibleContent>
             <div className="space-y-2 mt-2">
@@ -593,11 +632,17 @@ export function ClientDetailPanel({
                         )}
                       </div>
                       {doc.url && (
-                        <Button variant="ghost" size="sm" asChild>
-                          <a href={doc.url} target="_blank" rel="noopener noreferrer">
+                        previewMode ? (
+                          <Button variant="ghost" size="sm" disabled>
                             <ExternalLink className="h-3.5 w-3.5" />
-                          </a>
-                        </Button>
+                          </Button>
+                        ) : (
+                          <Button variant="ghost" size="sm" asChild>
+                            <a href={doc.url} target="_blank" rel="noopener noreferrer">
+                              <ExternalLink className="h-3.5 w-3.5" />
+                            </a>
+                          </Button>
+                        )
                       )}
                     </div>
                   </div>
@@ -629,12 +674,14 @@ export function ClientDetailPanel({
       </CardContent>
 
       {/* Task form dialog */}
-      <TaskFormDialog
-        open={taskDialogOpen}
-        onOpenChange={setTaskDialogOpen}
-        clientId={client.id}
-        clientName={displayName}
-      />
+      {!previewMode && (
+        <TaskFormDialog
+          open={taskDialogOpen}
+          onOpenChange={setTaskDialogOpen}
+          clientId={client.id}
+          clientName={displayName}
+        />
+      )}
     </Card>
   );
 }
