@@ -6,6 +6,8 @@ import { createClient, getCurrentProfileId } from "@/lib/supabase/server";
 import { toUserFacingSupabaseError } from "@/lib/supabase/user-facing-errors";
 import { isPublicProfileVisible } from "@/lib/public-visibility";
 import { STORAGE_BUCKETS } from "@/lib/storage/config";
+import { isConvexDataEnabled } from "@/lib/platform/config";
+import { queryConvex, mutateConvex } from "@/lib/platform/convex/server";
 
 type ActionResult<T = void> =
   | { success: true; data?: T }
@@ -83,6 +85,15 @@ export interface ListingWithRelations extends ListingData {
  * Get just the listing slug for the current user (lightweight query for nav)
  */
 export async function getListingSlug(): Promise<string | null> {
+  if (isConvexDataEnabled()) {
+    try {
+      const result = await queryConvex<string | null>("listings:getCurrentListingSlug", {});
+      return result;
+    } catch {
+      return null;
+    }
+  }
+
   const profileId = await getCurrentProfileId();
   if (!profileId) return null;
 
@@ -100,6 +111,18 @@ export async function getListingSlug(): Promise<string | null> {
  * Get listing for the current user's dashboard
  */
 export async function getListing(): Promise<ActionResult<ListingWithRelations>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const result = await queryConvex<ListingWithRelations | null>("listings:getDashboardListing", {});
+      if (!result) {
+        return { success: false, error: "No listing found" };
+      }
+      return { success: true, data: result };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to load listing" };
+    }
+  }
+
   const profileId = await getCurrentProfileId();
   if (!profileId) {
     return { success: false, error: "Not authenticated" };
@@ -260,6 +283,17 @@ export async function updateListing(data: {
   serviceModes?: string[];
   isAcceptingClients?: boolean;
 }): Promise<ActionResult> {
+  if (isConvexDataEnabled()) {
+    try {
+      await mutateConvex("listings:updateDashboardListing", data);
+      revalidatePath("/dashboard");
+      revalidatePath("/dashboard/company");
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to update listing" };
+    }
+  }
+
   const profileId = await getCurrentProfileId();
   if (!profileId) {
     return { success: false, error: "Not authenticated" };
@@ -313,6 +347,17 @@ function generateSlug(agencyName: string): string {
  * Update company/agency name in profile and listing slug
  */
 export async function updateAgencyName(agencyName: string): Promise<ActionResult<{ newSlug: string }>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const result = await mutateConvex<{ newSlug: string }>("listings:updateAgencyName", { agencyName });
+      revalidatePath("/dashboard");
+      revalidatePath("/dashboard/company");
+      return { success: true, data: result };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to update agency name" };
+    }
+  }
+
   const profileId = await getCurrentProfileId();
   if (!profileId) {
     return { success: false, error: "Not authenticated" };
@@ -396,6 +441,17 @@ export async function updateAgencyName(agencyName: string): Promise<ActionResult
 export async function updateListingStatus(
   status: "draft" | "published" | "suspended"
 ): Promise<ActionResult> {
+  if (isConvexDataEnabled()) {
+    try {
+      await mutateConvex("listings:updateListingStatus", { status });
+      revalidatePath("/dashboard");
+      revalidatePath("/dashboard/company");
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to update listing status" };
+    }
+  }
+
   const profileId = await getCurrentProfileId();
   if (!profileId) {
     return { success: false, error: "Not authenticated" };
@@ -467,6 +523,15 @@ export async function unpublishListing(): Promise<ActionResult> {
  * Falls back to primary location data for insurances if not set in attributes
  */
 export async function getListingAttributes(): Promise<ActionResult<Record<string, unknown>>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const result = await queryConvex<Record<string, unknown>>("listings:getListingAttributes", {});
+      return { success: true, data: result };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to load listing attributes" };
+    }
+  }
+
   const profileId = await getCurrentProfileId();
   if (!profileId) {
     return { success: false, error: "Not authenticated" };
@@ -532,6 +597,17 @@ export async function updateListingAttributes(data: {
   clinicalSpecialties?: string[];
   isAcceptingClients?: boolean;
 }): Promise<ActionResult> {
+  if (isConvexDataEnabled()) {
+    try {
+      await mutateConvex("listings:updateListingAttributes", data);
+      revalidatePath("/dashboard");
+      revalidatePath("/dashboard/company");
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to update listing attributes" };
+    }
+  }
+
   const profileId = await getCurrentProfileId();
   if (!profileId) {
     return { success: false, error: "Not authenticated" };
@@ -659,6 +735,22 @@ export async function updateCompanyContact(data: {
   contactPhone?: string;
   website?: string;
 }): Promise<ActionResult> {
+  if (isConvexDataEnabled()) {
+    try {
+      await mutateConvex("listings:updateCompanyContact", {
+        contactEmail: data.contactEmail,
+        contactPhone: data.contactPhone,
+        website: data.website,
+      });
+      revalidatePath("/dashboard");
+      revalidatePath("/dashboard/company");
+      revalidatePath("/dashboard/locations");
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to update company contact" };
+    }
+  }
+
   const profileId = await getCurrentProfileId();
   if (!profileId) {
     return { success: false, error: "Not authenticated" };
@@ -697,6 +789,17 @@ export async function updateCompanyContact(data: {
  * Update contact form enabled setting
  */
 export async function updateContactFormEnabled(enabled: boolean): Promise<ActionResult> {
+  if (isConvexDataEnabled()) {
+    try {
+      await mutateConvex("listings:updateContactFormEnabled", { enabled });
+      revalidatePath("/dashboard");
+      revalidatePath("/dashboard/company");
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to update contact form setting" };
+    }
+  }
+
   const profileId = await getCurrentProfileId();
   if (!profileId) {
     return { success: false, error: "Not authenticated" };
@@ -756,6 +859,17 @@ export async function updateContactFormEnabled(enabled: boolean): Promise<Action
  * This controls whether the full client intake form at /intake/[slug]/client is accessible
  */
 export async function updateClientIntakeEnabled(enabled: boolean): Promise<ActionResult> {
+  if (isConvexDataEnabled()) {
+    try {
+      await mutateConvex("listings:updateClientIntakeEnabled", { enabled });
+      revalidatePath("/dashboard");
+      revalidatePath("/dashboard/forms");
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to update client intake setting" };
+    }
+  }
+
   const profileId = await getCurrentProfileId();
   if (!profileId) {
     return { success: false, error: "Not authenticated" };
@@ -811,6 +925,15 @@ export async function updateClientIntakeEnabled(enabled: boolean): Promise<Actio
  * Get client intake enabled status for the current user
  */
 export async function getClientIntakeEnabled(): Promise<ActionResult<boolean>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const result = await queryConvex<boolean>("listings:getClientIntakeEnabled", {});
+      return { success: true, data: result };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to load client intake setting" };
+    }
+  }
+
   const profileId = await getCurrentProfileId();
   if (!profileId) {
     return { success: false, error: "Not authenticated" };
@@ -840,6 +963,20 @@ export async function getCareersPageSettings(): Promise<ActionResult<{
   ctaText: string;
   hideBadge: boolean;
 }>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const result = await queryConvex<{
+        brandColor: string;
+        headline: string | null;
+        ctaText: string;
+        hideBadge: boolean;
+      }>("listings:getCareersPageSettings", {});
+      return { success: true, data: result };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to load careers page settings" };
+    }
+  }
+
   const profileId = await getCurrentProfileId();
   if (!profileId) {
     return { success: false, error: "Not authenticated" };
@@ -876,6 +1013,16 @@ export async function updateCareersPageSettings(data: {
   headline?: string;
   ctaText?: string;
 }): Promise<ActionResult> {
+  if (isConvexDataEnabled()) {
+    try {
+      await mutateConvex("listings:updateCareersPageSettings", data);
+      revalidatePath("/dashboard/careers");
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to update careers page settings" };
+    }
+  }
+
   const profileId = await getCurrentProfileId();
   if (!profileId) {
     return { success: false, error: "Not authenticated" };
@@ -928,6 +1075,16 @@ export async function updateCareersPageSettings(data: {
  * Toggle careers page badge visibility (Pro+ feature)
  */
 export async function updateCareersHideBadge(hideBadge: boolean): Promise<ActionResult> {
+  if (isConvexDataEnabled()) {
+    try {
+      await mutateConvex("listings:updateCareersHideBadge", { hideBadge });
+      revalidatePath("/dashboard/careers");
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to update careers badge setting" };
+    }
+  }
+
   const profileId = await getCurrentProfileId();
   if (!profileId) {
     return { success: false, error: "Not authenticated" };
@@ -981,6 +1138,18 @@ export async function updateCareersHideBadge(hideBadge: boolean): Promise<Action
 export async function getListingBySlug(
   slug: string
 ): Promise<ActionResult<ListingWithRelations>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const result = await queryConvex<ListingWithRelations | null>("listings:getPublicListingBySlug", { slug });
+      if (!result) {
+        return { success: false, error: "Listing not found" };
+      }
+      return { success: true, data: result };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to load listing" };
+    }
+  }
+
   const supabase = await createClient();
 
   // First, get the listing (required to get listing.id for subsequent queries)

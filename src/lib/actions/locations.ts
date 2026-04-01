@@ -8,6 +8,8 @@ import { geocodeAddress } from "@/lib/geo/geocode";
 import { stripe } from "@/lib/stripe";
 import { getEffectivePlanTier } from "@/lib/plans/features";
 import { getEffectiveLimits } from "@/lib/actions/addons";
+import { isConvexDataEnabled } from "@/lib/platform/config";
+import { queryConvex, mutateConvex } from "@/lib/platform/convex/server";
 
 type ActionResult<T = void> =
   | { success: true; data?: T }
@@ -60,6 +62,15 @@ const LOCATION_LIMITS: Record<string, number> = {
  * Get all locations for the current user's listing
  */
 export async function getLocations(): Promise<ActionResult<LocationData[]>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const locations = await queryConvex<LocationData[]>("locations:getDashboardLocations");
+      return { success: true, data: locations };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to load locations" };
+    }
+  }
+
   const profileId = await getCurrentProfileId();
   if (!profileId) {
     return { success: false, error: "Not authenticated" };
@@ -180,6 +191,33 @@ export async function addLocation(data: {
   contactWebsite?: string;
   useCompanyContact?: boolean;
 }): Promise<ActionResult<{ id: string; geocoded: boolean }>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const result = await mutateConvex<{ id: string; geocoded: boolean }>("locations:addLocation", {
+        label: data.label,
+        street: data.street,
+        city: data.city,
+        state: data.state,
+        postalCode: data.postalCode,
+        latitude: data.latitude,
+        longitude: data.longitude,
+        serviceRadiusMiles: data.serviceRadiusMiles,
+        serviceTypes: data.serviceTypes,
+        insurances: data.insurances,
+        isAcceptingClients: data.isAcceptingClients,
+        contactPhone: data.contactPhone,
+        contactEmail: data.contactEmail,
+        contactWebsite: data.contactWebsite,
+        useCompanyContact: data.useCompanyContact,
+      });
+      revalidatePath("/dashboard");
+      revalidatePath("/dashboard/company");
+      return { success: true, data: result };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to add location" };
+    }
+  }
+
   const profileId = await getCurrentProfileId();
   if (!profileId) {
     return { success: false, error: "Not authenticated" };
@@ -336,6 +374,34 @@ export async function updateLocation(
     useCompanyContact?: boolean;
   }
 ): Promise<ActionResult<{ geocoded: boolean }>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const result = await mutateConvex<{ geocoded: boolean }>("locations:updateLocation", {
+        locationId,
+        label: data.label,
+        street: data.street,
+        city: data.city,
+        state: data.state,
+        postalCode: data.postalCode,
+        latitude: data.latitude,
+        longitude: data.longitude,
+        serviceRadiusMiles: data.serviceRadiusMiles,
+        serviceTypes: data.serviceTypes,
+        insurances: data.insurances,
+        isAcceptingClients: data.isAcceptingClients,
+        contactPhone: data.contactPhone,
+        contactEmail: data.contactEmail,
+        contactWebsite: data.contactWebsite,
+        useCompanyContact: data.useCompanyContact,
+      });
+      revalidatePath("/dashboard");
+      revalidatePath("/dashboard/company");
+      return { success: true, data: result };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to update location" };
+    }
+  }
+
   const profileId = await getCurrentProfileId();
   if (!profileId) {
     return { success: false, error: "Not authenticated" };
@@ -450,6 +516,18 @@ export async function updateLocation(
  * Delete a location
  */
 export async function deleteLocation(locationId: string): Promise<ActionResult> {
+  if (isConvexDataEnabled()) {
+    try {
+      await mutateConvex("locations:deleteLocation", { locationId });
+      revalidatePath("/dashboard");
+      revalidatePath("/dashboard/company");
+      revalidatePath("/dashboard/locations");
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to delete location" };
+    }
+  }
+
   const profileId = await getCurrentProfileId();
   if (!profileId) {
     return { success: false, error: "Not authenticated" };
@@ -544,6 +622,17 @@ export async function deleteLocation(locationId: string): Promise<ActionResult> 
  * Set a location as the primary location
  */
 export async function setPrimaryLocation(locationId: string): Promise<ActionResult> {
+  if (isConvexDataEnabled()) {
+    try {
+      await mutateConvex("locations:setPrimaryLocation", { locationId });
+      revalidatePath("/dashboard");
+      revalidatePath("/dashboard/company");
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to set primary location" };
+    }
+  }
+
   const profileId = await getCurrentProfileId();
   if (!profileId) {
     return { success: false, error: "Not authenticated" };
@@ -599,6 +688,15 @@ export async function setPrimaryLocation(locationId: string): Promise<ActionResu
  * Get location limit for the current user's plan
  */
 export async function getLocationLimit(): Promise<ActionResult<{ limit: number; current: number }>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const result = await queryConvex<{ limit: number; current: number }>("locations:getLocationLimit");
+      return { success: true, data: result };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to get location limit" };
+    }
+  }
+
   const profileId = await getCurrentProfileId();
   if (!profileId) {
     return { success: false, error: "Not authenticated" };

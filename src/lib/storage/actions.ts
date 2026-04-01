@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 
 import { createClient, getCurrentProfileId } from "@/lib/supabase/server";
+import { isConvexDataEnabled } from "@/lib/platform/config";
+import { queryConvex, mutateConvex, uploadFileToConvexStorage } from "@/lib/platform/convex/server";
 import {
   STORAGE_BUCKETS,
   PHOTO_LIMITS,
@@ -84,6 +86,17 @@ export async function uploadLogo(
     return { success: false, error: "File too large. Maximum size is 2MB." };
   }
 
+  if (isConvexDataEnabled()) {
+    const storageId = await uploadFileToConvexStorage(file);
+    const result = await mutateConvex<{ url: string }>(
+      "files:saveListingLogo",
+      { storageId, filename: file.name, mimeType: file.type, byteSize: file.size }
+    );
+    revalidatePath("/dashboard/company");
+    revalidatePath("/dashboard/branding");
+    return { success: true, data: { url: result.url } };
+  }
+
   const supabase = await createClient();
 
   // Get listing
@@ -161,6 +174,13 @@ export async function uploadLogo(
  * Delete the logo for a listing
  */
 export async function deleteLogo(): Promise<ActionResult> {
+  if (isConvexDataEnabled()) {
+    await mutateConvex("files:deleteListingLogo", {});
+    revalidatePath("/dashboard/company");
+    revalidatePath("/dashboard/branding");
+    return { success: true };
+  }
+
   const profileId = await getCurrentProfileId();
   if (!profileId) {
     return { success: false, error: "Not authenticated" };
@@ -225,6 +245,13 @@ export async function deleteLogo(): Promise<ActionResult> {
 export async function getPhotos(): Promise<
   ActionResult<{ photos: Array<{ id: string; url: string; order: number }> }>
 > {
+  if (isConvexDataEnabled()) {
+    const result = await queryConvex<{
+      photos: Array<{ id: string; url: string; order: number }>;
+    }>("files:getListingPhotos");
+    return { success: true, data: { photos: result.photos } };
+  }
+
   const profileId = await getCurrentProfileId();
   if (!profileId) {
     return { success: false, error: "Not authenticated" };
@@ -295,6 +322,16 @@ export async function uploadPhoto(
   // Validate file size
   if (!isValidFileSize(file.size, "photo")) {
     return { success: false, error: "File too large. Maximum size is 5MB." };
+  }
+
+  if (isConvexDataEnabled()) {
+    const storageId = await uploadFileToConvexStorage(file);
+    const result = await mutateConvex<{ id: string; url: string }>(
+      "files:saveListingPhoto",
+      { storageId, filename: file.name, mimeType: file.type, byteSize: file.size }
+    );
+    revalidatePath("/dashboard/company");
+    return { success: true, data: { id: result.id, url: result.url } };
   }
 
   const supabase = await createClient();
@@ -380,6 +417,12 @@ export async function uploadPhoto(
  * Delete a photo from the gallery
  */
 export async function deletePhoto(photoId: string): Promise<ActionResult> {
+  if (isConvexDataEnabled()) {
+    await mutateConvex("files:deleteListingPhoto", { fileId: photoId });
+    revalidatePath("/dashboard/company");
+    return { success: true };
+  }
+
   const profileId = await getCurrentProfileId();
   if (!profileId) {
     return { success: false, error: "Not authenticated" };
@@ -433,6 +476,12 @@ export async function deletePhoto(photoId: string): Promise<ActionResult> {
 export async function reorderPhotos(
   photoIds: string[]
 ): Promise<ActionResult> {
+  if (isConvexDataEnabled()) {
+    await mutateConvex("files:reorderListingPhotos", { fileIds: photoIds });
+    revalidatePath("/dashboard/company");
+    return { success: true };
+  }
+
   const profileId = await getCurrentProfileId();
   if (!profileId) {
     return { success: false, error: "Not authenticated" };
@@ -472,6 +521,12 @@ export async function reorderPhotos(
 export async function updateVideoUrl(
   videoUrl: string | null
 ): Promise<ActionResult> {
+  if (isConvexDataEnabled()) {
+    await mutateConvex("files:updateListingVideoUrl", { videoUrl });
+    revalidatePath("/dashboard/company");
+    return { success: true };
+  }
+
   const profileId = await getCurrentProfileId();
   if (!profileId) {
     return { success: false, error: "Not authenticated" };
@@ -532,6 +587,13 @@ export async function updateVideoUrl(
  * Get current video URL for a listing
  */
 export async function getVideoUrl(): Promise<ActionResult<{ url: string | null }>> {
+  if (isConvexDataEnabled()) {
+    const result = await queryConvex<{ url: string | null }>(
+      "files:getListingVideoUrl"
+    );
+    return { success: true, data: { url: result?.url ?? null } };
+  }
+
   const profileId = await getCurrentProfileId();
   if (!profileId) {
     return { success: false, error: "Not authenticated" };

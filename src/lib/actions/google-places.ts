@@ -1,6 +1,8 @@
 "use server";
 
 import { createClient, getCurrentProfileId } from "@/lib/supabase/server";
+import { isConvexDataEnabled } from "@/lib/platform/config";
+import { queryConvex, mutateConvex } from "@/lib/platform/convex/server";
 
 // Types for Google Places listing data
 export interface GooglePlacesListing {
@@ -36,6 +38,10 @@ export interface ActionResult<T = void> {
 export async function getGooglePlacesListing(
   slug: string
 ): Promise<ActionResult<GooglePlacesListing>> {
+  if (isConvexDataEnabled()) {
+    return { success: false, error: "Not available in Convex mode" };
+  }
+
   const supabase = await createClient();
 
   const { data, error } = await supabase
@@ -61,6 +67,10 @@ export async function getGooglePlacesListing(
 export async function getGooglePlacesListingById(
   id: string
 ): Promise<ActionResult<GooglePlacesListing>> {
+  if (isConvexDataEnabled()) {
+    return { success: false, error: "Not available in Convex mode" };
+  }
+
   const supabase = await createClient();
 
   const { data, error } = await supabase
@@ -88,6 +98,10 @@ export async function getClaimEligibility(googlePlacesListingId: string): Promis
   existingRequest?: { id: string; status: string };
   listingSlug?: string;
 }> {
+  if (isConvexDataEnabled()) {
+    return { status: "signed_out" as const };
+  }
+
   const supabase = await createClient();
   const profileId = await getCurrentProfileId();
   if (!profileId) {
@@ -130,6 +144,10 @@ export async function submitRemovalRequest(
   googlePlacesListingId: string,
   reason?: string
 ): Promise<ActionResult<{ id: string }>> {
+  if (isConvexDataEnabled()) {
+    return { success: false, error: "Not available in Convex mode" };
+  }
+
   const supabase = await createClient();
   const profileId = await getCurrentProfileId();
   if (!profileId) {
@@ -189,6 +207,10 @@ export async function searchGooglePlacesListings(filters: {
   limit?: number;
   offset?: number;
 }): Promise<ActionResult<{ listings: GooglePlacesListing[]; total: number }>> {
+  if (isConvexDataEnabled()) {
+    return { success: true, data: { listings: [], total: 0 } };
+  }
+
   const supabase = await createClient();
 
   let query = supabase

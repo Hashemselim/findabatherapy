@@ -5,6 +5,8 @@ import { revalidatePath } from "next/cache";
 import { isDevOnboardingPreviewEnabled } from "@/lib/onboarding-preview";
 import { createClient, getCurrentProfileId, getUser } from "@/lib/supabase/server";
 import { toUserFacingSupabaseError } from "@/lib/supabase/user-facing-errors";
+import { isConvexDataEnabled } from "@/lib/platform/config";
+import { queryConvex, mutateConvex } from "@/lib/platform/convex/server";
 import { createWorkspaceForUser } from "@/lib/workspace/memberships";
 import type {
   CompanyBasics,
@@ -92,6 +94,23 @@ function generateSlug(agencyName: string): string {
 export async function updateProfileBasics(
   data: CompanyBasics
 ): Promise<ActionResult> {
+  if (isConvexDataEnabled()) {
+    try {
+      await mutateConvex("listings:updateCompanyContact", {
+        contactEmail: data.contactEmail,
+        contactPhone: data.contactPhone || null,
+        website: data.website || null,
+      });
+      await mutateConvex("listings:updateAgencyName", {
+        agencyName: data.agencyName,
+      });
+      revalidatePath("/dashboard");
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to update profile basics" };
+    }
+  }
+
   let profileId = await getCurrentProfileId();
   if (!profileId) {
     const ensuredWorkspace = await ensureCurrentUserWorkspace({
@@ -179,6 +198,11 @@ export async function updateProfileBasics(
 export async function updateProfilePlan(
   plan: "free" | "pro"
 ): Promise<ActionResult> {
+  if (isConvexDataEnabled()) {
+    // In Convex mode, plan changes go through billing - no-op here
+    return { success: true };
+  }
+
   const profileId = await getCurrentProfileId();
   if (!profileId) {
     return unauthenticatedResult();
@@ -216,6 +240,16 @@ export async function updateProfilePlan(
  * Update onboarding intent preference.
  */
 export async function updateProfileIntent(intent: OnboardingIntent): Promise<ActionResult> {
+  if (isConvexDataEnabled()) {
+    try {
+      await mutateConvex("workspaces:setCurrentWorkspacePrimaryIntentIfMissing", { intent });
+      revalidatePath("/dashboard/onboarding");
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to update intent" };
+    }
+  }
+
   const profileId = await getCurrentProfileId();
   if (!profileId) {
     return unauthenticatedResult();
@@ -251,6 +285,24 @@ export async function updateProfileIntent(intent: OnboardingIntent): Promise<Act
 export async function updateListingDetails(
   data: CompanyDetails & { contactPhone?: string; website?: string; servicesOffered?: string[] }
 ): Promise<ActionResult<{ listingId: string }>> {
+  if (isConvexDataEnabled()) {
+    try {
+      await mutateConvex("listings:updateDashboardListing", {
+        headline: data.headline,
+        description: data.description,
+        serviceModes: data.serviceModes,
+      });
+      if (data.servicesOffered) {
+        await mutateConvex("listings:updateListingAttributes", {
+          servicesOffered: data.servicesOffered,
+        });
+      }
+      return { success: true, data: { listingId: "convex" } };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to update listing details" };
+    }
+  }
+
   const profileId = await getCurrentProfileId();
   if (!profileId) {
     return unauthenticatedResult();
@@ -381,6 +433,25 @@ export async function updateListingDetails(
 export async function updateListingLocation(
   data: LocationData
 ): Promise<ActionResult> {
+  if (isConvexDataEnabled()) {
+    try {
+      await mutateConvex("locations:addLocation", {
+        city: data.city,
+        state: data.state,
+        street: data.street || undefined,
+        postalCode: data.postalCode || undefined,
+        latitude: data.latitude || undefined,
+        longitude: data.longitude || undefined,
+        serviceRadiusMiles: data.serviceRadiusMiles,
+        serviceTypes: ["in_home", "in_center"],
+        insurances: [],
+      });
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to update location" };
+    }
+  }
+
   const profileId = await getCurrentProfileId();
   if (!profileId) {
     return unauthenticatedResult();
@@ -463,6 +534,27 @@ export async function updateListingLocation(
 export async function updateListingLocationWithServices(
   data: LocationWithServicesData
 ): Promise<ActionResult> {
+  if (isConvexDataEnabled()) {
+    try {
+      await mutateConvex("locations:addLocation", {
+        label: data.label || "Primary Location",
+        city: data.city,
+        state: data.state,
+        street: data.street || undefined,
+        postalCode: data.postalCode || undefined,
+        latitude: data.latitude || undefined,
+        longitude: data.longitude || undefined,
+        serviceRadiusMiles: data.serviceRadiusMiles,
+        serviceTypes: data.serviceTypes,
+        insurances: data.insurances,
+        isAcceptingClients: data.isAcceptingClients ?? true,
+      });
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to update location with services" };
+    }
+  }
+
   const profileId = await getCurrentProfileId();
   if (!profileId) {
     return unauthenticatedResult();
@@ -565,6 +657,18 @@ export async function updateListingLocationWithServices(
 export async function updateBasicAttributes(
   data: { insurances: string[]; isAcceptingClients?: boolean }
 ): Promise<ActionResult> {
+  if (isConvexDataEnabled()) {
+    try {
+      await mutateConvex("listings:updateListingAttributes", {
+        insurances: data.insurances,
+        isAcceptingClients: data.isAcceptingClients,
+      });
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to update basic attributes" };
+    }
+  }
+
   const profileId = await getCurrentProfileId();
   if (!profileId) {
     return unauthenticatedResult();
@@ -627,6 +731,22 @@ export async function updateBasicAttributes(
 export async function updateListingAttributes(
   data: ServicesData
 ): Promise<ActionResult> {
+  if (isConvexDataEnabled()) {
+    try {
+      await mutateConvex("listings:updateListingAttributes", {
+        isAcceptingClients: data.isAcceptingClients,
+        languages: data.languages,
+        diagnoses: data.diagnoses,
+        clinicalSpecialties: data.clinicalSpecialties,
+        agesServedMin: data.agesServedMin,
+        agesServedMax: data.agesServedMax,
+      });
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to update listing attributes" };
+    }
+  }
+
   const profileId = await getCurrentProfileId();
   if (!profileId) {
     return unauthenticatedResult();
@@ -706,6 +826,24 @@ export async function updateListingAttributes(
 export async function completeOnboarding(
   publish: boolean = false
 ): Promise<ActionResult<{ redirectTo: string }>> {
+  if (isConvexDataEnabled()) {
+    try {
+      if (publish) {
+        await mutateConvex("listings:updateListingStatus", { status: "published" });
+      }
+      const ws = await queryConvex<{ workspace: { planTier: string | null; billingInterval: string | null } } | null>("workspaces:getCurrentWorkspace");
+      let redirectTo = "/dashboard/clients/pipeline";
+      if (ws?.workspace?.planTier === "pro") {
+        const interval = ws.workspace.billingInterval === "annual" || ws.workspace.billingInterval === "year" ? "year" : "month";
+        redirectTo = `/dashboard/billing/checkout?plan=pro&interval=${interval}`;
+      }
+      revalidatePath("/dashboard");
+      return { success: true, data: { redirectTo } };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to complete onboarding" };
+    }
+  }
+
   const profileId = await getCurrentProfileId();
   if (!profileId) {
     return unauthenticatedResult();
@@ -813,6 +951,30 @@ export async function updatePremiumAttributes(data: {
   videoUrl?: string;
   contactFormEnabled?: boolean;
 }): Promise<ActionResult> {
+  if (isConvexDataEnabled()) {
+    try {
+      if (data.videoUrl !== undefined) {
+        await mutateConvex("files:updateListingVideoUrl", { videoUrl: data.videoUrl || null });
+      }
+      if (data.contactFormEnabled !== undefined) {
+        await mutateConvex("listings:updateContactFormEnabled", { enabled: data.contactFormEnabled });
+      }
+      const attributeArgs: Record<string, unknown> = {};
+      if (data.agesServedMin !== undefined) attributeArgs.agesServedMin = data.agesServedMin;
+      if (data.agesServedMax !== undefined) attributeArgs.agesServedMax = data.agesServedMax;
+      if (data.languages !== undefined) attributeArgs.languages = data.languages;
+      if (data.diagnoses !== undefined) attributeArgs.diagnoses = data.diagnoses;
+      if (data.clinicalSpecialties !== undefined) attributeArgs.clinicalSpecialties = data.clinicalSpecialties;
+      if (Object.keys(attributeArgs).length > 0) {
+        await mutateConvex("listings:updateListingAttributes", attributeArgs);
+      }
+      revalidatePath("/dashboard");
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to update premium attributes" };
+    }
+  }
+
   const profileId = await getCurrentProfileId();
   if (!profileId) {
     return unauthenticatedResult();
@@ -961,6 +1123,103 @@ export async function getOnboardingData(): Promise<
     attributes: Record<string, unknown>;
   }>
 > {
+  if (isConvexDataEnabled()) {
+    try {
+      const wsData = await queryConvex<{
+        workspace: {
+          agencyName: string;
+          contactEmail: string;
+          contactPhone: string | null;
+          website: string | null;
+          planTier: string | null;
+          billingInterval: string | null;
+          primaryIntent: string | null;
+          brandColor?: string | null;
+          showPoweredBy?: boolean;
+        };
+      } | null>("workspaces:getCurrentWorkspace");
+
+      const listingData = await queryConvex<{
+        listing: {
+          _id: string;
+          slug: string;
+          headline: string | null;
+          description: string | null;
+          serviceModes: string[];
+          isAcceptingClients: boolean;
+          videoUrl: string | null;
+          logoUrl: string | null;
+        } | null;
+        attributes: Record<string, unknown>;
+        locations: Array<{
+          street: string | null;
+          city: string;
+          state: string;
+          postalCode: string | null;
+          serviceRadiusMiles: number;
+          latitude: number | null;
+          longitude: number | null;
+          serviceTypes: ("in_home" | "in_center" | "telehealth" | "school_based")[];
+          insurances: string[];
+          isAcceptingClients: boolean;
+          isPrimary?: boolean;
+        }>;
+      } | null>("listings:getDashboardListing");
+
+      const ws = wsData?.workspace ?? null;
+      const listing = listingData?.listing ?? null;
+      const primaryLocation = listingData?.locations?.find((l) => l.isPrimary) ?? listingData?.locations?.[0] ?? null;
+
+      return {
+        success: true,
+        data: {
+          profile: ws
+            ? {
+                agencyName: ws.agencyName,
+                contactEmail: ws.contactEmail,
+                contactPhone: ws.contactPhone,
+                website: ws.website,
+                brandColor: ws.brandColor || "#0866FF",
+                showPoweredBy: ws.showPoweredBy ?? true,
+                planTier: ws.planTier || "free",
+                billingInterval: ws.billingInterval || "month",
+                primaryIntent: (ws.primaryIntent || "both") as OnboardingIntent,
+              }
+            : null,
+          listing: listing
+            ? {
+                id: listing._id,
+                slug: listing.slug,
+                headline: listing.headline,
+                description: listing.description,
+                serviceModes: listing.serviceModes || [],
+                isAcceptingClients: listing.isAcceptingClients,
+                videoUrl: listing.videoUrl,
+                logoUrl: listing.logoUrl,
+              }
+            : null,
+          location: primaryLocation
+            ? {
+                street: primaryLocation.street,
+                city: primaryLocation.city,
+                state: primaryLocation.state,
+                postalCode: primaryLocation.postalCode,
+                serviceRadiusMiles: primaryLocation.serviceRadiusMiles || 25,
+                latitude: primaryLocation.latitude,
+                longitude: primaryLocation.longitude,
+                serviceTypes: primaryLocation.serviceTypes || ["in_home", "in_center"],
+                insurances: primaryLocation.insurances || [],
+                isAcceptingClients: primaryLocation.isAcceptingClients ?? true,
+              }
+            : null,
+          attributes: listingData?.attributes ?? {},
+        },
+      };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to load onboarding data" };
+    }
+  }
+
   const profileId = await getCurrentProfileId();
   if (!profileId) {
     return unauthenticatedResult({
@@ -1102,6 +1361,49 @@ export async function saveOnboardingDraft(data: {
   videoUrl?: string;
   contactFormEnabled?: boolean;
 }): Promise<ActionResult> {
+  if (isConvexDataEnabled()) {
+    try {
+      // Profile fields
+      const hasContactFields = data.contactEmail !== undefined || data.contactPhone !== undefined || data.website !== undefined;
+      if (hasContactFields) {
+        const contactArgs: Record<string, unknown> = {};
+        if (data.contactEmail !== undefined) contactArgs.contactEmail = data.contactEmail;
+        if (data.contactPhone !== undefined) contactArgs.contactPhone = data.contactPhone || null;
+        if (data.website !== undefined) contactArgs.website = data.website || null;
+        await mutateConvex("listings:updateCompanyContact", contactArgs);
+      }
+      if (data.agencyName !== undefined) {
+        await mutateConvex("listings:updateAgencyName", { agencyName: data.agencyName });
+      }
+
+      // Listing fields
+      const hasListingFields = data.headline !== undefined || data.description !== undefined || data.serviceModes !== undefined;
+      if (hasListingFields) {
+        const listingArgs: Record<string, unknown> = {};
+        if (data.headline !== undefined) listingArgs.headline = data.headline;
+        if (data.description !== undefined) listingArgs.description = data.description;
+        if (data.serviceModes !== undefined) listingArgs.serviceModes = data.serviceModes;
+        await mutateConvex("listings:updateDashboardListing", listingArgs);
+      }
+
+      // Attribute fields
+      const attributeArgs: Record<string, unknown> = {};
+      if (data.insurances !== undefined) attributeArgs.insurances = data.insurances;
+      if (data.agesServedMin !== undefined) attributeArgs.agesServedMin = data.agesServedMin;
+      if (data.agesServedMax !== undefined) attributeArgs.agesServedMax = data.agesServedMax;
+      if (data.languages !== undefined) attributeArgs.languages = data.languages;
+      if (data.diagnoses !== undefined) attributeArgs.diagnoses = data.diagnoses;
+      if (data.clinicalSpecialties !== undefined) attributeArgs.clinicalSpecialties = data.clinicalSpecialties;
+      if (Object.keys(attributeArgs).length > 0) {
+        await mutateConvex("listings:updateListingAttributes", attributeArgs);
+      }
+
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to save onboarding draft" };
+    }
+  }
+
   const profileId = await getCurrentProfileId();
   if (!profileId) {
     return unauthenticatedResult();

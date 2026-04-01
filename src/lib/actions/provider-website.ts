@@ -3,6 +3,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { isPublicProfileVisible } from "@/lib/public-visibility";
 import { STORAGE_BUCKETS } from "@/lib/storage/config";
+import { isConvexDataEnabled } from "@/lib/platform/config";
+import { queryConvex, mutateConvex } from "@/lib/platform/convex/server";
 
 type ActionResult<T = void> =
   | { success: true; data: T }
@@ -103,6 +105,82 @@ const DEFAULT_WEBSITE_SETTINGS: WebsiteSettings = {
 export async function getProviderWebsiteData(
   slug: string
 ): Promise<ActionResult<ProviderWebsiteData>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const listing = await queryConvex<Record<string, unknown> | null>(
+        "listings:getPublicListingBySlug",
+        { slug }
+      );
+
+      if (!listing) {
+        return { success: false, error: "Provider not found" };
+      }
+
+      const profile = listing.profile as Record<string, unknown> | undefined;
+      const locations = (listing.locations as Record<string, unknown>[] | undefined) || [];
+      const intakeSettings = (profile?.intakeFormSettings as Record<string, unknown>) || {};
+
+      return {
+        success: true,
+        data: {
+          id: listing.id as string,
+          slug: listing.slug as string,
+          headline: (listing.headline as string) ?? null,
+          description: (listing.description as string) ?? null,
+          summary: (listing.summary as string) ?? null,
+          serviceModes: (listing.serviceModes as string[]) || [],
+          isAcceptingClients: (listing.isAcceptingClients as boolean) ?? false,
+          logoUrl: (listing.logoUrl as string) ?? null,
+          videoUrl: (listing.videoUrl as string) ?? null,
+          websitePublished: true,
+          websiteSettings: DEFAULT_WEBSITE_SETTINGS,
+          profile: {
+            agencyName: (profile?.agencyName as string) ?? "",
+            contactEmail: (profile?.contactEmail as string) ?? "",
+            contactPhone: (profile?.contactPhone as string) ?? null,
+            website: (profile?.website as string) ?? null,
+            planTier: (profile?.planTier as string) ?? "free",
+            subscriptionStatus: (profile?.subscriptionStatus as string) ?? null,
+            intakeFormSettings: {
+              background_color: (intakeSettings.background_color as string) || "#0866FF",
+              show_powered_by: (intakeSettings.show_powered_by as boolean) ?? true,
+            },
+          },
+          locations: locations.map((l) => ({
+            id: l.id as string,
+            label: (l.label as string) ?? null,
+            street: (l.street as string) ?? null,
+            city: (l.city as string) ?? "",
+            state: (l.state as string) ?? "",
+            postalCode: (l.postalCode as string) ?? null,
+            isPrimary: (l.isPrimary as boolean) ?? false,
+            isFeatured: (l.isFeatured as boolean) ?? false,
+            serviceMode: l.serviceMode as "center_based" | "in_home" | "both" | undefined,
+            insurances: (l.insurances as string[]) || [],
+            serviceRadiusMiles: (l.serviceRadiusMiles as number) || 25,
+            latitude: (l.latitude as number) ?? null,
+            longitude: (l.longitude as number) ?? null,
+            googlePlaceId: (l.googlePlaceId as string) ?? null,
+            googleRating: (l.googleRating as number) ?? null,
+            googleRatingCount: (l.googleRatingCount as number) ?? null,
+            showGoogleReviews: (l.showGoogleReviews as boolean) || false,
+            contactPhone: (l.contactPhone as string) ?? null,
+            contactEmail: (l.contactEmail as string) ?? null,
+            contactWebsite: (l.contactWebsite as string) ?? null,
+            useCompanyContact: (l.useCompanyContact as boolean) ?? true,
+          })),
+          attributes: (listing.attributes as Record<string, unknown>) || {},
+          photoUrls: (listing.photoUrls as string[]) || [],
+          jobCount: 0,
+          customDomain: null,
+        },
+      };
+    } catch (err) {
+      console.error("Convex getProviderWebsiteData error:", err);
+      return { success: false, error: "Failed to load provider data" };
+    }
+  }
+
   const supabase = await createClient();
 
   // Fetch listing with profile (required first to get listing.id)
