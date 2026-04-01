@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 
 import { createClient, createAdminClient, getCurrentProfileId } from "@/lib/supabase/server";
 import { toUserFacingSupabaseError } from "@/lib/supabase/user-facing-errors";
+import { isConvexDataEnabled } from "@/lib/platform/config";
+import { queryConvex, mutateConvex } from "@/lib/platform/convex/server";
 
 type ActionResult<T = void> =
   | { success: true; data?: T }
@@ -46,6 +48,24 @@ export async function linkGoogleBusiness(
   rating: number | null,
   ratingCount: number | null
 ): Promise<ActionResult> {
+  if (isConvexDataEnabled()) {
+    try {
+      await mutateConvex("locations:updateLocation", {
+        locationId,
+        googlePlaceId: placeId,
+        googleRating: rating,
+        googleRatingCount: ratingCount,
+      });
+      revalidatePath("/dashboard");
+      revalidatePath("/dashboard/company");
+      revalidatePath("/dashboard/locations");
+      return { success: true };
+    } catch (err) {
+      console.error("Convex linkGoogleBusiness error:", err);
+      return { success: false, error: "Failed to link Google Business" };
+    }
+  }
+
   const profileId = await getCurrentProfileId();
   if (!profileId) {
     return { success: false, error: "Not authenticated" };
@@ -101,6 +121,24 @@ export async function linkGoogleBusiness(
  * Removes the Google Place ID and rating data.
  */
 export async function unlinkGoogleBusiness(locationId: string): Promise<ActionResult> {
+  if (isConvexDataEnabled()) {
+    try {
+      await mutateConvex("locations:updateLocation", {
+        locationId,
+        googlePlaceId: null,
+        googleRating: null,
+        googleRatingCount: null,
+      });
+      revalidatePath("/dashboard");
+      revalidatePath("/dashboard/company");
+      revalidatePath("/dashboard/locations");
+      return { success: true };
+    } catch (err) {
+      console.error("Convex unlinkGoogleBusiness error:", err);
+      return { success: false, error: "Failed to unlink Google Business" };
+    }
+  }
+
   const profileId = await getCurrentProfileId();
   if (!profileId) {
     return { success: false, error: "Not authenticated" };
@@ -156,6 +194,62 @@ export async function unlinkGoogleBusiness(locationId: string): Promise<ActionRe
  * Fetches the latest rating from Google Places API.
  */
 export async function refreshGoogleRating(locationId: string): Promise<ActionResult<{ rating: number | null; ratingCount: number | null }>> {
+  if (isConvexDataEnabled()) {
+    try {
+      // Fetch locations from Convex to find the google_place_id
+      interface ConvexLocation {
+        _id: string;
+        googlePlaceId?: string | null;
+      }
+      const locations = await queryConvex<ConvexLocation[]>(
+        "locations:getDashboardLocations"
+      );
+      const location = locations.find((l) => l._id === locationId);
+      if (!location?.googlePlaceId) {
+        return { success: false, error: "Location is not linked to a Google Business" };
+      }
+
+      const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+      if (!apiKey) {
+        return { success: false, error: "Google Maps API not configured" };
+      }
+
+      const response = await fetch(
+        `https://places.googleapis.com/v1/places/${location.googlePlaceId}`,
+        {
+          method: "GET",
+          headers: {
+            "X-Goog-Api-Key": apiKey,
+            "X-Goog-FieldMask": "rating,userRatingCount",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Google Places API error:", errorText);
+        return { success: false, error: "Failed to fetch Google rating" };
+      }
+
+      const data = await response.json();
+      const rating = data.rating ?? null;
+      const ratingCount = data.userRatingCount ?? null;
+
+      await mutateConvex("locations:updateLocation", {
+        locationId,
+        googleRating: rating,
+        googleRatingCount: ratingCount,
+      });
+
+      revalidatePath("/dashboard");
+      revalidatePath("/dashboard/company");
+      return { success: true, data: { rating, ratingCount } };
+    } catch (err) {
+      console.error("Convex refreshGoogleRating error:", err);
+      return { success: false, error: "Failed to refresh rating" };
+    }
+  }
+
   const profileId = await getCurrentProfileId();
   if (!profileId) {
     return { success: false, error: "Not authenticated" };
@@ -247,6 +341,10 @@ export async function refreshGoogleRating(locationId: string): Promise<ActionRes
 export async function fetchGoogleReviews(
   locationId: string
 ): Promise<ActionResult<{ reviews: GoogleReview[] }>> {
+  if (isConvexDataEnabled()) {
+    return { success: false, error: "Google reviews sync not yet available in Convex mode" };
+  }
+
   const profileId = await getCurrentProfileId();
   if (!profileId) {
     return { success: false, error: "Not authenticated" };
@@ -390,6 +488,10 @@ export async function fetchGoogleReviews(
 export async function getGoogleReviews(
   locationId: string
 ): Promise<ActionResult<{ reviews: GoogleReview[] }>> {
+  if (isConvexDataEnabled()) {
+    return { success: true, data: { reviews: [] } };
+  }
+
   const profileId = await getCurrentProfileId();
   if (!profileId) {
     return { success: false, error: "Not authenticated" };
@@ -455,6 +557,10 @@ export async function updateSelectedReviews(
   locationId: string,
   selectedReviewIds: string[]
 ): Promise<ActionResult> {
+  if (isConvexDataEnabled()) {
+    return { success: false, error: "Google reviews not yet available in Convex mode" };
+  }
+
   const profileId = await getCurrentProfileId();
   if (!profileId) {
     return { success: false, error: "Not authenticated" };
@@ -521,6 +627,22 @@ export async function toggleShowGoogleReviews(
   locationId: string,
   showReviews: boolean
 ): Promise<ActionResult> {
+  if (isConvexDataEnabled()) {
+    try {
+      await mutateConvex("locations:updateLocation", {
+        locationId,
+        showGoogleReviews: showReviews,
+      });
+      revalidatePath("/dashboard");
+      revalidatePath("/dashboard/company");
+      revalidatePath("/dashboard/locations");
+      return { success: true };
+    } catch (err) {
+      console.error("Convex toggleShowGoogleReviews error:", err);
+      return { success: false, error: "Failed to update Google reviews visibility" };
+    }
+  }
+
   const profileId = await getCurrentProfileId();
   if (!profileId) {
     return { success: false, error: "Not authenticated" };
@@ -573,6 +695,10 @@ export async function toggleShowGoogleReviews(
 export async function getSelectedGoogleReviews(
   locationId: string
 ): Promise<GoogleReview[]> {
+  if (isConvexDataEnabled()) {
+    return [];
+  }
+
   try {
     const supabase = await createClient();
 

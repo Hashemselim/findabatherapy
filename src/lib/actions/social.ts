@@ -10,6 +10,8 @@ import { SOCIAL_TEMPLATES } from "@/lib/social/templates";
 import { type BrandData } from "@/lib/social/types";
 import { STORAGE_BUCKETS } from "@/lib/storage/config";
 import crypto from "crypto";
+import { isConvexDataEnabled } from "@/lib/platform/config";
+import { queryConvex } from "@/lib/platform/convex/server";
 
 type ActionResult<T = void> =
   | { success: true; data: T }
@@ -34,6 +36,27 @@ export async function getSocialBrandData(): Promise<ActionResult<BrandData>> {
   const access = await guardSocialPosts();
   if (!access.allowed) {
     return { success: false, error: access.reason };
+  }
+
+  if (isConvexDataEnabled()) {
+    const listing = await queryConvex<{
+      profile: {
+        agencyName: string;
+        intakeFormSettings: { background_color: string };
+      };
+      logoUrl: string | null;
+    } | null>("listings:getDashboardListing");
+
+    return {
+      success: true,
+      data: {
+        agencyName: listing?.profile.agencyName || "Your Agency",
+        logoUrl: listing?.logoUrl || null,
+        brandColor:
+          listing?.profile.intakeFormSettings.background_color || "#5788FF",
+        profileId: "convex",
+      },
+    };
   }
 
   const profileId = await getCurrentProfileId();
@@ -74,6 +97,13 @@ export async function checkSocialAssetsStatus(): Promise<
     assetCount: number;
   }>
 > {
+  if (isConvexDataEnabled()) {
+    return {
+      success: true,
+      data: { ready: false, generating: false, brandHash: "", assetCount: 0 },
+    };
+  }
+
   const brandResult = await getSocialBrandData();
   if (!brandResult.success) {
     return { success: false, error: brandResult.error };
@@ -199,6 +229,13 @@ async function cleanupOldVersions(
 export async function generateSocialAssets(): Promise<
   ActionResult<{ count: number }>
 > {
+  if (isConvexDataEnabled()) {
+    return {
+      success: false,
+      error: "Social asset generation not yet available in Convex mode",
+    };
+  }
+
   const profileId = await getCurrentProfileId();
   if (!profileId) {
     return { success: false, error: "Not authenticated" };

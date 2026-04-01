@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 
 import { createClient, getCurrentProfileId } from "@/lib/supabase/server";
 import { toUserFacingSupabaseError } from "@/lib/supabase/user-facing-errors";
+import { isConvexDataEnabled } from "@/lib/platform/config";
+import { queryConvex, mutateConvex } from "@/lib/platform/convex/server";
 
 type ActionResult<T = void> =
   | { success: true; data?: T }
@@ -24,6 +26,29 @@ export interface ListingAttributes {
  * Get all attributes for the current user's listing
  */
 export async function getAttributes(): Promise<ActionResult<ListingAttributes>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const raw = await queryConvex<Record<string, unknown>>("listings:getListingAttributes");
+      const attributes: ListingAttributes = {
+        insurances: Array.isArray(raw?.insurances) ? (raw.insurances as string[]) : [],
+        languages: Array.isArray(raw?.languages) ? (raw.languages as string[]) : [],
+        diagnoses: Array.isArray(raw?.diagnoses) ? (raw.diagnoses as string[]) : [],
+        clinicalSpecialties: Array.isArray(raw?.clinical_specialties) ? (raw.clinical_specialties as string[]) : [],
+        agesServed: {
+          min: typeof raw?.ages_served === "object" && raw.ages_served !== null && "min" in raw.ages_served
+            ? (raw.ages_served as { min: number; max: number }).min
+            : 0,
+          max: typeof raw?.ages_served === "object" && raw.ages_served !== null && "max" in raw.ages_served
+            ? (raw.ages_served as { min: number; max: number }).max
+            : 99,
+        },
+      };
+      return { success: true, data: attributes };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to load attributes" };
+    }
+  }
+
   const profileId = await getCurrentProfileId();
   if (!profileId) {
     return { success: false, error: "Not authenticated" };
@@ -104,6 +129,26 @@ export async function getAttributes(): Promise<ActionResult<ListingAttributes>> 
 export async function setAttributes(
   attributes: Partial<ListingAttributes>
 ): Promise<ActionResult> {
+  if (isConvexDataEnabled()) {
+    try {
+      const args: Record<string, unknown> = {};
+      if (attributes.insurances !== undefined) args.insurances = attributes.insurances;
+      if (attributes.languages !== undefined) args.languages = attributes.languages;
+      if (attributes.diagnoses !== undefined) args.diagnoses = attributes.diagnoses;
+      if (attributes.clinicalSpecialties !== undefined) args.clinicalSpecialties = attributes.clinicalSpecialties;
+      if (attributes.agesServed !== undefined) {
+        args.agesServedMin = attributes.agesServed.min;
+        args.agesServedMax = attributes.agesServed.max;
+      }
+      await mutateConvex("listings:updateListingAttributes", args);
+      revalidatePath("/dashboard");
+      revalidatePath("/dashboard/company");
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to save attributes" };
+    }
+  }
+
   const profileId = await getCurrentProfileId();
   if (!profileId) {
     return { success: false, error: "Not authenticated" };
@@ -251,6 +296,38 @@ export async function setAttribute(
  * Clear specific attributes
  */
 export async function clearAttributes(keys: string[]): Promise<ActionResult> {
+  if (isConvexDataEnabled()) {
+    try {
+      const args: Record<string, unknown> = {};
+      const keyMap: Record<string, string> = {
+        insurances: "insurances",
+        languages: "languages",
+        diagnoses: "diagnoses",
+        clinical_specialties: "clinicalSpecialties",
+        clinicalSpecialties: "clinicalSpecialties",
+        ages_served: "agesServedMin",
+        agesServed: "agesServedMin",
+      };
+      for (const key of keys) {
+        const convexKey = keyMap[key];
+        if (convexKey === "agesServedMin") {
+          args.agesServedMin = null;
+          args.agesServedMax = null;
+        } else if (convexKey) {
+          args[convexKey] = [];
+        } else {
+          args[key] = [];
+        }
+      }
+      await mutateConvex("listings:updateListingAttributes", args);
+      revalidatePath("/dashboard");
+      revalidatePath("/dashboard/company");
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to clear attributes" };
+    }
+  }
+
   const profileId = await getCurrentProfileId();
   if (!profileId) {
     return { success: false, error: "Not authenticated" };
@@ -295,6 +372,24 @@ export async function clearAttributes(keys: string[]): Promise<ActionResult> {
  * Clear all attributes for the listing
  */
 export async function clearAllAttributes(): Promise<ActionResult> {
+  if (isConvexDataEnabled()) {
+    try {
+      await mutateConvex("listings:updateListingAttributes", {
+        insurances: [],
+        languages: [],
+        diagnoses: [],
+        clinicalSpecialties: [],
+        agesServedMin: null,
+        agesServedMax: null,
+      });
+      revalidatePath("/dashboard");
+      revalidatePath("/dashboard/company");
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to clear attributes" };
+    }
+  }
+
   const profileId = await getCurrentProfileId();
   if (!profileId) {
     return { success: false, error: "Not authenticated" };
