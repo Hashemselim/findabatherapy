@@ -11,7 +11,7 @@ import { type BrandData } from "@/lib/social/types";
 import { STORAGE_BUCKETS } from "@/lib/storage/config";
 import crypto from "crypto";
 import { isConvexDataEnabled } from "@/lib/platform/config";
-import { queryConvex } from "@/lib/platform/convex/server";
+import { queryConvex, mutateConvex, uploadFileToConvexStorage } from "@/lib/platform/convex/server";
 
 type ActionResult<T = void> =
   | { success: true; data: T }
@@ -98,10 +98,18 @@ export async function checkSocialAssetsStatus(): Promise<
   }>
 > {
   if (isConvexDataEnabled()) {
-    return {
-      success: true,
-      data: { ready: false, generating: false, brandHash: "", assetCount: 0 },
-    };
+    const brandResult = await getSocialBrandData();
+    if (!brandResult.success) {
+      return { success: false, error: brandResult.error };
+    }
+    const currentHash = hashBrand(brandResult.data);
+    const status = await queryConvex<{
+      ready: boolean;
+      generating: boolean;
+      brandHash: string;
+      assetCount: number;
+    }>("files:getSocialAssetsStatus", { brandHash: currentHash });
+    return { success: true, data: status };
   }
 
   const brandResult = await getSocialBrandData();
@@ -230,10 +238,73 @@ export async function generateSocialAssets(): Promise<
   ActionResult<{ count: number }>
 > {
   if (isConvexDataEnabled()) {
-    return {
-      success: false,
-      error: "Social asset generation not yet available in Convex mode",
-    };
+    const brandResult = await getSocialBrandData();
+    if (!brandResult.success) {
+      return { success: false, error: brandResult.error };
+    }
+
+    const brand = brandResult.data;
+    const currentHash = hashBrand(brand);
+
+    try {
+      // Clean up old versions first
+      await mutateConvex("files:cleanupOldSocialAssets", { currentBrandHash: currentHash });
+
+      const { renderSocialImage } = await import("@/lib/social/render");
+
+      // Pre-fetch logo as base64 data URL
+      let logoDataUrl: string | null = null;
+      if (brand.logoUrl) {
+        try {
+          const logoRes = await fetch(brand.logoUrl);
+          const logoBuffer = await logoRes.arrayBuffer();
+          const base64 = Buffer.from(logoBuffer).toString("base64");
+          const contentType = logoRes.headers.get("content-type") || "image/png";
+          logoDataUrl = `data:${contentType};base64,${base64}`;
+        } catch {
+          // Fall back to URL
+        }
+      }
+
+      const brandWithCachedLogo: BrandData = {
+        ...brand,
+        logoUrl: logoDataUrl || brand.logoUrl,
+      };
+
+      const BATCH_SIZE = 10;
+      let generatedCount = 0;
+
+      for (let i = 0; i < SOCIAL_TEMPLATES.length; i += BATCH_SIZE) {
+        const batch = SOCIAL_TEMPLATES.slice(i, i + BATCH_SIZE);
+        const results = await Promise.allSettled(
+          batch.map(async (template) => {
+            const imageResponse = renderSocialImage(template, brandWithCachedLogo);
+            const imageBuffer = await imageResponse.arrayBuffer();
+            const blob = new Blob([imageBuffer], { type: "image/png" });
+            const storageId = await uploadFileToConvexStorage(blob);
+            await mutateConvex("files:saveSocialAsset", {
+              storageId,
+              templateId: template.id,
+              brandHash: currentHash,
+              mimeType: "image/png",
+              byteSize: imageBuffer.byteLength,
+            });
+          })
+        );
+        generatedCount += results.filter((r) => r.status === "fulfilled").length;
+      }
+
+      // Write manifest
+      await mutateConvex("files:saveSocialManifest", {
+        brandHash: currentHash,
+        count: generatedCount,
+      });
+
+      return { success: true, data: { count: generatedCount } };
+    } catch (error) {
+      console.error("Failed to generate social assets:", error);
+      return { success: false, error: "Failed to generate assets" };
+    }
   }
 
   const profileId = await getCurrentProfileId();
