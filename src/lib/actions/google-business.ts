@@ -342,7 +342,80 @@ export async function fetchGoogleReviews(
   locationId: string
 ): Promise<ActionResult<{ reviews: GoogleReview[] }>> {
   if (isConvexDataEnabled()) {
-    return { success: false, error: "Google reviews sync not yet available in Convex mode" };
+    try {
+      // Find the location's googlePlaceId from Convex
+      interface ConvexLocation {
+        _id: string;
+        googlePlaceId?: string | null;
+      }
+      const locations = await queryConvex<ConvexLocation[]>(
+        "locations:getDashboardLocations"
+      );
+      const location = locations.find((l) => l._id === locationId);
+      if (!location?.googlePlaceId) {
+        return { success: false, error: "Location is not linked to a Google Business" };
+      }
+
+      const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+      if (!apiKey) {
+        return { success: false, error: "Google Maps API not configured" };
+      }
+
+      // Fetch reviews from Google Places API
+      const response = await fetch(
+        `https://places.googleapis.com/v1/places/${location.googlePlaceId}`,
+        {
+          method: "GET",
+          headers: {
+            "X-Goog-Api-Key": apiKey,
+            "X-Goog-FieldMask": "reviews",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Google Places API error:", errorText);
+        return { success: false, error: "Failed to fetch Google reviews" };
+      }
+
+      const data = await response.json();
+      const googleReviews: GooglePlacesReview[] = data.reviews || [];
+
+      if (googleReviews.length === 0) {
+        return { success: true, data: { reviews: [] } };
+      }
+
+      // Map Google API response to the shape expected by upsertGoogleReviews
+      const mappedReviews = googleReviews.map((review) => ({
+        googleReviewId: review.name,
+        authorName: review.authorAttribution?.displayName || "Anonymous",
+        authorPhotoUrl: review.authorAttribution?.photoUri || null,
+        rating: review.rating || 5,
+        text: review.text?.text || null,
+        relativeTimeDescription: review.relativePublishTimeDescription || null,
+        publishedAt: review.publishTime || null,
+      }));
+
+      // Upsert into Convex
+      await mutateConvex("locations:upsertGoogleReviews", {
+        locationId,
+        reviews: mappedReviews,
+      });
+
+      // Query fresh reviews
+      const result = await queryConvex<{ reviews: GoogleReview[] }>(
+        "locations:getGoogleReviews",
+        { locationId }
+      );
+
+      revalidatePath("/dashboard");
+      revalidatePath("/dashboard/locations");
+      return { success: true, data: result };
+    } catch (err) {
+      console.error("Convex fetchGoogleReviews error:", err);
+      return { success: false, error: "Failed to fetch Google reviews" };
+    }
   }
 
   const profileId = await getCurrentProfileId();
@@ -489,7 +562,16 @@ export async function getGoogleReviews(
   locationId: string
 ): Promise<ActionResult<{ reviews: GoogleReview[] }>> {
   if (isConvexDataEnabled()) {
-    return { success: true, data: { reviews: [] } };
+    try {
+      const result = await queryConvex<{ reviews: GoogleReview[] }>(
+        "locations:getGoogleReviews",
+        { locationId }
+      );
+      return { success: true, data: result };
+    } catch (err) {
+      console.error("Convex getGoogleReviews error:", err);
+      return { success: false, error: "Failed to load Google reviews" };
+    }
   }
 
   const profileId = await getCurrentProfileId();
@@ -558,7 +640,18 @@ export async function updateSelectedReviews(
   selectedReviewIds: string[]
 ): Promise<ActionResult> {
   if (isConvexDataEnabled()) {
-    return { success: false, error: "Google reviews not yet available in Convex mode" };
+    try {
+      await mutateConvex("locations:updateSelectedGoogleReviews", {
+        locationId,
+        selectedReviewIds,
+      });
+      revalidatePath("/dashboard");
+      revalidatePath("/dashboard/locations");
+      return { success: true };
+    } catch (err) {
+      console.error("Convex updateSelectedReviews error:", err);
+      return { success: false, error: "Failed to update selected reviews" };
+    }
   }
 
   const profileId = await getCurrentProfileId();
@@ -696,7 +789,15 @@ export async function getSelectedGoogleReviews(
   locationId: string
 ): Promise<GoogleReview[]> {
   if (isConvexDataEnabled()) {
-    return [];
+    try {
+      return await queryConvex<GoogleReview[]>(
+        "locations:getSelectedGoogleReviewsPublic",
+        { locationId }
+      );
+    } catch (err) {
+      console.error("Convex getSelectedGoogleReviews error:", err);
+      return [];
+    }
   }
 
   try {

@@ -39,7 +39,11 @@ export async function getGooglePlacesListing(
   slug: string
 ): Promise<ActionResult<GooglePlacesListing>> {
   if (isConvexDataEnabled()) {
-    return { success: false, error: "Not available in Convex mode" };
+    const result = await queryConvex<GooglePlacesListing | null>("listings:getGooglePlacesListing", { slug });
+    if (!result) {
+      return { success: false, error: "Listing not found" };
+    }
+    return { success: true, data: result };
   }
 
   const supabase = await createClient();
@@ -68,7 +72,11 @@ export async function getGooglePlacesListingById(
   id: string
 ): Promise<ActionResult<GooglePlacesListing>> {
   if (isConvexDataEnabled()) {
-    return { success: false, error: "Not available in Convex mode" };
+    const result = await queryConvex<GooglePlacesListing | null>("listings:getGooglePlacesListingById", { id });
+    if (!result) {
+      return { success: false, error: "Listing not found" };
+    }
+    return { success: true, data: result };
   }
 
   const supabase = await createClient();
@@ -99,7 +107,7 @@ export async function getClaimEligibility(googlePlacesListingId: string): Promis
   listingSlug?: string;
 }> {
   if (isConvexDataEnabled()) {
-    return { status: "signed_out" as const };
+    return await queryConvex<{ status: "signed_out" | "no_listing" | "has_listing"; existingRequest?: { id: string; status: string }; listingSlug?: string }>("listings:getClaimEligibility", { googlePlacesListingId });
   }
 
   const supabase = await createClient();
@@ -145,7 +153,12 @@ export async function submitRemovalRequest(
   reason?: string
 ): Promise<ActionResult<{ id: string }>> {
   if (isConvexDataEnabled()) {
-    return { success: false, error: "Not available in Convex mode" };
+    try {
+      const result = await mutateConvex<{ id: string }>("listings:submitRemovalRequest", { googlePlacesListingId, reason: reason ?? null });
+      return { success: true, data: result };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to submit request" };
+    }
   }
 
   const supabase = await createClient();
@@ -208,7 +221,13 @@ export async function searchGooglePlacesListings(filters: {
   offset?: number;
 }): Promise<ActionResult<{ listings: GooglePlacesListing[]; total: number }>> {
   if (isConvexDataEnabled()) {
-    return { success: true, data: { listings: [], total: 0 } };
+    const result = await queryConvex<{ listings: GooglePlacesListing[]; total: number }>("listings:searchGooglePlacesListings", {
+      state: filters.state,
+      city: filters.city,
+      limit: filters.limit,
+      offset: filters.offset,
+    });
+    return { success: true, data: result };
   }
 
   const supabase = await createClient();
