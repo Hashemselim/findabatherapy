@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
 import {
   evaluateOnboardingFlow,
@@ -6,13 +7,18 @@ import {
   resolveLegacyOnboardingRedirect,
 } from "@/lib/onboarding/flow";
 import { isDevOnboardingPreviewEnabled } from "@/lib/onboarding-preview";
-import { updateSession } from "@/lib/supabase/middleware";
+import { isClerkAuthEnabled } from "@/lib/platform/config";
 import { domains } from "@/lib/utils/domains";
 import { resolveCurrentWorkspaceProfileId } from "@/lib/workspace/current-profile";
 
 const PROTECTED_ROUTES = ["/dashboard"];
 const AUTH_ROUTES = ["/auth/sign-in", "/auth/sign-up"];
 const CANONICAL_GOODABA_PREFIXES = ["/auth", "/dashboard"];
+const matchesClerkProtectedRoute = createRouteMatcher(["/dashboard(.*)"]);
+const matchesClerkAuthRoute = createRouteMatcher([
+  "/auth/sign-in(.*)",
+  "/auth/sign-up(.*)",
+]);
 
 function normalizeHost(host: string): string {
   return host.toLowerCase().replace(/:\d+$/, "");
@@ -194,7 +200,8 @@ function redirectToTherapy(
 }
 
 async function loadOnboardingFlowForUser(
-  supabase: Awaited<ReturnType<typeof updateSession>>["supabase"],
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase client type only used in Supabase middleware path
+  supabase: any,
   userId: string
 ) {
   const profileId = await resolveCurrentWorkspaceProfileId(supabase, userId);
@@ -251,7 +258,7 @@ async function loadOnboardingFlowForUser(
   });
 }
 
-export async function middleware(request: NextRequest) {
+async function handlePlatformRouting(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const host = getRequestHost(request);
   const normalizedHost = normalizeHost(host);
@@ -460,6 +467,18 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(redirectUrl, 301);
   }
 
+  return null;
+}
+
+async function handleSupabaseMiddleware(request: NextRequest) {
+  const platformResponse = await handlePlatformRouting(request);
+  if (platformResponse) {
+    return platformResponse;
+  }
+
+  const { pathname } = request.nextUrl;
+
+  const { updateSession } = await import("@/lib/supabase/middleware");
   const { supabaseResponse, user, supabase } = await updateSession(request);
 
   const isProtectedRoute = PROTECTED_ROUTES.some((route) =>
@@ -518,6 +537,48 @@ export async function middleware(request: NextRequest) {
   }
 
   return supabaseResponse;
+}
+
+const handleClerkMiddleware = clerkMiddleware(async (auth, request) => {
+  const platformResponse = await handlePlatformRouting(request);
+  if (platformResponse) {
+    return platformResponse;
+  }
+
+  const { pathname, search } = request.nextUrl;
+  const isProtectedRoute = matchesClerkProtectedRoute(request);
+  const isAuthRoute = matchesClerkAuthRoute(request);
+  const authState = await auth();
+
+  if (
+    isDevOnboardingPreviewEnabled() &&
+    pathname.startsWith("/dashboard/onboarding") &&
+    !authState.userId
+  ) {
+    return NextResponse.next();
+  }
+
+  if (isProtectedRoute && !authState.userId) {
+    const redirectUrl = new URL("/auth/sign-in", request.url);
+    redirectUrl.searchParams.set("redirect", `${pathname}${search}`);
+    return NextResponse.redirect(redirectUrl);
+  }
+
+  if (isAuthRoute && authState.userId) {
+    const redirectUrl = new URL("/auth/callback", request.url);
+    redirectUrl.searchParams.set("next", "/dashboard/clients/pipeline");
+    return NextResponse.redirect(redirectUrl);
+  }
+
+  return NextResponse.next();
+});
+
+export default function middleware(request: NextRequest, event: Parameters<typeof handleClerkMiddleware>[1]) {
+  if (isClerkAuthEnabled()) {
+    return handleClerkMiddleware(request, event);
+  }
+
+  return handleSupabaseMiddleware(request);
 }
 
 export const config = {

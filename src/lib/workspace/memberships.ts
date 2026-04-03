@@ -1,7 +1,5 @@
 import "server-only";
 
-import { createHash, randomBytes } from "node:crypto";
-
 import type { User } from "@supabase/supabase-js";
 
 import {
@@ -11,37 +9,24 @@ import {
   type ProfileRole,
 } from "@/lib/supabase/server";
 
-export type SignupIntent = "therapy" | "jobs" | "both";
+// Re-export pure utilities so existing callers continue to work
+export {
+  normalizeWorkspaceEmail,
+  hashInvitationToken,
+  createInvitationToken,
+  WorkspaceInviteError,
+  type SignupIntent,
+  type WorkspaceInviteDetails,
+} from "@/lib/workspace/invite-utils";
 
-export interface WorkspaceInviteDetails {
-  id: string;
-  profileId: string;
-  agencyName: string;
-  invitedEmail: string;
-  role: ProfileRole;
-  status: "pending" | "accepted" | "revoked" | "expired";
-  expiresAt: string;
-  inviterName: string | null;
-}
-
-export class WorkspaceInviteError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "WorkspaceInviteError";
-  }
-}
-
-export function normalizeWorkspaceEmail(email: string) {
-  return email.trim().toLowerCase();
-}
-
-export function hashInvitationToken(token: string) {
-  return createHash("sha256").update(token).digest("hex");
-}
-
-export function createInvitationToken() {
-  return randomBytes(24).toString("hex");
-}
+// Local imports for use within this file
+import {
+  normalizeWorkspaceEmail,
+  hashInvitationToken,
+  WorkspaceInviteError,
+  type SignupIntent,
+  type WorkspaceInviteDetails,
+} from "@/lib/workspace/invite-utils";
 
 async function ensureOwnerMembership(
   profileId: string,

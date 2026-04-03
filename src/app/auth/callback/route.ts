@@ -1,15 +1,7 @@
 import { NextResponse } from "next/server";
 
-import {
-  createClient,
-  getWorkspaceInviteCookie,
-} from "@/lib/supabase/server";
+import { isClerkAuthEnabled, isConvexDataEnabled } from "@/lib/platform/config";
 import { sendAdminNewSignupNotification } from "@/lib/email/notifications";
-import { resolveCurrentWorkspaceProfileId } from "@/lib/workspace/current-profile";
-import {
-  acceptWorkspaceInvitation,
-  createWorkspaceForUser,
-} from "@/lib/workspace/memberships";
 
 type SignupIntent = "therapy" | "jobs" | "both";
 
@@ -41,11 +33,122 @@ function buildInviteErrorRedirect(params: {
 }
 
 /**
- * OAuth callback handler.
- * This route handles the redirect from OAuth providers after authentication.
- * It exchanges the code for a session and creates a profile if needed.
+ * Clerk-mode callback handler.
+ * After Clerk sign-in/sign-up, handles workspace creation and invite acceptance via Convex.
  */
-export async function GET(request: Request) {
+async function handleClerkCallback(request: Request) {
+  const { searchParams, origin } = new URL(request.url);
+  const next = searchParams.get("next") ?? "/dashboard/clients/pipeline";
+  const inviteToken = searchParams.get("invite");
+  const selectedPlan = searchParams.get("plan");
+  const selectedInterval = searchParams.get("interval");
+  const selectedIntent = normalizeSignupIntent(searchParams.get("intent"));
+
+  const validPlans = ["free", "pro"];
+  const planTier =
+    selectedPlan && validPlans.includes(selectedPlan) ? selectedPlan : "free";
+  const billingInterval =
+    selectedInterval === "annual" || selectedInterval === "year"
+      ? "year"
+      : "month";
+
+  const { getCurrentUser } = await import("@/lib/platform/auth/server");
+  const user = await getCurrentUser();
+  if (!user) {
+    return NextResponse.redirect(`${origin}/auth/sign-in`);
+  }
+
+  // Handle invite acceptance
+  const { getWorkspaceInviteCookie, clearWorkspaceInviteCookie } = await import(
+    "@/lib/workspace/invite-cookie"
+  );
+  const pendingInviteToken = inviteToken || (await getWorkspaceInviteCookie());
+
+  if (pendingInviteToken && isConvexDataEnabled()) {
+    try {
+      const { hashInvitationToken } = await import(
+        "@/lib/workspace/memberships"
+      );
+      const { mutateConvex } = await import(
+        "@/lib/platform/convex/server"
+      );
+      const tokenHash = hashInvitationToken(pendingInviteToken);
+      const result = await mutateConvex<{
+        membership: { id: string };
+        profile: { onboarding_completed_at: string | null };
+      }>("workspaces:acceptWorkspaceInvitation", { tokenHash });
+
+      await clearWorkspaceInviteCookie();
+
+      if (!result?.profile?.onboarding_completed_at) {
+        return NextResponse.redirect(`${origin}/dashboard/onboarding`);
+      }
+      return NextResponse.redirect(`${origin}${next}`);
+    } catch (error) {
+      return NextResponse.redirect(
+        buildInviteErrorRedirect({
+          origin,
+          token: pendingInviteToken,
+          email: user.email,
+          message:
+            error instanceof Error
+              ? error.message
+              : "Failed to accept workspace invitation",
+        }),
+      );
+    }
+  }
+
+  // Check or create workspace in Convex
+  if (isConvexDataEnabled()) {
+    const { queryConvex, mutateConvex } = await import(
+      "@/lib/platform/convex/server"
+    );
+
+    const workspace = await queryConvex<{
+      profile: { onboarding_completed_at: string | null };
+    } | null>("workspaces:getCurrentWorkspace");
+
+    if (!workspace) {
+      const agencyName = user.firstName
+        ? `${user.firstName}${user.lastName ? ` ${user.lastName}` : ""}`
+        : user.email?.split("@")[0] || "My Agency";
+
+      await mutateConvex("workspaces:createWorkspaceForCurrentUser", {
+        email: user.email || "",
+        agencyName,
+        planTier,
+        billingInterval,
+        primaryIntent: selectedIntent,
+      });
+
+      await sendAdminNewSignupNotification({
+        agencyName,
+        email: user.email || "",
+        planTier,
+        billingInterval,
+        signupMethod: "email",
+      });
+
+      return NextResponse.redirect(`${origin}/dashboard/onboarding`);
+    }
+
+    if (!workspace.profile.onboarding_completed_at) {
+      return NextResponse.redirect(`${origin}/dashboard/onboarding`);
+    }
+
+    return NextResponse.redirect(`${origin}${next}`);
+  }
+
+  // Clerk mode without Convex - shouldn't happen in practice
+  return NextResponse.redirect(`${origin}${next}`);
+}
+
+/**
+ * Supabase-mode OAuth callback handler.
+ * Exchanges the code for a session and creates a profile if needed.
+ */
+async function handleSupabaseCallback(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
   const next = searchParams.get("next") ?? "/dashboard/clients/pipeline";
@@ -54,27 +157,38 @@ export async function GET(request: Request) {
   const selectedInterval = searchParams.get("interval");
   const selectedIntent = normalizeSignupIntent(searchParams.get("intent"));
 
-  // Validate plan tier and billing interval
-  // Normalize to "month"/"year" to match Stripe's convention
   const validPlans = ["free", "pro"];
-  const planTier = selectedPlan && validPlans.includes(selectedPlan) ? selectedPlan : "free";
-  const billingInterval = selectedInterval === "annual" || selectedInterval === "year" ? "year" : "month";
+  const planTier =
+    selectedPlan && validPlans.includes(selectedPlan) ? selectedPlan : "free";
+  const billingInterval =
+    selectedInterval === "annual" || selectedInterval === "year"
+      ? "year"
+      : "month";
 
   if (code) {
-    const supabase = await createClient();
+    const { createClient, getWorkspaceInviteCookie } = await import(
+      "@/lib/supabase/server"
+    );
+    const { resolveCurrentWorkspaceProfileId } = await import(
+      "@/lib/workspace/current-profile"
+    );
+    const { acceptWorkspaceInvitation, createWorkspaceForUser } = await import(
+      "@/lib/workspace/memberships"
+    );
 
-    // Exchange the code for a session
+    const supabase = await createClient();
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (error) {
       console.error("OAuth callback error:", error);
       return NextResponse.redirect(
-        `${origin}/auth/sign-in?error=${encodeURIComponent(error.message)}`
+        `${origin}/auth/sign-in?error=${encodeURIComponent(error.message)}`,
       );
     }
 
     if (data.user) {
-      const pendingInviteToken = inviteToken || (await getWorkspaceInviteCookie());
+      const pendingInviteToken =
+        inviteToken || (await getWorkspaceInviteCookie());
       if (pendingInviteToken) {
         try {
           const result = await acceptWorkspaceInvitation({
@@ -103,12 +217,15 @@ export async function GET(request: Request) {
                 error instanceof Error
                   ? error.message
                   : "Failed to accept workspace invitation",
-            })
+            }),
           );
         }
       }
 
-      const currentProfileId = await resolveCurrentWorkspaceProfileId(supabase, data.user.id);
+      const currentProfileId = await resolveCurrentWorkspaceProfileId(
+        supabase,
+        data.user.id,
+      );
       if (currentProfileId !== data.user.id) {
         const { data: invitedWorkspace } = await supabase
           .from("profiles")
@@ -123,16 +240,13 @@ export async function GET(request: Request) {
         return NextResponse.redirect(`${origin}${next}`);
       }
 
-      // Check if profile exists
       const { data: existingProfile } = await supabase
         .from("profiles")
         .select("id, onboarding_completed_at, primary_intent")
         .eq("id", data.user.id)
         .single();
 
-      // Create profile if it doesn't exist
       if (!existingProfile) {
-        // Get user metadata for agency name
         const agencyName =
           data.user.user_metadata?.agency_name ||
           data.user.user_metadata?.full_name ||
@@ -140,11 +254,12 @@ export async function GET(request: Request) {
           data.user.email?.split("@")[0] ||
           "My Agency";
 
-        // Get plan and interval from user metadata (email signup) or URL param (OAuth)
-        const userPlan = data.user.user_metadata?.selected_plan || planTier;
-        const userInterval = data.user.user_metadata?.billing_interval || billingInterval;
+        const userPlan =
+          data.user.user_metadata?.selected_plan || planTier;
+        const userInterval =
+          data.user.user_metadata?.billing_interval || billingInterval;
         const userIntent = normalizeSignupIntent(
-          data.user.user_metadata?.selected_intent || selectedIntent
+          data.user.user_metadata?.selected_intent || selectedIntent,
         );
 
         await createWorkspaceForUser({
@@ -156,10 +271,13 @@ export async function GET(request: Request) {
           primaryIntent: userIntent,
         });
 
-        // Send admin notification for new signup
-        // Determine signup method from OAuth provider
         const provider = data.user.app_metadata?.provider;
-        const signupMethod = provider === "google" ? "google" : provider === "azure" ? "microsoft" : "email";
+        const signupMethod =
+          provider === "google"
+            ? "google"
+            : provider === "azure"
+              ? "microsoft"
+              : "email";
         await sendAdminNewSignupNotification({
           agencyName,
           email: data.user.email!,
@@ -171,7 +289,6 @@ export async function GET(request: Request) {
         return NextResponse.redirect(`${origin}/dashboard/onboarding`);
       }
 
-      // Existing user without completed onboarding
       if (!existingProfile.onboarding_completed_at) {
         if (!existingProfile.primary_intent) {
           await supabase
@@ -182,11 +299,16 @@ export async function GET(request: Request) {
         return NextResponse.redirect(`${origin}/dashboard/onboarding`);
       }
 
-      // Existing user with completed onboarding - redirect to next or dashboard
       return NextResponse.redirect(`${origin}${next}`);
     }
   }
 
-  // If no code or error, redirect to sign-in
   return NextResponse.redirect(`${origin}/auth/sign-in`);
+}
+
+export async function GET(request: Request) {
+  if (isClerkAuthEnabled()) {
+    return handleClerkCallback(request);
+  }
+  return handleSupabaseCallback(request);
 }

@@ -4,19 +4,10 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 
-import {
-  createClient,
-  getCurrentProfileId,
-  getWorkspaceInviteCookie,
-  setWorkspaceInviteCookie,
-} from "@/lib/supabase/server";
+import { isClerkAuthEnabled } from "@/lib/platform/config";
 import { verifyTurnstileToken } from "@/lib/turnstile";
 import { sendAdminNewSignupNotification } from "@/lib/email/notifications";
 import { getRequestOrigin } from "@/lib/utils/domains";
-import {
-  acceptWorkspaceInvitation,
-  createWorkspaceForUser,
-} from "@/lib/workspace/memberships";
 
 export type AuthError = {
   error: string;
@@ -67,9 +58,14 @@ function buildAuthCallbackUrl(params: {
 }
 
 /**
- * Sign in with email and password
+ * Sign in with email and password (Supabase mode only).
+ * In Clerk mode, sign-in is handled by Clerk's UI components.
  */
 export async function signInWithEmail(formData: FormData): Promise<AuthResult> {
+  if (isClerkAuthEnabled()) {
+    return { error: "auth_error", message: "Sign-in is handled by Clerk" };
+  }
+
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
   const turnstileToken = formData.get("turnstileToken") as string | null;
@@ -92,6 +88,9 @@ export async function signInWithEmail(formData: FormData): Promise<AuthResult> {
       };
     }
   }
+
+  const { createClient, getCurrentProfileId, getWorkspaceInviteCookie } =
+    await import("@/lib/supabase/server");
 
   const supabase = await createClient();
 
@@ -116,6 +115,9 @@ export async function signInWithEmail(formData: FormData): Promise<AuthResult> {
     let profileId = (await getCurrentProfileId()) || user.id;
     if (pendingInviteToken) {
       try {
+        const { acceptWorkspaceInvitation } = await import(
+          "@/lib/workspace/memberships"
+        );
         const result = await acceptWorkspaceInvitation({
           token: pendingInviteToken,
           user,
@@ -145,10 +147,14 @@ export async function signInWithEmail(formData: FormData): Promise<AuthResult> {
 }
 
 /**
- * Sign up with email and password
- * Plan is passed from URL param (from pricing page) and stored in DB
+ * Sign up with email and password (Supabase mode only).
+ * In Clerk mode, sign-up is handled by Clerk's UI components.
  */
 export async function signUpWithEmail(formData: FormData): Promise<AuthResult> {
+  if (isClerkAuthEnabled()) {
+    return { error: "auth_error", message: "Sign-up is handled by Clerk" };
+  }
+
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
   const agencyName = formData.get("agencyName") as string;
@@ -196,6 +202,10 @@ export async function signUpWithEmail(formData: FormData): Promise<AuthResult> {
 
   const headersList = await headers();
   const origin = getRequestOrigin(headersList, "goodaba");
+
+  const { setWorkspaceInviteCookie, createClient } =
+    await import("@/lib/supabase/server");
+
   if (inviteToken) {
     await setWorkspaceInviteCookie(inviteToken);
   }
@@ -239,6 +249,8 @@ export async function signUpWithEmail(formData: FormData): Promise<AuthResult> {
   // If user was created and confirmed (e.g., in development), create profile
   if (data.user) {
     const finalAgencyName = agencyName || email.split("@")[0];
+    const { acceptWorkspaceInvitation, createWorkspaceForUser } =
+      await import("@/lib/workspace/memberships");
     if (inviteToken) {
       await acceptWorkspaceInvitation({
         token: inviteToken,
@@ -270,8 +282,8 @@ export async function signUpWithEmail(formData: FormData): Promise<AuthResult> {
 }
 
 /**
- * Sign in with OAuth provider (Google, Microsoft)
- * Plan and billing interval are passed via redirect URL and stored after callback
+ * Sign in with OAuth provider (Supabase mode only).
+ * In Clerk mode, OAuth is handled by Clerk's UI components.
  */
 export async function signInWithOAuth(
   provider: "google" | "azure",
@@ -280,6 +292,10 @@ export async function signInWithOAuth(
   selectedIntent?: string,
   inviteToken?: string
 ): Promise<{ url: string } | AuthError> {
+  if (isClerkAuthEnabled()) {
+    return { error: "oauth_error", message: "OAuth is handled by Clerk" };
+  }
+
   const headersList = await headers();
   const origin = getRequestOrigin(headersList, "goodaba");
 
@@ -289,6 +305,10 @@ export async function signInWithOAuth(
   const planTier = selectedPlan && validPlans.includes(selectedPlan) ? selectedPlan : "free";
   const interval = billingInterval === "annual" || billingInterval === "year" ? "year" : "month";
   const intent = normalizeSignupIntent(selectedIntent);
+
+  const { setWorkspaceInviteCookie, createClient } =
+    await import("@/lib/supabase/server");
+
   if (inviteToken) {
     await setWorkspaceInviteCookie(inviteToken);
   }
@@ -329,9 +349,16 @@ export async function signInWithOAuth(
 }
 
 /**
- * Sign out the current user
+ * Sign out the current user.
+ * In Clerk mode, sign-out is primarily client-side; server action just revalidates and redirects.
  */
 export async function signOut(): Promise<void> {
+  if (isClerkAuthEnabled()) {
+    revalidatePath("/", "layout");
+    redirect("/");
+  }
+
+  const { createClient } = await import("@/lib/supabase/server");
   const supabase = await createClient();
   await supabase.auth.signOut();
   revalidatePath("/", "layout");
@@ -339,9 +366,14 @@ export async function signOut(): Promise<void> {
 }
 
 /**
- * Send password reset email
+ * Send password reset email (Supabase mode only).
+ * In Clerk mode, password reset is handled by Clerk's UI.
  */
 export async function resetPassword(formData: FormData): Promise<AuthResult> {
+  if (isClerkAuthEnabled()) {
+    return { error: "auth_error", message: "Password reset is handled by Clerk" };
+  }
+
   const email = formData.get("email") as string;
   const turnstileToken = formData.get("turnstileToken") as string;
 
@@ -371,6 +403,7 @@ export async function resetPassword(formData: FormData): Promise<AuthResult> {
   const headersList = await headers();
   const origin = getRequestOrigin(headersList, "goodaba");
 
+  const { createClient } = await import("@/lib/supabase/server");
   const supabase = await createClient();
 
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
@@ -391,9 +424,14 @@ export async function resetPassword(formData: FormData): Promise<AuthResult> {
 }
 
 /**
- * Update password (after reset)
+ * Update password (Supabase mode only).
+ * In Clerk mode, password updates are handled by Clerk's UI.
  */
 export async function updatePassword(formData: FormData): Promise<AuthResult> {
+  if (isClerkAuthEnabled()) {
+    return { error: "auth_error", message: "Password update is handled by Clerk" };
+  }
+
   const password = formData.get("password") as string;
   const confirmPassword = formData.get("confirmPassword") as string;
 
@@ -418,6 +456,7 @@ export async function updatePassword(formData: FormData): Promise<AuthResult> {
     };
   }
 
+  const { createClient } = await import("@/lib/supabase/server");
   const supabase = await createClient();
 
   const { error } = await supabase.auth.updateUser({

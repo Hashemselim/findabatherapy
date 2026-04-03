@@ -1,79 +1,85 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import type { User, Session } from "@supabase/supabase-js";
+import { useUser as useClerkUser, useAuth as useClerkAuth } from "@clerk/nextjs";
 
-import { createSupabaseBrowserClient } from "@/lib/supabase/clients";
+import { platformConfig } from "@/lib/platform/config";
 
-/**
- * Hook to get the current authenticated user.
- * Subscribes to auth state changes.
- */
-export function useUser() {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+interface AuthUser {
+  id: string;
+  email: string | null;
+}
 
-  useEffect(() => {
-    const supabase = createSupabaseBrowserClient();
-
-    // Get initial user
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUser(user);
-      setLoading(false);
-    });
-
-    // Subscribe to auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, []);
-
-  return { user, loading };
+function useClerkMode() {
+  return platformConfig.authProvider === "clerk";
 }
 
 /**
- * Hook to get the current session.
- * Subscribes to auth state changes.
+ * Hook to get the current authenticated user.
+ * Routes to Clerk or Supabase depending on platform config.
  */
-export function useSession() {
-  const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
+export function useUser() {
+  const isClerk = useClerkMode();
+
+  // Clerk path
+  const clerkState = useClerkUser();
+
+  // Supabase path
+  const [supabaseUser, setSupabaseUser] = useState<AuthUser | null>(null);
+  const [supabaseLoading, setSupabaseLoading] = useState(!isClerk);
 
   useEffect(() => {
-    const supabase = createSupabaseBrowserClient();
+    if (isClerk) return;
 
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setLoading(false);
-    });
+    let cancelled = false;
 
-    // Subscribe to auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setLoading(false);
+    import("@/lib/supabase/clients").then(({ createSupabaseBrowserClient }) => {
+      if (cancelled) return;
+      const supabase = createSupabaseBrowserClient();
+
+      supabase.auth.getUser().then(({ data: { user } }) => {
+        if (cancelled) return;
+        setSupabaseUser(
+          user ? { id: user.id, email: user.email ?? null } : null,
+        );
+        setSupabaseLoading(false);
+      });
+
+      const {
+        data: { subscription },
+      } = supabase.auth.onAuthStateChange((_event, session) => {
+        if (cancelled) return;
+        const u = session?.user;
+        setSupabaseUser(u ? { id: u.id, email: u.email ?? null } : null);
+        setSupabaseLoading(false);
+      });
+
+      return () => {
+        subscription.unsubscribe();
+      };
     });
 
     return () => {
-      subscription.unsubscribe();
+      cancelled = true;
     };
-  }, []);
+  }, [isClerk]);
 
-  return { session, loading };
+  if (isClerk) {
+    const user: AuthUser | null = clerkState.user
+      ? {
+          id: clerkState.user.id,
+          email:
+            clerkState.user.primaryEmailAddress?.emailAddress ?? null,
+        }
+      : null;
+    return { user, loading: !clerkState.isLoaded };
+  }
+
+  return { user: supabaseUser, loading: supabaseLoading };
 }
 
 /**
  * Hook to get auth status (simplified).
- * Returns loading state and whether user is authenticated.
  */
 export function useAuthStatus() {
   const { user, loading } = useUser();
@@ -89,15 +95,23 @@ export function useAuthStatus() {
  * Hook to sign out the user on the client side.
  */
 export function useSignOut() {
+  const isClerk = useClerkMode();
+  const clerkAuth = useClerkAuth();
   const [loading, setLoading] = useState(false);
 
   const signOut = useCallback(async () => {
     setLoading(true);
-    const supabase = createSupabaseBrowserClient();
-    await supabase.auth.signOut();
+    if (isClerk) {
+      await clerkAuth.signOut();
+    } else {
+      const { createSupabaseBrowserClient } = await import(
+        "@/lib/supabase/clients"
+      );
+      const supabase = createSupabaseBrowserClient();
+      await supabase.auth.signOut();
+    }
     setLoading(false);
-    // Redirect will happen via server action or router
-  }, []);
+  }, [isClerk, clerkAuth]);
 
   return { signOut, loading };
 }

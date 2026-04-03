@@ -5,11 +5,12 @@ import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-heade
 import { WorkspaceUsersManager } from "@/components/dashboard/workspace-users-manager";
 import { DashboardCallout, DashboardCard } from "@/components/dashboard/ui";
 import { CardContent } from "@/components/ui/card";
-import { getCurrentMembership, getUser } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/platform/auth/server";
+import { getCurrentMembership } from "@/lib/platform/workspace/server";
 import { getWorkspaceUsers } from "@/lib/actions/workspace-users";
 
 export default async function WorkspaceUsersPage() {
-  const user = await getUser();
+  const user = await getCurrentUser();
   if (!user) {
     redirect("/auth/sign-in");
   }

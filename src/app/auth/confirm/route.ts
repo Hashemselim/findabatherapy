@@ -1,15 +1,7 @@
-import { type EmailOtpType } from "@supabase/supabase-js";
+import type { EmailOtpType } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 
-import {
-  createClient,
-  getWorkspaceInviteCookie,
-} from "@/lib/supabase/server";
-import { resolveCurrentWorkspaceProfileId } from "@/lib/workspace/current-profile";
-import {
-  acceptWorkspaceInvitation,
-  createWorkspaceForUser,
-} from "@/lib/workspace/memberships";
+import { isClerkAuthEnabled } from "@/lib/platform/config";
 
 type SignupIntent = "therapy" | "jobs" | "both";
 
@@ -41,17 +33,31 @@ function buildInviteErrorRedirect(params: {
 }
 
 /**
- * Email confirmation handler.
- * This route handles email verification links sent during signup.
+ * Email confirmation handler (Supabase mode only).
+ * In Clerk mode, email verification is handled by Clerk.
  */
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
+
+  if (isClerkAuthEnabled()) {
+    return NextResponse.redirect(`${origin}/auth/sign-in`);
+  }
+
   const token_hash = searchParams.get("token_hash");
   const type = searchParams.get("type") as EmailOtpType | null;
   const next = searchParams.get("next") ?? "/dashboard/clients/pipeline";
   const inviteToken = searchParams.get("invite");
 
   if (token_hash && type) {
+    const { createClient, getWorkspaceInviteCookie } = await import(
+      "@/lib/supabase/server"
+    );
+    const { resolveCurrentWorkspaceProfileId } = await import(
+      "@/lib/workspace/current-profile"
+    );
+    const { acceptWorkspaceInvitation, createWorkspaceForUser } = await import(
+      "@/lib/workspace/memberships"
+    );
     const supabase = await createClient();
 
     const { data, error } = await supabase.auth.verifyOtp({

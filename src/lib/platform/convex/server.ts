@@ -58,6 +58,23 @@ export async function mutateConvex<T>(
 }
 
 /**
+ * Call a Convex query without user authentication.
+ * Used for public reads like invite previews where there is no Clerk session.
+ */
+export async function queryConvexUnauthenticated<T>(
+  functionName: string,
+  args: Record<string, unknown> = {},
+): Promise<T> {
+  return fetchQuery(
+    makeFunctionReference<"query", Record<string, unknown>, T>(functionName),
+    args,
+    {
+      url: requireConvexUrl(),
+    },
+  );
+}
+
+/**
  * Call a Convex mutation without user authentication.
  * Used by Stripe webhook handlers where there is no Clerk session.
  */
