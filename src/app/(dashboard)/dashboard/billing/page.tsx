@@ -50,34 +50,74 @@ import { getSubscription, getPendingDowngrade, getFeaturedAddonPrices, getFeatur
 import { getActiveAddons } from "@/lib/actions/addons";
 import { getWorkspaceSeatSummary } from "@/lib/actions/workspace-users";
 import { STRIPE_PLANS } from "@/lib/stripe/config";
+import { isConvexDataEnabled } from "@/lib/platform/config";
+import { getCurrentUser } from "@/lib/platform/auth/server";
+import { getCurrentWorkspace } from "@/lib/platform/workspace/server";
 import { createClient, getCurrentMembership, getCurrentProfileId, getUser } from "@/lib/supabase/server";
 
 export default async function DashboardBillingPage() {
-  const user = await getUser();
-  const membership = await getCurrentMembership();
-  const profileId = await getCurrentProfileId();
+  let membershipRole: string = "member";
+  let profileId: string | null = null;
+  let planTier = "free";
+  let subscriptionStatus: string | null = null;
+  let stripeCustomerId: string | null = null;
+  let stripeSubscriptionId: string | null = null;
+  let onboardingCompletedAt: string | null = null;
+  let billingInterval: "month" | "year" = "month";
 
-  if (!user || !membership || !profileId) {
-    return null;
+  if (isConvexDataEnabled()) {
+    const user = await getCurrentUser();
+    const ws = await getCurrentWorkspace();
+    if (!user || !ws) return null;
+
+    membershipRole = ws.membership.role;
+    profileId = ws.workspace.id;
+    planTier = ws.workspace.planTier || "free";
+    subscriptionStatus = ws.workspace.subscriptionStatus ?? null;
+    stripeCustomerId = ws.workspace.stripeCustomerId ?? null;
+    stripeSubscriptionId = ws.workspace.stripeSubscriptionId ?? null;
+    onboardingCompletedAt = ws.workspace.onboardingCompletedAt ?? null;
+    billingInterval = ws.workspace.billingInterval === "year" ? "year" : "month";
+  } else {
+    const user = await getUser();
+    const membership = await getCurrentMembership();
+    profileId = await getCurrentProfileId();
+
+    if (!user || !membership || !profileId) return null;
+    membershipRole = membership.role;
+
+    const supabase = await createClient();
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("plan_tier, stripe_customer_id, stripe_subscription_id, subscription_status, onboarding_completed_at")
+      .eq("id", profileId)
+      .single();
+
+    planTier = profile?.plan_tier || "free";
+    subscriptionStatus = profile?.subscription_status ?? null;
+    stripeCustomerId = profile?.stripe_customer_id ?? null;
+    stripeSubscriptionId = profile?.stripe_subscription_id ?? null;
+    onboardingCompletedAt = profile?.onboarding_completed_at ?? null;
+
+    if (profile) {
+      const { data: billingData } = await supabase
+        .from("profiles")
+        .select("billing_interval")
+        .eq("id", profileId)
+        .single();
+      if (billingData?.billing_interval === "year") {
+        billingInterval = "year";
+      }
+    }
   }
-
-  const supabase = await createClient();
-
-  // Get profile for plan tier and onboarding status
-  // Note: billing_interval is queried separately since it may not exist until migration runs
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("plan_tier, stripe_customer_id, stripe_subscription_id, subscription_status, onboarding_completed_at")
-    .eq("id", profileId)
-    .single();
 
   const [subscriptionResult, pendingDowngradeResult, featuredPricingResult, featuredLocationsResult, addonsResult, seatSummaryResult] = await Promise.all([
     getSubscription(),
     getPendingDowngrade(),
     getFeaturedAddonPrices(),
     getFeaturedLocations(),
-    getActiveAddons(profileId),
-    getWorkspaceSeatSummary(profileId),
+    getActiveAddons(profileId!),
+    getWorkspaceSeatSummary(profileId!),
   ]);
 
   const subscription = subscriptionResult.success ? subscriptionResult.data : null;
@@ -88,37 +128,20 @@ export default async function DashboardBillingPage() {
   const activeAddons = addonsResult.success && addonsResult.data ? addonsResult.data : [];
   const seatSummary = seatSummaryResult.success ? seatSummaryResult.data : null;
 
-  const planTier = profile?.plan_tier || "free";
-
-  // Determine if user has an active subscription
   const isActiveSubscription =
-    profile?.subscription_status === "active" ||
-    profile?.subscription_status === "trialing";
+    subscriptionStatus === "active" ||
+    subscriptionStatus === "trialing";
 
-  // Check if user selected a paid plan but never completed payment
-  const hasIncompletePayment = planTier !== "free" && !isActiveSubscription && !profile?.stripe_subscription_id;
+  const hasIncompletePayment = planTier !== "free" && !isActiveSubscription && !stripeSubscriptionId;
 
-  // Try to get billing_interval - defaults to "month" if column doesn't exist yet
-  let billingInterval: "month" | "year" = "month";
-  if (profile) {
-    const { data: billingData } = await supabase
-      .from("profiles")
-      .select("billing_interval")
-      .eq("id", profileId)
-      .single();
-    if (billingData?.billing_interval === "year") {
-      billingInterval = "year";
-    }
-  }
   const isAnnual = billingInterval === "year";
 
-  // For display and feature purposes, use effective plan tier based on subscription status
   const effectivePlanTier = (planTier !== "free" && isActiveSubscription) ? planTier : "free";
   const isFreePlan = effectivePlanTier === "free";
   const isPro = effectivePlanTier === "pro";
   const canOpenBillingPortal =
-    membership.role === "owner" &&
-    Boolean(profile?.stripe_customer_id);
+    membershipRole === "owner" &&
+    Boolean(stripeCustomerId);
 
   // Format the renewal date
   const renewalDate = subscription?.currentPeriodEnd
@@ -155,7 +178,7 @@ export default async function DashboardBillingPage() {
   ];
 
   // If onboarding is not complete, show the gate message
-  if (!profile?.onboarding_completed_at) {
+  if (!onboardingCompletedAt) {
     return (
       <div className="space-y-4 sm:space-y-6">
         <DashboardPageHeader
@@ -192,13 +215,13 @@ export default async function DashboardBillingPage() {
             <ExternalLink className="mr-2 h-4 w-4" />
             Manage Subscription
           </BillingPortalButton>
-        ) : hasIncompletePayment && membership.role === "owner" ? (
+        ) : hasIncompletePayment && membershipRole === "owner" ? (
           <Button asChild size="sm" className="w-full gap-2 sm:w-auto">
             <Link href={`/dashboard/billing/checkout?plan=${planTier}&interval=${billingInterval}`}>
               Complete Upgrade
             </Link>
           </Button>
-        ) : membership.role === "owner" ? (
+        ) : membershipRole === "owner" ? (
           <Button asChild size="sm" className="w-full gap-2 sm:w-auto">
             <Link href="/dashboard/onboarding/plan">
               Go Live
@@ -207,7 +230,7 @@ export default async function DashboardBillingPage() {
         ) : null}
       </DashboardPageHeader>
 
-      {membership.role !== "owner" && (
+      {membershipRole !== "owner" && (
         <DashboardCallout
           tone="default"
           icon={CreditCard}
@@ -497,7 +520,7 @@ export default async function DashboardBillingPage() {
       )}
 
       {/* Featured Location Add-on */}
-      {!isFreePlan && membership.role === "owner" && (
+      {!isFreePlan && membershipRole === "owner" && (
         <DashboardCard tone="premium">
           <CardHeader>
             <div className="flex items-center gap-3">
@@ -621,7 +644,7 @@ export default async function DashboardBillingPage() {
       )}
 
       {/* Add-ons */}
-      {isPro && membership.role === "owner" && (
+      {isPro && membershipRole === "owner" && (
         <DashboardCard>
           <CardHeader>
             <div className="flex items-center gap-3">
@@ -643,7 +666,7 @@ export default async function DashboardBillingPage() {
       )}
 
       {/* Billing Portal Card */}
-      {!isFreePlan && profile?.stripe_customer_id && (
+      {!isFreePlan && stripeCustomerId && (
         <DashboardCard>
           <CardHeader>
             <div className="flex items-center gap-3">

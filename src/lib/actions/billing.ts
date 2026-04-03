@@ -1,5 +1,7 @@
 "use server";
 
+import { isConvexDataEnabled } from "@/lib/platform/config";
+import { queryConvex, mutateConvex } from "@/lib/platform/convex/server";
 import { createClient, getCurrentProfileId, requireProfileRole } from "@/lib/supabase/server";
 import { toUserFacingSupabaseError } from "@/lib/supabase/user-facing-errors";
 import { getWorkspaceSeatSummary } from "@/lib/actions/workspace-users";
@@ -16,14 +18,18 @@ export interface PaymentStatus {
 
 /**
  * Get payment status for the current user
- *
- * "Paid" means:
- * - plan_tier is 'pro' AND
- * - subscription_status is 'active' or 'trialing'
- *
- * This is used to determine if premium features should be unlocked
  */
 export async function getPaymentStatus(): Promise<ActionResult<PaymentStatus>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const result = await queryConvex<PaymentStatus>("billing:getPaymentStatus");
+      return { success: true, data: result };
+    } catch (error) {
+      console.error("Convex getPaymentStatus error:", error);
+      return { success: false, error: "Not authenticated" };
+    }
+  }
+
   const profileId = await getCurrentProfileId();
   if (!profileId) {
     return { success: false, error: "Not authenticated" };
@@ -47,7 +53,6 @@ export async function getPaymentStatus(): Promise<ActionResult<PaymentStatus>> {
     profile.subscription_status === "active" ||
     profile.subscription_status === "trialing";
 
-  // User is "paid" only if they have a paid plan AND an active subscription
   const isPaid = isPaidPlan && isActiveSubscription;
 
   return {
@@ -62,9 +67,18 @@ export async function getPaymentStatus(): Promise<ActionResult<PaymentStatus>> {
 
 /**
  * Check if the user has selected a paid plan (regardless of payment completion)
- * Used to determine intent during onboarding
  */
 export async function getSelectedPlanTier(): Promise<ActionResult<{ planTier: "free" | "pro" }>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const result = await queryConvex<{ planTier: "free" | "pro" }>("billing:getSelectedPlanTierQuery");
+      return { success: true, data: result };
+    } catch (error) {
+      console.error("Convex getSelectedPlanTier error:", error);
+      return { success: false, error: "Not authenticated" };
+    }
+  }
+
   const profileId = await getCurrentProfileId();
   if (!profileId) {
     return { success: false, error: "Not authenticated" };
@@ -91,11 +105,18 @@ export async function getSelectedPlanTier(): Promise<ActionResult<{ planTier: "f
 
 /**
  * Reset the user's plan to free
- *
- * Called when user cancels/backs out of Stripe checkout during onboarding.
- * Only resets if user doesn't have an active subscription (edge case protection).
  */
 export async function resetPlanToFree(): Promise<ActionResult> {
+  if (isConvexDataEnabled()) {
+    try {
+      await mutateConvex("billing:resetPlanToFree");
+      return { success: true };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to reset plan";
+      return { success: false, error: message };
+    }
+  }
+
   const membership = await requireProfileRole("owner").catch(() => null);
   if (!membership) {
     return { success: false, error: "Not authenticated" };
@@ -115,22 +136,19 @@ export async function resetPlanToFree(): Promise<ActionResult> {
 
   const supabase = await createClient();
 
-  // First check if they have an active subscription (edge case protection)
   const { data: profile } = await supabase
     .from("profiles")
     .select("subscription_status")
     .eq("id", membership.profile_id)
     .single();
 
-  // Don't reset if they have an active subscription
   if (
     profile?.subscription_status === "active" ||
     profile?.subscription_status === "trialing"
   ) {
-    return { success: true }; // No-op, they're actually paid
+    return { success: true };
   }
 
-  // Reset plan to free
   const { error } = await supabase
     .from("profiles")
     .update({ plan_tier: "free" })

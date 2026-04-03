@@ -5,6 +5,8 @@ import type Stripe from "stripe";
 
 import { stripe } from "@/lib/stripe";
 import { createAdminClient } from "@/lib/supabase/server";
+import { isConvexDataEnabled } from "@/lib/platform/config";
+import { mutateConvexUnauthenticated } from "@/lib/platform/convex/server";
 import { env } from "@/env";
 import { sendPaymentFailureNotification, sendAdminFirstPaymentNotification } from "@/lib/email/notifications";
 import { stopDripForUser } from "@/lib/actions/drip-emails";
@@ -146,63 +148,64 @@ async function handleCheckoutCompleted(
     return;
   }
 
-  // Get subscription details
   const subscriptionId = session.subscription as string;
 
-  // Update profile with Stripe IDs, plan tier, billing interval, and subscription status
-  const { error: profileError } = await supabase
-    .from("profiles")
-    .update({
-      stripe_customer_id: session.customer as string,
-      stripe_subscription_id: subscriptionId,
-      plan_tier: planTier || "pro",
-      billing_interval: billingInterval,
-      subscription_status: "active", // New subscription is always active
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", profileId);
-
-  if (profileError) {
-    console.error("Error updating profile:", profileError);
-    return;
-  }
-
-  // Publish listing if it exists
-  if (listingId) {
-    const { error: listingError } = await supabase
-      .from("listings")
+  if (isConvexDataEnabled()) {
+    await mutateConvexUnauthenticated("billing:webhookCheckoutCompleted", {
+      stripeCustomerId: session.customer as string,
+      stripeSubscriptionId: subscriptionId,
+      planTier: planTier || "pro",
+      billingInterval,
+      profileId,
+      listingId: listingId || undefined,
+    });
+  } else {
+    const { error: profileError } = await supabase
+      .from("profiles")
       .update({
-        status: "published",
+        stripe_customer_id: session.customer as string,
+        stripe_subscription_id: subscriptionId,
         plan_tier: planTier || "pro",
-        published_at: new Date().toISOString(),
+        billing_interval: billingInterval,
+        subscription_status: "active",
         updated_at: new Date().toISOString(),
       })
-      .eq("id", listingId);
+      .eq("id", profileId);
 
-    if (listingError) {
-      console.error("Error updating listing:", listingError);
+    if (profileError) {
+      console.error("Error updating profile:", profileError);
+      return;
     }
+
+    if (listingId) {
+      await supabase
+        .from("listings")
+        .update({
+          status: "published",
+          plan_tier: planTier || "pro",
+          published_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", listingId);
+    }
+
+    await supabase.from("audit_events").insert({
+      profile_id: profileId,
+      listing_id: listingId || null,
+      event_type: "subscription_created",
+      payload: {
+        plan_tier: planTier,
+        billing_interval: billingInterval,
+        subscription_id: subscriptionId,
+        customer_id: session.customer,
+      },
+    });
   }
 
-  // Log audit event
-  await supabase.from("audit_events").insert({
-    profile_id: profileId,
-    listing_id: listingId || null,
-    event_type: "subscription_created",
-    payload: {
-      plan_tier: planTier,
-      billing_interval: billingInterval,
-      subscription_id: subscriptionId,
-      customer_id: session.customer,
-    },
-  });
-
-  // Revalidate dashboard pages so the UI reflects the change
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/company");
   revalidatePath("/dashboard/locations");
 
-  // Stop drip emails now that the user has upgraded
   await stopDripForUser(profileId);
 
   console.log(`Checkout completed for profile ${profileId}, plan: ${planTier}, interval: ${billingInterval}`);
@@ -246,34 +249,41 @@ async function updateProfileSubscription(
 ) {
   const planTier = subscription.metadata?.plan_tier || "pro";
   const billingInterval = subscription.metadata?.billing_interval || "month";
-  const isActive = subscription.status === "active" || subscription.status === "trialing";
 
-  // Update profile with subscription status
-  const { error } = await supabase
-    .from("profiles")
-    .update({
-      plan_tier: isActive ? planTier : "free",
-      billing_interval: isActive ? billingInterval : "month",
-      stripe_subscription_id: subscription.id,
-      subscription_status: subscription.status, // Sync Stripe subscription status
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", profileId);
+  if (isConvexDataEnabled()) {
+    await mutateConvexUnauthenticated("billing:webhookSubscriptionUpdated", {
+      stripeCustomerId: subscription.customer as string,
+      stripeSubscriptionId: subscription.id,
+      planTier,
+      billingInterval,
+      subscriptionStatus: subscription.status,
+    });
+  } else {
+    const isActive = subscription.status === "active" || subscription.status === "trialing";
+    const { error } = await supabase
+      .from("profiles")
+      .update({
+        plan_tier: isActive ? planTier : "free",
+        billing_interval: isActive ? billingInterval : "month",
+        stripe_subscription_id: subscription.id,
+        subscription_status: subscription.status,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", profileId);
 
-  if (error) {
-    console.error("Error updating profile subscription:", error);
+    if (error) {
+      console.error("Error updating profile subscription:", error);
+    }
+
+    await supabase
+      .from("listings")
+      .update({
+        plan_tier: isActive ? planTier : "free",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("profile_id", profileId);
   }
 
-  // Update listing plan tier
-  await supabase
-    .from("listings")
-    .update({
-      plan_tier: isActive ? planTier : "free",
-      updated_at: new Date().toISOString(),
-    })
-    .eq("profile_id", profileId);
-
-  // Revalidate dashboard pages so the UI reflects the change
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/company");
   revalidatePath("/dashboard/locations");
@@ -292,65 +302,72 @@ async function handleSubscriptionDeleted(
   const profileId = subscription.metadata?.profile_id;
   const customerId = subscription.customer as string;
 
-  // Find profile by ID or customer ID
-  let targetProfileId = profileId;
-  if (!targetProfileId) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("id")
-      .eq("stripe_customer_id", customerId)
-      .single();
+  if (isConvexDataEnabled()) {
+    await mutateConvexUnauthenticated("billing:webhookSubscriptionDeleted", {
+      stripeCustomerId: customerId,
+      stripeSubscriptionId: subscription.id,
+    });
+  } else {
+    // Find profile by ID or customer ID
+    let targetProfileId = profileId;
+    if (!targetProfileId) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("stripe_customer_id", customerId)
+        .single();
 
-    if (profile) {
-      targetProfileId = profile.id;
+      if (profile) {
+        targetProfileId = profile.id;
+      }
     }
+
+    if (!targetProfileId) {
+      console.error("No profile found for subscription deletion");
+      return;
+    }
+
+    // Downgrade to free and clear subscription status
+    const { error: profileError } = await supabase
+      .from("profiles")
+      .update({
+        plan_tier: "free",
+        billing_interval: "month",
+        stripe_subscription_id: null,
+        subscription_status: null, // Clear subscription status
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", targetProfileId);
+
+    if (profileError) {
+      console.error("Error downgrading profile:", profileError);
+    }
+
+    // Update listing to free tier (keep it published)
+    await supabase
+      .from("listings")
+      .update({
+        plan_tier: "free",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("profile_id", targetProfileId);
+
+    // Log audit event
+    await supabase.from("audit_events").insert({
+      profile_id: targetProfileId,
+      event_type: "subscription_cancelled",
+      payload: {
+        subscription_id: subscription.id,
+      },
+    });
   }
-
-  if (!targetProfileId) {
-    console.error("No profile found for subscription deletion");
-    return;
-  }
-
-  // Downgrade to free and clear subscription status
-  const { error: profileError } = await supabase
-    .from("profiles")
-    .update({
-      plan_tier: "free",
-      billing_interval: "month",
-      stripe_subscription_id: null,
-      subscription_status: null, // Clear subscription status
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", targetProfileId);
-
-  if (profileError) {
-    console.error("Error downgrading profile:", profileError);
-  }
-
-  // Update listing to free tier (keep it published)
-  await supabase
-    .from("listings")
-    .update({
-      plan_tier: "free",
-      updated_at: new Date().toISOString(),
-    })
-    .eq("profile_id", targetProfileId);
-
-  // Log audit event
-  await supabase.from("audit_events").insert({
-    profile_id: targetProfileId,
-    event_type: "subscription_cancelled",
-    payload: {
-      subscription_id: subscription.id,
-    },
-  });
 
   // Revalidate dashboard pages so the UI reflects the change
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/company");
   revalidatePath("/dashboard/locations");
 
-  console.log(`Subscription cancelled for profile ${targetProfileId}`);
+  console.log(`Subscription cancelled for ${profileId || customerId}`);
 }
 
 /**
@@ -362,6 +379,12 @@ async function handleInvoicePaid(
   invoice: Stripe.Invoice
 ) {
   const customerId = invoice.customer as string;
+
+  if (isConvexDataEnabled()) {
+    console.log(`Invoice paid for customer ${customerId}, amount: ${invoice.amount_paid}`);
+    revalidatePath("/dashboard");
+    return;
+  }
 
   // Find profile with details needed for first payment notification
   const { data: profile } = await supabase
@@ -433,6 +456,12 @@ async function handleInvoicePaymentFailed(
   invoice: Stripe.Invoice
 ) {
   const customerId = invoice.customer as string;
+
+  if (isConvexDataEnabled()) {
+    console.log(`Invoice payment failed for customer ${customerId}, amount: ${invoice.amount_due}`);
+    revalidatePath("/dashboard");
+    return;
+  }
 
   // Find profile with email for notification
   const { data: profile } = await supabase
@@ -513,56 +542,66 @@ async function handleFeaturedLocationCheckoutCompleted(
     ? new Date(subscriptionItem.current_period_end * 1000).toISOString()
     : new Date().toISOString();
 
-  const { data: existingFeatured } = await supabase
-    .from("location_featured_subscriptions")
-    .select("id")
-    .eq("stripe_subscription_id", subscriptionId)
-    .maybeSingle();
-
-  if (existingFeatured) {
-    console.log(`Featured subscription already exists for ${subscriptionId}, skipping duplicate checkout insert`);
-    return;
-  }
-
-  // Insert featured subscription record
-  const { error: insertError } = await supabase
-    .from("location_featured_subscriptions")
-    .insert({
-      location_id: locationId,
-      profile_id: profileId,
-      stripe_subscription_id: subscriptionId,
-      stripe_subscription_item_id: subscriptionItem?.id || null,
-      billing_interval: billingInterval,
-      status: "active",
-      current_period_end: currentPeriodEnd,
-      cancel_at_period_end: false,
+  if (isConvexDataEnabled()) {
+    await mutateConvexUnauthenticated("billing:webhookFeaturedLocationCreated", {
+      stripeCustomerId: session.customer as string,
+      stripeSubscriptionId: subscriptionId,
+      locationId,
+      billingInterval,
+      currentPeriodEnd,
     });
+  } else {
+    const { data: existingFeatured } = await supabase
+      .from("location_featured_subscriptions")
+      .select("id")
+      .eq("stripe_subscription_id", subscriptionId)
+      .maybeSingle();
 
-  if (insertError) {
-    console.error("Error inserting featured subscription:", insertError);
-    return;
+    if (existingFeatured) {
+      console.log(`Featured subscription already exists for ${subscriptionId}, skipping duplicate checkout insert`);
+      return;
+    }
+
+    // Insert featured subscription record
+    const { error: insertError } = await supabase
+      .from("location_featured_subscriptions")
+      .insert({
+        location_id: locationId,
+        profile_id: profileId,
+        stripe_subscription_id: subscriptionId,
+        stripe_subscription_item_id: subscriptionItem?.id || null,
+        billing_interval: billingInterval,
+        status: "active",
+        current_period_end: currentPeriodEnd,
+        cancel_at_period_end: false,
+      });
+
+    if (insertError) {
+      console.error("Error inserting featured subscription:", insertError);
+      return;
+    }
+
+    // Update denormalized flag on location
+    const { error: updateError } = await supabase
+      .from("locations")
+      .update({ is_featured: true })
+      .eq("id", locationId);
+
+    if (updateError) {
+      console.error("Error updating location is_featured:", updateError);
+    }
+
+    // Log audit event
+    await supabase.from("audit_events").insert({
+      profile_id: profileId,
+      location_id: locationId,
+      event_type: "featured_location_activated",
+      payload: {
+        subscription_id: subscriptionId,
+        billing_interval: billingInterval,
+      },
+    });
   }
-
-  // Update denormalized flag on location
-  const { error: updateError } = await supabase
-    .from("locations")
-    .update({ is_featured: true })
-    .eq("id", locationId);
-
-  if (updateError) {
-    console.error("Error updating location is_featured:", updateError);
-  }
-
-  // Log audit event
-  await supabase.from("audit_events").insert({
-    profile_id: profileId,
-    location_id: locationId,
-    event_type: "featured_location_activated",
-    payload: {
-      subscription_id: subscriptionId,
-      billing_interval: billingInterval,
-    },
-  });
 
   // Revalidate dashboard pages so the UI reflects the change
   revalidatePath("/dashboard");
@@ -593,64 +632,74 @@ async function handleFeaturedLocationSubscriptionCreated(
     return;
   }
 
-  // Check if record already exists (idempotency)
-  const { data: existing } = await supabase
-    .from("location_featured_subscriptions")
-    .select("id")
-    .eq("stripe_subscription_id", subscription.id)
-    .maybeSingle();
-
-  if (existing) {
-    console.log(`Featured subscription already exists for ${subscription.id}`);
-    return;
-  }
-
   // Get current period end from the subscription item
   const subscriptionItem = subscription.items.data[0];
   const currentPeriodEnd = subscriptionItem?.current_period_end
     ? new Date(subscriptionItem.current_period_end * 1000).toISOString()
     : new Date().toISOString();
 
-  // Insert featured subscription record
-  const { error: insertError } = await supabase
-    .from("location_featured_subscriptions")
-    .insert({
-      location_id: locationId,
-      profile_id: profileId,
-      stripe_subscription_id: subscription.id,
-      stripe_subscription_item_id: subscriptionItem?.id || null,
-      billing_interval: billingInterval,
-      status: "active",
-      current_period_end: currentPeriodEnd,
-      cancel_at_period_end: false,
+  if (isConvexDataEnabled()) {
+    await mutateConvexUnauthenticated("billing:webhookFeaturedLocationCreated", {
+      stripeCustomerId: subscription.customer as string,
+      stripeSubscriptionId: subscription.id,
+      locationId,
+      billingInterval,
+      currentPeriodEnd,
     });
+  } else {
+    // Check if record already exists (idempotency)
+    const { data: existing } = await supabase
+      .from("location_featured_subscriptions")
+      .select("id")
+      .eq("stripe_subscription_id", subscription.id)
+      .maybeSingle();
 
-  if (insertError) {
-    console.error("Error inserting featured subscription:", insertError);
-    return;
+    if (existing) {
+      console.log(`Featured subscription already exists for ${subscription.id}`);
+      return;
+    }
+
+    // Insert featured subscription record
+    const { error: insertError } = await supabase
+      .from("location_featured_subscriptions")
+      .insert({
+        location_id: locationId,
+        profile_id: profileId,
+        stripe_subscription_id: subscription.id,
+        stripe_subscription_item_id: subscriptionItem?.id || null,
+        billing_interval: billingInterval,
+        status: "active",
+        current_period_end: currentPeriodEnd,
+        cancel_at_period_end: false,
+      });
+
+    if (insertError) {
+      console.error("Error inserting featured subscription:", insertError);
+      return;
+    }
+
+    // Update denormalized flag on location
+    const { error: updateError } = await supabase
+      .from("locations")
+      .update({ is_featured: true })
+      .eq("id", locationId);
+
+    if (updateError) {
+      console.error("Error updating location is_featured:", updateError);
+    }
+
+    // Log audit event
+    await supabase.from("audit_events").insert({
+      profile_id: profileId,
+      location_id: locationId,
+      event_type: "featured_location_activated",
+      payload: {
+        subscription_id: subscription.id,
+        billing_interval: billingInterval,
+        source: "direct_subscription",
+      },
+    });
   }
-
-  // Update denormalized flag on location
-  const { error: updateError } = await supabase
-    .from("locations")
-    .update({ is_featured: true })
-    .eq("id", locationId);
-
-  if (updateError) {
-    console.error("Error updating location is_featured:", updateError);
-  }
-
-  // Log audit event
-  await supabase.from("audit_events").insert({
-    profile_id: profileId,
-    location_id: locationId,
-    event_type: "featured_location_activated",
-    payload: {
-      subscription_id: subscription.id,
-      billing_interval: billingInterval,
-      source: "direct_subscription",
-    },
-  });
 
   // Revalidate dashboard pages so the UI reflects the change
   revalidatePath("/dashboard");
@@ -693,28 +742,38 @@ async function handleFeaturedLocationSubscriptionUpdated(
     ? new Date(subscriptionItem.current_period_end * 1000).toISOString()
     : new Date().toISOString();
 
-  // Update the subscription record
-  const { error: updateSubError } = await supabase
-    .from("location_featured_subscriptions")
-    .update({
+  if (isConvexDataEnabled()) {
+    await mutateConvexUnauthenticated("billing:webhookFeaturedLocationUpdated", {
+      stripeSubscriptionId: subscription.id,
       status,
-      current_period_end: currentPeriodEnd,
-      cancel_at_period_end: subscription.cancel_at_period_end,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("stripe_subscription_id", subscription.id);
+      currentPeriodEnd,
+      cancelAtPeriodEnd: subscription.cancel_at_period_end,
+      locationId,
+    });
+  } else {
+    // Update the subscription record
+    const { error: updateSubError } = await supabase
+      .from("location_featured_subscriptions")
+      .update({
+        status,
+        current_period_end: currentPeriodEnd,
+        cancel_at_period_end: subscription.cancel_at_period_end,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("stripe_subscription_id", subscription.id);
 
-  if (updateSubError) {
-    console.error("Error updating featured subscription:", updateSubError);
-  }
+    if (updateSubError) {
+      console.error("Error updating featured subscription:", updateSubError);
+    }
 
-  // Keep is_featured true for active and past_due (grace period)
-  // Only remove featured status when subscription is actually deleted
-  if (!isActive && !isPastDue) {
-    await supabase
-      .from("locations")
-      .update({ is_featured: false })
-      .eq("id", locationId);
+    // Keep is_featured true for active and past_due (grace period)
+    // Only remove featured status when subscription is actually deleted
+    if (!isActive && !isPastDue) {
+      await supabase
+        .from("locations")
+        .update({ is_featured: false })
+        .eq("id", locationId);
+    }
   }
 
   // Revalidate dashboard pages so the UI reflects the change
@@ -736,41 +795,48 @@ async function handleFeaturedLocationSubscriptionDeleted(
   const locationId = subscription.metadata?.location_id;
   const profileId = subscription.metadata?.profile_id;
 
-  // Update the subscription record
-  const { error: updateSubError } = await supabase
-    .from("location_featured_subscriptions")
-    .update({
-      status: "cancelled",
-      updated_at: new Date().toISOString(),
-    })
-    .eq("stripe_subscription_id", subscription.id);
-
-  if (updateSubError) {
-    console.error("Error updating featured subscription to cancelled:", updateSubError);
-  }
-
-  // Remove featured status from location
-  if (locationId) {
-    const { error: updateLocError } = await supabase
-      .from("locations")
-      .update({ is_featured: false })
-      .eq("id", locationId);
-
-    if (updateLocError) {
-      console.error("Error removing is_featured from location:", updateLocError);
-    }
-  }
-
-  // Log audit event
-  if (profileId) {
-    await supabase.from("audit_events").insert({
-      profile_id: profileId,
-      location_id: locationId || null,
-      event_type: "featured_location_cancelled",
-      payload: {
-        subscription_id: subscription.id,
-      },
+  if (isConvexDataEnabled()) {
+    await mutateConvexUnauthenticated("billing:webhookFeaturedLocationDeleted", {
+      stripeSubscriptionId: subscription.id,
+      locationId: locationId || undefined,
     });
+  } else {
+    // Update the subscription record
+    const { error: updateSubError } = await supabase
+      .from("location_featured_subscriptions")
+      .update({
+        status: "cancelled",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("stripe_subscription_id", subscription.id);
+
+    if (updateSubError) {
+      console.error("Error updating featured subscription to cancelled:", updateSubError);
+    }
+
+    // Remove featured status from location
+    if (locationId) {
+      const { error: updateLocError } = await supabase
+        .from("locations")
+        .update({ is_featured: false })
+        .eq("id", locationId);
+
+      if (updateLocError) {
+        console.error("Error removing is_featured from location:", updateLocError);
+      }
+    }
+
+    // Log audit event
+    if (profileId) {
+      await supabase.from("audit_events").insert({
+        profile_id: profileId,
+        location_id: locationId || null,
+        event_type: "featured_location_cancelled",
+        payload: {
+          subscription_id: subscription.id,
+        },
+      });
+    }
   }
 
   // Revalidate dashboard pages so the UI reflects the change
@@ -811,46 +877,56 @@ async function handleAddonSubscriptionCreated(
     ? new Date(subscriptionItem.current_period_end * 1000).toISOString()
     : new Date().toISOString();
 
-  const { data: existingAddon } = await supabase
-    .from("profile_addons")
-    .select("id")
-    .eq("stripe_subscription_id", subscription.id)
-    .maybeSingle();
-
-  if (existingAddon) {
-    console.log(`Addon already exists for subscription ${subscription.id}, skipping duplicate create`);
-    return;
-  }
-
-  // Insert addon record
-  const { error: insertError } = await supabase
-    .from("profile_addons")
-    .insert({
-      profile_id: profileId,
-      addon_type: addonType,
+  if (isConvexDataEnabled()) {
+    await mutateConvexUnauthenticated("billing:webhookAddonCreated", {
+      stripeCustomerId: subscription.customer as string,
+      stripeSubscriptionId: subscription.id,
+      addonType,
       quantity,
-      stripe_subscription_id: subscription.id,
-      status: "active",
-      current_period_end: currentPeriodEnd,
-      cancel_at_period_end: false,
+      currentPeriodEnd,
     });
+  } else {
+    const { data: existingAddon } = await supabase
+      .from("profile_addons")
+      .select("id")
+      .eq("stripe_subscription_id", subscription.id)
+      .maybeSingle();
 
-  if (insertError) {
-    console.error("Error inserting addon from subscription.created:", insertError);
-    return;
+    if (existingAddon) {
+      console.log(`Addon already exists for subscription ${subscription.id}, skipping duplicate create`);
+      return;
+    }
+
+    // Insert addon record
+    const { error: insertError } = await supabase
+      .from("profile_addons")
+      .insert({
+        profile_id: profileId,
+        addon_type: addonType,
+        quantity,
+        stripe_subscription_id: subscription.id,
+        status: "active",
+        current_period_end: currentPeriodEnd,
+        cancel_at_period_end: false,
+      });
+
+    if (insertError) {
+      console.error("Error inserting addon from subscription.created:", insertError);
+      return;
+    }
+
+    // Log audit event
+    await supabase.from("audit_events").insert({
+      profile_id: profileId,
+      event_type: "addon_purchased",
+      payload: {
+        addon_type: addonType,
+        quantity,
+        subscription_id: subscription.id,
+        source: "inline_charge",
+      },
+    });
   }
-
-  // Log audit event
-  await supabase.from("audit_events").insert({
-    profile_id: profileId,
-    event_type: "addon_purchased",
-    payload: {
-      addon_type: addonType,
-      quantity,
-      subscription_id: subscription.id,
-      source: "inline_charge",
-    },
-  });
 
   revalidatePath("/dashboard/billing");
   console.log(`Addon purchased (inline): ${addonType} x${quantity} for profile ${profileId}`);
@@ -883,45 +959,55 @@ async function handleAddonCheckoutCompleted(
     ? new Date(subscriptionItem.current_period_end * 1000).toISOString()
     : new Date().toISOString();
 
-  const { data: existingAddon } = await supabase
-    .from("profile_addons")
-    .select("id")
-    .eq("stripe_subscription_id", subscriptionId)
-    .maybeSingle();
-
-  if (existingAddon) {
-    console.log(`Addon already exists for subscription ${subscriptionId}, skipping duplicate checkout insert`);
-    return;
-  }
-
-  // Insert addon record
-  const { error: insertError } = await supabase
-    .from("profile_addons")
-    .insert({
-      profile_id: profileId,
-      addon_type: addonType,
+  if (isConvexDataEnabled()) {
+    await mutateConvexUnauthenticated("billing:webhookAddonCreated", {
+      stripeCustomerId: session.customer as string,
+      stripeSubscriptionId: subscriptionId,
+      addonType,
       quantity,
-      stripe_subscription_id: subscriptionId,
-      status: "active",
-      current_period_end: currentPeriodEnd,
-      cancel_at_period_end: false,
+      currentPeriodEnd,
     });
+  } else {
+    const { data: existingAddon } = await supabase
+      .from("profile_addons")
+      .select("id")
+      .eq("stripe_subscription_id", subscriptionId)
+      .maybeSingle();
 
-  if (insertError) {
-    console.error("Error inserting addon:", insertError);
-    return;
+    if (existingAddon) {
+      console.log(`Addon already exists for subscription ${subscriptionId}, skipping duplicate checkout insert`);
+      return;
+    }
+
+    // Insert addon record
+    const { error: insertError } = await supabase
+      .from("profile_addons")
+      .insert({
+        profile_id: profileId,
+        addon_type: addonType,
+        quantity,
+        stripe_subscription_id: subscriptionId,
+        status: "active",
+        current_period_end: currentPeriodEnd,
+        cancel_at_period_end: false,
+      });
+
+    if (insertError) {
+      console.error("Error inserting addon:", insertError);
+      return;
+    }
+
+    // Log audit event
+    await supabase.from("audit_events").insert({
+      profile_id: profileId,
+      event_type: "addon_purchased",
+      payload: {
+        addon_type: addonType,
+        quantity,
+        subscription_id: subscriptionId,
+      },
+    });
   }
-
-  // Log audit event
-  await supabase.from("audit_events").insert({
-    profile_id: profileId,
-    event_type: "addon_purchased",
-    payload: {
-      addon_type: addonType,
-      quantity,
-      subscription_id: subscriptionId,
-    },
-  });
 
   revalidatePath("/dashboard/billing");
   console.log(`Addon purchased: ${addonType} x${quantity} for profile ${profileId}`);
@@ -954,19 +1040,29 @@ async function handleAddonSubscriptionUpdated(
   // Sync quantity from Stripe subscription
   const quantity = subscriptionItem?.quantity ?? 1;
 
-  const { error } = await supabase
-    .from("profile_addons")
-    .update({
+  if (isConvexDataEnabled()) {
+    await mutateConvexUnauthenticated("billing:webhookAddonUpdated", {
+      stripeSubscriptionId: subscription.id,
       status,
       quantity,
-      current_period_end: currentPeriodEnd,
-      cancel_at_period_end: subscription.cancel_at_period_end,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("stripe_subscription_id", subscription.id);
+      currentPeriodEnd,
+      cancelAtPeriodEnd: subscription.cancel_at_period_end,
+    });
+  } else {
+    const { error } = await supabase
+      .from("profile_addons")
+      .update({
+        status,
+        quantity,
+        current_period_end: currentPeriodEnd,
+        cancel_at_period_end: subscription.cancel_at_period_end,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("stripe_subscription_id", subscription.id);
 
-  if (error) {
-    console.error("Error updating addon subscription:", error);
+    if (error) {
+      console.error("Error updating addon subscription:", error);
+    }
   }
 
   revalidatePath("/dashboard/billing");
@@ -982,27 +1078,33 @@ async function handleAddonSubscriptionDeleted(
 ) {
   const profileId = subscription.metadata?.profile_id;
 
-  const { error } = await supabase
-    .from("profile_addons")
-    .update({
-      status: "canceled",
-      updated_at: new Date().toISOString(),
-    })
-    .eq("stripe_subscription_id", subscription.id);
-
-  if (error) {
-    console.error("Error canceling addon subscription:", error);
-  }
-
-  if (profileId) {
-    await supabase.from("audit_events").insert({
-      profile_id: profileId,
-      event_type: "addon_cancelled",
-      payload: {
-        subscription_id: subscription.id,
-        addon_type: subscription.metadata?.addon_type,
-      },
+  if (isConvexDataEnabled()) {
+    await mutateConvexUnauthenticated("billing:webhookAddonDeleted", {
+      stripeSubscriptionId: subscription.id,
     });
+  } else {
+    const { error } = await supabase
+      .from("profile_addons")
+      .update({
+        status: "canceled",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("stripe_subscription_id", subscription.id);
+
+    if (error) {
+      console.error("Error canceling addon subscription:", error);
+    }
+
+    if (profileId) {
+      await supabase.from("audit_events").insert({
+        profile_id: profileId,
+        event_type: "addon_cancelled",
+        payload: {
+          subscription_id: subscription.id,
+          addon_type: subscription.metadata?.addon_type,
+        },
+      });
+    }
   }
 
   revalidatePath("/dashboard/billing");

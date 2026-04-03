@@ -12,6 +12,11 @@ import {
   getUser,
   requireProfileRole,
 } from "@/lib/supabase/server";
+import { isConvexDataEnabled } from "@/lib/platform/config";
+import { queryConvex, mutateConvex } from "@/lib/platform/convex/server";
+import { getCurrentBillingLinkage } from "@/lib/platform/billing/server";
+import { getCurrentUser } from "@/lib/platform/auth/server";
+import { requireWorkspaceRole, getCurrentWorkspace } from "@/lib/platform/workspace/server";
 import { CHECKOUT_URLS, BILLING_PORTAL_CONFIG, getPriceId, getFeaturedPriceId, type BillingInterval } from "./config";
 import { getRequestOrigin, getValidatedOrigin } from "@/lib/utils/domains";
 
@@ -20,6 +25,18 @@ type ActionResult<T = void> =
   | { success: false; error: string };
 
 async function requireBillingContext() {
+  if (isConvexDataEnabled()) {
+    const membership = await requireWorkspaceRole("owner");
+    const user = await getCurrentUser();
+    if (!user) throw new Error("Not authenticated");
+    return {
+      membership,
+      user,
+      profileId: membership.workspaceId,
+      email: user.email,
+    };
+  }
+
   const membership = await requireProfileRole("owner");
   const user = await getUser();
 
@@ -31,6 +48,7 @@ async function requireBillingContext() {
     membership,
     user,
     profileId: membership.profile_id,
+    email: user.email,
   };
 }
 
@@ -56,40 +74,61 @@ export async function createCheckoutSession(
   billingInterval: BillingInterval = "month",
   returnTo?: string
 ): Promise<ActionResult<{ url: string }>> {
-  let user;
-  let profileId;
+  let email: string | undefined;
+  let profileId: string;
+  let customerId: string | null = null;
+  let existingSubscriptionId: string | null = null;
+  let existingPlanTier: string | null = null;
+  let listingId: string | null = null;
+
   try {
     const ctx = await requireBillingContext();
-    user = ctx.user;
     profileId = ctx.profileId;
+    email = ctx.email ?? undefined;
   } catch {
     return { success: false, error: "Not authenticated" };
   }
 
-  const supabase = await createClient();
+  if (isConvexDataEnabled()) {
+    const state = await queryConvex<{
+      workspaceId: string;
+      listingId: string | null;
+      planTier: string;
+      stripeCustomerId: string | null;
+      stripeSubscriptionId: string | null;
+    }>("billing:getCurrentBillingWorkspaceState");
 
-  // Get profile with subscription info
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("id, stripe_customer_id, stripe_subscription_id, plan_tier")
-    .eq("id", profileId)
-    .single();
+    customerId = state.stripeCustomerId;
+    existingSubscriptionId = state.stripeSubscriptionId;
+    existingPlanTier = state.planTier;
+    listingId = state.listingId;
+  } else {
+    const supabase = await createClient();
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("id, stripe_customer_id, stripe_subscription_id, plan_tier")
+      .eq("id", profileId)
+      .single();
 
-  if (!profile) {
-    return { success: false, error: "Profile not found" };
+    if (!profile) {
+      return { success: false, error: "Profile not found" };
+    }
+
+    customerId = profile.stripe_customer_id;
+    existingSubscriptionId = profile.stripe_subscription_id;
+    existingPlanTier = profile.plan_tier;
+
+    const { data: listing } = await supabase
+      .from("listings")
+      .select("id")
+      .eq("profile_id", profileId)
+      .single();
+    listingId = listing?.id ?? null;
   }
 
-  // If user already has an active subscription, use upgrade flow instead
-  if (profile.stripe_subscription_id && profile.plan_tier !== "free") {
+  if (existingSubscriptionId && existingPlanTier !== "free") {
     return upgradeSubscription(planTier, billingInterval, returnTo);
   }
-
-  // Get listing ID
-  const { data: listing } = await supabase
-    .from("listings")
-    .select("id")
-    .eq("profile_id", profileId)
-    .single();
 
   const priceId = getPriceId(planTier, billingInterval);
   if (!priceId) {
@@ -100,24 +139,22 @@ export async function createCheckoutSession(
   const origin = getRequestOrigin(headersList, "goodaba");
 
   try {
-    // Create or retrieve Stripe customer
-    let customerId = profile.stripe_customer_id;
-
     if (!customerId) {
       const customer = await stripe.customers.create({
-        email: user.email,
-        metadata: {
-          profile_id: profile.id,
-        },
+        email,
+        metadata: { profile_id: profileId },
       });
       customerId = customer.id;
 
-      // Save customer ID to profile
-      const adminClient = await createAdminClient();
-      await adminClient
-        .from("profiles")
-        .update({ stripe_customer_id: customerId })
-        .eq("id", profile.id);
+      if (isConvexDataEnabled()) {
+        await mutateConvex("billing:setStripeCustomerId", { stripeCustomerId: customerId });
+      } else {
+        const adminClient = await createAdminClient();
+        await adminClient
+          .from("profiles")
+          .update({ stripe_customer_id: customerId })
+          .eq("id", profileId);
+      }
     }
 
     // Build success/cancel URLs with optional return_to parameter
@@ -143,16 +180,16 @@ export async function createCheckoutSession(
       success_url: successUrl,
       cancel_url: cancelUrl,
       metadata: {
-        profile_id: profile.id,
-        listing_id: listing?.id || "",
+        profile_id: profileId,
+        listing_id: listingId || "",
         plan_tier: planTier,
         billing_interval: billingInterval,
         return_to: returnTo || "",
       },
       subscription_data: {
         metadata: {
-          profile_id: profile.id,
-          listing_id: listing?.id || "",
+          profile_id: profileId,
+          listing_id: listingId || "",
           plan_tier: planTier,
           billing_interval: billingInterval,
         },
@@ -182,7 +219,11 @@ export async function upgradeSubscription(
   billingInterval: BillingInterval = "month",
   returnTo?: string
 ): Promise<ActionResult<{ url: string }>> {
-  let profileId;
+  let profileId: string;
+  let subscriptionId: string | null = null;
+  let currentBillingInterval: string | null = null;
+  let listingId: string | null = null;
+
   try {
     const ctx = await requireBillingContext();
     profileId = ctx.profileId;
@@ -190,19 +231,40 @@ export async function upgradeSubscription(
     return { success: false, error: "Not authenticated" };
   }
 
-  const supabase = await createClient();
+  if (isConvexDataEnabled()) {
+    const state = await queryConvex<{
+      workspaceId: string;
+      listingId: string | null;
+      planTier: string;
+      billingInterval: string;
+      stripeSubscriptionId: string | null;
+    }>("billing:getCurrentBillingWorkspaceState");
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("id, stripe_subscription_id, plan_tier, billing_interval")
-    .eq("id", profileId)
-    .single();
+    subscriptionId = state.stripeSubscriptionId;
+    currentBillingInterval = state.billingInterval;
+    listingId = state.listingId;
+  } else {
+    const supabase = await createClient();
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("id, stripe_subscription_id, plan_tier, billing_interval")
+      .eq("id", profileId)
+      .single();
 
-  if (!profile) {
-    return { success: false, error: "Profile not found" };
+    if (!profile) return { success: false, error: "Profile not found" };
+
+    subscriptionId = profile.stripe_subscription_id;
+    currentBillingInterval = profile.billing_interval;
+
+    const { data: listing } = await supabase
+      .from("listings")
+      .select("id")
+      .eq("profile_id", profileId)
+      .single();
+    listingId = listing?.id ?? null;
   }
 
-  if (!profile.stripe_subscription_id) {
+  if (!subscriptionId) {
     return { success: false, error: "No active subscription to upgrade" };
   }
 
@@ -211,19 +273,10 @@ export async function upgradeSubscription(
     return { success: false, error: "Invalid plan" };
   }
 
-  // Treat interval change (monthly -> annual) as an upgrade behavior (immediate with proration)
   const isUpgrade = false;
 
-  // Get listing ID for metadata
-  const { data: listing } = await supabase
-    .from("listings")
-    .select("id")
-    .eq("profile_id", profileId)
-    .single();
-
   try {
-    // Get the current subscription to find the subscription item ID
-    const subscription = await stripe.subscriptions.retrieve(profile.stripe_subscription_id);
+    const subscription = await stripe.subscriptions.retrieve(subscriptionId);
 
     if (subscription.status !== "active" && subscription.status !== "trialing") {
       return { success: false, error: "Subscription is not active" };
@@ -245,16 +298,12 @@ export async function upgradeSubscription(
     const headersList = await headers();
     const origin = getValidatedOrigin(headersList.get("origin"));
 
-    // Determine if this is switching to annual (always treat as upgrade - immediate with proration)
-    // Note: treat null/undefined billing_interval as "month" (the default for existing users)
-    // Also handle legacy "monthly"/"annual" values that might exist in the database
-    const rawInterval = profile.billing_interval || "month";
+    const rawInterval = currentBillingInterval || "month";
     const currentInterval = rawInterval === "annual" || rawInterval === "year" ? "year" : "month";
     const isSwitchingToAnnual = currentInterval === "month" && billingInterval === "year";
 
     if (isUpgrade || isSwitchingToAnnual) {
-      // UPGRADE: Immediate change with proration (charge difference now)
-      await stripe.subscriptions.update(profile.stripe_subscription_id, {
+      await stripe.subscriptions.update(subscriptionId, {
         items: [
           {
             id: subscriptionItemId,
@@ -263,19 +312,31 @@ export async function upgradeSubscription(
         ],
         proration_behavior: "create_prorations",
         metadata: {
-          profile_id: profile.id,
-          listing_id: listing?.id || "",
+          profile_id: profileId,
+          listing_id: listingId || "",
           plan_tier: planTier,
           billing_interval: billingInterval,
         },
       });
 
-      // Update the profile with the new plan tier and billing interval immediately
-      const adminClient = await createAdminClient();
-      await adminClient
-        .from("profiles")
-        .update({ plan_tier: planTier, billing_interval: billingInterval })
-        .eq("id", profile.id);
+      if (isConvexDataEnabled()) {
+        const linkage = await getCurrentBillingLinkage();
+        if (linkage?.stripeCustomerId) {
+          await mutateConvex("billing:syncCheckoutSubscription", {
+            stripeCustomerId: linkage.stripeCustomerId,
+            stripeSubscriptionId: subscriptionId,
+            planTier,
+            billingInterval,
+            subscriptionStatus: "active",
+          });
+        }
+      } else {
+        const adminClient = await createAdminClient();
+        await adminClient
+          .from("profiles")
+          .update({ plan_tier: planTier, billing_interval: billingInterval })
+          .eq("id", profileId);
+      }
 
       // Revalidate dashboard pages so the UI reflects the change immediately
       revalidatePath("/dashboard");
@@ -288,28 +349,23 @@ export async function upgradeSubscription(
 
       return { success: true, data: { url: successUrl } };
     } else {
-      // DOWNGRADE: Schedule change at end of billing period (no credit)
-      // Create a subscription schedule to change the price at period end
       const schedule = await stripe.subscriptionSchedules.create({
-        from_subscription: profile.stripe_subscription_id,
+        from_subscription: subscriptionId,
       });
 
-      // Update the schedule to change to the new price at the end of current phase
       await stripe.subscriptionSchedules.update(schedule.id, {
-        end_behavior: "release", // Continue as regular subscription after schedule ends
+        end_behavior: "release",
         phases: [
           {
-            // Current phase - keep existing price until end of current period
             items: [{ price: subscription.items.data[0].price.id as string, quantity: 1 }],
             start_date: schedule.phases[0].start_date,
             end_date: schedule.phases[0].end_date,
           },
           {
-            // Next phase - switch to new (lower) price
             items: [{ price: newPriceId, quantity: 1 }],
             metadata: {
-              profile_id: profile.id,
-              listing_id: listing?.id || "",
+              profile_id: profileId,
+              listing_id: listingId || "",
               plan_tier: planTier,
               billing_interval: billingInterval,
             },
@@ -317,11 +373,10 @@ export async function upgradeSubscription(
         ],
       });
 
-      // Update subscription metadata to indicate pending downgrade
-      await stripe.subscriptions.update(profile.stripe_subscription_id, {
+      await stripe.subscriptions.update(subscriptionId, {
         metadata: {
-          profile_id: profile.id,
-          listing_id: listing?.id || "",
+          profile_id: profileId,
+          listing_id: listingId || "",
           pending_plan_tier: planTier,
         },
       });
@@ -348,7 +403,9 @@ export async function upgradeSubscription(
  * Create a Stripe billing portal session for managing subscription
  */
 export async function createBillingPortalSession(): Promise<ActionResult<{ url: string }>> {
-  let profileId;
+  let profileId: string;
+  let stripeCustomerId: string | null = null;
+
   try {
     const ctx = await requireBillingContext();
     profileId = ctx.profileId;
@@ -356,7 +413,6 @@ export async function createBillingPortalSession(): Promise<ActionResult<{ url: 
     return { success: false, error: "Not authenticated" };
   }
 
-  const supabase = await createClient();
   const restrictionResult = await getBillingPortalRestriction(profileId);
   if (!restrictionResult.success) {
     return { success: false, error: restrictionResult.error };
@@ -365,13 +421,20 @@ export async function createBillingPortalSession(): Promise<ActionResult<{ url: 
     return { success: false, error: restrictionResult.data.reason };
   }
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("stripe_customer_id")
-    .eq("id", profileId)
-    .single();
+  if (isConvexDataEnabled()) {
+    const linkage = await getCurrentBillingLinkage();
+    stripeCustomerId = linkage?.stripeCustomerId ?? null;
+  } else {
+    const supabase = await createClient();
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("stripe_customer_id")
+      .eq("id", profileId)
+      .single();
+    stripeCustomerId = profile?.stripe_customer_id ?? null;
+  }
 
-  if (!profile?.stripe_customer_id) {
+  if (!stripeCustomerId) {
     return { success: false, error: "No billing account found" };
   }
 
@@ -381,7 +444,7 @@ export async function createBillingPortalSession(): Promise<ActionResult<{ url: 
 
   try {
     const session = await stripe.billingPortal.sessions.create({
-      customer: profile.stripe_customer_id,
+      customer: stripeCustomerId,
       return_url: returnUrl,
     });
 
@@ -407,30 +470,40 @@ export async function getSubscription(): Promise<
     cancelAtPeriodEnd: boolean;
   } | null>
 > {
-  const profileId = await getCurrentProfileId();
-  if (!profileId) {
-    return { success: false, error: "Not authenticated" };
+  let planTier: string;
+  let stripeSubId: string | null = null;
+
+  if (isConvexDataEnabled()) {
+    const state = await queryConvex<{
+      planTier: string;
+      stripeSubscriptionId: string | null;
+    }>("billing:getCurrentBillingWorkspaceState").catch(() => null);
+
+    if (!state) return { success: false, error: "Not authenticated" };
+    planTier = state.planTier;
+    stripeSubId = state.stripeSubscriptionId;
+  } else {
+    const profileId = await getCurrentProfileId();
+    if (!profileId) return { success: false, error: "Not authenticated" };
+
+    const supabase = await createClient();
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("plan_tier, stripe_subscription_id, stripe_customer_id")
+      .eq("id", profileId)
+      .single();
+
+    if (!profile) return { success: false, error: "Profile not found" };
+    planTier = profile.plan_tier;
+    stripeSubId = profile.stripe_subscription_id;
   }
 
-  const supabase = await createClient();
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("plan_tier, stripe_subscription_id, stripe_customer_id")
-    .eq("id", profileId)
-    .single();
-
-  if (!profile) {
-    return { success: false, error: "Profile not found" };
-  }
-
-  // Free plan - no subscription
-  if (profile.plan_tier === "free" || !profile.stripe_subscription_id) {
+  if (planTier === "free" || !stripeSubId) {
     return {
       success: true,
       data: {
         status: "none",
-        planTier: profile.plan_tier,
+        planTier,
         currentPeriodEnd: null,
         cancelAtPeriodEnd: false,
       },
@@ -439,14 +512,14 @@ export async function getSubscription(): Promise<
 
   try {
     const subscription = await stripe.subscriptions.retrieve(
-      profile.stripe_subscription_id
+      stripeSubId
     ) as unknown as { status: string; current_period_end: number; cancel_at_period_end: boolean };
 
     return {
       success: true,
       data: {
         status: subscription.status,
-        planTier: profile.plan_tier,
+        planTier,
         currentPeriodEnd: subscription.current_period_end
           ? new Date(subscription.current_period_end * 1000).toISOString()
           : null,
@@ -459,7 +532,7 @@ export async function getSubscription(): Promise<
       success: true,
       data: {
         status: "error",
-        planTier: profile.plan_tier,
+        planTier,
         currentPeriodEnd: null,
         cancelAtPeriodEnd: false,
       },
@@ -479,35 +552,40 @@ export async function getPendingDowngrade(): Promise<
     scheduleId: string;
   } | null>
 > {
-  const profileId = await getCurrentProfileId();
-  if (!profileId) {
-    return { success: false, error: "Not authenticated" };
+  let stripeSubId: string | null = null;
+
+  if (isConvexDataEnabled()) {
+    const state = await queryConvex<{
+      stripeSubscriptionId: string | null;
+    }>("billing:getCurrentBillingWorkspaceState").catch(() => null);
+    stripeSubId = state?.stripeSubscriptionId ?? null;
+  } else {
+    const profileId = await getCurrentProfileId();
+    if (!profileId) return { success: false, error: "Not authenticated" };
+
+    const supabase = await createClient();
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("stripe_subscription_id")
+      .eq("id", profileId)
+      .single();
+    stripeSubId = profile?.stripe_subscription_id ?? null;
   }
 
-  const supabase = await createClient();
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("stripe_subscription_id")
-    .eq("id", profileId)
-    .single();
-
-  if (!profile?.stripe_subscription_id) {
+  if (!stripeSubId) {
     return { success: true, data: null };
   }
 
   try {
-    // Check if there's an active schedule for this subscription
     const schedules = await stripe.subscriptionSchedules.list({
-      customer: (await stripe.subscriptions.retrieve(profile.stripe_subscription_id)).customer as string,
+      customer: (await stripe.subscriptions.retrieve(stripeSubId)).customer as string,
       limit: 10,
     });
 
-    // Find an active schedule that's attached to this subscription
     const activeSchedule = schedules.data.find(
       (schedule) =>
         schedule.status === "active" &&
-        schedule.subscription === profile.stripe_subscription_id &&
+        schedule.subscription === stripeSubId &&
         schedule.phases.length > 1
     );
 
@@ -515,7 +593,6 @@ export async function getPendingDowngrade(): Promise<
       return { success: true, data: null };
     }
 
-    // Get the next phase (downgrade phase)
     const nextPhase = activeSchedule.phases[1];
     if (!nextPhase) {
       return { success: true, data: null };
@@ -550,48 +627,54 @@ export async function getPendingDowngrade(): Promise<
  * Cancel a pending downgrade and keep the current plan
  */
 export async function cancelPendingDowngrade(): Promise<ActionResult> {
-  let profileId;
+  let stripeSubId: string | null = null;
+
   try {
-    const ctx = await requireBillingContext();
-    profileId = ctx.profileId;
+    await requireBillingContext();
   } catch {
     return { success: false, error: "Not authenticated" };
   }
 
-  const supabase = await createClient();
+  if (isConvexDataEnabled()) {
+    const state = await queryConvex<{ stripeSubscriptionId: string | null }>(
+      "billing:getCurrentBillingWorkspaceState"
+    ).catch(() => null);
+    stripeSubId = state?.stripeSubscriptionId ?? null;
+  } else {
+    const profileId = await getCurrentProfileId();
+    if (!profileId) return { success: false, error: "Not authenticated" };
+    const supabase = await createClient();
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("stripe_subscription_id")
+      .eq("id", profileId)
+      .single();
+    stripeSubId = profile?.stripe_subscription_id ?? null;
+  }
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("stripe_subscription_id")
-    .eq("id", profileId)
-    .single();
-
-  if (!profile?.stripe_subscription_id) {
+  if (!stripeSubId) {
     return { success: false, error: "No subscription found" };
   }
 
   try {
-    // Find and cancel the active schedule
     const schedules = await stripe.subscriptionSchedules.list({
-      customer: (await stripe.subscriptions.retrieve(profile.stripe_subscription_id)).customer as string,
+      customer: (await stripe.subscriptions.retrieve(stripeSubId)).customer as string,
       limit: 10,
     });
 
     const activeSchedule = schedules.data.find(
       (schedule) =>
         schedule.status === "active" &&
-        schedule.subscription === profile.stripe_subscription_id
+        schedule.subscription === stripeSubId
     );
 
     if (!activeSchedule) {
       return { success: false, error: "No pending downgrade found" };
     }
 
-    // Release the schedule - this keeps the current subscription as-is
     await stripe.subscriptionSchedules.release(activeSchedule.id);
 
-    // Clear the pending_plan_tier metadata from the subscription
-    await stripe.subscriptions.update(profile.stripe_subscription_id, {
+    await stripe.subscriptions.update(stripeSubId, {
       metadata: {
         pending_plan_tier: "",
       },
@@ -647,24 +730,29 @@ export async function redirectToBillingPortal(): Promise<void> {
 export async function verifyAndSyncCheckoutSession(
   sessionId: string
 ): Promise<ActionResult<{ planTier: string; subscriptionStatus: string }>> {
-  const profileId = await getCurrentProfileId();
+  let profileId: string | null = null;
+
+  if (isConvexDataEnabled()) {
+    const ws = await getCurrentWorkspace();
+    profileId = ws?.workspace.id ?? null;
+  } else {
+    profileId = await getCurrentProfileId();
+  }
+
   if (!profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
   try {
-    // Retrieve the checkout session from Stripe
     const session = await stripe.checkout.sessions.retrieve(sessionId, {
       expand: ["subscription"],
     });
 
-    // Verify the session belongs to this user
     const sessionProfileId = session.metadata?.profile_id;
     if (sessionProfileId !== profileId) {
       return { success: false, error: "Session does not belong to this user" };
     }
 
-    // Verify payment was successful
     if (session.payment_status !== "paid") {
       return { success: false, error: "Payment not completed" };
     }
@@ -676,41 +764,48 @@ export async function verifyAndSyncCheckoutSession(
 
     const planTier = session.metadata?.plan_tier || "pro";
     const billingInterval = session.metadata?.billing_interval || "month";
-    const listingId = session.metadata?.listing_id;
 
-    // Update profile with subscription info
-    const adminClient = await createAdminClient();
-    const { error: profileError } = await adminClient
-      .from("profiles")
-      .update({
-        stripe_customer_id: session.customer as string,
-        stripe_subscription_id: subscription.id,
-        plan_tier: planTier,
-        billing_interval: billingInterval,
-        subscription_status: "active",
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", profileId);
-
-    if (profileError) {
-      console.error("Error updating profile in verifyAndSyncCheckoutSession:", profileError);
-      return { success: false, error: "Failed to update subscription status" };
-    }
-
-    // Also update listing if exists
-    if (listingId) {
-      await adminClient
-        .from("listings")
+    if (isConvexDataEnabled()) {
+      await mutateConvex("billing:syncCheckoutSubscription", {
+        stripeCustomerId: session.customer as string,
+        stripeSubscriptionId: subscription.id,
+        planTier,
+        billingInterval,
+        subscriptionStatus: "active",
+      });
+    } else {
+      const listingIdVal = session.metadata?.listing_id;
+      const adminClient = await createAdminClient();
+      const { error: profileError } = await adminClient
+        .from("profiles")
         .update({
-          status: "published",
+          stripe_customer_id: session.customer as string,
+          stripe_subscription_id: subscription.id,
           plan_tier: planTier,
-          published_at: new Date().toISOString(),
+          billing_interval: billingInterval,
+          subscription_status: "active",
           updated_at: new Date().toISOString(),
         })
-        .eq("id", listingId);
+        .eq("id", profileId);
+
+      if (profileError) {
+        console.error("Error updating profile in verifyAndSyncCheckoutSession:", profileError);
+        return { success: false, error: "Failed to update subscription status" };
+      }
+
+      if (listingIdVal) {
+        await adminClient
+          .from("listings")
+          .update({
+            status: "published",
+            plan_tier: planTier,
+            published_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", listingIdVal);
+      }
     }
 
-    // Revalidate dashboard pages (use "layout" to also revalidate sidebar)
     revalidatePath("/dashboard", "layout");
     revalidatePath("/dashboard/company");
     revalidatePath("/dashboard/locations");
@@ -746,71 +841,102 @@ export async function createFeaturedLocationCheckout(
   billingInterval: BillingInterval = "month",
   returnTo: "locations" | "billing" = "locations"
 ): Promise<ActionResult<{ url?: string; subscriptionId?: string; status?: string; directCharge?: boolean }>> {
-  let user;
-  let profileId;
+  let profileId: string;
+  let email: string | undefined;
+  let customerId: string | null = null;
+  let mainSubId: string | null = null;
+  let locationLabel = "Location";
+  let listingIdForMetadata: string = "";
+
   try {
     const ctx = await requireBillingContext();
-    user = ctx.user;
     profileId = ctx.profileId;
+    email = ctx.email ?? undefined;
   } catch {
     return { success: false, error: "Not authenticated" };
   }
 
-  const supabase = await createClient();
+  if (isConvexDataEnabled()) {
+    const state = await queryConvex<{
+      workspaceId: string;
+      listingId: string | null;
+      planTier: string;
+      stripeCustomerId: string | null;
+      stripeSubscriptionId: string | null;
+    }>("billing:getCurrentBillingWorkspaceState");
 
-  // Get location with parent listing and profile info
-  const { data: location, error: locationError } = await supabase
-    .from("locations")
-    .select(`
-      id,
-      city,
-      state,
-      label,
-      is_featured,
-      listing_id,
-      listings!inner (
+    if (state.planTier === "free") {
+      return { success: false, error: "Featured upgrade requires Pro plan" };
+    }
+
+    customerId = state.stripeCustomerId;
+    mainSubId = state.stripeSubscriptionId;
+    listingIdForMetadata = state.listingId || "";
+
+    const featured = await queryConvex<{ locations: Array<{ locationId: string }> }>("billing:getFeaturedLocations");
+    const alreadyFeatured = featured.locations.some((loc) => loc.locationId === locationId);
+    if (alreadyFeatured) {
+      return { success: false, error: "Location is already featured" };
+    }
+
+    locationLabel = locationId;
+  } else {
+    const supabase = await createClient();
+
+    const { data: location, error: locationError } = await supabase
+      .from("locations")
+      .select(`
         id,
-        profile_id,
-        profiles!inner (
+        city,
+        state,
+        label,
+        is_featured,
+        listing_id,
+        listings!inner (
           id,
-          plan_tier,
-          stripe_customer_id,
-          stripe_subscription_id
+          profile_id,
+          profiles!inner (
+            id,
+            plan_tier,
+            stripe_customer_id,
+            stripe_subscription_id
+          )
         )
-      )
-    `)
-    .eq("id", locationId)
-    .single();
+      `)
+      .eq("id", locationId)
+      .single();
 
-  if (locationError || !location) {
-    return { success: false, error: "Location not found" };
-  }
+    if (locationError || !location) {
+      return { success: false, error: "Location not found" };
+    }
 
-  const listing = location.listings as unknown as {
-    id: string;
-    profile_id: string;
-    profiles: {
+    const listing = location.listings as unknown as {
       id: string;
-      plan_tier: string;
-      stripe_customer_id: string | null;
-      stripe_subscription_id: string | null;
+      profile_id: string;
+      profiles: {
+        id: string;
+        plan_tier: string;
+        stripe_customer_id: string | null;
+        stripe_subscription_id: string | null;
+      };
     };
-  };
 
-  // Verify user owns this location
-  if (listing.profile_id !== profileId) {
-    return { success: false, error: "Not authorized" };
-  }
+    if (listing.profile_id !== profileId) {
+      return { success: false, error: "Not authorized" };
+    }
 
-  // Verify Pro plan
-  const planTier = listing.profiles.plan_tier;
-  if (planTier === "free") {
-    return { success: false, error: "Featured upgrade requires Pro plan" };
-  }
+    if (listing.profiles.plan_tier === "free") {
+      return { success: false, error: "Featured upgrade requires Pro plan" };
+    }
 
-  // Check if already featured
-  if (location.is_featured) {
-    return { success: false, error: "Location is already featured" };
+    if (location.is_featured) {
+      return { success: false, error: "Location is already featured" };
+    }
+
+    customerId = listing.profiles.stripe_customer_id;
+    mainSubId = listing.profiles.stripe_subscription_id;
+    locationLabel = location.label || `${location.city}, ${location.state}`;
+    listingIdForMetadata = listing.id;
   }
 
   const priceId = getFeaturedPriceId(billingInterval);
@@ -819,33 +945,26 @@ export async function createFeaturedLocationCheckout(
   const origin = getValidatedOrigin(headersList.get("origin"));
 
   try {
-    // Create or retrieve Stripe customer
-    let customerId = listing.profiles.stripe_customer_id;
-
     if (!customerId) {
       const customer = await stripe.customers.create({
-        email: user.email,
-        metadata: {
-          profile_id: profileId,
-        },
+        email,
+        metadata: { profile_id: profileId },
       });
       customerId = customer.id;
 
-      // Save customer ID to profile
-      const adminClient = await createAdminClient();
-      await adminClient
-        .from("profiles")
-        .update({ stripe_customer_id: customerId })
-        .eq("id", profileId);
+      if (isConvexDataEnabled()) {
+        await mutateConvex("billing:setStripeCustomerId", { stripeCustomerId: customerId });
+      } else {
+        const adminClient = await createAdminClient();
+        await adminClient
+          .from("profiles")
+          .update({ stripe_customer_id: customerId })
+          .eq("id", profileId);
+      }
     }
 
-    // Create location label for display
-    const locationLabel = location.label || `${location.city}, ${location.state}`;
-
-    // Try to find a payment method - check multiple sources
     let paymentMethodId: string | null = null;
 
-    // First, check customer's default payment method
     const customer = await stripe.customers.retrieve(customerId);
     if (customer.deleted) {
       return { success: false, error: "Customer not found" };
@@ -855,21 +974,17 @@ export async function createFeaturedLocationCheckout(
       paymentMethodId = customer.invoice_settings.default_payment_method as string;
     }
 
-    // If no default on customer, check their existing subscription
-    if (!paymentMethodId && listing.profiles.stripe_subscription_id) {
+    if (!paymentMethodId && mainSubId) {
       try {
-        const existingSubscription = await stripe.subscriptions.retrieve(
-          listing.profiles.stripe_subscription_id
-        );
+        const existingSubscription = await stripe.subscriptions.retrieve(mainSubId);
         if (existingSubscription.default_payment_method) {
           paymentMethodId = existingSubscription.default_payment_method as string;
         }
       } catch {
-        // Subscription might not exist, continue without payment method
+        // Subscription might not exist
       }
     }
 
-    // If still no payment method, check customer's payment methods list
     if (!paymentMethodId) {
       const paymentMethods = await stripe.paymentMethods.list({
         customer: customerId,
@@ -882,7 +997,6 @@ export async function createFeaturedLocationCheckout(
     }
 
     if (paymentMethodId) {
-      // Customer has a payment method on file - create subscription directly
       const subscription = await stripe.subscriptions.create({
         customer: customerId,
         items: [{ price: priceId }],
@@ -891,7 +1005,7 @@ export async function createFeaturedLocationCheckout(
           type: "featured_location",
           profile_id: profileId,
           location_id: locationId,
-          listing_id: listing.id,
+          listing_id: listingIdForMetadata,
           billing_interval: billingInterval,
         },
         description: `Featured Location: ${locationLabel}`,
@@ -927,7 +1041,7 @@ export async function createFeaturedLocationCheckout(
         type: "featured_location",
         profile_id: profileId,
         location_id: locationId,
-        listing_id: listing.id,
+        listing_id: listingIdForMetadata,
         billing_interval: billingInterval,
       },
       subscription_data: {
@@ -935,7 +1049,7 @@ export async function createFeaturedLocationCheckout(
           type: "featured_location",
           profile_id: profileId,
           location_id: locationId,
-          listing_id: listing.id,
+          listing_id: listingIdForMetadata,
           billing_interval: billingInterval,
         },
         description: `Featured Location: ${locationLabel}`,
@@ -963,53 +1077,82 @@ export async function createFeaturedLocationCheckout(
 export async function cancelFeaturedLocation(
   locationId: string
 ): Promise<ActionResult> {
-  let profileId;
   try {
-    const ctx = await requireBillingContext();
-    profileId = ctx.profileId;
+    await requireBillingContext();
   } catch {
     return { success: false, error: "Not authenticated" };
   }
 
-  const supabase = await createClient();
+  let stripeSubId: string | null = null;
 
-  // Get the featured subscription
-  const { data: featuredSub, error: subError } = await supabase
-    .from("location_featured_subscriptions")
-    .select("id, stripe_subscription_id, profile_id, status")
-    .eq("location_id", locationId)
-    .single();
+  if (isConvexDataEnabled()) {
+    const linkage = await getCurrentBillingLinkage();
+    if (!linkage?.stripeCustomerId) {
+      return { success: false, error: "No billing account found" };
+    }
 
-  if (subError || !featuredSub) {
-    return { success: false, error: "No featured subscription found for this location" };
+    const subs = await stripe.subscriptions.list({
+      customer: linkage.stripeCustomerId,
+      status: "active",
+      limit: 100,
+    });
+    const matchingSub = subs.data.find(
+      (s) => s.metadata?.type === "featured_location" && s.metadata?.location_id === locationId
+    );
+    if (!matchingSub) {
+      return { success: false, error: "No featured subscription found for this location" };
+    }
+    stripeSubId = matchingSub.id;
+  } else {
+    const profileId = (await requireProfileRole("owner")).profile_id;
+    const supabase = await createClient();
+    const { data: featuredSub, error: subError } = await supabase
+      .from("location_featured_subscriptions")
+      .select("id, stripe_subscription_id, profile_id, status")
+      .eq("location_id", locationId)
+      .single();
+
+    if (subError || !featuredSub) {
+      return { success: false, error: "No featured subscription found for this location" };
+    }
+    if (featuredSub.profile_id !== profileId) {
+      return { success: false, error: "Not authorized" };
+    }
+    if (featuredSub.status !== "active") {
+      return { success: false, error: "Subscription is not active" };
+    }
+    stripeSubId = featuredSub.stripe_subscription_id;
   }
 
-  // Verify user owns this subscription
-  if (featuredSub.profile_id !== profileId) {
-    return { success: false, error: "Not authorized" };
-  }
-
-  if (featuredSub.status !== "active") {
-    return { success: false, error: "Subscription is not active" };
+  if (!stripeSubId) {
+    return { success: false, error: "No subscription found" };
   }
 
   try {
-    // Cancel at period end (user keeps featured until billing cycle ends)
-    await stripe.subscriptions.update(featuredSub.stripe_subscription_id, {
+    await stripe.subscriptions.update(stripeSubId, {
       cancel_at_period_end: true,
     });
 
-    // Update local record
-    const adminClient = await createAdminClient();
-    await adminClient
-      .from("location_featured_subscriptions")
-      .update({
-        cancel_at_period_end: true,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", featuredSub.id);
+    if (!isConvexDataEnabled()) {
+      const supabase = await createClient();
+      const { data: featuredSub } = await supabase
+        .from("location_featured_subscriptions")
+        .select("id")
+        .eq("stripe_subscription_id", stripeSubId)
+        .single();
 
-    // Revalidate dashboard pages so the UI reflects the change
+      if (featuredSub) {
+        const adminClient = await createAdminClient();
+        await adminClient
+          .from("location_featured_subscriptions")
+          .update({
+            cancel_at_period_end: true,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", featuredSub.id);
+      }
+    }
+
     revalidatePath("/dashboard");
     revalidatePath("/dashboard/company");
     revalidatePath("/dashboard/locations");
@@ -1030,53 +1173,84 @@ export async function cancelFeaturedLocation(
 export async function reactivateFeaturedLocation(
   locationId: string
 ): Promise<ActionResult> {
-  let profileId;
   try {
-    const ctx = await requireBillingContext();
-    profileId = ctx.profileId;
+    await requireBillingContext();
   } catch {
     return { success: false, error: "Not authenticated" };
   }
 
-  const supabase = await createClient();
+  let stripeSubId: string | null = null;
 
-  // Get the featured subscription
-  const { data: featuredSub, error: subError } = await supabase
-    .from("location_featured_subscriptions")
-    .select("id, stripe_subscription_id, profile_id, cancel_at_period_end")
-    .eq("location_id", locationId)
-    .single();
+  if (isConvexDataEnabled()) {
+    const linkage = await getCurrentBillingLinkage();
+    if (!linkage?.stripeCustomerId) {
+      return { success: false, error: "No billing account found" };
+    }
 
-  if (subError || !featuredSub) {
-    return { success: false, error: "No featured subscription found for this location" };
+    const subs = await stripe.subscriptions.list({
+      customer: linkage.stripeCustomerId,
+      limit: 100,
+    });
+    const matchingSub = subs.data.find(
+      (s) =>
+        s.metadata?.type === "featured_location" &&
+        s.metadata?.location_id === locationId &&
+        s.cancel_at_period_end
+    );
+    if (!matchingSub) {
+      return { success: false, error: "No featured subscription found set to cancel" };
+    }
+    stripeSubId = matchingSub.id;
+  } else {
+    const profileId = (await requireProfileRole("owner")).profile_id;
+    const supabase = await createClient();
+    const { data: featuredSub, error: subError } = await supabase
+      .from("location_featured_subscriptions")
+      .select("id, stripe_subscription_id, profile_id, cancel_at_period_end")
+      .eq("location_id", locationId)
+      .single();
+
+    if (subError || !featuredSub) {
+      return { success: false, error: "No featured subscription found for this location" };
+    }
+    if (featuredSub.profile_id !== profileId) {
+      return { success: false, error: "Not authorized" };
+    }
+    if (!featuredSub.cancel_at_period_end) {
+      return { success: false, error: "Subscription is not set to cancel" };
+    }
+    stripeSubId = featuredSub.stripe_subscription_id;
   }
 
-  // Verify user owns this subscription
-  if (featuredSub.profile_id !== profileId) {
-    return { success: false, error: "Not authorized" };
-  }
-
-  if (!featuredSub.cancel_at_period_end) {
-    return { success: false, error: "Subscription is not set to cancel" };
+  if (!stripeSubId) {
+    return { success: false, error: "No subscription found" };
   }
 
   try {
-    // Reactivate by removing cancel_at_period_end
-    await stripe.subscriptions.update(featuredSub.stripe_subscription_id, {
+    await stripe.subscriptions.update(stripeSubId, {
       cancel_at_period_end: false,
     });
 
-    // Update local record
-    const adminClient = await createAdminClient();
-    await adminClient
-      .from("location_featured_subscriptions")
-      .update({
-        cancel_at_period_end: false,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", featuredSub.id);
+    if (!isConvexDataEnabled()) {
+      const supabase = await createClient();
+      const { data: featuredSub } = await supabase
+        .from("location_featured_subscriptions")
+        .select("id")
+        .eq("stripe_subscription_id", stripeSubId)
+        .single();
 
-    // Revalidate dashboard pages so the UI reflects the change
+      if (featuredSub) {
+        const adminClient = await createAdminClient();
+        await adminClient
+          .from("location_featured_subscriptions")
+          .update({
+            cancel_at_period_end: false,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", featuredSub.id);
+      }
+    }
+
     revalidatePath("/dashboard");
     revalidatePath("/dashboard/company");
     revalidatePath("/dashboard/locations");
@@ -1218,6 +1392,28 @@ export async function getFeaturedLocations(): Promise<
     }>;
   }>
 > {
+  if (isConvexDataEnabled()) {
+    try {
+      const result = await queryConvex<{
+        locations: Array<{
+          id: string;
+          locationId: string;
+          locationLabel: string;
+          city: string;
+          state: string;
+          status: string;
+          billingInterval: string;
+          currentPeriodEnd: string | null;
+          cancelAtPeriodEnd: boolean;
+        }>;
+      }>("billing:getFeaturedLocations");
+      return { success: true, data: result };
+    } catch (error) {
+      console.error("Convex getFeaturedLocations error:", error);
+      return { success: true, data: { locations: [] } };
+    }
+  }
+
   const profileId = await getCurrentProfileId();
   if (!profileId) {
     return { success: false, error: "Not authenticated" };

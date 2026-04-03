@@ -11,6 +11,11 @@ import {
   getUser,
   requireProfileRole,
 } from "@/lib/supabase/server";
+import { isConvexDataEnabled } from "@/lib/platform/config";
+import { queryConvex, mutateConvex } from "@/lib/platform/convex/server";
+import { getCurrentBillingLinkage } from "@/lib/platform/billing/server";
+import { getCurrentUser } from "@/lib/platform/auth/server";
+import { requireWorkspaceRole } from "@/lib/platform/workspace/server";
 import { ADDON_PRICE_IDS, CHECKOUT_URLS } from "@/lib/stripe/config";
 import { getValidatedOrigin } from "@/lib/utils/domains";
 import { type PlanTier, getPlanFeatures } from "@/lib/plans/features";
@@ -26,6 +31,15 @@ type ActionResult<T = void> =
 
 /** Resolve plan tier for the current user (avoids circular import with guards.ts) */
 async function resolveCurrentPlanTier(profileId?: string | null): Promise<PlanTier> {
+  if (isConvexDataEnabled()) {
+    try {
+      const result = await queryConvex<{ planTier: "free" | "pro" }>("billing:getCurrentPlanTierQuery");
+      return result.planTier;
+    } catch {
+      return "free";
+    }
+  }
+
   const resolvedProfileId = profileId || (await getCurrentProfileId());
   if (!resolvedProfileId) return "free";
 
@@ -52,6 +66,16 @@ async function resolveCurrentPlanTier(profileId?: string | null): Promise<PlanTi
 export async function getActiveAddons(
   profileId: string
 ): Promise<ActionResult<ActiveAddon[]>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const addons = await queryConvex<ActiveAddon[]>("billing:getActiveAddons");
+      return { success: true, data: addons };
+    } catch (error) {
+      console.error("Convex getActiveAddons error:", error);
+      return { success: false, error: "Failed to fetch add-ons" };
+    }
+  }
+
   const supabase = await createClient();
 
   const { data, error } = await supabase
@@ -97,15 +121,45 @@ export async function createAddonSubscription(
     quantity?: number;
   }>
 > {
-  const membership = await requireProfileRole("owner").catch(() => null);
-  const user = await getUser();
-  if (!membership || !user) {
-    return { success: false, error: "Not authenticated" };
+  // Auth and plan tier check
+  let profileId: string;
+  let userEmail: string | undefined;
+  let stripeCustomerId: string | null = null;
+  let stripeSubscriptionId: string | null = null;
+
+  if (isConvexDataEnabled()) {
+    const membership = await requireWorkspaceRole("owner");
+    profileId = membership.workspaceId;
+    const user = await getCurrentUser();
+    if (!user) return { success: false, error: "Not authenticated" };
+    userEmail = user.email ?? undefined;
+
+    const linkage = await getCurrentBillingLinkage();
+    stripeCustomerId = linkage?.stripeCustomerId ?? null;
+    stripeSubscriptionId = linkage?.stripeSubscriptionId ?? null;
+  } else {
+    const membership = await requireProfileRole("owner").catch(() => null);
+    const user = await getUser();
+    if (!membership || !user) {
+      return { success: false, error: "Not authenticated" };
+    }
+    profileId = membership.profile_id;
+    userEmail = user.email;
+
+    const supabase = await createClient();
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("id, stripe_customer_id, stripe_subscription_id")
+      .eq("id", profileId)
+      .single();
+
+    if (!profile) return { success: false, error: "Profile not found" };
+    stripeCustomerId = profile.stripe_customer_id;
+    stripeSubscriptionId = profile.stripe_subscription_id;
   }
-  const profileId = membership.profile_id;
 
   // Only Pro users can buy add-ons
-  const tier = await resolveCurrentPlanTier(profileId);
+  const tier = await resolveCurrentPlanTier(isConvexDataEnabled() ? undefined : profileId);
   if (tier !== "pro") {
     return { success: false, error: "Add-ons require a Pro plan" };
   }
@@ -125,94 +179,115 @@ export async function createAddonSubscription(
     };
   }
 
-  const supabase = await createClient();
-
   // Check for existing active addon of this type
-  const { data: existing } = await supabase
-    .from("profile_addons")
-    .select("id, quantity, stripe_subscription_id, cancel_at_period_end")
-    .eq("profile_id", profileId)
-    .eq("addon_type", addonType)
-    .eq("status", "active")
-    .maybeSingle();
+  if (isConvexDataEnabled()) {
+    const activeAddons = await queryConvex<ActiveAddon[]>("billing:getActiveAddons");
+    const existing = activeAddons.find((a) => a.addonType === addonType);
 
-  if (existing) {
-    if (addonType === "homepage_placement") {
-      return {
-        success: false,
-        error: "ALREADY_EXISTS",
-      };
-    }
-
-    if (!existing.stripe_subscription_id) {
-      return {
-        success: false,
-        error: "ALREADY_EXISTS",
-      };
-    }
-
-    try {
-      const existingSubscription = await stripe.subscriptions.retrieve(
-        existing.stripe_subscription_id
-      );
-      const subscriptionItem = existingSubscription.items.data[0];
-
-      if (!subscriptionItem) {
-        return {
-          success: false,
-          error: "Could not update add-on quantity",
-        };
+    if (existing) {
+      if (addonType === "homepage_placement") {
+        return { success: false, error: "ALREADY_EXISTS" };
       }
 
-      const newQuantity = existing.quantity + quantity;
+      if (!existing.stripeSubscriptionId) {
+        return { success: false, error: "ALREADY_EXISTS" };
+      }
 
-      await stripe.subscriptions.update(existing.stripe_subscription_id, {
-        items: [
-          {
-            id: subscriptionItem.id,
+      try {
+        const existingSubscription = await stripe.subscriptions.retrieve(existing.stripeSubscriptionId);
+        const subscriptionItem = existingSubscription.items.data[0];
+        if (!subscriptionItem) {
+          return { success: false, error: "Could not update add-on quantity" };
+        }
+
+        const newQuantity = existing.quantity + quantity;
+        await stripe.subscriptions.update(existing.stripeSubscriptionId, {
+          items: [{ id: subscriptionItem.id, quantity: newQuantity }],
+          cancel_at_period_end: false,
+          proration_behavior: "create_prorations",
+          metadata: {
+            type: "addon",
+            addon_type: addonType,
+            profile_id: profileId,
+            quantity: String(newQuantity),
+          },
+        });
+
+        revalidatePath("/dashboard/billing");
+        return {
+          success: true,
+          data: {
+            directCharge: true,
+            subscriptionId: existing.stripeSubscriptionId,
+            addonType,
             quantity: newQuantity,
           },
-        ],
-        cancel_at_period_end: false,
-        proration_behavior: "create_prorations",
-        metadata: {
-          type: "addon",
-          addon_type: addonType,
-          profile_id: profileId,
-          quantity: String(newQuantity),
-        },
-      });
-
-      revalidatePath("/dashboard/billing");
-      return {
-        success: true,
-        data: {
-          directCharge: true,
-          subscriptionId: existing.stripe_subscription_id,
-          addonType,
-          quantity: newQuantity,
-        },
-      };
-    } catch (error) {
-      console.error("Addon quantity update error:", error);
-      return {
-        success: false,
-        error:
-          error instanceof Error
-            ? error.message
-            : "Failed to update add-on quantity",
-      };
+        };
+      } catch (error) {
+        console.error("Addon quantity update error:", error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : "Failed to update add-on quantity",
+        };
+      }
     }
-  }
+  } else {
+    const supabase = await createClient();
+    const { data: existing } = await supabase
+      .from("profile_addons")
+      .select("id, quantity, stripe_subscription_id, cancel_at_period_end")
+      .eq("profile_id", profileId)
+      .eq("addon_type", addonType)
+      .eq("status", "active")
+      .maybeSingle();
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("id, stripe_customer_id, stripe_subscription_id")
-    .eq("id", profileId)
-    .single();
+    if (existing) {
+      if (addonType === "homepage_placement") {
+        return { success: false, error: "ALREADY_EXISTS" };
+      }
 
-  if (!profile) {
-    return { success: false, error: "Profile not found" };
+      if (!existing.stripe_subscription_id) {
+        return { success: false, error: "ALREADY_EXISTS" };
+      }
+
+      try {
+        const existingSubscription = await stripe.subscriptions.retrieve(existing.stripe_subscription_id);
+        const subscriptionItem = existingSubscription.items.data[0];
+        if (!subscriptionItem) {
+          return { success: false, error: "Could not update add-on quantity" };
+        }
+
+        const newQuantity = existing.quantity + quantity;
+        await stripe.subscriptions.update(existing.stripe_subscription_id, {
+          items: [{ id: subscriptionItem.id, quantity: newQuantity }],
+          cancel_at_period_end: false,
+          proration_behavior: "create_prorations",
+          metadata: {
+            type: "addon",
+            addon_type: addonType,
+            profile_id: profileId,
+            quantity: String(newQuantity),
+          },
+        });
+
+        revalidatePath("/dashboard/billing");
+        return {
+          success: true,
+          data: {
+            directCharge: true,
+            subscriptionId: existing.stripe_subscription_id,
+            addonType,
+            quantity: newQuantity,
+          },
+        };
+      } catch (error) {
+        console.error("Addon quantity update error:", error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : "Failed to update add-on quantity",
+        };
+      }
+    }
   }
 
   const headersList = await headers();
@@ -221,26 +296,29 @@ export async function createAddonSubscription(
 
   try {
     // Create or retrieve Stripe customer
-    let customerId = profile.stripe_customer_id;
+    let customerId = stripeCustomerId;
 
     if (!customerId) {
       const customer = await stripe.customers.create({
-        email: user.email,
-        metadata: { profile_id: profile.id },
+        email: userEmail,
+        metadata: { profile_id: profileId },
       });
       customerId = customer.id;
 
-      const adminClient = await createAdminClient();
-      await adminClient
-        .from("profiles")
-        .update({ stripe_customer_id: customerId })
-        .eq("id", profile.id);
+      if (isConvexDataEnabled()) {
+        await mutateConvex("billing:setStripeCustomerId", { stripeCustomerId: customerId });
+      } else {
+        const adminClient = await createAdminClient();
+        await adminClient
+          .from("profiles")
+          .update({ stripe_customer_id: customerId })
+          .eq("id", profileId);
+      }
     }
 
-    // --- Payment method lookup (same pattern as Featured Location) ---
+    // --- Payment method lookup ---
     let paymentMethodId: string | null = null;
 
-    // 1. Check customer's default payment method
     const customer = await stripe.customers.retrieve(customerId);
     if (customer.deleted) {
       return { success: false, error: "Customer not found" };
@@ -250,21 +328,17 @@ export async function createAddonSubscription(
       paymentMethodId = customer.invoice_settings.default_payment_method as string;
     }
 
-    // 2. Check existing Pro subscription's payment method
-    if (!paymentMethodId && profile.stripe_subscription_id) {
+    if (!paymentMethodId && stripeSubscriptionId) {
       try {
-        const existingSubscription = await stripe.subscriptions.retrieve(
-          profile.stripe_subscription_id
-        );
-        if (existingSubscription.default_payment_method) {
-          paymentMethodId = existingSubscription.default_payment_method as string;
+        const existingSub = await stripe.subscriptions.retrieve(stripeSubscriptionId);
+        if (existingSub.default_payment_method) {
+          paymentMethodId = existingSub.default_payment_method as string;
         }
       } catch {
         // Subscription might not exist, continue
       }
     }
 
-    // 3. Check customer's payment methods list
     if (!paymentMethodId) {
       const paymentMethods = await stripe.paymentMethods.list({
         customer: customerId,
@@ -285,13 +359,12 @@ export async function createAddonSubscription(
         metadata: {
           type: "addon",
           addon_type: addonType,
-          profile_id: profile.id,
+          profile_id: profileId,
           quantity: String(quantity),
         },
         description: `${info.label} (x${quantity})`,
       });
 
-      // Webhook will create the profile_addons row
       revalidatePath("/dashboard/billing");
       return {
         success: true,
@@ -315,14 +388,14 @@ export async function createAddonSubscription(
       metadata: {
         type: "addon",
         addon_type: addonType,
-        profile_id: profile.id,
+        profile_id: profileId,
         quantity: String(quantity),
       },
       subscription_data: {
         metadata: {
           type: "addon",
           addon_type: addonType,
-          profile_id: profile.id,
+          profile_id: profileId,
           quantity: String(quantity),
         },
         description: `${info.label} (x${quantity})`,
@@ -348,37 +421,66 @@ export async function createAddonSubscription(
 
 /**
  * Cancel an add-on subscription (at period end).
- * Sets cancel_at_period_end on Stripe and marks the local row.
  */
 export async function cancelAddon(
   addonId: string
 ): Promise<ActionResult> {
-  const membership = await requireProfileRole("owner").catch(() => null);
-  if (!membership) {
-    return { success: false, error: "Not authenticated" };
+  let profileId: string;
+
+  if (isConvexDataEnabled()) {
+    const membership = await requireWorkspaceRole("owner");
+    profileId = membership.workspaceId;
+  } else {
+    const membership = await requireProfileRole("owner").catch(() => null);
+    if (!membership) return { success: false, error: "Not authenticated" };
+    profileId = membership.profile_id;
   }
 
-  const supabase = await createClient();
+  // Fetch addon details
+  let addon: { id: string; stripeSubscriptionId: string | null; addonType: string; quantity: number } | null = null;
 
-  // Verify the addon belongs to this user
-  const { data: addon, error: fetchError } = await supabase
-    .from("profile_addons")
-    .select("id, stripe_subscription_id, status, profile_id, addon_type, quantity")
-    .eq("id", addonId)
-    .eq("profile_id", membership.profile_id)
-    .eq("status", "active")
-    .single();
+  if (isConvexDataEnabled()) {
+    const addons = await queryConvex<ActiveAddon[]>("billing:getActiveAddons");
+    const found = addons.find((a) => a.id === addonId);
+    if (found) {
+      addon = {
+        id: found.id,
+        stripeSubscriptionId: found.stripeSubscriptionId ?? null,
+        addonType: found.addonType,
+        quantity: found.quantity,
+      };
+    }
+  } else {
+    const supabase = await createClient();
+    const { data, error: fetchError } = await supabase
+      .from("profile_addons")
+      .select("id, stripe_subscription_id, status, profile_id, addon_type, quantity")
+      .eq("id", addonId)
+      .eq("profile_id", profileId)
+      .eq("status", "active")
+      .single();
 
-  if (fetchError || !addon) {
+    if (fetchError || !data) {
+      return { success: false, error: "Add-on not found or already cancelled" };
+    }
+    addon = {
+      id: data.id,
+      stripeSubscriptionId: data.stripe_subscription_id,
+      addonType: data.addon_type,
+      quantity: data.quantity,
+    };
+  }
+
+  if (!addon) {
     return { success: false, error: "Add-on not found or already cancelled" };
   }
 
-  if (!addon.stripe_subscription_id) {
+  if (!addon.stripeSubscriptionId) {
     return { success: false, error: "No subscription linked to this add-on" };
   }
 
-  if (addon.addon_type === "extra_users") {
-    const seatSummaryResult = await getWorkspaceSeatSummary(membership.profile_id);
+  if (addon.addonType === "extra_users") {
+    const seatSummaryResult = await getWorkspaceSeatSummary(profileId);
     if (!seatSummaryResult.success || !seatSummaryResult.data) {
       return { success: false, error: "Failed to validate current seat usage" };
     }
@@ -393,17 +495,17 @@ export async function cancelAddon(
   }
 
   try {
-    // Cancel at period end so the user keeps the add-on until billing cycle ends
-    await stripe.subscriptions.update(addon.stripe_subscription_id, {
+    await stripe.subscriptions.update(addon.stripeSubscriptionId, {
       cancel_at_period_end: true,
     });
 
-    // Mark local row
-    const adminClient = await createAdminClient();
-    await adminClient
-      .from("profile_addons")
-      .update({ cancel_at_period_end: true })
-      .eq("id", addonId);
+    if (!isConvexDataEnabled()) {
+      const adminClient = await createAdminClient();
+      await adminClient
+        .from("profile_addons")
+        .update({ cancel_at_period_end: true })
+        .eq("id", addonId);
+    }
 
     revalidatePath("/dashboard/billing");
     return { success: true };
@@ -411,10 +513,7 @@ export async function cancelAddon(
     console.error("Cancel addon error:", error);
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : "Failed to cancel add-on",
+      error: error instanceof Error ? error.message : "Failed to cancel add-on",
     };
   }
 }
@@ -425,43 +524,74 @@ export async function cancelAddon(
 export async function reactivateAddon(
   addonId: string
 ): Promise<ActionResult> {
-  const membership = await requireProfileRole("owner").catch(() => null);
-  if (!membership) {
-    return { success: false, error: "Not authenticated" };
+  let profileId: string;
+
+  if (isConvexDataEnabled()) {
+    const membership = await requireWorkspaceRole("owner");
+    profileId = membership.workspaceId;
+  } else {
+    const membership = await requireProfileRole("owner").catch(() => null);
+    if (!membership) return { success: false, error: "Not authenticated" };
+    profileId = membership.profile_id;
   }
 
-  const supabase = await createClient();
+  // Fetch addon
+  let addon: { id: string; stripeSubscriptionId: string | null; cancelAtPeriodEnd: boolean } | null = null;
 
-  const { data: addon, error: fetchError } = await supabase
-    .from("profile_addons")
-    .select("id, stripe_subscription_id, status, profile_id, cancel_at_period_end")
-    .eq("id", addonId)
-    .eq("profile_id", membership.profile_id)
-    .eq("status", "active")
-    .single();
+  if (isConvexDataEnabled()) {
+    const addons = await queryConvex<ActiveAddon[]>("billing:getActiveAddons");
+    const found = addons.find((a) => a.id === addonId);
+    if (found) {
+      addon = {
+        id: found.id,
+        stripeSubscriptionId: found.stripeSubscriptionId ?? null,
+        cancelAtPeriodEnd: found.cancelAtPeriodEnd,
+      };
+    }
+  } else {
+    const supabase = await createClient();
+    const { data, error: fetchError } = await supabase
+      .from("profile_addons")
+      .select("id, stripe_subscription_id, status, profile_id, cancel_at_period_end")
+      .eq("id", addonId)
+      .eq("profile_id", profileId)
+      .eq("status", "active")
+      .single();
 
-  if (fetchError || !addon) {
+    if (fetchError || !data) {
+      return { success: false, error: "Add-on not found or already cancelled" };
+    }
+    addon = {
+      id: data.id,
+      stripeSubscriptionId: data.stripe_subscription_id,
+      cancelAtPeriodEnd: data.cancel_at_period_end ?? false,
+    };
+  }
+
+  if (!addon) {
     return { success: false, error: "Add-on not found or already cancelled" };
   }
 
-  if (!addon.stripe_subscription_id) {
+  if (!addon.stripeSubscriptionId) {
     return { success: false, error: "No subscription linked to this add-on" };
   }
 
-  if (!addon.cancel_at_period_end) {
+  if (!addon.cancelAtPeriodEnd) {
     return { success: false, error: "Add-on is not set to cancel" };
   }
 
   try {
-    await stripe.subscriptions.update(addon.stripe_subscription_id, {
+    await stripe.subscriptions.update(addon.stripeSubscriptionId, {
       cancel_at_period_end: false,
     });
 
-    const adminClient = await createAdminClient();
-    await adminClient
-      .from("profile_addons")
-      .update({ cancel_at_period_end: false })
-      .eq("id", addonId);
+    if (!isConvexDataEnabled()) {
+      const adminClient = await createAdminClient();
+      await adminClient
+        .from("profile_addons")
+        .update({ cancel_at_period_end: false })
+        .eq("id", addonId);
+    }
 
     revalidatePath("/dashboard/billing");
     return { success: true };
@@ -469,10 +599,7 @@ export async function reactivateAddon(
     console.error("Reactivate addon error:", error);
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : "Failed to reactivate add-on",
+      error: error instanceof Error ? error.message : "Failed to reactivate add-on",
     };
   }
 }
@@ -483,24 +610,41 @@ export async function reactivateAddon(
 export async function getEffectiveLimits(
   profileId: string
 ): Promise<ActionResult<EffectiveLimits>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const limits = await queryConvex<EffectiveLimits>("billing:getEffectiveLimits");
+      return { success: true, data: limits };
+    } catch (error) {
+      console.error("Convex getEffectiveLimits error:", error);
+      const base = getPlanFeatures("free");
+      return {
+        success: true,
+        data: {
+          maxLocations: base.maxLocations,
+          maxJobPostings: base.maxJobPostings,
+          maxUsers: 1,
+          maxStorageGB: 5,
+          hasHomepagePlacement: base.hasHomepagePlacement,
+        },
+      };
+    }
+  }
+
   const tier = await resolveCurrentPlanTier(profileId);
   const base = getPlanFeatures(tier);
 
-  // Start with base limits
   const limits: EffectiveLimits = {
     maxLocations: base.maxLocations,
     maxJobPostings: base.maxJobPostings,
-    maxUsers: 1, // Default 1 user
-    maxStorageGB: 5, // Default 5GB
+    maxUsers: 1,
+    maxStorageGB: 5,
     hasHomepagePlacement: base.hasHomepagePlacement,
   };
 
-  // If not pro, no add-ons apply
   if (tier !== "pro") {
     return { success: true, data: limits };
   }
 
-  // Fetch active add-ons
   const result = await getActiveAddons(profileId);
   if (!result.success || !result.data) {
     return { success: true, data: limits };
