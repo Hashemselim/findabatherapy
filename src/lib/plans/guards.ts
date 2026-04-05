@@ -393,6 +393,10 @@ export async function guardAddClient(
   const tier = await getCurrentPlanTier();
   const features = getPlanFeatures(tier);
 
+  if (features.maxClients < 0) {
+    return { allowed: true };
+  }
+
   if (currentCount >= features.maxClients) {
     return {
       allowed: false,

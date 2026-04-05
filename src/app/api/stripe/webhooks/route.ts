@@ -49,7 +49,9 @@ export async function POST(request: Request) {
     );
   }
 
-  const supabase = await createAdminClient();
+  const supabase = isConvexDataEnabled()
+    ? null
+    : await createAdminClient();
 
   try {
     switch (event.type) {
@@ -57,11 +59,11 @@ export async function POST(request: Request) {
         const session = event.data.object as Stripe.Checkout.Session;
         // Route to appropriate handler based on checkout type
         if (session.metadata?.type === "featured_location") {
-          await handleFeaturedLocationCheckoutCompleted(supabase, session);
+          await handleFeaturedLocationCheckoutCompleted(supabase as Awaited<ReturnType<typeof createAdminClient>>, session);
         } else if (session.metadata?.type === "addon") {
-          await handleAddonCheckoutCompleted(supabase, session);
+          await handleAddonCheckoutCompleted(supabase as Awaited<ReturnType<typeof createAdminClient>>, session);
         } else {
-          await handleCheckoutCompleted(supabase, session);
+          await handleCheckoutCompleted(supabase as Awaited<ReturnType<typeof createAdminClient>>, session);
         }
         break;
       }
@@ -70,9 +72,9 @@ export async function POST(request: Request) {
         // Handle subscriptions created directly via API (not through checkout)
         const subscription = event.data.object as Stripe.Subscription;
         if (subscription.metadata?.type === "featured_location") {
-          await handleFeaturedLocationSubscriptionCreated(supabase, subscription);
+          await handleFeaturedLocationSubscriptionCreated(supabase as Awaited<ReturnType<typeof createAdminClient>>, subscription);
         } else if (subscription.metadata?.type === "addon") {
-          await handleAddonSubscriptionCreated(supabase, subscription);
+          await handleAddonSubscriptionCreated(supabase as Awaited<ReturnType<typeof createAdminClient>>, subscription);
         }
         // Note: Main plan subscriptions go through checkout, so we don't need to handle them here
         break;
@@ -82,11 +84,11 @@ export async function POST(request: Request) {
         const subscription = event.data.object as Stripe.Subscription;
         // Route to appropriate handler based on subscription type
         if (subscription.metadata?.type === "featured_location") {
-          await handleFeaturedLocationSubscriptionUpdated(supabase, subscription);
+          await handleFeaturedLocationSubscriptionUpdated(supabase as Awaited<ReturnType<typeof createAdminClient>>, subscription);
         } else if (subscription.metadata?.type === "addon") {
-          await handleAddonSubscriptionUpdated(supabase, subscription);
+          await handleAddonSubscriptionUpdated(supabase as Awaited<ReturnType<typeof createAdminClient>>, subscription);
         } else {
-          await handleSubscriptionUpdated(supabase, subscription);
+          await handleSubscriptionUpdated(supabase as Awaited<ReturnType<typeof createAdminClient>>, subscription);
         }
         break;
       }
@@ -95,24 +97,24 @@ export async function POST(request: Request) {
         const subscription = event.data.object as Stripe.Subscription;
         // Route to appropriate handler based on subscription type
         if (subscription.metadata?.type === "featured_location") {
-          await handleFeaturedLocationSubscriptionDeleted(supabase, subscription);
+          await handleFeaturedLocationSubscriptionDeleted(supabase as Awaited<ReturnType<typeof createAdminClient>>, subscription);
         } else if (subscription.metadata?.type === "addon") {
-          await handleAddonSubscriptionDeleted(supabase, subscription);
+          await handleAddonSubscriptionDeleted(supabase as Awaited<ReturnType<typeof createAdminClient>>, subscription);
         } else {
-          await handleSubscriptionDeleted(supabase, subscription);
+          await handleSubscriptionDeleted(supabase as Awaited<ReturnType<typeof createAdminClient>>, subscription);
         }
         break;
       }
 
       case "invoice.paid": {
         const invoice = event.data.object as Stripe.Invoice;
-        await handleInvoicePaid(supabase, invoice);
+        await handleInvoicePaid(supabase as Awaited<ReturnType<typeof createAdminClient>>, invoice);
         break;
       }
 
       case "invoice.payment_failed": {
         const invoice = event.data.object as Stripe.Invoice;
-        await handleInvoicePaymentFailed(supabase, invoice);
+        await handleInvoicePaymentFailed(supabase as Awaited<ReturnType<typeof createAdminClient>>, invoice);
         break;
       }
 

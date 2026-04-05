@@ -43,12 +43,51 @@ async function ensureAtLeastOnePhoto(page: import("@playwright/test").Page) {
   });
 }
 
+async function waitForStablePhotoCount(page: import("@playwright/test").Page) {
+  let previousCount = -1;
+  let stableReads = 0;
+
+  await expect
+    .poll(async () => {
+      const count = await page.getByTestId("photo-item").count();
+      if (count === previousCount) {
+        stableReads += 1;
+      } else {
+        stableReads = 1;
+        previousCount = count;
+      }
+
+      return stableReads >= 3 ? count : -1;
+    }, {
+      timeout: 10000,
+      intervals: [250, 500, 500],
+    })
+    .not.toBe(-1);
+
+  return previousCount;
+}
+
 async function openVideoEditor(page: import("@playwright/test").Page) {
   await expect(page.getByTestId("video-edit-button")).toBeVisible({
     timeout: 30000,
   });
   await page.getByTestId("video-edit-button").click();
   await expect(page.getByText("Edit Video")).toBeVisible({ timeout: 30000 });
+}
+
+async function ensureVideoPreview(page: import("@playwright/test").Page) {
+  const preview = page.getByTestId("video-preview");
+  if (await preview.isVisible().catch(() => false)) {
+    return;
+  }
+
+  await openVideoEditor(page);
+  await page.getByTestId("video-url").fill("https://www.youtube.com/watch?v=dQw4w9WgXcQ");
+  await page.getByRole("button", { name: /save changes/i }).click();
+  await expect(page.getByText("Video updated successfully.")).toBeVisible({
+    timeout: 30000,
+  });
+  await expect(preview).toBeVisible({ timeout: 30000 });
 }
 
 async function gotoMediaPage(page: import("@playwright/test").Page) {
@@ -125,15 +164,14 @@ test.describe("DASH-022, DASH-023, DASH-024, DASH-025: Media Management", () => 
     await openPhotoEditor(page);
     await ensureAtLeastOnePhoto(page);
 
-    const photoCountBefore = await page.getByTestId("photo-item").count();
+    const photoCountBefore = await waitForStablePhotoCount(page);
     const photoCard = page.getByTestId("photo-item").first();
     await photoCard.hover();
     await page.getByTestId("delete-photo").first().click();
     await page.getByRole("button", { name: "Delete" }).click();
-    await expect(page.getByTestId("photo-item")).toHaveCount(
-      photoCountBefore - 1,
-      { timeout: 30000 },
-    );
+    await expect
+      .poll(async () => waitForStablePhotoCount(page), { timeout: 30000 })
+      .toBe(photoCountBefore - 1);
   });
 
   test("should have video URL input", async ({ page }) => {
@@ -163,9 +201,7 @@ test.describe("DASH-022, DASH-023, DASH-024, DASH-025: Media Management", () => 
   });
 
   test("should show video preview", async ({ page }) => {
-    await expect(page.getByTestId("video-preview")).toBeVisible({
-      timeout: 30000,
-    });
+    await ensureVideoPreview(page);
   });
 
   test("should indicate photo limit", async ({ page }) => {

@@ -2,10 +2,6 @@ import { mutation, query } from "./_generated/server";
 import { ConvexError, v } from "convex/values";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 
-type Identity = {
-  subject: string;
-};
-
 type ConvexDoc = Record<string, unknown> & { _id: string };
 type ConvexCtx = QueryCtx | MutationCtx;
 
@@ -795,6 +791,15 @@ export const recordSentCommunication = mutation({
   handler: async (ctx, args) => {
     const { workspaceId, userId } = await requireCurrentWorkspace(ctx);
     const now = new Date().toISOString();
+    const client = await ctx.db.get(asId<"crmRecords">(args.clientId));
+    if (
+      !client ||
+      String(client.workspaceId) !== workspaceId ||
+      client.recordType !== "client" ||
+      client.deletedAt
+    ) {
+      throw new ConvexError("Client not found");
+    }
 
     const id = await ctx.db.insert("communicationRecords", {
       workspaceId: asId<"workspaces">(workspaceId),
