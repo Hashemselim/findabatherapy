@@ -861,12 +861,22 @@ export async function createFeaturedLocationCheckout(
       workspaceId: string;
       listingId: string | null;
       planTier: string;
+      subscriptionStatus: string | null;
       stripeCustomerId: string | null;
       stripeSubscriptionId: string | null;
     }>("billing:getCurrentBillingWorkspaceState");
 
-    if (state.planTier === "free") {
-      return { success: false, error: "Featured upgrade requires Pro plan" };
+    const hasActiveProSubscription =
+      state.planTier === "pro" &&
+      (state.subscriptionStatus === "active" ||
+        state.subscriptionStatus === "trialing") &&
+      Boolean(state.stripeSubscriptionId);
+
+    if (!hasActiveProSubscription) {
+      return {
+        success: false,
+        error: "Featured placement requires an active Pro subscription",
+      };
     }
 
     customerId = state.stripeCustomerId;

@@ -764,6 +764,7 @@ export const provisionE2EDashboardWorkspace = mutation({
         }),
       );
     } else {
+      await clearWorkspaceRowsByWorkspaceId(ctx, workspaceId);
       await ctx.db.patch(asId<"workspaces">(workspaceId), {
         slug: workspaceSlug,
         agencyName: "E2E User",
@@ -832,7 +833,7 @@ export const provisionE2EDashboardWorkspace = mutation({
       summary: "Seeded Pro workspace for end-to-end dashboard validation.",
       serviceModes: ["in_home", "in_center"],
       isAcceptingClients: true,
-      videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+      videoUrl: null,
       logoUrl: null,
       careersBrandColor: "#10B981",
       careersHeadline: "Join a collaborative ABA team",
@@ -1705,6 +1706,174 @@ export const inspectE2ECommunicationState = query({
               readString(latestCommunicationPayload.recipientEmail) ?? "",
           }
         : null,
+    };
+  },
+});
+
+export const attachE2EWorkspaceMember = mutation({
+  args: {
+    secret: v.string(),
+    ownerClerkUserId: v.string(),
+    memberClerkUserId: v.string(),
+    email: v.string(),
+    firstName: v.optional(v.string()),
+    lastName: v.optional(v.string()),
+    role: v.optional(v.union(v.literal("admin"), v.literal("member"))),
+    forceTransferExistingWorkspace: v.optional(v.boolean()),
+  },
+  returns: v.object({
+    workspaceId: v.string(),
+    memberUserId: v.string(),
+    membershipId: v.string(),
+  }),
+  handler: async (ctx, args) => {
+    requireSeedSecret(args.secret);
+
+    const timestamp = now();
+    const memberEmail = normalizeSeedEmail(args.email);
+    const displayName = [args.firstName, args.lastName]
+      .filter(Boolean)
+      .join(" ")
+      .trim();
+
+    const ownerUsers = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_user_id", (q) => q.eq("clerkUserId", args.ownerClerkUserId))
+      .collect();
+    const ownerUser = ownerUsers[0] ?? null;
+    if (!ownerUser) {
+      throw new ConvexError("Owner user not found");
+    }
+
+    const ownerMemberships = await ctx.db
+      .query("workspaceMemberships")
+      .withIndex("by_user", (q) => q.eq("userId", ownerUser._id))
+      .collect();
+    const ownerMembership =
+      ownerMemberships.find(
+        (membership) =>
+          membership.status === "active" &&
+          membership.workspaceId === ownerUser.activeWorkspaceId,
+      ) ?? ownerMemberships.find((membership) => membership.status === "active");
+    if (!ownerMembership) {
+      throw new ConvexError("Owner workspace not found");
+    }
+
+    const workspaceId = String(ownerMembership.workspaceId);
+    const workspace = await ctx.db.get(asId<"workspaces">(workspaceId));
+    if (!workspace) {
+      throw new ConvexError("Workspace not found");
+    }
+
+    const activeAddonRows = await ctx.db
+      .query("billingRecords")
+      .withIndex("by_workspace", (q) =>
+        q.eq("workspaceId", asId<"workspaces">(workspaceId)),
+      )
+      .collect();
+    const existingSeatAddon = activeAddonRows.find((row) => {
+      if (row.recordType !== "addon" || row.status !== "active") {
+        return false;
+      }
+      const payload = asRecord(row.payload);
+      return readString(payload.addonType) === "extra_users";
+    });
+    if (!existingSeatAddon) {
+      await ctx.db.insert("billingRecords", {
+        workspaceId: asId<"workspaces">(workspaceId),
+        recordType: "addon",
+        status: "active",
+        payload: {
+          addonType: "extra_users",
+          quantity: 1,
+          source: "seed_fixture",
+        },
+        createdAt: timestamp,
+        updatedAt: timestamp,
+        legacyTable: "seed_fixtures",
+        legacySourceId: `${args.memberClerkUserId}-extra-users`,
+      });
+    }
+
+    const memberUsers = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_user_id", (q) => q.eq("clerkUserId", args.memberClerkUserId))
+      .collect();
+    const memberUserId = memberUsers[0]
+      ? memberUsers[0]._id
+      : await ctx.db.insert("users", {
+          clerkUserId: args.memberClerkUserId,
+          primaryEmail: memberEmail,
+          firstName: args.firstName,
+          lastName: args.lastName,
+          displayName: displayName || undefined,
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        });
+
+    await ctx.db.patch(asId<"users">(memberUserId), {
+      primaryEmail: memberEmail,
+      firstName: args.firstName,
+      lastName: args.lastName,
+      displayName: displayName || undefined,
+      activeWorkspaceId: asId<"workspaces">(workspaceId),
+      updatedAt: timestamp,
+    });
+
+    const memberMemberships = await ctx.db
+      .query("workspaceMemberships")
+      .withIndex("by_user", (q) => q.eq("userId", asId<"users">(memberUserId)))
+      .collect();
+    const conflictingMembership = memberMemberships.find(
+      (membership) =>
+        membership.status === "active" &&
+        String(membership.workspaceId) !== workspaceId,
+    );
+    if (conflictingMembership) {
+      if (!args.forceTransferExistingWorkspace) {
+        throw new ConvexError("Member already belongs to another workspace");
+      }
+
+      const conflictingWorkspaceId = String(conflictingMembership.workspaceId);
+      await clearWorkspaceRowsByWorkspaceId(ctx, conflictingWorkspaceId);
+      await ctx.db.delete(conflictingMembership._id);
+      await ctx.db.delete(asId<"workspaces">(conflictingWorkspaceId));
+    }
+
+    const existingMembership = memberMemberships.find(
+      (membership) => String(membership.workspaceId) === workspaceId,
+    );
+    const membershipId = existingMembership
+      ? existingMembership._id
+      : await ctx.db.insert("workspaceMemberships", {
+          workspaceId: asId<"workspaces">(workspaceId),
+          userId: asId<"users">(memberUserId),
+          email: memberEmail,
+          role: args.role ?? "member",
+          status: "active",
+          joinedAt: timestamp,
+          createdAt: timestamp,
+          updatedAt: timestamp,
+          legacyTable: "seed_fixtures",
+          legacySourceId: `${args.memberClerkUserId}-membership`,
+        });
+
+    if (existingMembership) {
+      await ctx.db.patch(asId<"workspaceMemberships">(existingMembership._id), {
+        workspaceId: asId<"workspaces">(workspaceId),
+        userId: asId<"users">(memberUserId),
+        email: memberEmail,
+        role: args.role ?? "member",
+        status: "active",
+        joinedAt: existingMembership.joinedAt ?? timestamp,
+        updatedAt: timestamp,
+      });
+    }
+
+    return {
+      workspaceId,
+      memberUserId: String(memberUserId),
+      membershipId: String(existingMembership?._id ?? membershipId),
     };
   },
 });
