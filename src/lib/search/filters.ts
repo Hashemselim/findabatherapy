@@ -3,13 +3,27 @@ import type { SearchFilters, SearchOptions } from "@/lib/queries/search";
 /**
  * Parse search filters from URL search params
  */
+function getFirstSearchParam(
+  searchParams: URLSearchParams,
+  keys: string[],
+): string | null {
+  for (const key of keys) {
+    const value = searchParams.get(key);
+    if (value) {
+      return value;
+    }
+  }
+
+  return null;
+}
+
 export function parseFiltersFromParams(
   searchParams: URLSearchParams
 ): SearchFilters {
   const filters: SearchFilters = {};
 
   // Text query
-  const query = searchParams.get("q");
+  const query = getFirstSearchParam(searchParams, ["query", "q"]);
   if (query) filters.query = query;
 
   // Location
@@ -20,13 +34,13 @@ export function parseFiltersFromParams(
   if (city) filters.city = city;
 
   // Service types (comma-separated)
-  const serviceTypes = searchParams.get("services");
+  const serviceTypes = getFirstSearchParam(searchParams, ["serviceTypes", "services"]);
   if (serviceTypes) {
     filters.serviceTypes = serviceTypes.split(",").filter(Boolean);
   }
 
   // Insurances (comma-separated)
-  const insurances = searchParams.get("insurance");
+  const insurances = getFirstSearchParam(searchParams, ["insurances", "insurance"]);
   if (insurances) {
     filters.insurances = insurances.split(",").filter(Boolean);
   }
@@ -47,14 +61,14 @@ export function parseFiltersFromParams(
   }
 
   // Accepting clients
-  const accepting = searchParams.get("accepting");
+  const accepting = getFirstSearchParam(searchParams, ["acceptingClients", "accepting"]);
   if (accepting === "true") filters.acceptingClients = true;
   if (accepting === "false") filters.acceptingClients = false;
 
   // Proximity search
-  const lat = searchParams.get("lat");
-  const lng = searchParams.get("lng");
-  const radius = searchParams.get("radius");
+  const lat = getFirstSearchParam(searchParams, ["userLat", "lat"]);
+  const lng = getFirstSearchParam(searchParams, ["userLng", "lng"]);
+  const radius = getFirstSearchParam(searchParams, ["radiusMiles", "radius"]);
 
   if (lat && lng) {
     const parsedLat = parseFloat(lat);
@@ -92,7 +106,7 @@ export function parseOptionsFromParams(
   if (limit) options.limit = parseInt(limit, 10);
 
   // Sort
-  const sortBy = searchParams.get("sort");
+  const sortBy = getFirstSearchParam(searchParams, ["sortBy", "sort"]);
   if (sortBy === "name" || sortBy === "newest" || sortBy === "relevance" || sortBy === "distance") {
     options.sortBy = sortBy;
   }
@@ -109,16 +123,16 @@ export function filtersToSearchParams(
 ): URLSearchParams {
   const params = new URLSearchParams();
 
-  if (filters.query) params.set("q", filters.query);
+  if (filters.query) params.set("query", filters.query);
   if (filters.state) params.set("state", filters.state);
   if (filters.city) params.set("city", filters.city);
 
   if (filters.serviceTypes?.length) {
-    params.set("services", filters.serviceTypes.join(","));
+    params.set("serviceTypes", filters.serviceTypes.join(","));
   }
 
   if (filters.insurances?.length) {
-    params.set("insurance", filters.insurances.join(","));
+    params.set("insurances", filters.insurances.join(","));
   }
 
   if (filters.languages?.length) {
@@ -133,16 +147,16 @@ export function filtersToSearchParams(
   }
 
   if (filters.acceptingClients !== undefined) {
-    params.set("accepting", String(filters.acceptingClients));
+    params.set("acceptingClients", String(filters.acceptingClients));
   }
 
   // Proximity search
   if (filters.userLat !== undefined && filters.userLng !== undefined) {
-    params.set("lat", String(filters.userLat));
-    params.set("lng", String(filters.userLng));
+    params.set("userLat", String(filters.userLat));
+    params.set("userLng", String(filters.userLng));
   }
   if (filters.radiusMiles !== undefined) {
-    params.set("radius", String(filters.radiusMiles));
+    params.set("radiusMiles", String(filters.radiusMiles));
   }
 
   // Options
@@ -153,7 +167,7 @@ export function filtersToSearchParams(
     params.set("limit", String(options.limit));
   }
   if (options?.sortBy && options.sortBy !== "relevance") {
-    params.set("sort", options.sortBy);
+    params.set("sortBy", options.sortBy);
   }
 
   return params;

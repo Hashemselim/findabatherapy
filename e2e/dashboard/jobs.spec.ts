@@ -85,7 +85,11 @@ test.describe("Dashboard - Jobs Management", () => {
     }
 
     // Job list or empty state
-    const hasJobs = await page.locator('[data-testid="job-item"], .job-item').first().isVisible().catch(() => false);
+    const hasJobs = await page
+      .locator('[data-testid="job-item"], .job-item, tbody tr, a[href*="/dashboard/jobs/"]')
+      .first()
+      .isVisible()
+      .catch(() => false);
     const hasEmpty = await page.locator("text=/no job|create.*job|post.*job/i").first().isVisible().catch(() => false);
 
     expect(hasJobs || hasEmpty).toBeTruthy();
@@ -241,7 +245,9 @@ test.describe("Dashboard - Applications Management", () => {
   });
 
   test("DASH-013: Applications page loads", async ({ page }) => {
-    await page.goto("/dashboard/jobs/applications");
+    await page.goto("/dashboard/team/applicants", {
+      waitUntil: "domcontentloaded",
+    });
 
     const url = page.url();
     if (url.includes("/auth/")) {
@@ -253,7 +259,9 @@ test.describe("Dashboard - Applications Management", () => {
   });
 
   test("Applications page shows application list", async ({ page }) => {
-    await page.goto("/dashboard/jobs/applications");
+    await page.goto("/dashboard/team/applicants", {
+      waitUntil: "domcontentloaded",
+    });
 
     const url = page.url();
     if (url.includes("/auth/")) {
@@ -261,15 +269,28 @@ test.describe("Dashboard - Applications Management", () => {
       return;
     }
 
-    // Application list or empty state
-    const hasApps = await page.locator('[data-testid="application-item"], .application-item').first().isVisible().catch(() => false);
-    const hasEmpty = await page.locator("text=/no application|no.*received/i").first().isVisible().catch(() => false);
+    await expect(
+      page.getByRole("heading", { name: "Applicants", exact: true }),
+    ).toBeVisible({ timeout: 15000 });
 
-    expect(hasApps || hasEmpty).toBeTruthy();
+    const applicationRow = page
+      .getByRole("main")
+      .locator('a[href*="/dashboard/team/applicants/"]')
+      .first();
+    const emptyState = page
+      .getByRole("main")
+      .getByText(/no applications|no applicants|no.*received|go live/i)
+      .first();
+
+    await expect(applicationRow.or(emptyState).first()).toBeVisible({
+      timeout: 15000,
+    });
   });
 
   test("DASH-014: Application status can be changed", async ({ page }) => {
-    await page.goto("/dashboard/jobs/applications");
+    await page.goto("/dashboard/team/applicants", {
+      waitUntil: "domcontentloaded",
+    });
 
     const url = page.url();
     if (url.includes("/auth/")) {
@@ -289,7 +310,9 @@ test.describe("Dashboard - Applications Management", () => {
   });
 
   test("DASH-015: Application has resume download", async ({ page }) => {
-    await page.goto("/dashboard/jobs/applications");
+    await page.goto("/dashboard/team/applicants", {
+      waitUntil: "domcontentloaded",
+    });
 
     const url = page.url();
     if (url.includes("/auth/")) {
@@ -308,7 +331,9 @@ test.describe("Dashboard - Applications Management", () => {
   });
 
   test("Application detail page loads", async ({ page }) => {
-    await page.goto("/dashboard/jobs/applications");
+    await page.goto("/dashboard/team/applicants", {
+      waitUntil: "domcontentloaded",
+    });
 
     const url = page.url();
     if (url.includes("/auth/")) {
@@ -328,7 +353,9 @@ test.describe("Dashboard - Applications Management", () => {
   });
 
   test("Application detail has notes field", async ({ page }) => {
-    await page.goto("/dashboard/jobs/applications");
+    await page.goto("/dashboard/team/applicants", {
+      waitUntil: "domcontentloaded",
+    });
 
     const url = page.url();
     if (url.includes("/auth/")) {
@@ -349,7 +376,9 @@ test.describe("Dashboard - Applications Management", () => {
   });
 
   test("Application detail has rating selector", async ({ page }) => {
-    await page.goto("/dashboard/jobs/applications");
+    await page.goto("/dashboard/team/applicants", {
+      waitUntil: "domcontentloaded",
+    });
 
     const url = page.url();
     if (url.includes("/auth/")) {

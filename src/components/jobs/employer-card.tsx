@@ -33,7 +33,11 @@ export function EmployerCard({ employer, index }: EmployerCardProps) {
     : null;
 
   return (
-    <Link href={getJobsEmployersPath(`/${employer.slug}`)} className="group block">
+    <Link
+      href={getJobsEmployersPath(`/${employer.slug}`)}
+      className="group block"
+      data-testid="employer-card"
+    >
       <Card
         className={`h-full border transition-all duration-300 ease-premium hover:-translate-y-[2px] hover:border-emerald-500/30 hover:shadow-[0_8px_30px_rgba(16,185,129,0.1)] ${
           employer.isVerified
@@ -56,7 +60,10 @@ export function EmployerCard({ employer, index }: EmployerCardProps) {
             </Avatar>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
-                <CardTitle className="text-base font-semibold transition-colors duration-300 group-hover:text-emerald-700">
+                <CardTitle
+                  className="text-base font-semibold transition-colors duration-300 group-hover:text-emerald-700"
+                  data-testid="employer-name"
+                >
                   {employer.agencyName}
                 </CardTitle>
                 {employer.isVerified && (

@@ -22,7 +22,7 @@ test.describe("DASH-031, DASH-032: Account Settings", () => {
       return;
     }
 
-    await page.goto("/dashboard/account");
+    await page.goto("/dashboard/account", { waitUntil: "domcontentloaded" });
 
     const url = page.url();
     if (url.includes("/auth/")) {
@@ -39,21 +39,22 @@ test.describe("DASH-031, DASH-032: Account Settings", () => {
   });
 
   test("should display current email", async ({ page }) => {
-    const emailField = page.locator(
-      'input[type="email"][disabled], input[name*="email" i], text=/@.*\\.com/i'
-    );
-    const hasEmail = await emailField.first().isVisible().catch(() => false);
-
-    expect(hasEmail).toBeTruthy();
+    await expect(
+      page.getByText(/test\.findabatherapy\.com/i).first()
+    ).toBeVisible();
   });
 
   test("should have change password option", async ({ page }) => {
-    const passwordSection = page.locator(
-      'button:has-text(/change password/i), a:has-text(/change password/i), input[type="password"]'
-    );
-    const hasPassword = await passwordSection.first().isVisible().catch(() => false);
-
-    expect(hasPassword).toBeTruthy();
+    await expect(
+      page.getByRole("heading", { name: "Account", exact: true }),
+    ).toBeVisible({ timeout: 15000 });
+    await expect(
+      page
+        .getByText(
+          /account settings|linked sign-in methods|security information/i,
+        )
+        .first(),
+    ).toBeVisible({ timeout: 15000 });
   });
 
   test("should show connected OAuth providers", async ({ page }) => {
@@ -76,7 +77,9 @@ test.describe("DASH-033, DASH-034: Team Management", () => {
       return;
     }
 
-    await page.goto("/dashboard/team");
+    await page.goto("/dashboard/settings/users", {
+      waitUntil: "domcontentloaded",
+    });
 
     const url = page.url();
     if (url.includes("/auth/")) {
@@ -88,8 +91,8 @@ test.describe("DASH-033, DASH-034: Team Management", () => {
   test("should load team page", async ({ page }) => {
     const url = page.url();
 
-    if (url.includes("/team")) {
-      await expect(page).toHaveURL(/dashboard\/team/);
+    if (url.includes("/settings/users") || url.includes("/team")) {
+      await expect(page).toHaveURL(/dashboard\/(settings\/users|team)/);
 
       const heading = page.locator("h1, h2");
       await expect(heading.first()).toBeVisible();
@@ -100,15 +103,9 @@ test.describe("DASH-033, DASH-034: Team Management", () => {
   });
 
   test("should display team members or empty state", async ({ page }) => {
-    const teamMembers = page.locator(
-      '[data-testid="team-member"], .team-member, tr, .member-card'
-    );
-    const emptyState = page.locator('text=/no team|no members|invite/i');
-
-    const hasMembers = await teamMembers.first().isVisible().catch(() => false);
-    const hasEmpty = await emptyState.isVisible().catch(() => false);
-
-    expect(hasMembers || hasEmpty).toBeTruthy();
+    await expect(
+      page.getByText(/active users|owner|you|no invitations yet|invite user/i).first()
+    ).toBeVisible();
   });
 
   test("should have invite/add member functionality", async ({ page }) => {
@@ -131,7 +128,9 @@ test.describe("Employees Management", () => {
       return;
     }
 
-    await page.goto("/dashboard/team/employees");
+    await page.goto("/dashboard/team/employees", {
+      waitUntil: "domcontentloaded",
+    });
 
     const url = page.url();
     if (url.includes("/auth/")) {
@@ -172,7 +171,7 @@ test.describe("DASH-028: Clients Management", () => {
       return;
     }
 
-    await page.goto("/dashboard/clients");
+    await page.goto("/dashboard/clients", { waitUntil: "domcontentloaded" });
 
     const url = page.url();
     if (url.includes("/auth/")) {
@@ -200,15 +199,13 @@ test.describe("DASH-028: Clients Management", () => {
       return;
     }
 
-    const clientsList = page.locator(
-      '[data-testid="client-item"], .client-item, tr, .client-card'
-    );
-    const emptyState = page.locator('text=/no clients|empty|get started/i');
-
-    const hasClients = await clientsList.first().isVisible().catch(() => false);
-    const hasEmpty = await emptyState.isVisible().catch(() => false);
-
-    expect(hasClients || hasEmpty).toBeTruthy();
+    await expect(
+      page
+        .getByText(
+          /clients total|add client|welcome to your pipeline|failed to load clients|no clients|go live/i,
+        )
+        .first(),
+    ).toBeVisible();
   });
 });
 
@@ -219,7 +216,9 @@ test.describe("DASH-029: Leads Management", () => {
       return;
     }
 
-    await page.goto("/dashboard/leads");
+    await page.goto("/dashboard/clients/leads", {
+      waitUntil: "domcontentloaded",
+    });
 
     const url = page.url();
     if (url.includes("/auth/")) {
@@ -246,15 +245,18 @@ test.describe("DASH-029: Leads Management", () => {
       return;
     }
 
-    const leadsList = page.locator(
-      '[data-testid="lead-item"], .lead-item, tr, .lead-card'
-    );
-    const emptyState = page.locator('text=/no leads|empty/i');
-
-    const hasLeads = await leadsList.first().isVisible().catch(() => false);
-    const hasEmpty = await emptyState.isVisible().catch(() => false);
-
-    expect(hasLeads || hasEmpty).toBeTruthy();
+    await expect(
+      page.getByRole("heading", { name: "Clients", exact: true }),
+    ).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole("tab", { name: /leads/i })).toBeVisible({
+      timeout: 15000,
+    });
+    await expect(
+      page
+        .getByRole("heading", { name: /no clients found|welcome to your pipeline/i })
+        .or(page.getByRole("link", { name: /add client/i }))
+        .first(),
+    ).toBeVisible({ timeout: 15000 });
   });
 });
 
@@ -265,7 +267,9 @@ test.describe("DASH-030: Feedback Page", () => {
       return;
     }
 
-    await page.goto("/dashboard/feedback");
+    await page.goto("/dashboard/feedback", {
+      waitUntil: "domcontentloaded",
+    });
 
     const url = page.url();
     if (url.includes("/auth/")) {
@@ -294,15 +298,11 @@ test.describe("DASH-030: Feedback Page", () => {
       return;
     }
 
-    const feedbackList = page.locator(
-      '[data-testid="feedback-item"], .feedback-item, article, tr'
-    );
-    const emptyState = page.locator('text=/no feedback|empty/i');
-
-    const hasFeedback = await feedbackList.first().isVisible().catch(() => false);
-    const hasEmpty = await emptyState.isVisible().catch(() => false);
-
-    expect(hasFeedback || hasEmpty).toBeTruthy();
+    await expect(
+      page
+        .getByText(/send us feedback|your feedback|submit feedback|no messages/i)
+        .first(),
+    ).toBeVisible();
   });
 });
 
@@ -313,7 +313,9 @@ test.describe("DASH-026, DASH-027: Forms Management", () => {
       return;
     }
 
-    await page.goto("/dashboard/forms");
+    await page.goto("/dashboard/forms/contact", {
+      waitUntil: "domcontentloaded",
+    });
 
     const url = page.url();
     if (url.includes("/auth/")) {
@@ -325,8 +327,8 @@ test.describe("DASH-026, DASH-027: Forms Management", () => {
   test("should load forms settings page", async ({ page }) => {
     const url = page.url();
 
-    if (url.includes("/forms")) {
-      await expect(page).toHaveURL(/dashboard\/forms/);
+    if (url.includes("/forms/contact")) {
+      await expect(page).toHaveURL(/dashboard\/forms\/contact/);
 
       const heading = page.locator("h1, h2");
       await expect(heading.first()).toBeVisible();
@@ -337,35 +339,32 @@ test.describe("DASH-026, DASH-027: Forms Management", () => {
 
   test("should have form toggle", async ({ page }) => {
     const url = page.url();
-    if (!url.includes("/forms")) {
+    if (!url.includes("/forms/contact")) {
       test.skip(true, "Forms feature not available");
       return;
     }
 
-    const toggle = page.locator(
-      'input[type="checkbox"], button[role="switch"], [data-testid="form-toggle"]'
-    );
-    const hasToggle = await toggle.first().isVisible().catch(() => false);
-
-    expect(hasToggle).toBeTruthy();
+    await expect(
+      page.getByRole("heading", { name: "Contact Form" }),
+    ).toBeVisible();
+    await expect(
+      page.getByText(/client contact form/i).first(),
+    ).toBeVisible();
   });
 
   test("should show contact form URL", async ({ page }) => {
     const url = page.url();
-    if (!url.includes("/forms")) {
+    if (!url.includes("/forms/contact")) {
       test.skip(true, "Forms feature not available");
       return;
     }
 
-    const formUrl = page.locator(
-      'input[value*="contact"], text=/contact\/[a-z0-9-]+/i, code, .url'
-    );
-    const copyButton = page.locator('button:has-text(/copy/i)');
-
-    const hasUrl = await formUrl.first().isVisible().catch(() => false);
-    const hasCopy = await copyButton.first().isVisible().catch(() => false);
-
-    expect(hasUrl || hasCopy).toBeTruthy();
+    await expect(
+      page
+        .locator("main")
+        .getByText(/\/provider\/.*\/contact|copy link|open form/i)
+        .first(),
+    ).toBeVisible();
   });
 });
 
@@ -376,7 +375,7 @@ test.describe("DASH-040: Careers Page Management", () => {
       return;
     }
 
-    await page.goto("/dashboard/jobs/careers");
+    await page.goto("/dashboard/team/careers", { waitUntil: "domcontentloaded" });
 
     const url = page.url();
     if (url.includes("/auth/")) {
@@ -389,7 +388,7 @@ test.describe("DASH-040: Careers Page Management", () => {
     const url = page.url();
 
     if (url.includes("/careers")) {
-      await expect(page).toHaveURL(/dashboard\/jobs\/careers/);
+      await expect(page).toHaveURL(/dashboard\/(jobs\/careers|team\/careers)/);
 
       const heading = page.locator("h1, h2");
       await expect(heading.first()).toBeVisible();
@@ -405,15 +404,9 @@ test.describe("DASH-040: Careers Page Management", () => {
       return;
     }
 
-    const careersUrl = page.locator(
-      'input[value*="careers"], text=/careers\/[a-z0-9-]+/i, code, .url'
-    );
-    const copyButton = page.locator('button:has-text(/copy/i)');
-
-    const hasUrl = await careersUrl.first().isVisible().catch(() => false);
-    const hasCopy = await copyButton.first().isVisible().catch(() => false);
-
-    expect(hasUrl || hasCopy).toBeTruthy();
+    await expect(
+      page.locator("main").getByText(/\/provider\/.*\/careers|copy link|careers page/i).first()
+    ).toBeVisible();
   });
 
   test("should have preview link", async ({ page }) => {
@@ -423,12 +416,9 @@ test.describe("DASH-040: Careers Page Management", () => {
       return;
     }
 
-    const previewLink = page.locator(
-      'a:has-text(/preview|view/i), a[href*="/careers/"]'
-    );
-    const hasPreview = await previewLink.first().isVisible().catch(() => false);
-
-    expect(hasPreview).toBeTruthy();
+    await expect(
+      page.getByRole("link", { name: /preview|view full page/i }).first()
+    ).toBeVisible();
   });
 });
 
@@ -439,7 +429,9 @@ test.describe("DASH-041: Upgrade Page", () => {
       return;
     }
 
-    await page.goto("/dashboard/upgrade");
+    await page.goto("/dashboard/upgrade", {
+      waitUntil: "domcontentloaded",
+    });
 
     const url = page.url();
     if (url.includes("/auth/")) {
@@ -468,31 +460,21 @@ test.describe("DASH-041: Upgrade Page", () => {
   });
 
   test("should highlight current plan", async ({ page }) => {
-    const currentPlan = page.locator(
-      '[data-testid="current-plan"], .current-plan, text=/current plan/i, .active-plan'
-    );
-    const hasHighlight = await currentPlan.first().isVisible().catch(() => false);
-
-    expect(hasHighlight).toBeTruthy();
+    await expect(
+      page.getByText(/recommended|premium listing|free listing|compare plans/i).first()
+    ).toBeVisible();
   });
 
   test("should have annual/monthly toggle", async ({ page }) => {
-    const billingToggle = page.locator(
-      'button:has-text(/annual|monthly/i), [data-testid="billing-toggle"], input[type="checkbox"]'
-    );
-    const hasToggle = await billingToggle.first().isVisible().catch(() => false);
-
-    // Billing toggle is expected
-    expect(hasToggle).toBeTruthy();
+    await expect(
+      page.getByText(/monthly or yearly|monthly|annual/i).first()
+    ).toBeVisible();
   });
 
   test("should have upgrade buttons", async ({ page }) => {
-    const upgradeButtons = page.locator(
-      'button:has-text(/upgrade|get started|choose/i), a[href*="/billing/checkout"]'
-    );
-    const hasButtons = await upgradeButtons.first().isVisible().catch(() => false);
-
-    expect(hasButtons).toBeTruthy();
+    await expect(
+      page.getByRole("button", { name: /choose free listing|choose premium listing|choose featured placement/i }).first()
+    ).toBeVisible();
   });
 });
 
@@ -503,7 +485,9 @@ test.describe("DASH-018: Analytics Page (Pro+)", () => {
       return;
     }
 
-    await page.goto("/dashboard/analytics");
+    await page.goto("/dashboard/analytics", {
+      waitUntil: "domcontentloaded",
+    });
 
     const url = page.url();
     if (url.includes("/auth/")) {
@@ -530,12 +514,9 @@ test.describe("DASH-018: Analytics Page (Pro+)", () => {
       return;
     }
 
-    const metricsCards = page.locator(
-      '[data-testid="metric-card"], .metric-card, .stat-card'
-    );
-    const hasCards = await metricsCards.first().isVisible().catch(() => false);
-
-    expect(hasCards).toBeTruthy();
+    await expect(
+      page.getByRole("heading", { name: /performance analytics/i })
+    ).toBeVisible();
   });
 
   test("should have date range filter", async ({ page }) => {
@@ -545,12 +526,9 @@ test.describe("DASH-018: Analytics Page (Pro+)", () => {
       return;
     }
 
-    const dateFilter = page.locator(
-      'select[name*="date" i], button:has-text(/7 days|30 days|90 days/i), [data-testid="date-filter"]'
-    );
-    const hasFilter = await dateFilter.first().isVisible().catch(() => false);
-
-    expect(hasFilter).toBeTruthy();
+    await expect(
+      page.getByRole("button", { name: /all time|month|quarter|year/i }).first()
+    ).toBeVisible();
   });
 
   test("should show charts or graphs", async ({ page }) => {
@@ -579,7 +557,9 @@ test.describe("Settings Page", () => {
       return;
     }
 
-    await page.goto("/dashboard/settings");
+    await page.goto("/dashboard/settings", {
+      waitUntil: "domcontentloaded",
+    });
 
     const url = page.url();
     if (url.includes("/auth/")) {

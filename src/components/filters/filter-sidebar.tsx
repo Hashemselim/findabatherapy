@@ -71,11 +71,9 @@ export function FilterSidebar({
   activeFilterCount = 0,
   onApply,
   onClear,
-  onAutoApply,
   title = "Filters",
   description = "Narrow down your search results",
   className,
-  disableAutoApply = false,
 }: FilterSidebarProps) {
   const [isOpen, setIsOpen] = useState(false);
   const colors = accentColors[accentColor];

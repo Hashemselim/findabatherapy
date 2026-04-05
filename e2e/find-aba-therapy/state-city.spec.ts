@@ -1,13 +1,17 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 
 /**
  * Find ABA Therapy - State & City Page Tests (FAT-006, FAT-007)
  *
  * Tests state-based and city-based provider browsing.
  */
+async function gotoPage(page: Page, path: string) {
+  await page.goto(path, { waitUntil: "domcontentloaded" });
+}
+
 test.describe("Find ABA Therapy - State Pages", () => {
   test("FAT-006: State page loads with providers", async ({ page }) => {
-    await page.goto("/california");
+    await gotoPage(page, "/california");
 
     // State header with name
     await expect(page.locator("text=/california/i").first()).toBeVisible();
@@ -23,7 +27,7 @@ test.describe("Find ABA Therapy - State Pages", () => {
   });
 
   test("State page has city browse section", async ({ page }) => {
-    await page.goto("/california");
+    await gotoPage(page, "/california");
 
     // Look for city links
     const cityLinks = page.locator("text=/los angeles|san francisco|san diego/i");
@@ -32,7 +36,7 @@ test.describe("Find ABA Therapy - State Pages", () => {
   });
 
   test("State page has insurance filter badges", async ({ page }) => {
-    await page.goto("/california");
+    await gotoPage(page, "/california");
 
     // Insurance badges for quick filtering
     await expect(
@@ -41,7 +45,7 @@ test.describe("Find ABA Therapy - State Pages", () => {
   });
 
   test("State page shows provider results", async ({ page }) => {
-    await page.goto("/california");
+    await gotoPage(page, "/california");
 
     // Should show provider listings or no results message
     const hasProviders = await page.locator('[data-testid="provider-card"], article, .provider-card').first().isVisible().catch(() => false);
@@ -51,7 +55,7 @@ test.describe("Find ABA Therapy - State Pages", () => {
   });
 
   test("State page has 'View all providers' button if more than 50", async ({ page }) => {
-    await page.goto("/california");
+    await gotoPage(page, "/california");
 
     // Look for "View all" button
     const viewAllButton = page.locator("text=/view all|see all|more providers/i").first();
@@ -60,7 +64,7 @@ test.describe("Find ABA Therapy - State Pages", () => {
   });
 
   test("State page has FAQs", async ({ page }) => {
-    await page.goto("/california");
+    await gotoPage(page, "/california");
 
     // Scroll down to find FAQ section
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight / 2));
@@ -72,19 +76,22 @@ test.describe("Find ABA Therapy - State Pages", () => {
   });
 
   test("City links from state page navigate correctly", async ({ page }) => {
-    await page.goto("/california");
+    await gotoPage(page, "/california");
 
     // Find a city link
     const losAngelesLink = page.getByRole("link", { name: /los angeles/i }).first();
 
     if (await losAngelesLink.isVisible()) {
-      await losAngelesLink.click();
+      await Promise.all([
+        page.waitForURL(/\/california\/los-angeles/, { timeout: 15000 }),
+        losAngelesLink.click(),
+      ]);
       await expect(page).toHaveURL(/\/california\/los-angeles/);
     }
   });
 
   test("Breadcrumb navigation works on state page", async ({ page }) => {
-    await page.goto("/california");
+    await gotoPage(page, "/california");
 
     // Look for breadcrumb
     const breadcrumb = page.locator('[aria-label="breadcrumb"], nav:has-text("Home")').first();
@@ -98,7 +105,7 @@ test.describe("Find ABA Therapy - State Pages", () => {
 
 test.describe("Find ABA Therapy - City Pages", () => {
   test("FAT-007: City page loads with providers", async ({ page }) => {
-    await page.goto("/california/los-angeles");
+    await gotoPage(page, "/california/los-angeles");
 
     // City header
     await expect(page.locator("text=/los angeles/i").first()).toBeVisible();
@@ -110,7 +117,7 @@ test.describe("Find ABA Therapy - City Pages", () => {
   });
 
   test("City page shows proximity-sorted results", async ({ page }) => {
-    await page.goto("/california/los-angeles");
+    await gotoPage(page, "/california/los-angeles");
 
     // Results should show distance or proximity indicator
     const distanceIndicator = page.locator("text=/miles|mi|nearby/i").first();
@@ -119,7 +126,7 @@ test.describe("Find ABA Therapy - City Pages", () => {
   });
 
   test("City page has insurance filter badges", async ({ page }) => {
-    await page.goto("/california/los-angeles");
+    await gotoPage(page, "/california/los-angeles");
 
     await expect(
       page.locator("text=/aetna|cigna|medicaid|insurance/i").first()
@@ -127,7 +134,7 @@ test.describe("Find ABA Therapy - City Pages", () => {
   });
 
   test("City page has nearby cities section", async ({ page }) => {
-    await page.goto("/california/los-angeles");
+    await gotoPage(page, "/california/los-angeles");
 
     // Scroll to find nearby cities
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight / 2));
@@ -139,7 +146,7 @@ test.describe("Find ABA Therapy - City Pages", () => {
   });
 
   test("City page has local content section", async ({ page }) => {
-    await page.goto("/california/los-angeles");
+    await gotoPage(page, "/california/los-angeles");
 
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight / 2));
 
@@ -150,7 +157,7 @@ test.describe("Find ABA Therapy - City Pages", () => {
   });
 
   test("City page has geo meta tags", async ({ page }) => {
-    await page.goto("/california/los-angeles");
+    await gotoPage(page, "/california/los-angeles");
 
     // Check for geo meta tags
     const geoRegion = page.locator('meta[name="geo.region"]');
@@ -168,7 +175,7 @@ test.describe("Find ABA Therapy - Multiple States", () => {
 
   for (const state of states) {
     test(`${state.name} state page loads`, async ({ page }) => {
-      await page.goto(`/${state.slug}`);
+      await gotoPage(page, `/${state.slug}`);
 
       // State header should be visible
       await expect(page.locator(`text=/${state.name}/i`).first()).toBeVisible();

@@ -4,12 +4,7 @@ import { randomBytes } from "crypto";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 
-import {
-  createAdminClient,
-  createClient as createSupabaseClient,
-  getCurrentProfileId,
-  getUser,
-} from "@/lib/supabase/server";
+import { isConvexDataEnabled } from "@/lib/platform/config";
 import { guardCommunications } from "@/lib/plans/guards";
 import type { AgencyBrandingData } from "@/lib/email/email-helpers";
 import { getFromEmail, getRequestOrigin } from "@/lib/utils/domains";
@@ -36,6 +31,7 @@ import {
   MANUAL_MERGE_FIELD_KEYS,
   MERGE_FIELD_MAP,
 } from "@/lib/communications/merge-fields";
+import { createAgreementLink } from "@/lib/actions/agreements";
 
 type ActionResult<T = void> =
   | { success: true; data?: T }
@@ -189,14 +185,13 @@ async function normalizeEmailBodyCtas(html: string): Promise<string> {
 }
 
 async function getProfileListingContext(
-  supabase:
-    | Awaited<ReturnType<typeof createSupabaseClient>>
-    | Awaited<ReturnType<typeof createAdminClient>>,
+  supabase: Awaited<ReturnType<Awaited<typeof import("@/lib/supabase/server")>["createClient"]>>,
   profileId: string
 ): Promise<ProfileListingContext | null> {
+  const sb = supabase;
   const selectClause = "id, slug, logo_url, status, updated_at";
 
-  const { data: publishedListings } = await supabase
+  const { data: publishedListings } = await sb
     .from("listings")
     .select(selectClause)
     .eq("profile_id", profileId)
@@ -207,7 +202,7 @@ async function getProfileListingContext(
   const listingRow =
     publishedListings?.[0] ||
     (
-      await supabase
+      await sb
         .from("listings")
         .select(selectClause)
         .eq("profile_id", profileId)
@@ -219,7 +214,7 @@ async function getProfileListingContext(
     return null;
   }
 
-  const { data: primaryLocation } = await supabase
+  const { data: primaryLocation } = await sb
     .from("locations")
     .select("phone, is_primary")
     .eq("listing_id", listingRow.id)
@@ -255,7 +250,7 @@ function slugifyTemplateName(value: string) {
 }
 
 async function ensureTemplateSlug(
-  supabase: Awaited<ReturnType<typeof createSupabaseClient>>,
+  supabase: Awaited<ReturnType<Awaited<typeof import("@/lib/supabase/server")>["createClient"]>>,
   profileId: string,
   name: string,
   excludeId?: string
@@ -373,6 +368,7 @@ async function listResolvedTemplates(
   profileId: string,
   filters?: TemplateListFilters
 ): Promise<ActionResult<CommunicationTemplate[]>> {
+  const { createClient: createSupabaseClient } = await import("@/lib/supabase/server");
   const supabase = await createSupabaseClient();
   const { data, error } = await supabase
     .from("communication_templates")
@@ -419,6 +415,7 @@ async function getBaseOrWorkspaceRowByResolvedTemplate(
   profileId: string,
   template: CommunicationTemplate
 ): Promise<ActionResult<CommunicationTemplateRow>> {
+  const { createClient: createSupabaseClient } = await import("@/lib/supabase/server");
   const supabase = await createSupabaseClient();
 
   if (template.profile_id === profileId) {
@@ -467,8 +464,8 @@ function buildTemplatePayload(input: SaveCommunicationTemplateInput) {
 
 async function getLatestAgreementPacketVersion(
   supabase:
-    | Awaited<ReturnType<typeof createSupabaseClient>>
-    | Awaited<ReturnType<typeof createAdminClient>>,
+    | Awaited<ReturnType<Awaited<typeof import("@/lib/supabase/server")>["createClient"]>>
+    | Awaited<ReturnType<Awaited<typeof import("@/lib/supabase/server")>["createAdminClient"]>>,
   packetId: string
 ) {
   const { data: version } = await supabase
@@ -484,8 +481,8 @@ async function getLatestAgreementPacketVersion(
 
 async function getDefaultAgreementPacketSelection(
   supabase:
-    | Awaited<ReturnType<typeof createSupabaseClient>>
-    | Awaited<ReturnType<typeof createAdminClient>>,
+    | Awaited<ReturnType<Awaited<typeof import("@/lib/supabase/server")>["createClient"]>>
+    | Awaited<ReturnType<Awaited<typeof import("@/lib/supabase/server")>["createAdminClient"]>>,
   profileId: string
 ): Promise<AgreementPacketSelection | null> {
   const { data: packets } = await supabase
@@ -514,8 +511,8 @@ async function getDefaultAgreementPacketSelection(
 
 async function getAgreementLinkContext(
   supabase:
-    | Awaited<ReturnType<typeof createSupabaseClient>>
-    | Awaited<ReturnType<typeof createAdminClient>>,
+    | Awaited<ReturnType<Awaited<typeof import("@/lib/supabase/server")>["createClient"]>>
+    | Awaited<ReturnType<Awaited<typeof import("@/lib/supabase/server")>["createAdminClient"]>>,
   profileId: string
 ): Promise<{ listingSlug: string; packet: AgreementPacketSelection } | null> {
   const listing = await getProfileListingContext(supabase, profileId);
@@ -536,6 +533,7 @@ async function getAgreementLinkContext(
 
 async function resolveAgreementRoute(profileId: string): Promise<string> {
   try {
+    const { createClient: createSupabaseClient } = await import("@/lib/supabase/server");
     const supabase = await createSupabaseClient();
     const context = await getAgreementLinkContext(supabase, profileId);
     if (!context) {
@@ -556,6 +554,7 @@ async function createAssignedAgreementLink(params: {
   userId: string;
 }): Promise<ActionResult<string>> {
   try {
+    const { createAdminClient } = await import("@/lib/supabase/server");
     const adminSupabase = await createAdminClient();
     const context = await getAgreementLinkContext(adminSupabase, params.profileId);
     if (!context) {
@@ -608,6 +607,7 @@ async function resolveFieldValues(
   clientId: string,
   profileId: string
 ): Promise<ActionResult<Record<string, string>>> {
+  const { createClient: createSupabaseClient } = await import("@/lib/supabase/server");
   const supabase = await createSupabaseClient();
 
   const { data: client, error: clientError } = await supabase
@@ -763,6 +763,7 @@ async function resolveFieldValues(
 async function resolveAgencyPreviewFieldValues(
   profileId: string
 ): Promise<ActionResult<Record<string, string>>> {
+  const { createClient: createSupabaseClient } = await import("@/lib/supabase/server");
   const supabase = await createSupabaseClient();
 
   const { data: profile } = await supabase
@@ -836,9 +837,87 @@ async function resolveSendFieldValues(params: {
   return { success: true, data: values };
 }
 
+async function resolveConvexSendFieldValues(params: {
+  clientId: string;
+  subject: string;
+  body: string;
+  cc?: string[];
+}): Promise<ActionResult<Record<string, string>>> {
+  try {
+    const { queryConvex } = await import("@/lib/platform/convex/server");
+    const values = await queryConvex<Record<string, string>>(
+      "communications:getClientSendFieldValues",
+      {
+        clientId: params.clientId,
+        subject: params.subject,
+        body: params.body,
+        cc: params.cc ?? [],
+      },
+    );
+
+    const fields = extractMergeFieldsFromTemplate({
+      subject: params.subject,
+      body: params.body,
+      cc: params.cc,
+    });
+
+    if (fields.includes("intake_link")) {
+      const intakeResult = await createIntakeToken(params.clientId);
+      if (intakeResult.success && intakeResult.data?.url) {
+        values.intake_link = intakeResult.data.url;
+      }
+    }
+
+    if (fields.includes("agreement_link")) {
+      const packets = await queryConvex<
+        Array<{ id: string; status: string; slug: string | null }>
+      >("agreements:getAgreementPackets", { status: "published" });
+      const packet = packets[0] ?? null;
+      if (!packet) {
+        values.agreement_link = "";
+      } else {
+        const agreementResult = await createAgreementLink({
+          packet_id: packet.id,
+          client_id: params.clientId,
+        });
+        values.agreement_link = agreementResult.success
+          ? agreementResult.data?.url ?? ""
+          : "";
+      }
+    }
+
+    return { success: true, data: values };
+  } catch (err) {
+    console.error("[COMMUNICATIONS] Convex error (resolveConvexSendFieldValues):", err);
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Failed to resolve field values",
+    };
+  }
+}
+
+// =============================================================================
+// EXPORTED FUNCTIONS
+// =============================================================================
+
 export async function getCommunicationTemplates(
   filters?: TemplateListFilters
 ): Promise<ActionResult<CommunicationTemplate[]>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvex } = await import("@/lib/platform/convex/server");
+      const result = await queryConvex<CommunicationTemplate[]>(
+        "communications:getTemplates",
+        { filters: filters ?? {} },
+      );
+      return { success: true, data: result };
+    } catch (err) {
+      console.error("[COMMUNICATIONS] Convex error (getCommunicationTemplates):", err);
+      return { success: false, error: err instanceof Error ? err.message : "Failed to load templates" };
+    }
+  }
+
+  const { getUser, getCurrentProfileId } = await import("@/lib/supabase/server");
   const user = await getUser();
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {
@@ -855,6 +934,21 @@ export async function getTemplates(): Promise<ActionResult<CommunicationTemplate
 export async function getTemplate(
   slug: string
 ): Promise<ActionResult<CommunicationTemplate>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvex } = await import("@/lib/platform/convex/server");
+      const result = await queryConvex<CommunicationTemplate>(
+        "communications:getTemplate",
+        { slug },
+      );
+      return { success: true, data: result };
+    } catch (err) {
+      console.error("[COMMUNICATIONS] Convex error (getTemplate):", err);
+      return { success: false, error: err instanceof Error ? err.message : "Template not found" };
+    }
+  }
+
+  const { getUser, getCurrentProfileId } = await import("@/lib/supabase/server");
   const user = await getUser();
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {
@@ -880,6 +974,29 @@ export async function getTemplate(
 export async function saveCommunicationTemplate(
   input: SaveCommunicationTemplateInput
 ): Promise<ActionResult<{ id: string }>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { mutateConvex } = await import("@/lib/platform/convex/server");
+      const result = await mutateConvex<{ id: string }>(
+        "communications:saveTemplate",
+        {
+          templateId: input.templateId ?? null,
+          name: input.name,
+          lifecycleStage: input.lifecycleStage,
+          subject: input.subject,
+          body: input.body,
+          cc: input.cc ?? [],
+        },
+      );
+      revalidatePath("/dashboard/clients/communications");
+      return { success: true, data: result };
+    } catch (err) {
+      console.error("[COMMUNICATIONS] Convex error (saveCommunicationTemplate):", err);
+      return { success: false, error: err instanceof Error ? err.message : "Failed to save template" };
+    }
+  }
+
+  const { getUser, getCurrentProfileId, createClient: createSupabaseClient } = await import("@/lib/supabase/server");
   const user = await getUser();
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {
@@ -989,6 +1106,19 @@ export async function saveCommunicationTemplate(
 export async function archiveCommunicationTemplate(
   templateId: string
 ): Promise<ActionResult> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { mutateConvex } = await import("@/lib/platform/convex/server");
+      await mutateConvex("communications:archiveTemplate", { templateId });
+      revalidatePath("/dashboard/clients/communications");
+      return { success: true };
+    } catch (err) {
+      console.error("[COMMUNICATIONS] Convex error (archiveCommunicationTemplate):", err);
+      return { success: false, error: err instanceof Error ? err.message : "Failed to archive template" };
+    }
+  }
+
+  const { getUser, getCurrentProfileId, createClient: createSupabaseClient } = await import("@/lib/supabase/server");
   const user = await getUser();
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {
@@ -1069,6 +1199,19 @@ export async function archiveCommunicationTemplate(
 export async function unarchiveCommunicationTemplate(
   templateId: string
 ): Promise<ActionResult> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { mutateConvex } = await import("@/lib/platform/convex/server");
+      await mutateConvex("communications:unarchiveTemplate", { templateId });
+      revalidatePath("/dashboard/clients/communications");
+      return { success: true };
+    } catch (err) {
+      console.error("[COMMUNICATIONS] Convex error (unarchiveCommunicationTemplate):", err);
+      return { success: false, error: err instanceof Error ? err.message : "Failed to restore template" };
+    }
+  }
+
+  const { getUser, getCurrentProfileId, createClient: createSupabaseClient } = await import("@/lib/supabase/server");
   const user = await getUser();
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {
@@ -1118,6 +1261,19 @@ export async function unarchiveCommunicationTemplate(
 export async function deleteCommunicationTemplate(
   templateId: string
 ): Promise<ActionResult> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { mutateConvex } = await import("@/lib/platform/convex/server");
+      await mutateConvex("communications:deleteTemplate", { templateId });
+      revalidatePath("/dashboard/clients/communications");
+      return { success: true };
+    } catch (err) {
+      console.error("[COMMUNICATIONS] Convex error (deleteCommunicationTemplate):", err);
+      return { success: false, error: err instanceof Error ? err.message : "Failed to delete template" };
+    }
+  }
+
+  const { getUser, getCurrentProfileId, createClient: createSupabaseClient } = await import("@/lib/supabase/server");
   const user = await getUser();
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {
@@ -1155,6 +1311,21 @@ export async function deleteCommunicationTemplate(
 export async function getClientCommunications(
   clientId: string
 ): Promise<ActionResult<ClientCommunication[]>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvex } = await import("@/lib/platform/convex/server");
+      const result = await queryConvex<ClientCommunication[]>(
+        "communications:getClientCommunications",
+        { clientId },
+      );
+      return { success: true, data: result };
+    } catch (err) {
+      console.error("[COMMUNICATIONS] Convex error (getClientCommunications):", err);
+      return { success: false, error: err instanceof Error ? err.message : "Failed to load communications" };
+    }
+  }
+
+  const { getUser, getCurrentProfileId, createClient: createSupabaseClient } = await import("@/lib/supabase/server");
   const user = await getUser();
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {
@@ -1188,6 +1359,21 @@ export async function getAllCommunications(
   page: number = 1,
   pageSize: number = 50
 ): Promise<ActionResult<{ communications: ClientCommunication[]; total: number }>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvex } = await import("@/lib/platform/convex/server");
+      const result = await queryConvex<{ communications: ClientCommunication[]; total: number }>(
+        "communications:getAllCommunications",
+        { filters: filters ?? {}, page, pageSize },
+      );
+      return { success: true, data: result };
+    } catch (err) {
+      console.error("[COMMUNICATIONS] Convex error (getAllCommunications):", err);
+      return { success: false, error: err instanceof Error ? err.message : "Failed to load communications" };
+    }
+  }
+
+  const { getUser, getCurrentProfileId, createClient: createSupabaseClient } = await import("@/lib/supabase/server");
   const user = await getUser();
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {
@@ -1254,6 +1440,21 @@ export async function populateMergeFields(
   clientId: string,
   manualFieldValues?: ManualFieldValues
 ): Promise<ActionResult<string>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvex } = await import("@/lib/platform/convex/server");
+      const result = await queryConvex<string>(
+        "communications:populateMergeFields",
+        { content, clientId, manualFieldValues: manualFieldValues ?? {} },
+      );
+      return { success: true, data: result };
+    } catch (err) {
+      console.error("[COMMUNICATIONS] Convex error (populateMergeFields):", err);
+      return { success: false, error: err instanceof Error ? err.message : "Failed to resolve merge fields" };
+    }
+  }
+
+  const { getUser, getCurrentProfileId } = await import("@/lib/supabase/server");
   const user = await getUser();
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {
@@ -1282,6 +1483,21 @@ export async function populateMergeFields(
 export async function getClientMergeFieldValues(
   clientId: string
 ): Promise<ActionResult<Record<string, string>>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvex } = await import("@/lib/platform/convex/server");
+      const result = await queryConvex<Record<string, string>>(
+        "communications:getClientMergeFieldValues",
+        { clientId },
+      );
+      return { success: true, data: result };
+    } catch (err) {
+      console.error("[COMMUNICATIONS] Convex error (getClientMergeFieldValues):", err);
+      return { success: false, error: err instanceof Error ? err.message : "Failed to resolve merge fields" };
+    }
+  }
+
+  const { getUser, getCurrentProfileId } = await import("@/lib/supabase/server");
   const user = await getUser();
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {
@@ -1297,6 +1513,29 @@ export async function getClientSendFieldValues(params: {
   body: string;
   cc?: string[];
 }): Promise<ActionResult<Record<string, string>>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvex } = await import("@/lib/platform/convex/server");
+      const result = await queryConvex<Record<string, string>>(
+        "communications:getClientSendFieldValues",
+        {
+          clientId: params.clientId,
+          subject: params.subject,
+          body: params.body,
+          cc: params.cc ?? [],
+        },
+      );
+      return { success: true, data: result };
+    } catch (err) {
+      console.error("[COMMUNICATIONS] Convex error (getClientSendFieldValues):", err);
+      return {
+        success: false,
+        error: err instanceof Error ? err.message : "Failed to resolve field values",
+      };
+    }
+  }
+
+  const { getUser, getCurrentProfileId } = await import("@/lib/supabase/server");
   const user = await getUser();
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {
@@ -1309,6 +1548,21 @@ export async function getClientSendFieldValues(params: {
 export async function getTemplateEditorFieldValues(): Promise<
   ActionResult<Record<string, string>>
 > {
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvex } = await import("@/lib/platform/convex/server");
+      const result = await queryConvex<Record<string, string>>(
+        "communications:getTemplateEditorFieldValues",
+        {},
+      );
+      return { success: true, data: result };
+    } catch (err) {
+      console.error("[COMMUNICATIONS] Convex error (getTemplateEditorFieldValues):", err);
+      return { success: false, error: err instanceof Error ? err.message : "Failed to resolve field values" };
+    }
+  }
+
+  const { getUser, getCurrentProfileId } = await import("@/lib/supabase/server");
   const user = await getUser();
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {
@@ -1322,6 +1576,21 @@ export async function getClientPreviewLink(params: {
   clientId: string;
   fieldKey: string;
 }): Promise<ActionResult<string>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvex } = await import("@/lib/platform/convex/server");
+      const result = await queryConvex<Record<string, string>>(
+        "communications:getClientMergeFieldValues",
+        { clientId: params.clientId },
+      );
+      return { success: true, data: result[params.fieldKey] || "" };
+    } catch (err) {
+      console.error("[COMMUNICATIONS] Convex error (getClientPreviewLink):", err);
+      return { success: false, error: err instanceof Error ? err.message : "Failed to resolve preview link" };
+    }
+  }
+
+  const { getUser, getCurrentProfileId } = await import("@/lib/supabase/server");
   const user = await getUser();
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {
@@ -1346,6 +1615,21 @@ export async function getClientPreviewLink(params: {
 }
 
 export async function getAgencyBranding(): Promise<ActionResult<AgencyBrandingData>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvex } = await import("@/lib/platform/convex/server");
+      const result = await queryConvex<AgencyBrandingData>(
+        "communications:getAgencyBranding",
+        {},
+      );
+      return { success: true, data: result };
+    } catch (err) {
+      console.error("[COMMUNICATIONS] Convex error (getAgencyBranding):", err);
+      return { success: false, error: err instanceof Error ? err.message : "Failed to load branding" };
+    }
+  }
+
+  const { getUser, getCurrentProfileId } = await import("@/lib/supabase/server");
   const user = await getUser();
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {
@@ -1359,6 +1643,7 @@ export async function getAgencyBranding(): Promise<ActionResult<AgencyBrandingDa
 async function getAgencyBrandingData(
   profileId: string
 ): Promise<AgencyBrandingData> {
+  const { createClient: createSupabaseClient } = await import("@/lib/supabase/server");
   const supabase = await createSupabaseClient();
 
   const { data: profile } = await supabase
@@ -1393,6 +1678,151 @@ export async function sendCommunication(params: {
   cc?: string[];
   manualFieldValues?: ManualFieldValues;
 }): Promise<ActionResult<{ communicationId: string }>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvex, mutateConvex } = await import("@/lib/platform/convex/server");
+
+      // Validate required fields
+      if (!params.clientId || !params.subject || !params.body || !params.recipientEmail) {
+        return { success: false, error: "Missing required fields" };
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(params.recipientEmail)) {
+        return { success: false, error: "Invalid email address" };
+      }
+
+      // Check plan guard
+      const guard = await guardCommunications();
+      if (!guard.allowed) {
+        return { success: false, error: guard.reason };
+      }
+
+      const fieldValuesResult = await resolveConvexSendFieldValues({
+        clientId: params.clientId,
+        subject: params.subject,
+        body: params.body,
+        cc: params.cc,
+      });
+      if (!fieldValuesResult.success || !fieldValuesResult.data) {
+        return {
+          success: false,
+          error:
+            fieldValuesResult.success === false
+              ? fieldValuesResult.error
+              : "Failed to resolve field values",
+        };
+      }
+      const fieldValues = fieldValuesResult.data;
+
+      // Check for unresolved fields
+      const unresolvedFields = getUnresolvedMergeFields({
+        subject: params.subject,
+        body: params.body,
+        cc: params.cc,
+        values: fieldValues,
+        manualValues: params.manualFieldValues,
+      });
+      if (unresolvedFields.length > 0) {
+        return {
+          success: false,
+          error: `Missing values for: ${unresolvedFields.join(", ")}`,
+        };
+      }
+
+      const unresolvedManualFields = MANUAL_MERGE_FIELD_KEYS.filter((field) =>
+        params.subject.includes(`{${field}}`) || params.body.includes(`{${field}}`)
+      ).filter((field) => !params.manualFieldValues?.[field]?.trim());
+      if (unresolvedManualFields.length > 0) {
+        return { success: false, error: "Fill in all required assessment details before sending." };
+      }
+
+      // Render email content
+      const mergedValues = {
+        ...fieldValues,
+        ...(params.manualFieldValues || {}),
+      };
+      const normalizedBodyTemplate = await normalizeEmailBodyCtas(
+        renderCanonicalEmailBlocks(params.body)
+      );
+      const resolvedBody = linkifyRenderedHtmlText(
+        renderHtmlTemplateWithValues(normalizedBodyTemplate, mergedValues)
+      );
+      const resolvedSubject = renderTemplateWithValues(params.subject, mergedValues);
+      const sanitizedBody = sanitizeEmailHtml(resolvedBody);
+
+      // Get agency branding from Convex
+      const agencyData = await queryConvex<AgencyBrandingData>(
+        "communications:getAgencyBranding",
+        {},
+      );
+
+      // Send the actual email via Resend
+      let sendSuccess = false;
+      let sendError: string | undefined;
+
+      try {
+        const { Resend } = await import("resend");
+        const apiKey = process.env.RESEND_API_KEY;
+
+        if (!apiKey) {
+          console.warn("[COMMUNICATIONS] Resend API key not configured");
+          sendError = "Email sending is not configured";
+        } else {
+          const resendClient = new Resend(apiKey);
+          const { agencyEmailWrapper } = await import("@/lib/email/email-helpers");
+
+          const ccEmails = normalizeCc(params.cc).filter((email) =>
+            /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+          );
+
+          const { error: resendError } = await resendClient.emails.send({
+            from: `${agencyData.agencyName} <${getFromEmail("goodaba")}>`,
+            to: [params.recipientEmail],
+            cc: ccEmails.length > 0 ? ccEmails : undefined,
+            replyTo: agencyData.contactEmail || undefined,
+            subject: resolvedSubject,
+            html: agencyEmailWrapper(sanitizedBody, agencyData),
+          });
+
+          if (resendError) {
+            console.error("[COMMUNICATIONS] Resend send error:", resendError);
+            sendError = resendError.message;
+          } else {
+            sendSuccess = true;
+          }
+        }
+      } catch (emailErr) {
+        console.error("[COMMUNICATIONS] Email send error:", emailErr);
+        sendError = emailErr instanceof Error ? emailErr.message : "Failed to send email";
+      }
+
+      // Record the communication in Convex
+      const result = await mutateConvex<{ communicationId: string }>(
+        "communications:recordSentCommunication",
+        {
+          clientId: params.clientId,
+          templateSlug: params.templateSlug,
+          subject: resolvedSubject,
+          body: sanitizedBody,
+          recipientEmail: params.recipientEmail,
+          recipientName: params.recipientName ?? null,
+          status: sendSuccess ? "sent" : "failed",
+        },
+      );
+
+      if (!sendSuccess) {
+        return { success: false, error: sendError || "Failed to send email" };
+      }
+
+      revalidatePath("/dashboard/clients");
+      revalidatePath("/dashboard/clients/communications");
+      return { success: true, data: { communicationId: result.communicationId } };
+    } catch (err) {
+      console.error("[COMMUNICATIONS] Convex error (sendCommunication):", err);
+      return { success: false, error: err instanceof Error ? err.message : "Failed to send communication" };
+    }
+  }
+
+  const { getUser, getCurrentProfileId, createClient: createSupabaseClient } = await import("@/lib/supabase/server");
   const user = await getUser();
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {

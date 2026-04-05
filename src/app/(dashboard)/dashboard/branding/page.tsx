@@ -7,7 +7,8 @@ import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-heade
 import { DashboardEmptyState } from "@/components/dashboard/ui";
 import { IntakeFormSettings } from "@/components/dashboard/intake/intake-form-settings";
 import { LogoUploader } from "@/components/dashboard/logo-uploader";
-import { createClient, getProfile } from "@/lib/supabase/server";
+import { getListing } from "@/lib/actions/listings";
+import { getProfile } from "@/lib/platform/workspace/server";
 import type { IntakeFormSettings as IntakeFormSettingsType } from "@/lib/actions/intake";
 
 export default async function BrandingPage() {
@@ -36,15 +37,9 @@ export default async function BrandingPage() {
     );
   }
 
-  const supabase = await createClient();
-  const listingResult = await supabase
-    .from("listings")
-    .select("slug, logo_url")
-    .eq("profile_id", profile.id)
-    .single();
-
-  const listingSlug = listingResult.data?.slug ?? null;
-  const logoUrl = listingResult.data?.logo_url ?? null;
+  const listingResult = await getListing();
+  const listingSlug = listingResult.success ? listingResult.data?.slug ?? null : null;
+  const logoUrl = listingResult.success ? listingResult.data?.logoUrl ?? null : null;
 
   if (!listingSlug) {
     return (

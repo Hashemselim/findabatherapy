@@ -10,7 +10,12 @@ test.describe("Find ABA Therapy - Insurance Directory", () => {
     await page.goto("/insurance");
 
     // Page heading
-    await expect(page.getByRole("heading")).toBeVisible();
+    await expect(
+      page.getByRole("heading", {
+        level: 1,
+        name: /find aba therapy by insurance/i,
+      })
+    ).toBeVisible();
 
     // Insurance description
     await expect(
@@ -35,7 +40,7 @@ test.describe("Find ABA Therapy - Insurance Directory", () => {
 
     // Insurance cards should be visible
     const insuranceCards = page.locator(
-      '[data-testid="insurance-card"], .insurance-card, article'
+      '[data-testid="insurance-card"], a[href^="/insurance/"]'
     );
     const count = await insuranceCards.count();
     expect(count).toBeGreaterThan(0);

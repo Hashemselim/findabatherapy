@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { createClient, createAdminClient, getCurrentProfileId } from "@/lib/supabase/server";
+import { isConvexDataEnabled } from "@/lib/platform/config";
 
 type ActionResult<T = void> =
   | { success: true; data?: T }
@@ -46,6 +46,29 @@ export async function createNotification(data: {
   entityId?: string;
   entityType?: string;
 }): Promise<ActionResult<{ id: string }>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { mutateConvexUnauthenticated } = await import("@/lib/platform/convex/server");
+      const result = await mutateConvexUnauthenticated<{ id: string }>(
+        "notifications:createNotification",
+        {
+          workspaceId: data.profileId,
+          type: data.type,
+          title: data.title,
+          body: data.body || null,
+          link: data.link || null,
+          entityId: data.entityId || null,
+          entityType: data.entityType || null,
+        },
+      );
+      return { success: true, data: { id: result.id } };
+    } catch (error) {
+      console.error("[NOTIFICATIONS] Convex createNotification error:", error);
+      return { success: false, error: "Failed to create notification" };
+    }
+  }
+
+  const { createAdminClient } = await import("@/lib/supabase/server");
   const supabase = await createAdminClient();
 
   const { data: notification, error } = await supabase
@@ -63,8 +86,6 @@ export async function createNotification(data: {
     .single();
 
   if (error) {
-    // Don't fail the parent operation if notification insert fails
-    // (e.g., duplicate entity constraint)
     console.error("[NOTIFICATIONS] Failed to create notification:", error);
     return { success: false, error: "Failed to create notification" };
   }
@@ -82,6 +103,26 @@ export async function getNotifications(filter?: {
   limit?: number;
   offset?: number;
 }): Promise<ActionResult<{ notifications: Notification[]; unreadCount: number }>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvex } = await import("@/lib/platform/convex/server");
+      const result = await queryConvex<{
+        notifications: Notification[];
+        unreadCount: number;
+      }>("notifications:getNotifications", {
+        type: filter?.type,
+        isRead: filter?.isRead,
+        limit: filter?.limit,
+        offset: filter?.offset,
+      });
+      return { success: true, data: result };
+    } catch (error) {
+      console.error("[NOTIFICATIONS] Convex getNotifications error:", error);
+      return { success: false, error: "Not authenticated" };
+    }
+  }
+
+  const { createClient, getCurrentProfileId } = await import("@/lib/supabase/server");
   const profileId = await getCurrentProfileId();
   if (!profileId) {
     return { success: false, error: "Not authenticated" };
@@ -91,7 +132,6 @@ export async function getNotifications(filter?: {
   const limit = filter?.limit ?? 50;
   const offset = filter?.offset ?? 0;
 
-  // Build query
   let query = supabase
     .from("notifications")
     .select("*")
@@ -114,7 +154,6 @@ export async function getNotifications(filter?: {
     return { success: false, error: "Failed to load notifications" };
   }
 
-  // Get unread count (always unfiltered by type for the badge)
   const { count, error: countError } = await supabase
     .from("notifications")
     .select("*", { count: "exact", head: true })
@@ -150,6 +189,16 @@ export async function getNotifications(filter?: {
 // ---------------------------------------------------------------------------
 
 export async function getUnreadNotificationCount(): Promise<number> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvex } = await import("@/lib/platform/convex/server");
+      return await queryConvex<number>("notifications:getUnreadNotificationCount");
+    } catch {
+      return 0;
+    }
+  }
+
+  const { createClient, getCurrentProfileId } = await import("@/lib/supabase/server");
   const profileId = await getCurrentProfileId();
   if (!profileId) return 0;
 
@@ -176,6 +225,20 @@ export async function getUnreadNotificationCount(): Promise<number> {
 export async function getUnreadCountsByType(): Promise<
   ActionResult<Record<NotificationType, number>>
 > {
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvex } = await import("@/lib/platform/convex/server");
+      const counts = await queryConvex<Record<string, number>>(
+        "notifications:getUnreadCountsByType",
+      );
+      return { success: true, data: counts as Record<NotificationType, number> };
+    } catch (error) {
+      console.error("[NOTIFICATIONS] Convex getUnreadCountsByType error:", error);
+      return { success: false, error: "Not authenticated" };
+    }
+  }
+
+  const { createClient, getCurrentProfileId } = await import("@/lib/supabase/server");
   const profileId = await getCurrentProfileId();
   if (!profileId) {
     return { success: false, error: "Not authenticated" };
@@ -194,7 +257,6 @@ export async function getUnreadCountsByType(): Promise<
     return { success: false, error: "Failed to load counts" };
   }
 
-  // Count in JS since Supabase PostgREST doesn't support GROUP BY
   const counts: Record<string, number> = {};
   for (const row of rows || []) {
     counts[row.type] = (counts[row.type] || 0) + 1;
@@ -213,6 +275,21 @@ export async function getUnreadCountsByType(): Promise<
 export async function markNotificationAsRead(
   notificationId: string
 ): Promise<ActionResult> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { mutateConvex } = await import("@/lib/platform/convex/server");
+      await mutateConvex("notifications:markNotificationAsRead", {
+        notificationId,
+      });
+      revalidatePath("/dashboard/notifications");
+      return { success: true };
+    } catch (error) {
+      console.error("[NOTIFICATIONS] Convex markNotificationAsRead error:", error);
+      return { success: false, error: "Failed to update notification" };
+    }
+  }
+
+  const { createClient, getCurrentProfileId } = await import("@/lib/supabase/server");
   const profileId = await getCurrentProfileId();
   if (!profileId) {
     return { success: false, error: "Not authenticated" };
@@ -242,6 +319,21 @@ export async function markNotificationAsRead(
 export async function markAllNotificationsAsRead(
   type?: NotificationType
 ): Promise<ActionResult> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { mutateConvex } = await import("@/lib/platform/convex/server");
+      await mutateConvex("notifications:markAllNotificationsAsRead", {
+        type: type ?? undefined,
+      });
+      revalidatePath("/dashboard/notifications");
+      return { success: true };
+    } catch (error) {
+      console.error("[NOTIFICATIONS] Convex markAllNotificationsAsRead error:", error);
+      return { success: false, error: "Failed to update notifications" };
+    }
+  }
+
+  const { createClient, getCurrentProfileId } = await import("@/lib/supabase/server");
   const profileId = await getCurrentProfileId();
   if (!profileId) {
     return { success: false, error: "Not authenticated" };

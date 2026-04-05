@@ -260,6 +260,7 @@ function LocationResultCard({ location, position, searchQuery }: LocationResultC
       href={`/provider/${location.slug}?location=${location.locationId}`}
       onClick={handleClick}
       className="group"
+      data-testid="provider-card"
     >
       <Card
         className={cn(
@@ -416,7 +417,12 @@ function SearchResultCard({ listing, position, searchQuery }: SearchResultCardPr
   };
 
   return (
-    <Link href={`/provider/${listing.slug}`} onClick={handleClick} className="group">
+    <Link
+      href={`/provider/${listing.slug}`}
+      onClick={handleClick}
+      className="group"
+      data-testid="provider-card"
+    >
       <Card
         className={cn(
           "border-border/60 transition-all duration-300 ease-premium hover:-translate-y-[2px] hover:shadow-[0_8px_30px_rgba(87,136,255,0.1)] active:translate-y-0 active:shadow-none",
@@ -501,8 +507,6 @@ function SearchResultCard({ listing, position, searchQuery }: SearchResultCardPr
               )}
           </div>
 
-          {/* Plan Badge */}
-          {/* TODO: migrate featured badge to profile_addons table query */}
         </CardContent>
       </Card>
     </Link>
@@ -539,14 +543,18 @@ interface GooglePlacesResultCardProps {
   searchQuery?: string;
 }
 
-function GooglePlacesResultCard({ listing, position, searchQuery }: GooglePlacesResultCardProps) {
+function GooglePlacesResultCard({ listing }: GooglePlacesResultCardProps) {
   // Build display address
   const displayAddress = listing.street
     ? `${listing.street}, ${listing.city}, ${listing.state}`
     : `${listing.city}, ${listing.state}`;
 
   return (
-    <Link href={`/provider/p/${listing.slug}?ref=findabatherapy`} className="group">
+    <Link
+      href={`/provider/p/${listing.slug}?ref=findabatherapy`}
+      className="group"
+      data-testid="provider-card"
+    >
       <Card className="border-dashed border-muted-foreground/30 transition-all duration-300 ease-premium hover:-translate-y-[2px] hover:border-[#5788FF]/40 hover:shadow-[0_8px_30px_rgba(87,136,255,0.08)] active:translate-y-0 active:shadow-none">
         <CardContent className="flex gap-4 p-4">
           {/* Logo */}

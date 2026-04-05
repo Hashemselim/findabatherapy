@@ -1,11 +1,9 @@
-import { mutationGeneric, queryGeneric } from "convex/server";
+import { mutation, query } from "./_generated/server";
 import { ConvexError, v } from "convex/values";
-
-type Identity = {
-  subject: string;
-};
+import type { MutationCtx, QueryCtx } from "./_generated/server";
 
 type ConvexDoc = Record<string, unknown> & { _id: string };
+type ConvexCtx = QueryCtx | MutationCtx;
 
 function asRecord(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -33,13 +31,6 @@ function readNumber(value: unknown, fallback = 0) {
   return typeof value === "number" ? value : fallback;
 }
 
-function isPublicContactEmailVisible(email: unknown) {
-  return !(
-    typeof email === "string" &&
-    email.trim().toLowerCase().endsWith("@test.findabatherapy.com")
-  );
-}
-
 function generateSlug(value: string) {
   return value
     .toLowerCase()
@@ -52,7 +43,7 @@ function asId<TableName extends string>(value: unknown) {
   return value as string & { __tableName: TableName };
 }
 
-async function requireIdentity(ctx: { auth: { getUserIdentity(): Promise<Identity | null> } }) {
+async function requireIdentity(ctx: ConvexCtx) {
   const identity = await ctx.auth.getUserIdentity();
   if (!identity) {
     throw new ConvexError("Not authenticated");
@@ -61,7 +52,7 @@ async function requireIdentity(ctx: { auth: { getUserIdentity(): Promise<Identit
   return identity;
 }
 
-async function findUserByClerkUserId(ctx: { db: { query(table: "users"): { withIndex(index: "by_clerk_user_id", cb: (q: { eq(field: "clerkUserId", value: string): unknown }) => unknown): { collect(): Promise<ConvexDoc[]> } } } }, clerkUserId: string) {
+async function findUserByClerkUserId(ctx: ConvexCtx, clerkUserId: string) {
   const users = await ctx.db
     .query("users")
     .withIndex("by_clerk_user_id", (q) => q.eq("clerkUserId", clerkUserId))
@@ -69,30 +60,9 @@ async function findUserByClerkUserId(ctx: { db: { query(table: "users"): { withI
   return users[0] ?? null;
 }
 
-async function requireCurrentWorkspaceContext(ctx: {
-  auth: { getUserIdentity(): Promise<Identity | null> };
-  db: {
-    get(id: string): Promise<ConvexDoc | null>;
-    query(table: "users"): {
-      withIndex(index: "by_clerk_user_id", cb: (q: { eq(field: "clerkUserId", value: string): unknown }) => unknown): { collect(): Promise<ConvexDoc[]> };
-    };
-    query(table: "workspaceMemberships"): {
-      withIndex(index: "by_user", cb: (q: { eq(field: "userId", value: string): unknown }) => unknown): { collect(): Promise<ConvexDoc[]> };
-    };
-    query(table: "listings"): {
-      withIndex(index: "by_workspace", cb: (q: { eq(field: "workspaceId", value: string): unknown }) => unknown): { collect(): Promise<ConvexDoc[]> };
-      withIndex(index: "by_slug", cb: (q: { eq(field: "slug", value: string): unknown }) => unknown): { collect(): Promise<ConvexDoc[]> };
-    };
-    query(table: "locations"): {
-      withIndex(index: "by_listing", cb: (q: { eq(field: "listingId", value: string): unknown }) => unknown): { collect(): Promise<ConvexDoc[]> };
-    };
-    query(table: "listingAttributes"): {
-      withIndex(index: "by_listing", cb: (q: { eq(field: "listingId", value: string): unknown }) => unknown): { collect(): Promise<ConvexDoc[]> };
-    };
-  };
-}) {
+async function requireCurrentWorkspaceContext(ctx: ConvexCtx) {
   const identity = await requireIdentity(ctx);
-  const user = await findUserByClerkUserId(ctx as never, identity.subject);
+  const user = await findUserByClerkUserId(ctx, identity.subject);
   if (!user) {
     throw new ConvexError("Not authenticated");
   }
@@ -128,13 +98,7 @@ async function requireCurrentWorkspaceContext(ctx: {
 }
 
 async function findUniqueListingSlug(
-  ctx: {
-    db: {
-      query(table: "listings"): {
-        withIndex(index: "by_slug", cb: (q: { eq(field: "slug", value: string): unknown }) => unknown): { collect(): Promise<ConvexDoc[]> };
-      };
-    };
-  },
+  ctx: ConvexCtx,
   agencyName: string,
   currentWorkspaceId: string,
 ) {
@@ -161,18 +125,14 @@ async function findUniqueListingSlug(
 }
 
 async function getListingAttributesForListing(
-  ctx: {
-    db: {
-      query(table: "listingAttributes"): {
-        withIndex(index: "by_listing", cb: (q: { eq(field: "listingId", value: string): unknown }) => unknown): { collect(): Promise<ConvexDoc[]> };
-      };
-    };
-  },
+  ctx: ConvexCtx,
   listingId: string,
 ) {
   const attributes = await ctx.db
     .query("listingAttributes")
-    .withIndex("by_listing", (q) => q.eq("listingId", listingId))
+    .withIndex("by_listing", (q) =>
+      q.eq("listingId", asId<"listings">(listingId)),
+    )
     .collect();
 
   const mapped: Record<string, unknown> = {};
@@ -186,18 +146,14 @@ async function getListingAttributesForListing(
 }
 
 async function getLocationsForListing(
-  ctx: {
-    db: {
-      query(table: "locations"): {
-        withIndex(index: "by_listing", cb: (q: { eq(field: "listingId", value: string): unknown }) => unknown): { collect(): Promise<ConvexDoc[]> };
-      };
-    };
-  },
+  ctx: ConvexCtx,
   listingId: string,
 ) {
   const locations = await ctx.db
     .query("locations")
-    .withIndex("by_listing", (q) => q.eq("listingId", listingId))
+    .withIndex("by_listing", (q) =>
+      q.eq("listingId", asId<"listings">(listingId)),
+    )
     .collect();
 
   return locations
@@ -234,23 +190,7 @@ async function getLocationsForListing(
 }
 
 async function getListingMedia(
-  ctx: {
-    db: {
-      query(table: "files"): {
-        withIndex(
-          index: "by_related_record",
-          cb: (q: {
-            eq(field: "relatedTable", value: string): {
-              eq(field: "relatedId", value: string): unknown;
-            };
-          }) => unknown,
-        ): { collect(): Promise<ConvexDoc[]> };
-      };
-    };
-    storage: {
-      getUrl(storageId: string): Promise<string | null>;
-    };
-  },
+  ctx: ConvexCtx,
   listingId: string,
 ) {
   const files = await ctx.db
@@ -271,15 +211,18 @@ async function getListingMedia(
 
   const [logoUrl, photoUrls] = await Promise.all([
     typeof logoFile?.storageId === "string"
-      ? ctx.storage.getUrl(asId<"_storage">(logoFile.storageId))
+      ? ctx.storage
+          .getUrl(asId<"_storage">(logoFile.storageId))
+          .then((url) => url ?? readString(logoFile.publicPath))
       : Promise.resolve(null),
     Promise.all(
       photoFiles.map(async (file) => {
         if (typeof file.storageId !== "string") {
-          return null;
+          return readString(file.publicPath);
         }
 
-        return ctx.storage.getUrl(asId<"_storage">(file.storageId));
+        const url = await ctx.storage.getUrl(asId<"_storage">(file.storageId));
+        return url ?? readString(file.publicPath);
       }),
     ),
   ]);
@@ -293,23 +236,7 @@ async function getListingMedia(
 }
 
 async function buildListingResponse(
-  ctx: {
-    db: {
-      query(table: "files"): {
-        withIndex(
-          index: "by_related_record",
-          cb: (q: {
-            eq(field: "relatedTable", value: string): {
-              eq(field: "relatedId", value: string): unknown;
-            };
-          }) => unknown,
-        ): { collect(): Promise<ConvexDoc[]> };
-      };
-    };
-    storage: {
-      getUrl(storageId: string): Promise<string | null>;
-    };
-  },
+  ctx: ConvexCtx,
   workspace: ConvexDoc,
   listing: ConvexDoc,
   locations: Awaited<ReturnType<typeof getLocationsForListing>>,
@@ -318,7 +245,21 @@ async function buildListingResponse(
   const workspaceSettings = asRecord(workspace.settings);
   const listingMetadata = asRecord(listing.metadata);
   const primaryLocation = locations.find((location) => location.isPrimary) ?? null;
-  const media = await getListingMedia(ctx, listing._id);
+  const [media, customDomains] = await Promise.all([
+    getListingMedia(ctx, listing._id),
+    ctx.db
+      .query("customDomains")
+      .withIndex("by_listing", (q) =>
+        q.eq("listingId", asId<"listings">(listing._id)),
+      )
+      .collect(),
+  ]);
+  const customDomain =
+    customDomains.find((domain) =>
+      ["active", "pending_dns", "verifying"].includes(
+        readString(domain.status) ?? "",
+      ),
+    ) ?? null;
 
   return {
     id: listing._id,
@@ -331,6 +272,25 @@ async function buildListingResponse(
     isAcceptingClients: readBoolean(listingMetadata.isAcceptingClients, true),
     logoUrl: media.logoUrl ?? readString(listingMetadata.logoUrl),
     videoUrl: readString(listingMetadata.videoUrl),
+    websitePublished: readBoolean(listingMetadata.websitePublished, listing.status === "published"),
+    websiteSettings: {
+      template: readString(asRecord(listingMetadata.websiteSettings).template) ?? "modern",
+      show_gallery: readBoolean(asRecord(listingMetadata.websiteSettings).show_gallery, true),
+      show_reviews: readBoolean(asRecord(listingMetadata.websiteSettings).show_reviews, true),
+      show_careers: readBoolean(asRecord(listingMetadata.websiteSettings).show_careers, true),
+      show_resources: readBoolean(
+        asRecord(listingMetadata.websiteSettings).show_resources,
+        true,
+      ),
+      hero_cta_text:
+        readString(asRecord(listingMetadata.websiteSettings).hero_cta_text) ??
+        "Get Started",
+      sections_order:
+        readStringArray(asRecord(listingMetadata.websiteSettings).sections_order)
+          .length > 0
+          ? readStringArray(asRecord(listingMetadata.websiteSettings).sections_order)
+          : ["hero", "about", "services", "insurance", "locations", "gallery", "reviews"],
+    },
     publishedAt: readString(listingMetadata.publishedAt),
     createdAt: readString(listing.createdAt) ?? new Date().toISOString(),
     updatedAt: readString(listing.updatedAt) ?? new Date().toISOString(),
@@ -369,14 +329,20 @@ async function buildListingResponse(
       media.photoUrls.length > 0
         ? media.photoUrls
         : readStringArray(listingMetadata.photoUrls),
+    customDomain: customDomain
+      ? {
+          domain: readString(customDomain.hostname) ?? "",
+          status: readString(customDomain.status) ?? "verifying",
+        }
+      : null,
   };
 }
 
-export const getCurrentListingSlug = queryGeneric({
+export const getCurrentListingSlug = query({
   args: {},
   handler: async (ctx) => {
     try {
-      const { listing } = await requireCurrentWorkspaceContext(ctx as never);
+      const { listing } = await requireCurrentWorkspaceContext(ctx);
       return listing ? readString(listing.slug) : null;
     } catch {
       return null;
@@ -384,24 +350,24 @@ export const getCurrentListingSlug = queryGeneric({
   },
 });
 
-export const getDashboardListing = queryGeneric({
+export const getDashboardListing = query({
   args: {},
   handler: async (ctx) => {
-    const { workspace, listing } = await requireCurrentWorkspaceContext(ctx as never);
+    const { workspace, listing } = await requireCurrentWorkspaceContext(ctx);
     if (!listing) {
       return null;
     }
 
     const [locations, attributes] = await Promise.all([
-      getLocationsForListing(ctx as never, listing._id),
-      getListingAttributesForListing(ctx as never, listing._id),
+      getLocationsForListing(ctx, listing._id),
+      getListingAttributesForListing(ctx, listing._id),
     ]);
 
-    return buildListingResponse(ctx as never, workspace, listing, locations, attributes);
+    return buildListingResponse(ctx, workspace, listing, locations, attributes);
   },
 });
 
-export const getPublicListingBySlug = queryGeneric({
+export const getPublicListingBySlug = query({
   args: {
     slug: v.string(),
   },
@@ -417,20 +383,20 @@ export const getPublicListingBySlug = queryGeneric({
     }
 
     const workspace = await ctx.db.get(asId<"workspaces">(listing.workspaceId));
-    if (!workspace || !isPublicContactEmailVisible(workspace.contactEmail)) {
+    if (!workspace) {
       return null;
     }
 
     const [locations, attributes] = await Promise.all([
-      getLocationsForListing(ctx as never, listing._id),
-      getListingAttributesForListing(ctx as never, listing._id),
+      getLocationsForListing(ctx, listing._id),
+      getListingAttributesForListing(ctx, listing._id),
     ]);
 
-    return buildListingResponse(ctx as never, workspace, listing, locations, attributes);
+    return buildListingResponse(ctx, workspace, listing, locations, attributes);
   },
 });
 
-export const updateDashboardListing = mutationGeneric({
+export const updateDashboardListing = mutation({
   args: {
     headline: v.optional(v.union(v.string(), v.null())),
     description: v.optional(v.union(v.string(), v.null())),
@@ -439,7 +405,7 @@ export const updateDashboardListing = mutationGeneric({
     isAcceptingClients: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    const { listing } = await requireCurrentWorkspaceContext(ctx as never);
+    const { listing } = await requireCurrentWorkspaceContext(ctx);
     if (!listing) {
       throw new ConvexError("Listing not found");
     }
@@ -463,7 +429,7 @@ export const updateDashboardListing = mutationGeneric({
   },
 });
 
-export const updateAgencyName = mutationGeneric({
+export const updateAgencyName = mutation({
   args: {
     agencyName: v.string(),
   },
@@ -473,9 +439,9 @@ export const updateAgencyName = mutationGeneric({
       throw new ConvexError("Company name must be at least 2 characters");
     }
 
-    const { workspace, listing } = await requireCurrentWorkspaceContext(ctx as never);
+    const { workspace, listing } = await requireCurrentWorkspaceContext(ctx);
     const timestamp = new Date().toISOString();
-    const newSlug = await findUniqueListingSlug(ctx as never, trimmedAgencyName, workspace._id);
+    const newSlug = await findUniqueListingSlug(ctx, trimmedAgencyName, workspace._id);
 
     await ctx.db.patch(asId<"workspaces">(workspace._id), {
       agencyName: trimmedAgencyName,
@@ -493,12 +459,12 @@ export const updateAgencyName = mutationGeneric({
   },
 });
 
-export const updateListingStatus = mutationGeneric({
+export const updateListingStatus = mutation({
   args: {
     status: v.union(v.literal("draft"), v.literal("published"), v.literal("suspended")),
   },
   handler: async (ctx, args) => {
-    const { listing } = await requireCurrentWorkspaceContext(ctx as never);
+    const { listing } = await requireCurrentWorkspaceContext(ctx);
     if (!listing) {
       throw new ConvexError("Listing not found");
     }
@@ -517,17 +483,17 @@ export const updateListingStatus = mutationGeneric({
   },
 });
 
-export const getListingAttributes = queryGeneric({
+export const getListingAttributes = query({
   args: {},
   handler: async (ctx) => {
-    const { listing } = await requireCurrentWorkspaceContext(ctx as never);
+    const { listing } = await requireCurrentWorkspaceContext(ctx);
     if (!listing) {
       return {};
     }
 
     const [attributes, locations] = await Promise.all([
-      getListingAttributesForListing(ctx as never, listing._id),
-      getLocationsForListing(ctx as never, listing._id),
+      getListingAttributesForListing(ctx, listing._id),
+      getLocationsForListing(ctx, listing._id),
     ]);
 
     if (!attributes.insurances) {
@@ -541,7 +507,7 @@ export const getListingAttributes = queryGeneric({
   },
 });
 
-export const updateListingAttributes = mutationGeneric({
+export const updateListingAttributes = mutation({
   args: {
     insurances: v.optional(v.array(v.string())),
     servicesOffered: v.optional(v.array(v.string())),
@@ -553,7 +519,7 @@ export const updateListingAttributes = mutationGeneric({
     isAcceptingClients: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    const { listing } = await requireCurrentWorkspaceContext(ctx as never);
+    const { listing } = await requireCurrentWorkspaceContext(ctx);
     if (!listing) {
       throw new ConvexError("Listing not found");
     }
@@ -594,7 +560,9 @@ export const updateListingAttributes = mutationGeneric({
       const existing = (
         await ctx.db
           .query("listingAttributes")
-          .withIndex("by_listing", (q) => q.eq("listingId", listing._id))
+          .withIndex("by_listing", (q) =>
+            q.eq("listingId", asId<"listings">(listing._id)),
+          )
           .collect()
       ).filter((entry) => entry.attributeKey === attributeKey);
 
@@ -603,7 +571,7 @@ export const updateListingAttributes = mutationGeneric({
       }
 
       await ctx.db.insert("listingAttributes", {
-        listingId: listing._id,
+        listingId: asId<"listings">(listing._id),
         attributeKey,
         value,
         createdAt: new Date().toISOString(),
@@ -615,14 +583,14 @@ export const updateListingAttributes = mutationGeneric({
   },
 });
 
-export const updateCompanyContact = mutationGeneric({
+export const updateCompanyContact = mutation({
   args: {
     contactEmail: v.string(),
     contactPhone: v.optional(v.union(v.string(), v.null())),
     website: v.optional(v.union(v.string(), v.null())),
   },
   handler: async (ctx, args) => {
-    const { workspace } = await requireCurrentWorkspaceContext(ctx as never);
+    const { workspace } = await requireCurrentWorkspaceContext(ctx);
     const settings = asRecord(workspace.settings);
     await ctx.db.patch(asId<"workspaces">(workspace._id), {
       contactEmail: args.contactEmail,
@@ -637,12 +605,12 @@ export const updateCompanyContact = mutationGeneric({
   },
 });
 
-export const updateContactFormEnabled = mutationGeneric({
+export const updateContactFormEnabled = mutation({
   args: {
     enabled: v.boolean(),
   },
   handler: async (ctx, args) => {
-    const { workspace, listing } = await requireCurrentWorkspaceContext(ctx as never);
+    const { workspace, listing } = await requireCurrentWorkspaceContext(ctx);
     if (!listing) {
       throw new ConvexError("Listing not found");
     }
@@ -664,12 +632,12 @@ export const updateContactFormEnabled = mutationGeneric({
   },
 });
 
-export const updateClientIntakeEnabled = mutationGeneric({
+export const updateClientIntakeEnabled = mutation({
   args: {
     enabled: v.boolean(),
   },
   handler: async (ctx, args) => {
-    const { workspace, listing } = await requireCurrentWorkspaceContext(ctx as never);
+    const { workspace, listing } = await requireCurrentWorkspaceContext(ctx);
     if (!listing) {
       throw new ConvexError("Listing not found");
     }
@@ -694,10 +662,10 @@ export const updateClientIntakeEnabled = mutationGeneric({
   },
 });
 
-export const getClientIntakeEnabled = queryGeneric({
+export const getClientIntakeEnabled = query({
   args: {},
   handler: async (ctx) => {
-    const { listing } = await requireCurrentWorkspaceContext(ctx as never);
+    const { listing } = await requireCurrentWorkspaceContext(ctx);
     if (!listing) {
       return false;
     }
@@ -706,10 +674,10 @@ export const getClientIntakeEnabled = queryGeneric({
   },
 });
 
-export const getCareersPageSettings = queryGeneric({
+export const getCareersPageSettings = query({
   args: {},
   handler: async (ctx) => {
-    const { listing } = await requireCurrentWorkspaceContext(ctx as never);
+    const { listing } = await requireCurrentWorkspaceContext(ctx);
     if (!listing) {
       throw new ConvexError("Listing not found");
     }
@@ -724,14 +692,14 @@ export const getCareersPageSettings = queryGeneric({
   },
 });
 
-export const updateCareersPageSettings = mutationGeneric({
+export const updateCareersPageSettings = mutation({
   args: {
     brandColor: v.optional(v.string()),
     headline: v.optional(v.union(v.string(), v.null())),
     ctaText: v.optional(v.union(v.string(), v.null())),
   },
   handler: async (ctx, args) => {
-    const { listing } = await requireCurrentWorkspaceContext(ctx as never);
+    const { listing } = await requireCurrentWorkspaceContext(ctx);
     if (!listing) {
       throw new ConvexError("Listing not found");
     }
@@ -766,12 +734,12 @@ export const updateCareersPageSettings = mutationGeneric({
   },
 });
 
-export const updateCareersHideBadge = mutationGeneric({
+export const updateCareersHideBadge = mutation({
   args: {
     hideBadge: v.boolean(),
   },
   handler: async (ctx, args) => {
-    const { workspace, listing } = await requireCurrentWorkspaceContext(ctx as never);
+    const { workspace, listing } = await requireCurrentWorkspaceContext(ctx);
     if (!listing) {
       throw new ConvexError("Listing not found");
     }
@@ -824,7 +792,7 @@ function mapGooglePlacesPayload(doc: ConvexDoc) {
   };
 }
 
-export const getGooglePlacesListing = queryGeneric({
+export const getGooglePlacesListing = query({
   args: {
     slug: v.string(),
   },
@@ -845,7 +813,7 @@ export const getGooglePlacesListing = queryGeneric({
   },
 });
 
-export const getGooglePlacesListingById = queryGeneric({
+export const getGooglePlacesListingById = query({
   args: {
     id: v.string(),
   },
@@ -859,66 +827,79 @@ export const getGooglePlacesListingById = queryGeneric({
   },
 });
 
-export const searchGooglePlacesListings = queryGeneric({
+async function searchGooglePlacesListingsInternal(
+  ctx: ConvexCtx,
+  args: {
+    state?: string;
+    city?: string;
+    limit?: number;
+    offset?: number;
+  },
+) {
+  const all = await ctx.db
+    .query("publicReadModels")
+    .withIndex("by_model_type", (q) => q.eq("modelType", "google_places_listing"))
+    .collect();
+
+  let filtered = all;
+
+  filtered = filtered.filter((doc: ConvexDoc) => {
+    const payload = asRecord(doc.payload);
+    return (readString(payload.status) ?? "active") === "active";
+  });
+
+  if (args.state) {
+    filtered = filtered.filter((doc: ConvexDoc) =>
+      matchesStateOrCity(readString(doc.state), args.state),
+    );
+  }
+
+  if (args.city) {
+    filtered = filtered.filter((doc: ConvexDoc) =>
+      matchesStateOrCity(readString(doc.city), args.city),
+    );
+  }
+
+  const total = filtered.length;
+
+  // Sort by google_rating descending
+  filtered.sort((a: ConvexDoc, b: ConvexDoc) => {
+    const ratingA = typeof asRecord(a.payload).google_rating === "number"
+      ? (asRecord(a.payload).google_rating as number)
+      : 0;
+    const ratingB = typeof asRecord(b.payload).google_rating === "number"
+      ? (asRecord(b.payload).google_rating as number)
+      : 0;
+    return ratingB - ratingA;
+  });
+
+  const offset = args.offset ?? 0;
+  const limit = args.limit ?? 20;
+  const page = filtered.slice(offset, offset + limit);
+
+  return {
+    listings: page.map(mapGooglePlacesPayload),
+    total,
+  };
+}
+
+export const searchGooglePlacesListings = query({
   args: {
     state: v.optional(v.string()),
     city: v.optional(v.string()),
     limit: v.optional(v.number()),
     offset: v.optional(v.number()),
   },
-  handler: async (ctx, args) => {
-    const all = await ctx.db
-      .query("publicReadModels")
-      .withIndex("by_model_type", (q) => q.eq("modelType", "google_places_listing"))
-      .collect();
-
-    let filtered = all;
-
-    if (args.state) {
-      filtered = filtered.filter(
-        (doc: ConvexDoc) => doc.state === args.state,
-      );
-    }
-
-    if (args.city) {
-      const cityLower = args.city.toLowerCase();
-      filtered = filtered.filter((doc: ConvexDoc) => {
-        const city = readString(doc.city);
-        return city !== null && city.toLowerCase().includes(cityLower);
-      });
-    }
-
-    const total = filtered.length;
-
-    // Sort by google_rating descending
-    filtered.sort((a: ConvexDoc, b: ConvexDoc) => {
-      const ratingA = typeof asRecord(a.payload).google_rating === "number"
-        ? (asRecord(a.payload).google_rating as number)
-        : 0;
-      const ratingB = typeof asRecord(b.payload).google_rating === "number"
-        ? (asRecord(b.payload).google_rating as number)
-        : 0;
-      return ratingB - ratingA;
-    });
-
-    const offset = args.offset ?? 0;
-    const limit = args.limit ?? 20;
-    const page = filtered.slice(offset, offset + limit);
-
-    return {
-      listings: page.map(mapGooglePlacesPayload),
-      total,
-    };
-  },
+  handler: async (ctx, args) => searchGooglePlacesListingsInternal(ctx, args),
 });
 
-export const getClaimEligibility = queryGeneric({
+export const getClaimEligibility = query({
   args: {
     googlePlacesListingId: v.string(),
   },
   handler: async (ctx) => {
     try {
-      const { listing } = await requireCurrentWorkspaceContext(ctx as never);
+      const { listing } = await requireCurrentWorkspaceContext(ctx);
       if (!listing || listing.status !== "published") {
         return { status: "no_listing" as const };
       }
@@ -932,18 +913,901 @@ export const getClaimEligibility = queryGeneric({
   },
 });
 
-export const submitRemovalRequest = mutationGeneric({
+export const submitRemovalRequest = mutation({
   args: {
     googlePlacesListingId: v.string(),
     reason: v.optional(v.union(v.string(), v.null())),
   },
-  handler: async (ctx) => {
-    const { listing } = await requireCurrentWorkspaceContext(ctx as never);
+  handler: async (ctx, args) => {
+    const { workspace, listing } = await requireCurrentWorkspaceContext(ctx);
     if (!listing || listing.status !== "published") {
       throw new ConvexError("You must have a published listing to request removal");
     }
 
-    // Removal requests table not yet in Convex schema — return a placeholder.
-    return { id: "pending" };
+    const timestamp = new Date().toISOString();
+    const id = await ctx.db.insert("removalRequests", {
+      workspaceId: asId<"workspaces">(workspace._id),
+      listingId: asId<"listings">(listing._id),
+      googlePlacesListingId: args.googlePlacesListingId,
+      reason: args.reason ?? undefined,
+      status: "pending",
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    });
+
+    return { id };
+  },
+});
+
+// ---------------------------------------------------------------------------
+// Sitemap helpers
+// ---------------------------------------------------------------------------
+
+export const getPublishedListingSlugs = query({
+  args: {},
+  handler: async (ctx) => {
+    const all = await ctx.db
+      .query("listings")
+      .withIndex("by_status", (q) => q.eq("status", "published"))
+      .collect();
+    return all
+      .filter((listing: ConvexDoc) => readString(listing.slug))
+      .map((listing: ConvexDoc) => ({
+        slug: readString(listing.slug) ?? "",
+        updatedAt: readString(listing.updatedAt) ?? new Date().toISOString(),
+      }));
+  },
+});
+
+// ---------------------------------------------------------------------------
+// Search helpers (called by server actions via queryConvexUnauthenticated)
+// ---------------------------------------------------------------------------
+
+type SearchFilters = {
+  query?: string;
+  state?: string;
+  city?: string;
+  serviceTypes?: string[];
+  insurances?: string[];
+  languages?: string[];
+  acceptingClients?: boolean;
+  userLat?: number;
+  userLng?: number;
+  radiusMiles?: number;
+  [key: string]: unknown;
+};
+
+type SearchOptions = {
+  limit?: number;
+  page?: number;
+  [key: string]: unknown;
+};
+
+const searchFiltersValidator = v.object({
+  query: v.optional(v.string()),
+  state: v.optional(v.string()),
+  city: v.optional(v.string()),
+  serviceTypes: v.optional(v.array(v.string())),
+  insurances: v.optional(v.array(v.string())),
+  languages: v.optional(v.array(v.string())),
+  acceptingClients: v.optional(v.boolean()),
+  userLat: v.optional(v.number()),
+  userLng: v.optional(v.number()),
+  radiusMiles: v.optional(v.number()),
+});
+
+const searchOptionsValidator = v.object({
+  limit: v.optional(v.number()),
+  page: v.optional(v.number()),
+});
+
+type ProviderSearchResult = {
+  id: string;
+  slug: string;
+  agencyName: string;
+  headline: string | null;
+  description: string | null;
+  logoUrl: string | null;
+  status: string;
+  planTier: string;
+  isAcceptingClients: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+type HomepageFeaturedProviderResult = {
+  id: string;
+  slug: string;
+  headline: string | null;
+  summary: string | null;
+  serviceModes: string[];
+  isAcceptingClients: boolean;
+  logoUrl: string | null;
+  profile: {
+    agencyName: string;
+    planTier: "free" | "pro";
+  };
+  primaryLocation: {
+    city: string;
+    state: string;
+  } | null;
+  attributes: {
+    insurances?: string[];
+    languages?: string[];
+    ages_served?: { min?: number; max?: number };
+  };
+};
+
+type LocationSearchResultEntry = {
+  locationId: string;
+  city: string;
+  state: string;
+  street: string | null;
+  postalCode: string | null;
+  serviceTypes: string[];
+  insurances: string[];
+  serviceRadiusMiles: number;
+  isPrimary: boolean;
+  latitude: number | null;
+  longitude: number | null;
+  googlePlaceId: string | null;
+  googleRating: number | null;
+  googleRatingCount: number | null;
+  listingId: string;
+  slug: string;
+  headline: string | null;
+  summary: string | null;
+  isAcceptingClients: boolean;
+  logoUrl: string | null;
+  agencyName: string;
+  planTier: string;
+  otherLocationsCount: number;
+  distanceMiles?: number;
+  isFeatured: boolean;
+  isWithinServiceRadius: boolean;
+};
+
+type GooglePlacesSearchResultEntry = {
+  id: string;
+  slug: string;
+  name: string;
+  city: string;
+  state: string;
+  street: string | null;
+  postalCode: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  phone: string | null;
+  website: string | null;
+  googleRating: number | null;
+  googleRatingCount: number | null;
+  distanceMiles?: number;
+  isPrePopulated: true;
+};
+
+function normalizeSearchText(value: unknown) {
+  return typeof value === "string" ? value.trim().toLowerCase() : "";
+}
+
+function hasAnyOverlap(values: string[], selected?: string[]) {
+  if (!selected || selected.length === 0) {
+    return true;
+  }
+
+  const normalizedValues = new Set(values.map((value) => value.toLowerCase()));
+  return selected.some((value) => normalizedValues.has(value.toLowerCase()));
+}
+
+function matchesStateOrCity(
+  value: string | null,
+  filterValue: unknown,
+) {
+  const normalizedValue = normalizeSearchText(value);
+  const normalizedFilter = normalizeSearchText(filterValue);
+  if (!normalizedFilter) {
+    return true;
+  }
+
+  return normalizedValue.includes(normalizedFilter);
+}
+
+function calculateDistanceMiles(
+  fromLatitude: number,
+  fromLongitude: number,
+  toLatitude: number,
+  toLongitude: number,
+) {
+  const earthRadiusMiles = 3958.8;
+  const toRadians = (degrees: number) => (degrees * Math.PI) / 180;
+  const lat1 = toRadians(fromLatitude);
+  const lat2 = toRadians(toLatitude);
+  const deltaLat = toRadians(toLatitude - fromLatitude);
+  const deltaLng = toRadians(toLongitude - fromLongitude);
+
+  const a =
+    Math.sin(deltaLat / 2) ** 2 +
+    Math.cos(lat1) * Math.cos(lat2) * Math.sin(deltaLng / 2) ** 2;
+
+  return earthRadiusMiles * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function sortCombinedSearchResults(
+  left:
+    | (LocationSearchResultEntry & {
+        isPrePopulated: false;
+        section: "featured" | "nearby" | "other";
+      })
+    | (GooglePlacesSearchResultEntry & { section: "featured" | "nearby" | "other" }),
+  right:
+    | (LocationSearchResultEntry & {
+        isPrePopulated: false;
+        section: "featured" | "nearby" | "other";
+      })
+    | (GooglePlacesSearchResultEntry & { section: "featured" | "nearby" | "other" }),
+) {
+  const sectionPriority = { featured: 0, nearby: 1, other: 2 } as const;
+  const sectionDelta = sectionPriority[left.section] - sectionPriority[right.section];
+  if (sectionDelta !== 0) {
+    return sectionDelta;
+  }
+
+  const leftPrePopulated = "isPrePopulated" in left && left.isPrePopulated;
+  const rightPrePopulated = "isPrePopulated" in right && right.isPrePopulated;
+  if (leftPrePopulated !== rightPrePopulated) {
+    return leftPrePopulated ? 1 : -1;
+  }
+
+  const leftDistance =
+    typeof left.distanceMiles === "number" ? left.distanceMiles : Number.POSITIVE_INFINITY;
+  const rightDistance =
+    typeof right.distanceMiles === "number" ? right.distanceMiles : Number.POSITIVE_INFINITY;
+  if (leftDistance !== rightDistance) {
+    return leftDistance - rightDistance;
+  }
+
+  const leftPlanTier = "planTier" in left && left.planTier === "pro" ? 0 : 1;
+  const rightPlanTier = "planTier" in right && right.planTier === "pro" ? 0 : 1;
+  if (leftPlanTier !== rightPlanTier) {
+    return leftPlanTier - rightPlanTier;
+  }
+
+  const leftName = normalizeSearchText(
+    "agencyName" in left ? left.agencyName : left.name,
+  );
+  const rightName = normalizeSearchText(
+    "agencyName" in right ? right.agencyName : right.name,
+  );
+  return leftName.localeCompare(rightName);
+}
+
+/**
+ * Shared search logic used by both `searchProviders` and `getStateProviders`.
+ * Extracted to avoid the invalid `runQuery` pattern that silently returned empty.
+ */
+async function searchProvidersInternal(
+  ctx: ConvexCtx,
+  filters?: SearchFilters,
+  options?: SearchOptions,
+): Promise<{ listings: ProviderSearchResult[]; total: number; page: number; limit: number }> {
+  const published = await ctx.db
+    .query("listings")
+    .withIndex("by_status", (q) => q.eq("status", "published"))
+    .collect();
+
+  let filtered = published;
+
+  if (filters?.state && typeof filters.state === "string") {
+    const stateLower = filters.state.toLowerCase();
+    const locationsByWorkspace = new Map<string, ConvexDoc[]>();
+
+    await Promise.all(
+      [...new Set(filtered.map((listing) => String(listing.workspaceId)))].map(
+        async (workspaceId) => {
+          const workspaceLocations = await ctx.db
+            .query("locations")
+            .withIndex("by_workspace", (q) =>
+              q.eq("workspaceId", asId<"workspaces">(workspaceId)),
+            )
+            .collect();
+          locationsByWorkspace.set(workspaceId, workspaceLocations);
+        },
+      ),
+    );
+
+    filtered = filtered.filter((listing: ConvexDoc) => {
+      const locs = locationsByWorkspace.get(String(listing.workspaceId)) ?? [];
+      return locs.some((loc: ConvexDoc) => {
+        const meta = asRecord(loc.metadata);
+        const state = readString(meta.state);
+        return state && state.toLowerCase().includes(stateLower);
+      });
+    });
+  }
+
+  const limit = typeof options?.limit === "number" ? options.limit : 20;
+  const page = typeof options?.page === "number" ? options.page : 1;
+  const offset = (page - 1) * limit;
+
+  const total = filtered.length;
+  const pageItems = filtered.slice(offset, offset + limit);
+
+  // Batch-fetch workspaces to avoid N+1 queries
+  const workspaceIds = [...new Set(pageItems.map((l) => String(l.workspaceId)))];
+  const workspaceResults = await Promise.all(
+    workspaceIds.map((id) => ctx.db.get(asId<"workspaces">(id))),
+  );
+  const workspaceMap = new Map(
+    workspaceResults.flatMap((workspace) =>
+      workspace ? [[workspace._id, workspace]] : [],
+    ),
+  );
+
+  const results: ProviderSearchResult[] = [];
+  for (const listing of pageItems) {
+    const workspace = workspaceMap.get(listing.workspaceId);
+    if (!workspace) continue;
+    const metadata = asRecord(listing.metadata);
+    results.push({
+      id: listing._id,
+      slug: readString(listing.slug) ?? "",
+      agencyName: readString(workspace.agencyName) ?? "",
+      headline: readString(metadata.headline),
+      description: readString(metadata.description),
+      logoUrl: readString(metadata.logoUrl),
+      status: readString(listing.status) ?? "draft",
+      planTier: readString(workspace.planTier) ?? "free",
+      isAcceptingClients:
+        typeof metadata.isAcceptingClients === "boolean"
+          ? metadata.isAcceptingClients
+          : true,
+      createdAt: readString(listing.createdAt) ?? new Date().toISOString(),
+      updatedAt: readString(listing.updatedAt) ?? new Date().toISOString(),
+    });
+  }
+
+  return { listings: results, total, page, limit };
+}
+
+function readHomepagePlanTier(workspace: ConvexDoc): "free" | "pro" {
+  const selectedTier = workspace.planTier === "pro" ? "pro" : "free";
+  const isActiveSubscription =
+    workspace.subscriptionStatus === "active" ||
+    workspace.subscriptionStatus === "trialing";
+
+  return selectedTier === "pro" && isActiveSubscription ? "pro" : "free";
+}
+
+function mapHomepageAttributes(attributes: Record<string, unknown>) {
+  const result: HomepageFeaturedProviderResult["attributes"] = {};
+  const insurances = readStringArray(attributes.insurances);
+  const languages = readStringArray(attributes.languages);
+  const agesServed = asRecord(attributes.ages_served);
+  const minAge = typeof agesServed.min === "number" ? agesServed.min : undefined;
+  const maxAge = typeof agesServed.max === "number" ? agesServed.max : undefined;
+
+  if (insurances.length > 0) {
+    result.insurances = insurances;
+  }
+
+  if (languages.length > 0) {
+    result.languages = languages;
+  }
+
+  if (minAge !== undefined || maxAge !== undefined) {
+    result.ages_served = {
+      ...(minAge !== undefined ? { min: minAge } : {}),
+      ...(maxAge !== undefined ? { max: maxAge } : {}),
+    };
+  }
+
+  return result;
+}
+
+export const searchProviders = query({
+  args: {
+    filters: v.optional(searchFiltersValidator),
+    options: v.optional(searchOptionsValidator),
+  },
+  handler: async (ctx, args) => {
+    return searchProvidersInternal(
+      ctx,
+      args.filters as SearchFilters | undefined,
+      args.options as SearchOptions | undefined,
+    );
+  },
+});
+
+export const getStateProviders = query({
+  args: {
+    state: v.string(),
+    options: v.optional(searchOptionsValidator),
+  },
+  handler: async (ctx, args) => {
+    return searchProvidersInternal(
+      ctx,
+      { state: args.state },
+      args.options as SearchOptions | undefined,
+    );
+  },
+});
+
+export const getHomepageFeaturedProviders = query({
+  args: { limit: v.optional(v.number()) },
+  handler: async (ctx, args) => {
+    const published = await ctx.db
+      .query("listings")
+      .withIndex("by_status", (q) => q.eq("status", "published"))
+      .collect();
+    const max = args.limit ?? 6;
+
+    const workspaceIds = [...new Set(published.map((listing) => String(listing.workspaceId)))];
+    const workspaceResults = await Promise.all(
+      workspaceIds.map((id) => ctx.db.get(asId<"workspaces">(id))),
+    );
+    const workspaceMap = new Map(
+      workspaceResults.flatMap((workspace) =>
+        workspace ? [[String(workspace._id), workspace]] : [],
+      ),
+    );
+
+    const visibleListings = published
+      .filter((listing) => {
+        const workspace = workspaceMap.get(String(listing.workspaceId));
+        return Boolean(workspace);
+      })
+      .sort((left, right) => {
+        const leftWorkspace = workspaceMap.get(String(left.workspaceId));
+        const rightWorkspace = workspaceMap.get(String(right.workspaceId));
+        const leftPriority = leftWorkspace && readHomepagePlanTier(leftWorkspace) === "pro" ? 0 : 1;
+        const rightPriority = rightWorkspace && readHomepagePlanTier(rightWorkspace) === "pro" ? 0 : 1;
+
+        if (leftPriority !== rightPriority) {
+          return leftPriority - rightPriority;
+        }
+
+        const leftCreatedAt = new Date(readString(left.createdAt) ?? "1970-01-01T00:00:00.000Z").getTime();
+        const rightCreatedAt = new Date(readString(right.createdAt) ?? "1970-01-01T00:00:00.000Z").getTime();
+
+        return rightCreatedAt - leftCreatedAt;
+      })
+      .slice(0, max);
+
+    const results: HomepageFeaturedProviderResult[] = [];
+    for (const listing of visibleListings) {
+      const workspace = workspaceMap.get(String(listing.workspaceId));
+      if (!workspace) continue;
+      const metadata = asRecord(listing.metadata);
+      const [locations, attributes, media] = await Promise.all([
+        getLocationsForListing(ctx, listing._id),
+        getListingAttributesForListing(ctx, listing._id),
+        getListingMedia(ctx, listing._id),
+      ]);
+      const primaryLocation = locations.find((location) => location.isPrimary) ?? locations[0] ?? null;
+
+      results.push({
+        id: listing._id,
+        slug: readString(listing.slug) ?? "",
+        headline: readString(metadata.headline),
+        summary: readString(metadata.summary),
+        serviceModes: readStringArray(metadata.serviceModes),
+        isAcceptingClients: readBoolean(metadata.isAcceptingClients, true),
+        logoUrl: media.logoUrl ?? readString(metadata.logoUrl),
+        profile: {
+          agencyName: readString(workspace.agencyName) ?? "",
+          planTier: readHomepagePlanTier(workspace),
+        },
+        primaryLocation: primaryLocation
+          ? {
+              city: primaryLocation.city,
+              state: primaryLocation.state,
+            }
+          : null,
+        attributes: mapHomepageAttributes(attributes),
+      });
+    }
+
+    return results;
+  },
+});
+
+export const getProviderCountByState = query({
+  args: {},
+  handler: async (ctx) => {
+    const published = await ctx.db
+      .query("listings")
+      .withIndex("by_status", (q) => q.eq("status", "published"))
+      .collect();
+    const locationGroups = await Promise.all(
+      published.map((listing) =>
+        ctx.db
+          .query("locations")
+          .withIndex("by_listing", (q) => q.eq("listingId", listing._id))
+          .collect(),
+      ),
+    );
+    const allLocations = locationGroups.flat();
+    const counts: Record<string, number> = {};
+    const seenWorkspaces = new Set<string>();
+
+    for (const loc of allLocations) {
+      const meta = asRecord(loc.metadata);
+      const state = readString(meta.state);
+      const ws = String(loc.workspaceId);
+      const key = `${state}-${ws}`;
+      if (state && !seenWorkspaces.has(key)) {
+        seenWorkspaces.add(key);
+        counts[state] = (counts[state] ?? 0) + 1;
+      }
+    }
+
+    return counts;
+  },
+});
+
+async function buildLocationSearchResults(
+  ctx: ConvexCtx,
+  filters?: Record<string, unknown>,
+  options?: Record<string, unknown>,
+) {
+  const publishedListings = await ctx.db
+    .query("listings")
+    .withIndex("by_status", (q) => q.eq("status", "published"))
+    .collect();
+  const locationGroups = await Promise.all(
+    publishedListings.map((listing) =>
+      ctx.db
+        .query("locations")
+        .withIndex("by_listing", (q) => q.eq("listingId", listing._id))
+        .collect(),
+    ),
+  );
+  const allLocations = locationGroups.flat();
+  const limit = typeof options?.limit === "number" ? options.limit : 20;
+  const page = typeof options?.page === "number" ? options.page : 1;
+  const offset = (page - 1) * limit;
+  const userLat = typeof filters?.userLat === "number" ? filters.userLat : null;
+  const userLng = typeof filters?.userLng === "number" ? filters.userLng : null;
+  const hasProximitySearch = userLat !== null && userLng !== null;
+  const radiusMiles =
+    typeof filters?.radiusMiles === "number" && filters.radiusMiles > 0
+      ? filters.radiusMiles
+      : 25;
+  const queryLower = normalizeSearchText(filters?.query);
+  const serviceTypeFilters = Array.isArray(filters?.serviceTypes)
+    ? filters.serviceTypes.filter((item): item is string => typeof item === "string")
+    : [];
+  const insuranceFilters = Array.isArray(filters?.insurances)
+    ? filters.insurances.filter((item): item is string => typeof item === "string")
+    : [];
+  const languageFilters = Array.isArray(filters?.languages)
+    ? filters.languages.filter((item): item is string => typeof item === "string")
+    : [];
+  const acceptingClients =
+    typeof filters?.acceptingClients === "boolean"
+      ? filters.acceptingClients
+      : null;
+
+  const prelimFiltered = allLocations.filter((loc: ConvexDoc) => {
+    const meta = asRecord(loc.metadata);
+    if (!matchesStateOrCity(readString(meta.state), filters?.state)) {
+      return false;
+    }
+    if (!matchesStateOrCity(readString(meta.city), filters?.city)) {
+      return false;
+    }
+    if (!hasAnyOverlap(readStringArray(meta.serviceTypes), serviceTypeFilters)) {
+      return false;
+    }
+    if (!hasAnyOverlap(readStringArray(meta.insurances), insuranceFilters)) {
+      return false;
+    }
+    return Boolean(readString(loc.listingId));
+  });
+
+  // Batch-fetch listings and workspaces before final filtering so listing-level
+  // fields like language, accepting-clients, and query text can participate.
+  const listingIds = [
+    ...new Set(prelimFiltered.map((loc) => String(loc.listingId)).filter(Boolean)),
+  ];
+  const listingResults = await Promise.all(
+    listingIds.map((id) => ctx.db.get(asId<"listings">(id))),
+  );
+  const listingMap = new Map(
+    listingResults.flatMap((listing) =>
+      listing && listing.status === "published" ? [[listing._id, listing]] : [],
+    ),
+  );
+
+  const workspaceIds = [...new Set(
+    [...listingMap.values()].map((l) => String(l.workspaceId)),
+  )];
+  const wsResults = await Promise.all(
+    workspaceIds.map((id) => ctx.db.get(asId<"workspaces">(id))),
+  );
+  const wsMap = new Map(
+    wsResults.flatMap((workspace) =>
+      workspace ? [[workspace._id, workspace]] : [],
+    ),
+  );
+
+  // Count locations per listing for otherLocationsCount
+  const locCountByListing = new Map<string, number>();
+  for (const loc of allLocations) {
+    const lid = String(loc.listingId);
+    locCountByListing.set(lid, (locCountByListing.get(lid) ?? 0) + 1);
+  }
+
+  const locations: LocationSearchResultEntry[] = [];
+  for (const loc of prelimFiltered) {
+    const listing = listingMap.get(asId<"listings">(loc.listingId));
+    if (!listing) continue;
+    const workspace = wsMap.get(listing.workspaceId);
+    if (!workspace) continue;
+
+    const meta = asRecord(loc.metadata);
+    const listingMeta = asRecord(listing.metadata);
+    const attributes = await getListingAttributesForListing(ctx, listing._id);
+    const languages = readStringArray(attributes.languages);
+    const serviceRadiusMiles = readNumber(meta.serviceRadiusMiles, 25);
+    const latitude = typeof meta.latitude === "number" ? meta.latitude : null;
+    const longitude = typeof meta.longitude === "number" ? meta.longitude : null;
+    const distanceMiles =
+      hasProximitySearch && latitude !== null && longitude !== null
+        ? calculateDistanceMiles(userLat, userLng, latitude, longitude)
+        : undefined;
+    const locationServiceTypes = readStringArray(meta.serviceTypes);
+    const hasInHomeService = locationServiceTypes.includes("in_home");
+    const isCenterOnly =
+      (locationServiceTypes.includes("in_center") ||
+        locationServiceTypes.includes("school_based")) &&
+      !hasInHomeService;
+    const isWithinServiceRadius =
+      isCenterOnly ||
+      (typeof distanceMiles === "number" && distanceMiles <= serviceRadiusMiles);
+    const agencyName = readString(workspace.agencyName) ?? "";
+    const headline = readString(listingMeta.headline);
+    const summary = readString(listingMeta.summary);
+    const city = readString(meta.city) ?? "";
+    const state = readString(meta.state) ?? "";
+    const isAcceptingClients = readBoolean(listingMeta.isAcceptingClients, true);
+
+    if (acceptingClients !== null && isAcceptingClients !== acceptingClients) {
+      continue;
+    }
+
+    if (!hasAnyOverlap(languages, languageFilters)) {
+      continue;
+    }
+
+    if (queryLower) {
+      const haystack = [agencyName, headline, summary, city, state]
+        .map((value) => normalizeSearchText(value))
+        .join(" ");
+      if (!haystack.includes(queryLower)) {
+        continue;
+      }
+    }
+
+    if (
+      hasProximitySearch &&
+      typeof filters?.radiusMiles === "number" &&
+      (typeof distanceMiles !== "number" || distanceMiles > radiusMiles)
+    ) {
+      continue;
+    }
+
+    locations.push({
+      locationId: loc._id,
+      city,
+      state,
+      street: readString(meta.street),
+      postalCode: readString(meta.postalCode),
+      serviceTypes: locationServiceTypes,
+      insurances: readStringArray(meta.insurances),
+      serviceRadiusMiles,
+      isPrimary: readBoolean(meta.isPrimary),
+      latitude,
+      longitude,
+      googlePlaceId: readString(meta.googlePlaceId),
+      googleRating: typeof meta.googleRating === "number" ? meta.googleRating : null,
+      googleRatingCount: typeof meta.googleRatingCount === "number" ? meta.googleRatingCount : null,
+      listingId: listing._id,
+      slug: readString(listing.slug) ?? "",
+      headline,
+      summary,
+      isAcceptingClients,
+      logoUrl: readString(listingMeta.logoUrl),
+      agencyName,
+      planTier: readString(workspace.planTier) ?? "free",
+      otherLocationsCount: Math.max(0, (locCountByListing.get(String(loc.listingId)) ?? 1) - 1),
+      isFeatured: readBoolean(meta.isFeatured),
+      distanceMiles,
+      isWithinServiceRadius,
+    });
+  }
+
+  locations.sort((left, right) =>
+    sortCombinedSearchResults(
+      {
+        ...left,
+        isPrePopulated: false,
+        section: left.isFeatured
+          ? "featured"
+          : left.isWithinServiceRadius
+            ? "nearby"
+            : "other",
+      },
+      {
+        ...right,
+        isPrePopulated: false,
+        section: right.isFeatured
+          ? "featured"
+          : right.isWithinServiceRadius
+            ? "nearby"
+            : "other",
+      },
+    ),
+  );
+
+  const total = locations.length;
+  const totalPages = Math.ceil(total / limit);
+  const pageItems = locations.slice(offset, offset + limit);
+
+  return {
+    locations: pageItems,
+    total,
+    page,
+    totalPages,
+    hasMore: page < totalPages,
+    radiusMiles,
+  };
+}
+
+export const searchProviderLocations = query({
+  args: {
+    filters: v.optional(searchFiltersValidator),
+    options: v.optional(searchOptionsValidator),
+  },
+  handler: async (ctx, args) => {
+    return buildLocationSearchResults(
+      ctx,
+      args.filters as Record<string, unknown> | undefined,
+      args.options as Record<string, unknown> | undefined,
+    );
+  },
+});
+
+/**
+ * Combined location search that matches the `CombinedLocationSearchResult` shape
+ * expected by the search page:
+ *   { results, realListingsCount, googlePlacesCount, total, page, totalPages,
+ *     hasMore, featuredCount, nearbyCount, otherCount, radiusMiles }
+ *
+ * The `results` array contains items tagged with `isPrePopulated` and `section`.
+ */
+export const searchProviderLocationsWithGooglePlaces = query({
+  args: {
+    filters: v.optional(searchFiltersValidator),
+    options: v.optional(searchOptionsValidator),
+  },
+  handler: async (ctx, args) => {
+    const raw = await buildLocationSearchResults(
+      ctx,
+      args.filters as Record<string, unknown> | undefined,
+      args.options as Record<string, unknown> | undefined,
+    );
+
+    const filters = args.filters as SearchFilters | undefined;
+    const radiusMiles = raw.radiusMiles ?? 25;
+    const offset =
+      ((typeof args.options?.page === "number" ? args.options.page : 1) - 1) *
+      (typeof args.options?.limit === "number" ? args.options.limit : 20);
+    const googlePlaces = await searchGooglePlacesListingsInternal(ctx, {
+      state: filters?.state,
+      city: filters?.city,
+      limit: typeof args.options?.limit === "number" ? args.options.limit : 20,
+      offset,
+    });
+
+    const queryLower = normalizeSearchText(filters?.query);
+    const hasProximitySearch =
+      typeof filters?.userLat === "number" && typeof filters?.userLng === "number";
+
+    const realResults = raw.locations.map((loc) => ({
+      ...loc,
+      isPrePopulated: false as const,
+      section: (
+        loc.isFeatured
+          ? "featured"
+          : loc.isWithinServiceRadius
+            ? "nearby"
+            : "other"
+      ) as "featured" | "nearby" | "other",
+    }));
+
+    const googleResults = googlePlaces.listings
+      .map((listing: ReturnType<typeof mapGooglePlacesPayload>) => {
+        const distanceMiles =
+          hasProximitySearch &&
+          typeof listing.latitude === "number" &&
+          typeof listing.longitude === "number" &&
+          typeof filters?.userLat === "number" &&
+          typeof filters?.userLng === "number"
+            ? calculateDistanceMiles(
+                filters.userLat,
+                filters.userLng,
+                listing.latitude,
+                listing.longitude,
+              )
+            : undefined;
+
+        return {
+          id: listing.id,
+          slug: listing.slug,
+          name: listing.name,
+          city: listing.city,
+          state: listing.state,
+          street: listing.street,
+          postalCode: listing.postal_code,
+          latitude: listing.latitude,
+          longitude: listing.longitude,
+          phone: listing.phone,
+          website: listing.website,
+          googleRating: listing.google_rating,
+          googleRatingCount: listing.google_rating_count,
+          distanceMiles,
+          isPrePopulated: true as const,
+          section: (
+            !hasProximitySearch ||
+            typeof distanceMiles !== "number" ||
+            distanceMiles <= radiusMiles
+              ? "nearby"
+              : "other"
+          ) as "featured" | "nearby" | "other",
+        };
+      })
+      .filter((listing: GooglePlacesSearchResultEntry) => {
+        if (!queryLower) {
+          return true;
+        }
+
+        const haystack = [listing.name, listing.city, listing.state]
+          .map((value) => normalizeSearchText(value))
+          .join(" ");
+        return haystack.includes(queryLower);
+      })
+      .filter((listing: GooglePlacesSearchResultEntry) =>
+        !hasProximitySearch || typeof filters?.radiusMiles !== "number"
+          ? true
+          : typeof listing.distanceMiles === "number" &&
+            listing.distanceMiles <= radiusMiles,
+      );
+
+    const results = [...realResults, ...googleResults].sort(sortCombinedSearchResults);
+    const featuredCount = results.filter((r) => r.section === "featured").length;
+    const nearbyCount = results.filter((r) => r.section === "nearby").length;
+    const otherCount = results.filter((r) => r.section === "other").length;
+
+    return {
+      results,
+      realListingsCount: realResults.length,
+      googlePlacesCount: googleResults.length,
+      total: raw.total + googleResults.length,
+      page: raw.page,
+      totalPages: Math.max(
+        raw.totalPages,
+        Math.ceil((raw.total + googleResults.length) /
+          (typeof args.options?.limit === "number" ? args.options.limit : 20)),
+      ),
+      hasMore:
+        raw.hasMore ||
+        raw.page <
+          Math.ceil((raw.total + googleResults.length) /
+            (typeof args.options?.limit === "number" ? args.options.limit : 20)),
+      featuredCount,
+      nearbyCount,
+      otherCount,
+      radiusMiles,
+    };
   },
 });

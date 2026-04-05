@@ -24,12 +24,6 @@ import { AlsoIncludedBadge } from "@/components/marketing/also-included-badge";
 import { cn } from "@/lib/utils";
 import { PLAN_CONFIGS } from "@/lib/plans/features";
 
-const stats = [
-  { value: "50K+", label: "Monthly searches", icon: Search },
-  { value: "500+", label: "Listed providers", icon: Users },
-  { value: "89%", label: "Find a match", icon: Check },
-];
-
 const features = [
   {
     icon: Search,
@@ -720,7 +714,7 @@ export default function GetListedPage() {
                 color: "bg-emerald-500/10",
                 iconColor: "text-emerald-600",
               },
-            ].map((item, index) => (
+            ].map((item) => (
               <div key={item.step} className="group text-center">
                 <div className="relative mx-auto mb-4">
                   <div className={cn(

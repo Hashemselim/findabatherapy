@@ -22,6 +22,10 @@ vi.mock("@/lib/onboarding-preview", () => ({
   isDevOnboardingPreviewEnabled: vi.fn(() => false),
 }));
 
+vi.mock("@/lib/platform/config", () => ({
+  isConvexDataEnabled: vi.fn(() => false),
+}));
+
 vi.mock("@/lib/supabase/server", () => ({
   createClient,
   getCurrentProfileId,

@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { isPublicProfileVisible } from "@/lib/public-visibility";
 import { STORAGE_BUCKETS } from "@/lib/storage/config";
 import { isConvexDataEnabled } from "@/lib/platform/config";
-import { queryConvex, mutateConvex } from "@/lib/platform/convex/server";
+import { queryConvex } from "@/lib/platform/convex/server";
 
 type ActionResult<T = void> =
   | { success: true; data: T }
@@ -119,6 +119,18 @@ export async function getProviderWebsiteData(
       const profile = listing.profile as Record<string, unknown> | undefined;
       const locations = (listing.locations as Record<string, unknown>[] | undefined) || [];
       const intakeSettings = (profile?.intakeFormSettings as Record<string, unknown>) || {};
+      const websiteSettings =
+        (listing.websiteSettings as Partial<WebsiteSettings> | undefined) ??
+        DEFAULT_WEBSITE_SETTINGS;
+      const jobCount = (
+        await queryConvex<Array<{ id: string }>>("jobs:getPublicJobsByProvider", {
+          providerSlug: slug,
+        })
+      ).length;
+      const customDomain = listing.customDomain as
+        | { domain?: string; status?: string }
+        | null
+        | undefined;
 
       return {
         success: true,
@@ -132,8 +144,15 @@ export async function getProviderWebsiteData(
           isAcceptingClients: (listing.isAcceptingClients as boolean) ?? false,
           logoUrl: (listing.logoUrl as string) ?? null,
           videoUrl: (listing.videoUrl as string) ?? null,
-          websitePublished: true,
-          websiteSettings: DEFAULT_WEBSITE_SETTINGS,
+          websitePublished: (listing.websitePublished as boolean) ?? true,
+          websiteSettings: {
+            ...DEFAULT_WEBSITE_SETTINGS,
+            ...websiteSettings,
+            sections_order:
+              websiteSettings.sections_order && websiteSettings.sections_order.length > 0
+                ? websiteSettings.sections_order
+                : DEFAULT_WEBSITE_SETTINGS.sections_order,
+          },
           profile: {
             agencyName: (profile?.agencyName as string) ?? "",
             contactEmail: (profile?.contactEmail as string) ?? "",
@@ -171,8 +190,14 @@ export async function getProviderWebsiteData(
           })),
           attributes: (listing.attributes as Record<string, unknown>) || {},
           photoUrls: (listing.photoUrls as string[]) || [],
-          jobCount: 0,
-          customDomain: null,
+          jobCount,
+          customDomain:
+            customDomain?.domain && customDomain?.status
+              ? {
+                  domain: customDomain.domain,
+                  status: customDomain.status,
+                }
+              : null,
         },
       };
     } catch (err) {
@@ -270,14 +295,6 @@ export async function getProviderWebsiteData(
       .select("id", { count: "exact", head: true })
       .eq("profile_id", profile.id)
       .eq("status", "published"),
-    // TODO: Uncomment once migration 054 creates custom_domains table
-    // supabase
-    //   .from("custom_domains")
-    //   .select("domain, status")
-    //   .eq("listing_id", listing.id)
-    //   .in("status", ["active", "pending_dns", "verifying"])
-    //   .limit(1)
-    //   .maybeSingle(),
     Promise.resolve({ data: null }),
   ]);
 
@@ -303,9 +320,6 @@ export async function getProviderWebsiteData(
   }
 
   const intakeSettings = profile.intake_form_settings || null;
-  // TODO: Once migration 054 is applied, read these from listing columns:
-  // const rawSettings = listing.website_settings as Partial<WebsiteSettings> | null;
-  // const websitePublished = listing.website_published ?? false;
   const rawSettings: Partial<WebsiteSettings> | null = null;
   const websiteSettings: WebsiteSettings = {
     ...DEFAULT_WEBSITE_SETTINGS,
@@ -324,7 +338,7 @@ export async function getProviderWebsiteData(
       isAcceptingClients: listing.is_accepting_clients,
       logoUrl: listing.logo_url ?? null,
       videoUrl: listing.video_url ?? null,
-      websitePublished: true, // TODO: read from listing.website_published once migration is applied
+      websitePublished: true,
       websiteSettings,
       profile: {
         agencyName: profile.agency_name,

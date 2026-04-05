@@ -1,9 +1,9 @@
 "use server";
 
+import { isConvexDataEnabled } from "@/lib/platform/config";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 
-import { createClient, getCurrentMembership, getCurrentProfileId, getProfile, getUser } from "@/lib/supabase/server";
 import { calculateDistance } from "@/lib/geo/distance";
 import { type AgencyBrandingData } from "@/lib/email/email-helpers";
 import { guardReferralTracking } from "@/lib/plans/guards";
@@ -455,6 +455,7 @@ async function getSiteOrigin() {
 }
 
 async function getAgencyReferralContext(profileId: string): Promise<AgencyReferralContext> {
+  const { createClient, getProfile } = await import("@/lib/supabase/server");
   const supabase = await createClient();
   const profile = await getProfile();
   const { data: listing } = await supabase
@@ -488,6 +489,7 @@ async function getAgencyReferralContext(profileId: string): Promise<AgencyReferr
 }
 
 async function getAuthedContext() {
+  const { createClient, getCurrentMembership, getCurrentProfileId, getUser } = await import("@/lib/supabase/server");
   const [user, profileId, membership] = await Promise.all([
     getUser(),
     getCurrentProfileId(),
@@ -521,6 +523,7 @@ async function getPaidAuthedContext(): Promise<PaidAuthedContextResult> {
 }
 
 async function ensureDefaultReferralTemplates(profileId: string) {
+  const { createClient } = await import("@/lib/supabase/server");
   const supabase = await createClient();
   const { data: existing } = await supabase
     .from("referral_templates")
@@ -854,6 +857,17 @@ async function getReferralRecipient(sourceId: string, contactId?: string | null)
 }
 
 export async function getReferralOverview(): Promise<ActionResult<ReferralOverview>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvex } = await import("@/lib/platform/convex/server");
+      const result = await queryConvex<ReferralOverview>("referrals:getReferralOverview", {});
+      return { success: true, data: result };
+    } catch (error) {
+      console.error("[REFERRALS] Convex getReferralOverview error:", error);
+      return { success: false, error: "Failed to load referral overview" };
+    }
+  }
+
   const ctxResult = await getPaidAuthedContext();
   if (!ctxResult.success) return { success: false, error: ctxResult.error };
   const ctx = ctxResult.data;
@@ -925,6 +939,21 @@ export async function listReferralSources(filters?: {
   onlyReachable?: boolean;
   onlyReady?: boolean;
 }, page: number = 1, pageSize: number = 50): Promise<ActionResult<{ sources: ReferralSourceListItem[]; total: number }>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvex } = await import("@/lib/platform/convex/server");
+      const result = await queryConvex<{ sources: ReferralSourceListItem[]; total: number }>("referrals:listReferralSources", {
+        filters: filters || null,
+        page,
+        pageSize,
+      });
+      return { success: true, data: result };
+    } catch (error) {
+      console.error("[REFERRALS] Convex listReferralSources error:", error);
+      return { success: false, error: "Failed to load referral sources" };
+    }
+  }
+
   const ctxResult = await getPaidAuthedContext();
   if (!ctxResult.success) return { success: false, error: ctxResult.error };
   const ctx = ctxResult.data;
@@ -967,6 +996,17 @@ export async function listReferralSources(filters?: {
 }
 
 export async function getReferralSourceDetail(sourceId: string): Promise<ActionResult<ReferralSourceDetail>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvex } = await import("@/lib/platform/convex/server");
+      const result = await queryConvex<ReferralSourceDetail>("referrals:getReferralSourceDetail", { sourceId });
+      return { success: true, data: result };
+    } catch (error) {
+      console.error("[REFERRALS] Convex getReferralSourceDetail error:", error);
+      return { success: false, error: "Referral source not found" };
+    }
+  }
+
   const ctxResult = await getPaidAuthedContext();
   if (!ctxResult.success) return { success: false, error: ctxResult.error };
   const ctx = ctxResult.data;
@@ -1032,6 +1072,20 @@ export async function getReferralSourceDetail(sourceId: string): Promise<ActionR
 }
 
 export async function saveReferralSource(input: ReferralSourceInput, sourceId?: string): Promise<ActionResult<{ id: string }>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { mutateConvex } = await import("@/lib/platform/convex/server");
+      const result = await mutateConvex<{ id: string }>("referrals:saveReferralSource", { input, sourceId: sourceId || null });
+      revalidatePath("/dashboard/referrals");
+      revalidatePath("/dashboard/referrals/sources");
+      if (result.id) revalidatePath(`/dashboard/referrals/sources/${result.id}`);
+      return { success: true, data: result };
+    } catch (error) {
+      console.error("[REFERRALS] Convex saveReferralSource error:", error);
+      return { success: false, error: "Failed to save referral source" };
+    }
+  }
+
   const ctxResult = await getPaidAuthedContext();
   if (!ctxResult.success) return { success: false, error: ctxResult.error };
   const ctx = ctxResult.data;
@@ -1112,6 +1166,20 @@ export async function saveReferralSource(input: ReferralSourceInput, sourceId?: 
 }
 
 export async function updateReferralSourceStage(sourceId: string, stage: ReferralSourceStage): Promise<ActionResult> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { mutateConvex } = await import("@/lib/platform/convex/server");
+      await mutateConvex("referrals:updateReferralSourceStage", { sourceId, stage });
+      revalidatePath("/dashboard/referrals");
+      revalidatePath("/dashboard/referrals/sources");
+      revalidatePath(`/dashboard/referrals/sources/${sourceId}`);
+      return { success: true };
+    } catch (error) {
+      console.error("[REFERRALS] Convex updateReferralSourceStage error:", error);
+      return { success: false, error: "Failed to update stage" };
+    }
+  }
+
   const ctxResult = await getPaidAuthedContext();
   if (!ctxResult.success) return { success: false, error: ctxResult.error };
   const ctx = ctxResult.data;
@@ -1134,6 +1202,18 @@ export async function updateReferralSourceStage(sourceId: string, stage: Referra
 }
 
 export async function saveReferralContact(input: ReferralContactInput, contactId?: string): Promise<ActionResult<{ id: string }>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { mutateConvex } = await import("@/lib/platform/convex/server");
+      const result = await mutateConvex<{ id: string }>("referrals:saveReferralContact", { input, contactId: contactId || null });
+      revalidatePath(`/dashboard/referrals/sources/${input.sourceId}`);
+      return { success: true, data: result };
+    } catch (error) {
+      console.error("[REFERRALS] Convex saveReferralContact error:", error);
+      return { success: false, error: "Failed to save contact" };
+    }
+  }
+
   const ctxResult = await getPaidAuthedContext();
   if (!ctxResult.success) return { success: false, error: ctxResult.error };
   const ctx = ctxResult.data;
@@ -1182,6 +1262,18 @@ export async function saveReferralContact(input: ReferralContactInput, contactId
 }
 
 export async function addReferralNote(input: ReferralNoteInput): Promise<ActionResult<{ id: string }>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { mutateConvex } = await import("@/lib/platform/convex/server");
+      const result = await mutateConvex<{ id: string }>("referrals:addReferralNote", { input });
+      revalidatePath(`/dashboard/referrals/sources/${input.sourceId}`);
+      return { success: true, data: result };
+    } catch (error) {
+      console.error("[REFERRALS] Convex addReferralNote error:", error);
+      return { success: false, error: "Failed to save note" };
+    }
+  }
+
   const ctxResult = await getPaidAuthedContext();
   if (!ctxResult.success) return { success: false, error: ctxResult.error };
   const ctx = ctxResult.data;
@@ -1216,6 +1308,19 @@ export async function addReferralNote(input: ReferralNoteInput): Promise<ActionR
 }
 
 export async function saveReferralTask(input: ReferralTaskInput, taskId?: string): Promise<ActionResult<{ id: string }>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { mutateConvex } = await import("@/lib/platform/convex/server");
+      const result = await mutateConvex<{ id: string }>("referrals:saveReferralTask", { input, taskId: taskId || null });
+      revalidatePath("/dashboard/referrals");
+      revalidatePath(`/dashboard/referrals/sources/${input.sourceId}`);
+      return { success: true, data: result };
+    } catch (error) {
+      console.error("[REFERRALS] Convex saveReferralTask error:", error);
+      return { success: false, error: "Failed to save task" };
+    }
+  }
+
   const ctxResult = await getPaidAuthedContext();
   if (!ctxResult.success) return { success: false, error: ctxResult.error };
   const ctx = ctxResult.data;
@@ -1269,6 +1374,18 @@ export async function saveReferralTask(input: ReferralTaskInput, taskId?: string
 }
 
 export async function updateReferralTaskStatus(taskId: string, status: "pending" | "in_progress" | "completed"): Promise<ActionResult> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { mutateConvex } = await import("@/lib/platform/convex/server");
+      await mutateConvex("referrals:updateReferralTaskStatus", { taskId, status });
+      revalidatePath("/dashboard/referrals");
+      return { success: true };
+    } catch (error) {
+      console.error("[REFERRALS] Convex updateReferralTaskStatus error:", error);
+      return { success: false, error: "Failed to update task" };
+    }
+  }
+
   const ctxResult = await getPaidAuthedContext();
   if (!ctxResult.success) return { success: false, error: ctxResult.error };
   const ctx = ctxResult.data;
@@ -1299,6 +1416,18 @@ export async function updateReferralTaskStatus(taskId: string, status: "pending"
 }
 
 export async function logReferralTouchpoint(input: ReferralTouchpointInput): Promise<ActionResult<{ id: string }>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { mutateConvex } = await import("@/lib/platform/convex/server");
+      const result = await mutateConvex<{ id: string }>("referrals:logReferralTouchpoint", { input });
+      revalidatePath(`/dashboard/referrals/sources/${input.sourceId}`);
+      return { success: true, data: result };
+    } catch (error) {
+      console.error("[REFERRALS] Convex logReferralTouchpoint error:", error);
+      return { success: false, error: "Failed to save touchpoint" };
+    }
+  }
+
   const ctxResult = await getPaidAuthedContext();
   if (!ctxResult.success) return { success: false, error: ctxResult.error };
   const ctx = ctxResult.data;
@@ -1344,6 +1473,17 @@ export async function logReferralTouchpoint(input: ReferralTouchpointInput): Pro
 }
 
 export async function getReferralTemplates(): Promise<ActionResult<ReferralTemplate[]>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvex } = await import("@/lib/platform/convex/server");
+      const result = await queryConvex<ReferralTemplate[]>("referrals:getReferralTemplates", {});
+      return { success: true, data: result };
+    } catch (error) {
+      console.error("[REFERRALS] Convex getReferralTemplates error:", error);
+      return { success: false, error: "Failed to load templates" };
+    }
+  }
+
   const ctxResult = await getPaidAuthedContext();
   if (!ctxResult.success) return { success: false, error: ctxResult.error };
   const ctx = ctxResult.data;
@@ -1367,6 +1507,20 @@ export async function getReferralTemplates(): Promise<ActionResult<ReferralTempl
 }
 
 export async function saveReferralTemplate(input: ReferralTemplateInput, templateId?: string): Promise<ActionResult<{ id: string }>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { mutateConvex } = await import("@/lib/platform/convex/server");
+      const result = await mutateConvex<{ id: string }>("referrals:saveReferralTemplate", { input, templateId: templateId || null });
+      revalidatePath("/dashboard/referrals/campaigns");
+      revalidatePath("/dashboard/referrals/settings");
+      revalidatePath("/dashboard/referrals/sources");
+      return { success: true, data: result };
+    } catch (error) {
+      console.error("[REFERRALS] Convex saveReferralTemplate error:", error);
+      return { success: false, error: "Failed to save template" };
+    }
+  }
+
   const ctxResult = await getPaidAuthedContext();
   if (!ctxResult.success) return { success: false, error: ctxResult.error };
   const ctx = ctxResult.data;
@@ -1413,6 +1567,17 @@ export async function saveReferralTemplate(input: ReferralTemplateInput, templat
 }
 
 export async function getReferralCampaigns(): Promise<ActionResult<ReferralCampaign[]>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvex } = await import("@/lib/platform/convex/server");
+      const result = await queryConvex<ReferralCampaign[]>("referrals:getReferralCampaigns", {});
+      return { success: true, data: result };
+    } catch (error) {
+      console.error("[REFERRALS] Convex getReferralCampaigns error:", error);
+      return { success: false, error: "Failed to load campaigns" };
+    }
+  }
+
   const ctxResult = await getPaidAuthedContext();
   if (!ctxResult.success) return { success: false, error: ctxResult.error };
   const ctx = ctxResult.data;
@@ -1429,6 +1594,17 @@ export async function getReferralCampaigns(): Promise<ActionResult<ReferralCampa
 }
 
 export async function getReferralImportJobs(): Promise<ActionResult<ReferralImportJob[]>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvex } = await import("@/lib/platform/convex/server");
+      const result = await queryConvex<ReferralImportJob[]>("referrals:getReferralImportJobs", {});
+      return { success: true, data: result };
+    } catch (error) {
+      console.error("[REFERRALS] Convex getReferralImportJobs error:", error);
+      return { success: false, error: "Failed to load import jobs" };
+    }
+  }
+
   const ctxResult = await getPaidAuthedContext();
   if (!ctxResult.success) return { success: false, error: ctxResult.error };
   const ctx = ctxResult.data;
@@ -1458,6 +1634,7 @@ async function upsertImportedSource(params: {
   rating: number | null;
   ratingCount: number | null;
 }) {
+  const { createClient } = await import("@/lib/supabase/server");
   const supabase = await createClient();
   const scores = scoreSource({
     distanceMiles: params.distanceMiles,
@@ -1534,6 +1711,20 @@ export interface EnrichResult {
 }
 
 export async function enrichReferralSource(sourceId: string): Promise<ActionResult<EnrichResult>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { mutateConvex } = await import("@/lib/platform/convex/server");
+      const result = await mutateConvex<EnrichResult>("referrals:enrichReferralSource", { sourceId });
+      revalidatePath("/dashboard/referrals");
+      revalidatePath("/dashboard/referrals/sources");
+      revalidatePath(`/dashboard/referrals/sources/${sourceId}`);
+      return { success: true, data: result };
+    } catch (error) {
+      console.error("[REFERRALS] Convex enrichReferralSource error:", error);
+      return { success: false, error: "Failed to enrich referral source" };
+    }
+  }
+
   const detailResult = await getReferralSourceDetail(sourceId);
   if (!detailResult.success || !detailResult.data) {
     return { success: false, error: detailResult.success ? "Source not found" : detailResult.error };
@@ -1591,6 +1782,19 @@ export async function enrichReferralSource(sourceId: string): Promise<ActionResu
 }
 
 export async function runReferralImport(input: Parameters<typeof referralImportRequestSchema["parse"]>[0]): Promise<ActionResult<{ jobIds: string[]; discovered: number }>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { mutateConvex } = await import("@/lib/platform/convex/server");
+      const result = await mutateConvex<{ jobIds: string[]; discovered: number }>("referrals:runReferralImport", { input });
+      revalidatePath("/dashboard/referrals");
+      revalidatePath("/dashboard/referrals/sources");
+      return { success: true, data: result };
+    } catch (error) {
+      console.error("[REFERRALS] Convex runReferralImport error:", error);
+      return { success: false, error: "Failed to run import" };
+    }
+  }
+
   const ctxResult = await getPaidAuthedContext();
   if (!ctxResult.success) return { success: false, error: ctxResult.error };
   const ctx = ctxResult.data;
@@ -1826,6 +2030,17 @@ export async function runReferralImport(input: Parameters<typeof referralImportR
 export async function prepareReferralInboxDrafts(
   input: ReferralInboxDraftInput
 ): Promise<ActionResult<{ drafts: ReferralInboxDraft[]; skipped: ReferralInboxDraftSkip[] }>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvex } = await import("@/lib/platform/convex/server");
+      const result = await queryConvex<{ drafts: ReferralInboxDraft[]; skipped: ReferralInboxDraftSkip[] }>("referrals:prepareReferralInboxDrafts", { input });
+      return { success: true, data: result };
+    } catch (error) {
+      console.error("[REFERRALS] Convex prepareReferralInboxDrafts error:", error);
+      return { success: false, error: "Failed to prepare inbox drafts" };
+    }
+  }
+
   const ctxResult = await getPaidAuthedContext();
   if (!ctxResult.success) return { success: false, error: ctxResult.error };
   const ctx = ctxResult.data;

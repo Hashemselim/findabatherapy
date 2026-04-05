@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient as createSupabaseClient, getCurrentProfileId } from "@/lib/supabase/server";
+import { isConvexDataEnabled } from "@/lib/platform/config";
 import { REFERRAL_SOURCE_OPTIONS } from "@/lib/validations/clients";
 
 // =============================================================================
@@ -38,6 +38,19 @@ const SOURCE_LABELS: Record<string, string> = Object.fromEntries(
  * Get referral source analytics for the current user's clients
  */
 export async function getReferralAnalytics(): Promise<ActionResult<ReferralAnalytics>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvex } = await import("@/lib/platform/convex/server");
+      const result = await queryConvex<ReferralAnalytics>("referrals:getReferralAnalytics", {});
+      return { success: true, data: result };
+    } catch (error) {
+      console.error("Convex error:", error);
+      return { success: false, error: "Failed to fetch referral data" };
+    }
+  }
+
+  const { createClient: createSupabaseClient, getCurrentProfileId } = await import("@/lib/supabase/server");
+
   const profileId = await getCurrentProfileId();
   if (!profileId) {
     return { success: false, error: "Not authenticated" };

@@ -10,7 +10,12 @@ test.describe("Find ABA Therapy - Learn Pages", () => {
     await page.goto("/learn");
 
     // Page heading
-    await expect(page.getByRole("heading")).toBeVisible();
+    await expect(
+      page.getByRole("heading", {
+        level: 1,
+        name: /learn about aba therapy/i,
+      })
+    ).toBeVisible();
 
     // Educational content indicators
     await expect(
@@ -57,7 +62,12 @@ test.describe("Find ABA Therapy - Learn Pages", () => {
     await page.goto("/learn/glossary");
 
     // Page heading
-    await expect(page.getByRole("heading")).toBeVisible();
+    await expect(
+      page.getByRole("heading", {
+        level: 1,
+        name: /aba therapy glossary/i,
+      })
+    ).toBeVisible();
 
     // Glossary terms
     await expect(
@@ -80,7 +90,9 @@ test.describe("Find ABA Therapy - FAQ Page", () => {
     await page.goto("/faq");
 
     // Page heading
-    await expect(page.getByRole("heading", { name: /faq|questions|help/i })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { level: 1, name: /aba therapy faq/i })
+    ).toBeVisible();
   });
 
   test("FAQ page has expandable questions", async ({ page }) => {
@@ -132,7 +144,9 @@ test.describe("Find ABA Therapy - Legal Pages", () => {
     await page.goto("/legal/terms");
 
     // Page heading
-    await expect(page.getByRole("heading", { name: /terms/i })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { level: 1, name: /terms of service/i })
+    ).toBeVisible();
 
     // Content sections
     await expect(
@@ -144,7 +158,9 @@ test.describe("Find ABA Therapy - Legal Pages", () => {
     await page.goto("/legal/privacy");
 
     // Page heading
-    await expect(page.getByRole("heading", { name: /privacy/i })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { level: 1, name: /privacy policy/i })
+    ).toBeVisible();
 
     // Content sections
     await expect(
@@ -189,7 +205,12 @@ test.describe("Find ABA Therapy - Get Listed Page", () => {
     await page.goto("/get-listed");
 
     // Page heading
-    await expect(page.getByRole("heading")).toBeVisible();
+    await expect(
+      page.getByRole("heading", {
+        level: 1,
+        name: /get found by families searching for aba care/i,
+      })
+    ).toBeVisible();
   });
 
   test("Get Listed shows pricing plans", async ({ page }) => {
@@ -263,11 +284,21 @@ test.describe("Find ABA Therapy - Get Listed Page", () => {
   test("Get Listed CTA navigates to sign up", async ({ page }) => {
     await page.goto("/get-listed");
 
-    const signUpLink = page.getByRole("link", { name: /get listed|sign up|get started/i }).first();
+    const signUpLink = page.locator('a[href^="/auth/sign-up"]').first();
 
     if (await signUpLink.isVisible()) {
-      await signUpLink.click();
-      await expect(page).toHaveURL(/\/auth\/sign-up/);
+      await Promise.all([
+        page.waitForURL(
+          /\/(?:auth\/sign-up|dashboard\/onboarding|dashboard\/clients\/pipeline)/,
+        {
+          timeout: 15000,
+          waitUntil: "domcontentloaded",
+        }),
+        signUpLink.click(),
+      ]);
+      await expect(page).toHaveURL(
+        /\/(?:auth\/sign-up|dashboard\/onboarding|dashboard\/clients\/pipeline)/,
+      );
     }
   });
 });

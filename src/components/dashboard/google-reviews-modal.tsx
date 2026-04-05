@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useTransition } from "react";
+import { useCallback, useEffect, useState, useTransition } from "react";
 import { Star, Loader2, RefreshCw, Check, MessageSquareQuote } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -48,13 +48,6 @@ export function GoogleReviewsModal({
   const [error, setError] = useState<string | null>(null);
   const [hasChanges, setHasChanges] = useState(false);
 
-  // Load existing reviews when modal opens
-  useEffect(() => {
-    if (open) {
-      loadReviews();
-    }
-  }, [open, locationId]);
-
   // Track changes
   useEffect(() => {
     const currentSelected = new Set(reviews.filter((r) => r.isSelected).map((r) => r.id));
@@ -65,7 +58,7 @@ export function GoogleReviewsModal({
     setHasChanges(hasSelectionChanges || hasToggleChanges);
   }, [selectedIds, showReviews, reviews, initialShowReviews]);
 
-  const loadReviews = async () => {
+  const loadReviews = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     const result = await getGoogleReviews(locationId);
@@ -76,7 +69,14 @@ export function GoogleReviewsModal({
       setError(result.error);
     }
     setIsLoading(false);
-  };
+  }, [locationId]);
+
+  // Load existing reviews when modal opens
+  useEffect(() => {
+    if (open) {
+      void loadReviews();
+    }
+  }, [loadReviews, open]);
 
   const handleFetchReviews = () => {
     startFetching(async () => {

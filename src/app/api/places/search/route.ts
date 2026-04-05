@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { getUser } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/platform/auth/server";
 
 const TEXT_SEARCH_API_URL = "https://places.googleapis.com/v1/places:searchText";
 
@@ -40,7 +40,7 @@ export interface PlacesSearchResult {
 export async function POST(request: NextRequest) {
   try {
     // Require authentication
-    const user = await getUser();
+    const user = await getCurrentUser();
     if (!user) {
       return NextResponse.json(
         { error: "Authentication required" },

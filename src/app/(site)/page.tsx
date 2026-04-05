@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { US_STATES } from "@/lib/data/us-states";
 import { getFeaturedArticles, ARTICLE_CATEGORIES } from "@/lib/content/articles";
-import { getHomepageFeaturedListings } from "@/lib/queries/search";
+import { getHomepageFeaturedProviders } from "@/lib/actions/search";
 import { JsonLd } from "@/components/seo/json-ld";
 import { generateOrganizationSchema, generateWebSiteSchema, generateFAQSchema } from "@/lib/seo/schemas";
 
@@ -83,7 +83,8 @@ const previewRows = [
 const SPONSORED_SECTION_BG = "#FDFAEE";
 
 export default async function HomePage() {
-  const featuredProviders = await getHomepageFeaturedListings(12);
+  const featuredResult = await getHomepageFeaturedProviders(12);
+  const featuredProviders = featuredResult.success ? (featuredResult.data ?? []) : [];
   return (
     <>
       <JsonLd

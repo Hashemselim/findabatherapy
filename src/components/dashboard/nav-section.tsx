@@ -60,7 +60,6 @@ export function NavSectionComponent({
   isDemo = false,
   controlledOpen,
   onToggle,
-  isCurrentBrand = false,
   sectionBadgeCount = 0,
 }: NavSectionProps) {
   // Use internal state if not controlled

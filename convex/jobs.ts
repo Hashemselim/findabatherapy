@@ -1,11 +1,13 @@
-import { mutationGeneric, queryGeneric } from "convex/server";
+import { mutation, query } from "./_generated/server";
 import { ConvexError, v } from "convex/values";
+import type { MutationCtx, QueryCtx } from "./_generated/server";
 
 type Identity = {
   subject: string;
 };
 
 type ConvexDoc = Record<string, unknown> & { _id: string };
+type ConvexCtx = QueryCtx | MutationCtx;
 
 const BASE_JOB_LIMITS = {
   free: 0,
@@ -64,9 +66,7 @@ function getEffectivePlanTier(planTier: unknown, subscriptionStatus: unknown) {
     : "free";
 }
 
-async function requireIdentity(ctx: {
-  auth: { getUserIdentity(): Promise<Identity | null> };
-}) {
+async function requireIdentity(ctx: ConvexCtx) {
   const identity = await ctx.auth.getUserIdentity();
   if (!identity) {
     throw new ConvexError("Not authenticated");
@@ -76,16 +76,7 @@ async function requireIdentity(ctx: {
 }
 
 async function findUserByClerkUserId(
-  ctx: {
-    db: {
-      query(table: "users"): {
-        withIndex(
-          index: "by_clerk_user_id",
-          cb: (q: { eq(field: "clerkUserId", value: string): unknown }) => unknown,
-        ): { collect(): Promise<ConvexDoc[]> };
-      };
-    };
-  },
+  ctx: ConvexCtx,
   clerkUserId: string,
 ) {
   const users = await ctx.db
@@ -96,32 +87,9 @@ async function findUserByClerkUserId(
   return users[0] ?? null;
 }
 
-async function requireCurrentWorkspaceContext(ctx: {
-  auth: { getUserIdentity(): Promise<Identity | null> };
-  db: {
-    get(id: string): Promise<ConvexDoc | null>;
-    query(table: "users"): {
-      withIndex(
-        index: "by_clerk_user_id",
-        cb: (q: { eq(field: "clerkUserId", value: string): unknown }) => unknown,
-      ): { collect(): Promise<ConvexDoc[]> };
-    };
-    query(table: "workspaceMemberships"): {
-      withIndex(
-        index: "by_user",
-        cb: (q: { eq(field: "userId", value: string): unknown }) => unknown,
-      ): { collect(): Promise<ConvexDoc[]> };
-    };
-    query(table: "listings"): {
-      withIndex(
-        index: "by_workspace",
-        cb: (q: { eq(field: "workspaceId", value: string): unknown }) => unknown,
-      ): { collect(): Promise<ConvexDoc[]> };
-    };
-  };
-}) {
+async function requireCurrentWorkspaceContext(ctx: ConvexCtx) {
   const identity = await requireIdentity(ctx);
-  const user = await findUserByClerkUserId(ctx as never, identity.subject);
+  const user = await findUserByClerkUserId(ctx, identity.subject);
   if (!user) {
     throw new ConvexError("Not authenticated");
   }
@@ -161,16 +129,7 @@ async function requireCurrentWorkspaceContext(ctx: {
 }
 
 async function findUniqueJobSlug(
-  ctx: {
-    db: {
-      query(table: "jobPostings"): {
-        withIndex(
-          index: "by_slug",
-          cb: (q: { eq(field: "slug", value: string): unknown }) => unknown,
-        ): { collect(): Promise<ConvexDoc[]> };
-      };
-    };
-  },
+  ctx: ConvexCtx,
   title: string,
   agencyName: string,
   excludeJobId?: string,
@@ -195,78 +154,43 @@ async function findUniqueJobSlug(
 }
 
 async function getWorkspaceJobPostings(
-  ctx: {
-    db: {
-      query(table: "jobPostings"): {
-        withIndex(
-          index: "by_workspace",
-          cb: (q: { eq(field: "workspaceId", value: string): unknown }) => unknown,
-        ): { collect(): Promise<ConvexDoc[]> };
-      };
-    };
-  },
+  ctx: ConvexCtx,
   workspaceId: string,
 ) {
   return ctx.db
     .query("jobPostings")
-    .withIndex("by_workspace", (q) => q.eq("workspaceId", workspaceId))
+    .withIndex("by_workspace", (q) =>
+      q.eq("workspaceId", asId<"workspaces">(workspaceId)),
+    )
     .collect();
 }
 
 async function getJobApplicationsForJob(
-  ctx: {
-    db: {
-      query(table: "jobApplications"): {
-        withIndex(
-          index: "by_job_posting",
-          cb: (q: { eq(field: "jobPostingId", value: string): unknown }) => unknown,
-        ): { collect(): Promise<ConvexDoc[]> };
-      };
-    };
-  },
+  ctx: ConvexCtx,
   jobPostingId: string,
 ) {
   return ctx.db
     .query("jobApplications")
-    .withIndex("by_job_posting", (q) => q.eq("jobPostingId", jobPostingId))
+    .withIndex("by_job_posting", (q) =>
+      q.eq("jobPostingId", asId<"jobPostings">(jobPostingId)),
+    )
     .collect();
 }
 
 async function getWorkspaceLocations(
-  ctx: {
-    db: {
-      query(table: "locations"): {
-        withIndex(
-          index: "by_workspace",
-          cb: (q: { eq(field: "workspaceId", value: string): unknown }) => unknown,
-        ): { collect(): Promise<ConvexDoc[]> };
-      };
-    };
-  },
+  ctx: ConvexCtx,
   workspaceId: string,
 ) {
   return ctx.db
     .query("locations")
-    .withIndex("by_workspace", (q) => q.eq("workspaceId", workspaceId))
+    .withIndex("by_workspace", (q) =>
+      q.eq("workspaceId", asId<"workspaces">(workspaceId)),
+    )
     .collect();
 }
 
 async function getListingLogoUrl(
-  ctx: {
-    db: {
-      query(table: "files"): {
-        withIndex(
-          index: "by_related_record",
-          cb: (q: {
-            eq(field: "relatedTable", value: string): {
-              eq(field: "relatedId", value: string): unknown;
-            };
-          }) => unknown,
-        ): { collect(): Promise<ConvexDoc[]> };
-      };
-    };
-    storage: { getUrl(storageId: string): Promise<string | null> };
-  },
+  ctx: ConvexCtx,
   listingId: string | null,
 ) {
   if (!listingId) {
@@ -289,20 +213,7 @@ async function getListingLogoUrl(
 }
 
 async function getApplicationResumeFile(
-  ctx: {
-    db: {
-      query(table: "files"): {
-        withIndex(
-          index: "by_related_record",
-          cb: (q: {
-            eq(field: "relatedTable", value: string): {
-              eq(field: "relatedId", value: string): unknown;
-            };
-          }) => unknown,
-        ): { collect(): Promise<ConvexDoc[]> };
-      };
-    };
-  },
+  ctx: ConvexCtx,
   applicationId: string,
 ) {
   const files = await ctx.db
@@ -316,21 +227,14 @@ async function getApplicationResumeFile(
 }
 
 async function getActiveJobPackCount(
-  ctx: {
-    db: {
-      query(table: "billingRecords"): {
-        withIndex(
-          index: "by_workspace",
-          cb: (q: { eq(field: "workspaceId", value: string): unknown }) => unknown,
-        ): { collect(): Promise<ConvexDoc[]> };
-      };
-    };
-  },
+  ctx: ConvexCtx,
   workspaceId: string,
 ) {
   const records = await ctx.db
     .query("billingRecords")
-    .withIndex("by_workspace", (q) => q.eq("workspaceId", workspaceId))
+    .withIndex("by_workspace", (q) =>
+      q.eq("workspaceId", asId<"workspaces">(workspaceId)),
+    )
     .collect();
 
   return records.reduce((sum, record) => {
@@ -350,21 +254,12 @@ async function getActiveJobPackCount(
 }
 
 async function getEffectiveJobLimit(
-  ctx: {
-    db: {
-      query(table: "billingRecords"): {
-        withIndex(
-          index: "by_workspace",
-          cb: (q: { eq(field: "workspaceId", value: string): unknown }) => unknown,
-        ): { collect(): Promise<ConvexDoc[]> };
-      };
-    };
-  },
+  ctx: ConvexCtx,
   workspace: ConvexDoc,
 ) {
   const planTier = getEffectivePlanTier(workspace.planTier, workspace.subscriptionStatus);
   const addOnPacks = planTier === "pro"
-    ? await getActiveJobPackCount(ctx as never, workspace._id)
+    ? await getActiveJobPackCount(ctx, workspace._id)
     : 0;
 
   return BASE_JOB_LIMITS[planTier] + addOnPacks * 5;
@@ -439,25 +334,10 @@ function mapJobPosting(
 }
 
 async function deleteResumeFileIfPresent(
-  ctx: {
-    db: {
-      delete(id: string): Promise<void>;
-      query(table: "files"): {
-        withIndex(
-          index: "by_related_record",
-          cb: (q: {
-            eq(field: "relatedTable", value: string): {
-              eq(field: "relatedId", value: string): unknown;
-            };
-          }) => unknown,
-        ): { collect(): Promise<ConvexDoc[]> };
-      };
-    };
-    storage: { delete(storageId: string): Promise<void> };
-  },
+  ctx: MutationCtx,
   applicationId: string,
 ) {
-  const file = await getApplicationResumeFile(ctx as never, applicationId);
+  const file = await getApplicationResumeFile(ctx, applicationId);
   if (!file) {
     return;
   }
@@ -478,48 +358,73 @@ function isPublicWorkspaceVisible(workspace: ConvexDoc) {
 }
 
 async function getPublicJobSearchDataset(
-  ctx: {
-    db: {
-      query(table: "jobPostings"): { collect(): Promise<ConvexDoc[]> };
-      query(table: "workspaces"): { collect(): Promise<ConvexDoc[]> };
-      query(table: "listings"): { collect(): Promise<ConvexDoc[]> };
-      query(table: "locations"): { collect(): Promise<ConvexDoc[]> };
-      query(table: "files"): { collect(): Promise<ConvexDoc[]> };
-    };
-    storage: { getUrl(storageId: string): Promise<string | null> };
-  },
+  ctx: ConvexCtx,
 ) {
-  const [jobs, workspaces, listings, locations, files] = await Promise.all([
-    ctx.db.query("jobPostings").collect(),
-    ctx.db.query("workspaces").collect(),
-    ctx.db.query("listings").collect(),
-    ctx.db.query("locations").collect(),
-    ctx.db.query("files").collect(),
+  const [jobs, listings] = await Promise.all([
+    ctx.db
+      .query("jobPostings")
+      .withIndex("by_status", (q) => q.eq("status", "published"))
+      .collect(),
+    ctx.db
+      .query("listings")
+      .withIndex("by_status", (q) => q.eq("status", "published"))
+      .collect(),
   ]);
 
-  const workspaceById = new Map(workspaces.map((workspace) => [workspace._id, workspace]));
-  const listingByWorkspaceId = new Map(
-    listings
-      .filter((listing) => listing.status === "published")
-      .map((listing) => [String(listing.workspaceId), listing]),
+  const workspaceIds = [
+    ...new Set(jobs.map((job) => String(job.workspaceId)).filter(Boolean)),
+  ];
+  const workspaces = await Promise.all(
+    workspaceIds.map((workspaceId) =>
+      ctx.db.get(asId<"workspaces">(workspaceId)),
+    ),
   );
-  const locationById = new Map(locations.map((location) => [location._id, location]));
-  const filesByListingId = new Map<string, ConvexDoc[]>();
+  const workspaceById = new Map(
+    workspaces.flatMap((workspace) =>
+      workspace ? [[workspace._id, workspace]] : [],
+    ),
+  );
+  const listingByWorkspaceId = new Map(
+    listings.map((listing) => [String(listing.workspaceId), listing]),
+  );
 
-  for (const file of files) {
-    if (file.relatedTable !== "listings" || typeof file.relatedId !== "string") {
-      continue;
-    }
-    const existing = filesByListingId.get(file.relatedId) ?? [];
-    existing.push(file);
-    filesByListingId.set(file.relatedId, existing);
+  const locationIds = [
+    ...new Set(
+      jobs
+        .map((job) => readString(asRecord(job.metadata).locationId))
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
+  const locations = await Promise.all(
+    locationIds.map((locationId) =>
+      ctx.db.get(asId<"locations">(locationId)),
+    ),
+  );
+  const locationById = new Map(
+    locations.flatMap((location) =>
+      location ? [[location._id, location]] : [],
+    ),
+  );
+
+  const listingFiles = await Promise.all(
+    listings.map(async (listing) => ({
+      listingId: listing._id,
+      files: await ctx.db
+        .query("files")
+        .withIndex("by_related_record", (q) =>
+          q.eq("relatedTable", "listings").eq("relatedId", listing._id),
+        )
+        .collect(),
+    })),
+  );
+  const filesByListingId = new Map<string, ConvexDoc[]>();
+  for (const entry of listingFiles) {
+    filesByListingId.set(entry.listingId, entry.files);
   }
 
   const results = await Promise.all(
-    jobs
-      .filter((job) => job.status === "published")
-      .map(async (job) => {
-        const workspace = workspaceById.get(String(job.workspaceId)) ?? null;
+    jobs.map(async (job) => {
+        const workspace = workspaceById.get(job.workspaceId) ?? null;
         if (!workspace || !isPublicWorkspaceVisible(workspace)) {
           return null;
         }
@@ -539,7 +444,9 @@ async function getPublicJobSearchDataset(
 
         const metadata = asRecord(job.metadata);
         const locationId = readString(metadata.locationId);
-        const location = locationId ? locationById.get(locationId) ?? null : null;
+        const location = locationId
+          ? (locationById.get(asId<"locations">(locationId)) ?? null)
+          : null;
         const locationMetadata = asRecord(location?.metadata);
         const effectiveTier = getEffectivePlanTier(
           workspace.planTier,
@@ -606,58 +513,71 @@ async function getPublicJobSearchDataset(
 }
 
 async function getPublicEmployersDataset(
-  ctx: {
-    db: {
-      query(table: "workspaces"): { collect(): Promise<ConvexDoc[]> };
-      query(table: "listings"): { collect(): Promise<ConvexDoc[]> };
-      query(table: "locations"): { collect(): Promise<ConvexDoc[]> };
-      query(table: "jobPostings"): { collect(): Promise<ConvexDoc[]> };
-      query(table: "files"): { collect(): Promise<ConvexDoc[]> };
-    };
-    storage: { getUrl(storageId: string): Promise<string | null> };
-  },
+  ctx: ConvexCtx,
   hiringOnly = false,
 ) {
-  const [workspaces, listings, locations, jobs, files] = await Promise.all([
-    ctx.db.query("workspaces").collect(),
-    ctx.db.query("listings").collect(),
-    ctx.db.query("locations").collect(),
-    ctx.db.query("jobPostings").collect(),
-    ctx.db.query("files").collect(),
+  const [listings, jobs] = await Promise.all([
+    ctx.db
+      .query("listings")
+      .withIndex("by_status", (q) => q.eq("status", "published"))
+      .collect(),
+    ctx.db
+      .query("jobPostings")
+      .withIndex("by_status", (q) => q.eq("status", "published"))
+      .collect(),
   ]);
 
-  const visibleListings = listings.filter((listing) => listing.status === "published");
   const jobCounts = new Map<string, number>();
   for (const job of jobs) {
-    if (job.status !== "published") {
-      continue;
-    }
     const workspaceId = String(job.workspaceId);
     jobCounts.set(workspaceId, (jobCounts.get(workspaceId) ?? 0) + 1);
   }
 
+  const workspaces = await Promise.all(
+    [...new Set(listings.map((listing) => String(listing.workspaceId)))].map(
+      (workspaceId) => ctx.db.get(asId<"workspaces">(workspaceId)),
+    ),
+  );
+  const workspaceById = new Map(
+    workspaces.flatMap((workspace) =>
+      workspace ? [[workspace._id, workspace]] : [],
+    ),
+  );
+
   const locationsByWorkspaceId = new Map<string, ConvexDoc[]>();
-  for (const location of locations) {
-    const workspaceId = String(location.workspaceId);
-    const existing = locationsByWorkspaceId.get(workspaceId) ?? [];
-    existing.push(location);
-    locationsByWorkspaceId.set(workspaceId, existing);
-  }
+  await Promise.all(
+    [...workspaceById.keys()].map(async (workspaceId) => {
+      const locations = await ctx.db
+        .query("locations")
+        .withIndex("by_workspace", (q) =>
+          q.eq("workspaceId", asId<"workspaces">(workspaceId)),
+        )
+        .collect();
+      locationsByWorkspaceId.set(workspaceId, locations);
+    }),
+  );
 
   const logoByListingId = new Map<string, ConvexDoc>();
-  for (const file of files) {
-    if (
-      file.relatedTable === "listings" &&
-      typeof file.relatedId === "string" &&
-      asRecord(file.metadata).kind === "logo"
-    ) {
-      logoByListingId.set(file.relatedId, file);
-    }
-  }
+  await Promise.all(
+    listings.map(async (listing) => {
+      const files = await ctx.db
+        .query("files")
+        .withIndex("by_related_record", (q) =>
+          q.eq("relatedTable", "listings").eq("relatedId", listing._id),
+        )
+        .collect();
+      const logoFile = files.find(
+        (file) => asRecord(file.metadata).kind === "logo",
+      );
+      if (logoFile) {
+        logoByListingId.set(listing._id, logoFile);
+      }
+    }),
+  );
 
   const employers = await Promise.all(
-    visibleListings.map(async (listing) => {
-      const workspace = workspaces.find((entry) => entry._id === listing.workspaceId) ?? null;
+    listings.map(async (listing) => {
+      const workspace = workspaceById.get(listing.workspaceId) ?? null;
       if (!workspace || !isPublicWorkspaceVisible(workspace) || !readString(listing.slug)) {
         return null;
       }
@@ -717,19 +637,19 @@ async function getPublicEmployersDataset(
     });
 }
 
-export const getDashboardJobPostings = queryGeneric({
+export const getDashboardJobPostings = query({
   args: {},
   handler: async (ctx) => {
-    const { workspace } = await requireCurrentWorkspaceContext(ctx as never);
+    const { workspace } = await requireCurrentWorkspaceContext(ctx);
     const [jobs, locations] = await Promise.all([
-      getWorkspaceJobPostings(ctx as never, workspace._id),
-      getWorkspaceLocations(ctx as never, workspace._id),
+      getWorkspaceJobPostings(ctx, workspace._id),
+      getWorkspaceLocations(ctx, workspace._id),
     ]);
 
     const applicationEntries = await Promise.all(
       jobs.map(async (job) => ({
         jobId: job._id,
-        count: (await getJobApplicationsForJob(ctx as never, job._id)).length,
+        count: (await getJobApplicationsForJob(ctx, job._id)).length,
       })),
     );
     const applicationCounts = Object.fromEntries(
@@ -768,21 +688,21 @@ export const getDashboardJobPostings = queryGeneric({
   },
 });
 
-export const getDashboardJobPosting = queryGeneric({
+export const getDashboardJobPosting = query({
   args: {
     id: v.string(),
   },
   handler: async (ctx, args) => {
-    const { workspace, listing } = await requireCurrentWorkspaceContext(ctx as never);
+    const { workspace, listing } = await requireCurrentWorkspaceContext(ctx);
     const job = await ctx.db.get(asId<"jobPostings">(args.id));
     if (!job || job.workspaceId !== workspace._id) {
       return null;
     }
 
     const [locations, applications, logoUrl] = await Promise.all([
-      getWorkspaceLocations(ctx as never, workspace._id),
-      getJobApplicationsForJob(ctx as never, job._id),
-      getListingLogoUrl(ctx as never, listing?._id ?? null),
+      getWorkspaceLocations(ctx, workspace._id),
+      getJobApplicationsForJob(ctx, job._id),
+      getListingLogoUrl(ctx, listing?._id ?? null),
     ]);
 
     const metadata = asRecord(job.metadata);
@@ -803,12 +723,12 @@ export const getDashboardJobPosting = queryGeneric({
   },
 });
 
-export const getJobCountAndLimit = queryGeneric({
+export const getJobCountAndLimit = query({
   args: {},
   handler: async (ctx) => {
-    const { workspace } = await requireCurrentWorkspaceContext(ctx as never);
-    const jobs = await getWorkspaceJobPostings(ctx as never, workspace._id);
-    const limit = await getEffectiveJobLimit(ctx as never, workspace);
+    const { workspace } = await requireCurrentWorkspaceContext(ctx);
+    const jobs = await getWorkspaceJobPostings(ctx, workspace._id);
+    const limit = await getEffectiveJobLimit(ctx, workspace);
 
     return {
       count: jobs.length,
@@ -818,7 +738,7 @@ export const getJobCountAndLimit = queryGeneric({
   },
 });
 
-export const createDashboardJobPosting = mutationGeneric({
+export const createDashboardJobPosting = mutation({
   args: {
     title: v.string(),
     description: v.string(),
@@ -842,9 +762,9 @@ export const createDashboardJobPosting = mutationGeneric({
     expiresAt: v.optional(v.union(v.string(), v.null())),
   },
   handler: async (ctx, args) => {
-    const { workspace, listing } = await requireCurrentWorkspaceContext(ctx as never);
-    const jobs = await getWorkspaceJobPostings(ctx as never, workspace._id);
-    const limit = await getEffectiveJobLimit(ctx as never, workspace);
+    const { workspace, listing } = await requireCurrentWorkspaceContext(ctx);
+    const jobs = await getWorkspaceJobPostings(ctx, workspace._id);
+    const limit = await getEffectiveJobLimit(ctx, workspace);
 
     if (jobs.length >= limit) {
       const planTier = getEffectivePlanTier(workspace.planTier, workspace.subscriptionStatus);
@@ -857,7 +777,7 @@ export const createDashboardJobPosting = mutationGeneric({
 
     const timestamp = new Date().toISOString();
     const slug = await findUniqueJobSlug(
-      ctx as never,
+      ctx,
       args.title,
       readString(workspace.agencyName) ?? "workspace",
     );
@@ -897,7 +817,7 @@ export const createDashboardJobPosting = mutationGeneric({
   },
 });
 
-export const updateDashboardJobPosting = mutationGeneric({
+export const updateDashboardJobPosting = mutation({
   args: {
     id: v.string(),
     title: v.optional(v.string()),
@@ -922,7 +842,7 @@ export const updateDashboardJobPosting = mutationGeneric({
     expiresAt: v.optional(v.union(v.string(), v.null())),
   },
   handler: async (ctx, args) => {
-    const { workspace } = await requireCurrentWorkspaceContext(ctx as never);
+    const { workspace } = await requireCurrentWorkspaceContext(ctx);
     const job = await ctx.db.get(asId<"jobPostings">(args.id));
     if (!job || job.workspaceId !== workspace._id) {
       throw new ConvexError("Job posting not found");
@@ -983,7 +903,7 @@ export const updateDashboardJobPosting = mutationGeneric({
   },
 });
 
-export const updateDashboardJobStatus = mutationGeneric({
+export const updateDashboardJobStatus = mutation({
   args: {
     id: v.string(),
     status: v.union(
@@ -994,7 +914,7 @@ export const updateDashboardJobStatus = mutationGeneric({
     ),
   },
   handler: async (ctx, args) => {
-    const { workspace } = await requireCurrentWorkspaceContext(ctx as never);
+    const { workspace } = await requireCurrentWorkspaceContext(ctx);
     const job = await ctx.db.get(asId<"jobPostings">(args.id));
     if (!job || job.workspaceId !== workspace._id) {
       throw new ConvexError("Job posting not found");
@@ -1019,20 +939,20 @@ export const updateDashboardJobStatus = mutationGeneric({
   },
 });
 
-export const deleteDashboardJobPosting = mutationGeneric({
+export const deleteDashboardJobPosting = mutation({
   args: {
     id: v.string(),
   },
   handler: async (ctx, args) => {
-    const { workspace } = await requireCurrentWorkspaceContext(ctx as never);
+    const { workspace } = await requireCurrentWorkspaceContext(ctx);
     const job = await ctx.db.get(asId<"jobPostings">(args.id));
     if (!job || job.workspaceId !== workspace._id) {
       throw new ConvexError("Job posting not found");
     }
 
-    const applications = await getJobApplicationsForJob(ctx as never, job._id);
+    const applications = await getJobApplicationsForJob(ctx, job._id);
     for (const application of applications) {
-      await deleteResumeFileIfPresent(ctx as never, application._id);
+      await deleteResumeFileIfPresent(ctx, application._id);
       await ctx.db.delete(asId<"jobApplications">(application._id));
     }
 
@@ -1041,13 +961,13 @@ export const deleteDashboardJobPosting = mutationGeneric({
   },
 });
 
-export const generateResumeUploadUrl = mutationGeneric({
+export const generateResumeUploadUrl = mutation({
   args: {},
   returns: v.string(),
   handler: async (ctx) => ctx.storage.generateUploadUrl(),
 });
 
-export const discardResumeUpload = mutationGeneric({
+export const discardResumeUpload = mutation({
   args: {
     storageId: v.string(),
   },
@@ -1057,7 +977,7 @@ export const discardResumeUpload = mutationGeneric({
   },
 });
 
-export const submitApplication = mutationGeneric({
+export const submitApplication = mutation({
   args: {
     jobPostingId: v.string(),
     applicantName: v.string(),
@@ -1086,7 +1006,7 @@ export const submitApplication = mutationGeneric({
       throw new ConvexError("Job posting not found or no longer accepting applications");
     }
 
-    const existing = await getJobApplicationsForJob(ctx as never, job._id);
+    const existing = await getJobApplicationsForJob(ctx, job._id);
     const normalizedEmail = normalizeEmail(args.applicantEmail);
     if (
       existing.some(
@@ -1174,20 +1094,20 @@ export const submitApplication = mutationGeneric({
   },
 });
 
-export const getWorkspaceApplications = queryGeneric({
+export const getWorkspaceApplications = query({
   args: {
     status: v.optional(v.string()),
     jobId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const { workspace } = await requireCurrentWorkspaceContext(ctx as never);
-    const jobs = await getWorkspaceJobPostings(ctx as never, workspace._id);
+    const { workspace } = await requireCurrentWorkspaceContext(ctx);
+    const jobs = await getWorkspaceJobPostings(ctx, workspace._id);
     if (jobs.length === 0) {
       return { applications: [], newCount: 0 };
     }
 
     const applications = (
-      await Promise.all(jobs.map((job) => getJobApplicationsForJob(ctx as never, job._id)))
+      await Promise.all(jobs.map((job) => getJobApplicationsForJob(ctx, job._id)))
     )
       .flat()
       .filter((application) => !args.status || application.status === args.status)
@@ -1202,7 +1122,9 @@ export const getWorkspaceApplications = queryGeneric({
 
     return {
       applications: applications.map((application) => {
-        const job = jobById.get(String(application.jobPostingId));
+        const job = application.jobPostingId
+          ? jobById.get(application.jobPostingId)
+          : undefined;
         return {
           id: application._id,
           applicantName:
@@ -1225,12 +1147,12 @@ export const getWorkspaceApplications = queryGeneric({
   },
 });
 
-export const getWorkspaceApplication = queryGeneric({
+export const getWorkspaceApplication = query({
   args: {
     id: v.string(),
   },
   handler: async (ctx, args) => {
-    const { workspace } = await requireCurrentWorkspaceContext(ctx as never);
+    const { workspace } = await requireCurrentWorkspaceContext(ctx);
     const application = await ctx.db.get(asId<"jobApplications">(args.id));
     if (!application || application.workspaceId !== workspace._id) {
       return null;
@@ -1243,7 +1165,7 @@ export const getWorkspaceApplication = queryGeneric({
       return null;
     }
 
-    const resume = await getApplicationResumeFile(ctx as never, application._id);
+    const resume = await getApplicationResumeFile(ctx, application._id);
     const metadata = asRecord(application.metadata);
     const jobMetadata = asRecord(job.metadata);
 
@@ -1273,13 +1195,13 @@ export const getWorkspaceApplication = queryGeneric({
   },
 });
 
-export const updateWorkspaceApplicationStatus = mutationGeneric({
+export const updateWorkspaceApplicationStatus = mutation({
   args: {
     id: v.string(),
     status: v.string(),
   },
   handler: async (ctx, args) => {
-    const { workspace } = await requireCurrentWorkspaceContext(ctx as never);
+    const { workspace } = await requireCurrentWorkspaceContext(ctx);
     const application = await ctx.db.get(asId<"jobApplications">(args.id));
     if (!application || application.workspaceId !== workspace._id) {
       throw new ConvexError("Application not found");
@@ -1302,14 +1224,14 @@ export const updateWorkspaceApplicationStatus = mutationGeneric({
   },
 });
 
-export const updateWorkspaceApplicationDetails = mutationGeneric({
+export const updateWorkspaceApplicationDetails = mutation({
   args: {
     id: v.string(),
     notes: v.optional(v.union(v.string(), v.null())),
     rating: v.optional(v.union(v.number(), v.null())),
   },
   handler: async (ctx, args) => {
-    const { workspace } = await requireCurrentWorkspaceContext(ctx as never);
+    const { workspace } = await requireCurrentWorkspaceContext(ctx);
     const application = await ctx.db.get(asId<"jobApplications">(args.id));
     if (!application || application.workspaceId !== workspace._id) {
       throw new ConvexError("Application not found");
@@ -1329,18 +1251,18 @@ export const updateWorkspaceApplicationDetails = mutationGeneric({
   },
 });
 
-export const getWorkspaceApplicationResumeUrl = queryGeneric({
+export const getWorkspaceApplicationResumeUrl = query({
   args: {
     applicationId: v.string(),
   },
   handler: async (ctx, args) => {
-    const { workspace } = await requireCurrentWorkspaceContext(ctx as never);
+    const { workspace } = await requireCurrentWorkspaceContext(ctx);
     const application = await ctx.db.get(asId<"jobApplications">(args.applicationId));
     if (!application || application.workspaceId !== workspace._id) {
       throw new ConvexError("Application not found");
     }
 
-    const file = await getApplicationResumeFile(ctx as never, application._id);
+    const file = await getApplicationResumeFile(ctx, application._id);
     if (!file || typeof file.storageId !== "string") {
       throw new ConvexError("No resume attached to this application");
     }
@@ -1354,14 +1276,14 @@ export const getWorkspaceApplicationResumeUrl = queryGeneric({
   },
 });
 
-export const getNewWorkspaceApplicationCount = queryGeneric({
+export const getNewWorkspaceApplicationCount = query({
   args: {},
   handler: async (ctx) => {
-    const { workspace } = await requireCurrentWorkspaceContext(ctx as never);
-    const jobs = await getWorkspaceJobPostings(ctx as never, workspace._id);
+    const { workspace } = await requireCurrentWorkspaceContext(ctx);
+    const jobs = await getWorkspaceJobPostings(ctx, workspace._id);
 
     const applications = await Promise.all(
-      jobs.map((job) => getJobApplicationsForJob(ctx as never, job._id)),
+      jobs.map((job) => getJobApplicationsForJob(ctx, job._id)),
     );
 
     return applications
@@ -1370,12 +1292,12 @@ export const getNewWorkspaceApplicationCount = queryGeneric({
   },
 });
 
-export const getPublicJobBySlug = queryGeneric({
+export const getPublicJobBySlug = query({
   args: {
     slug: v.string(),
   },
   handler: async (ctx, args) => {
-    const jobs = await getPublicJobSearchDataset(ctx as never);
+    const jobs = await getPublicJobSearchDataset(ctx);
     const job = jobs.find((entry) => entry.slug === args.slug) ?? null;
     if (!job) {
       return null;
@@ -1409,33 +1331,53 @@ export const getPublicJobBySlug = queryGeneric({
   },
 });
 
-export const getPublicJobs = queryGeneric({
+export const getPublicJobs = query({
   args: {},
-  handler: async (ctx) => getPublicJobSearchDataset(ctx as never),
+  handler: async (ctx) => getPublicJobSearchDataset(ctx),
 });
 
-export const getPublicJobsByProvider = queryGeneric({
+export const getPublicJobsByProvider = query({
   args: {
     providerSlug: v.string(),
   },
   handler: async (ctx, args) => {
-    const jobs = await getPublicJobSearchDataset(ctx as never);
+    const jobs = await getPublicJobSearchDataset(ctx);
     return jobs.filter((job) => job.provider.slug === args.providerSlug);
   },
 });
 
-export const getPublicEmployers = queryGeneric({
+export const getPublicEmployers = query({
   args: {
     hiringOnly: v.optional(v.boolean()),
   },
   handler: async (ctx, args) =>
-    getPublicEmployersDataset(ctx as never, args.hiringOnly ?? false),
+    getPublicEmployersDataset(ctx, args.hiringOnly ?? false),
 });
 
-export const getPublicEmployerCount = queryGeneric({
+export const getPublicEmployerCount = query({
   args: {},
   handler: async (ctx) => {
-    const employers = await getPublicEmployersDataset(ctx as never, true);
+    const employers = await getPublicEmployersDataset(ctx, true);
     return employers.length;
+  },
+});
+
+export const getPublishedJobSlugs = query({
+  args: {},
+  handler: async (ctx) => {
+    const published = await ctx.db
+      .query("jobPostings")
+      .withIndex("by_status", (q) => q.eq("status", "published"))
+      .collect();
+    return published
+      .filter(
+        (job: { status?: unknown; slug?: unknown }) =>
+          typeof job.slug === "string" && (job.slug as string).length > 0,
+      )
+      .map((job: { slug?: unknown; updatedAt?: unknown }) => ({
+        slug: String(job.slug),
+        updatedAt:
+          typeof job.updatedAt === "string" ? job.updatedAt : new Date().toISOString(),
+      }));
   },
 });

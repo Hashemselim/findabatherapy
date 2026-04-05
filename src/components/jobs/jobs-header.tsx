@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Briefcase } from "lucide-react";
 
 import { jobsConfig } from "@/config/jobs";
-import { getUser } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/platform/auth/server";
 import { JobsHeaderClient } from "./jobs-header-client";
 
 const primaryNav = [
@@ -11,7 +11,7 @@ const primaryNav = [
 ];
 
 export async function JobsHeader() {
-  const user = await getUser();
+  const user = await getCurrentUser();
   const isLoggedIn = !!user;
 
   return (

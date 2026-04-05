@@ -126,7 +126,6 @@ export function JobLocationSearch({
 
   // Use the shared location state hook
   const {
-    location,
     hasLocation,
     locationLabel,
     radius,

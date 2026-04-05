@@ -66,11 +66,6 @@ function revalidateLogoSurfaces(params: {
 export async function uploadLogo(
   formData: FormData
 ): Promise<ActionResult<{ url: string }>> {
-  const profileId = await getCurrentProfileId();
-  if (!profileId) {
-    return { success: false, error: "Not authenticated" };
-  }
-
   const file = formData.get("file") as File | null;
   if (!file) {
     return { success: false, error: "No file provided" };
@@ -95,6 +90,11 @@ export async function uploadLogo(
     revalidatePath("/dashboard/company");
     revalidatePath("/dashboard/branding");
     return { success: true, data: { url: result.url } };
+  }
+
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
+    return { success: false, error: "Not authenticated" };
   }
 
   const supabase = await createClient();
@@ -304,11 +304,6 @@ export async function getPhotos(): Promise<
 export async function uploadPhoto(
   formData: FormData
 ): Promise<ActionResult<{ id: string; url: string }>> {
-  const profileId = await getCurrentProfileId();
-  if (!profileId) {
-    return { success: false, error: "Not authenticated" };
-  }
-
   const file = formData.get("file") as File | null;
   if (!file) {
     return { success: false, error: "No file provided" };
@@ -332,6 +327,11 @@ export async function uploadPhoto(
     );
     revalidatePath("/dashboard/company");
     return { success: true, data: { id: result.id, url: result.url } };
+  }
+
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
+    return { success: false, error: "Not authenticated" };
   }
 
   const supabase = await createClient();
@@ -418,7 +418,7 @@ export async function uploadPhoto(
  */
 export async function deletePhoto(photoId: string): Promise<ActionResult> {
   if (isConvexDataEnabled()) {
-    await mutateConvex("files:deleteListingPhoto", { fileId: photoId });
+    await mutateConvex("files:deleteListingPhoto", { photoId });
     revalidatePath("/dashboard/company");
     return { success: true };
   }
@@ -477,7 +477,7 @@ export async function reorderPhotos(
   photoIds: string[]
 ): Promise<ActionResult> {
   if (isConvexDataEnabled()) {
-    await mutateConvex("files:reorderListingPhotos", { fileIds: photoIds });
+    await mutateConvex("files:reorderListingPhotos", { photoIds });
     revalidatePath("/dashboard/company");
     return { success: true };
   }
@@ -588,10 +588,8 @@ export async function updateVideoUrl(
  */
 export async function getVideoUrl(): Promise<ActionResult<{ url: string | null }>> {
   if (isConvexDataEnabled()) {
-    const result = await queryConvex<{ url: string | null }>(
-      "files:getListingVideoUrl"
-    );
-    return { success: true, data: { url: result?.url ?? null } };
+    const videoUrl = await queryConvex<string | null>("files:getListingVideoUrl");
+    return { success: true, data: { url: videoUrl ?? null } };
   }
 
   const profileId = await getCurrentProfileId();

@@ -1,11 +1,13 @@
-import { mutationGeneric, queryGeneric } from "convex/server";
+import { mutation, query } from "./_generated/server";
 import { ConvexError, v } from "convex/values";
+import type { MutationCtx, QueryCtx } from "./_generated/server";
 
 type Identity = {
   subject: string;
 };
 
 type ConvexDoc = Record<string, unknown> & { _id: string };
+type ConvexCtx = QueryCtx | MutationCtx;
 
 const PHOTO_LIMITS = {
   free: 3,
@@ -45,9 +47,7 @@ function getEffectivePlanTier(
     : "free";
 }
 
-async function requireIdentity(ctx: {
-  auth: { getUserIdentity(): Promise<Identity | null> };
-}) {
+async function requireIdentity(ctx: ConvexCtx) {
   const identity = await ctx.auth.getUserIdentity();
   if (!identity) {
     throw new ConvexError("Not authenticated");
@@ -57,16 +57,7 @@ async function requireIdentity(ctx: {
 }
 
 async function findUserByClerkUserId(
-  ctx: {
-    db: {
-      query(table: "users"): {
-        withIndex(
-          index: "by_clerk_user_id",
-          cb: (q: { eq(field: "clerkUserId", value: string): unknown }) => unknown,
-        ): { collect(): Promise<ConvexDoc[]> };
-      };
-    };
-  },
+  ctx: ConvexCtx,
   clerkUserId: string,
 ) {
   const users = await ctx.db
@@ -77,53 +68,9 @@ async function findUserByClerkUserId(
   return users[0] ?? null;
 }
 
-async function requireCurrentWorkspaceContext(ctx: {
-  auth: { getUserIdentity(): Promise<Identity | null> };
-  db: {
-    get(id: string): Promise<ConvexDoc | null>;
-    system: {
-      get(table: "_storage", id: string): Promise<ConvexDoc | null>;
-    };
-    query(table: "users"): {
-      withIndex(
-        index: "by_clerk_user_id",
-        cb: (q: { eq(field: "clerkUserId", value: string): unknown }) => unknown,
-      ): { collect(): Promise<ConvexDoc[]> };
-    };
-    query(table: "workspaceMemberships"): {
-      withIndex(
-        index: "by_user",
-        cb: (q: { eq(field: "userId", value: string): unknown }) => unknown,
-      ): { collect(): Promise<ConvexDoc[]> };
-    };
-    query(table: "listings"): {
-      withIndex(
-        index: "by_workspace",
-        cb: (q: { eq(field: "workspaceId", value: string): unknown }) => unknown,
-      ): { collect(): Promise<ConvexDoc[]> };
-    };
-    query(table: "files"): {
-      withIndex(
-        index: "by_related_record",
-        cb: (q: {
-          eq(field: "relatedTable", value: string): {
-            eq(field: "relatedId", value: string): unknown;
-          };
-        }) => unknown,
-      ): { collect(): Promise<ConvexDoc[]> };
-    };
-    insert(table: "files", value: Record<string, unknown>): Promise<string>;
-    patch(id: string, value: Record<string, unknown>): Promise<void>;
-    delete(id: string): Promise<void>;
-  };
-  storage: {
-    getUrl(storageId: string): Promise<string | null>;
-    generateUploadUrl(): Promise<string>;
-    delete(storageId: string): Promise<void>;
-  };
-}) {
+async function requireCurrentWorkspaceContext(ctx: ConvexCtx) {
   const identity = await requireIdentity(ctx);
-  const user = await findUserByClerkUserId(ctx as never, identity.subject);
+  const user = await findUserByClerkUserId(ctx, identity.subject);
   if (!user) {
     throw new ConvexError("Not authenticated");
   }
@@ -158,20 +105,7 @@ async function requireCurrentWorkspaceContext(ctx: {
 }
 
 async function getListingFiles(
-  ctx: {
-    db: {
-      query(table: "files"): {
-        withIndex(
-          index: "by_related_record",
-          cb: (q: {
-            eq(field: "relatedTable", value: string): {
-              eq(field: "relatedId", value: string): unknown;
-            };
-          }) => unknown,
-        ): { collect(): Promise<ConvexDoc[]> };
-      };
-    };
-  },
+  ctx: ConvexCtx,
   listingId: string,
 ) {
   return ctx.db
@@ -187,10 +121,7 @@ function filterListingFilesByKind(files: ConvexDoc[], kind: "logo" | "photo") {
 }
 
 async function deleteFileRecords(
-  ctx: {
-    db: { delete(id: string): Promise<void> };
-    storage: { delete(storageId: string): Promise<void> };
-  },
+  ctx: MutationCtx,
   files: ConvexDoc[],
 ) {
   for (const file of files) {
@@ -202,14 +133,7 @@ async function deleteFileRecords(
 }
 
 async function createFileRecord(
-  ctx: {
-    db: {
-      insert(table: "files", value: Record<string, unknown>): Promise<string>;
-      system: {
-        get(table: "_storage", id: string): Promise<ConvexDoc | null>;
-      };
-    };
-  },
+  ctx: MutationCtx,
   args: {
     workspaceId: string;
     listingId: string;
@@ -246,48 +170,48 @@ async function createFileRecord(
   return fileId;
 }
 
-export const generateUploadUrl = mutationGeneric({
+export const generateUploadUrl = mutation({
   args: {},
   returns: v.string(),
   handler: async (ctx) => {
-    await requireCurrentWorkspaceContext(ctx as never);
+    await requireCurrentWorkspaceContext(ctx);
     return ctx.storage.generateUploadUrl();
   },
 });
 
-export const discardUpload = mutationGeneric({
+export const discardUpload = mutation({
   args: {
     storageId: v.string(),
   },
   handler: async (ctx, args) => {
-    await requireCurrentWorkspaceContext(ctx as never);
+    await requireCurrentWorkspaceContext(ctx);
     await ctx.storage.delete(asId<"_storage">(args.storageId));
     return { success: true };
   },
 });
 
-export const saveListingLogo = mutationGeneric({
+export const saveListingLogo = mutation({
   args: {
     storageId: v.string(),
-    storageKey: v.string(),
+    storageKey: v.optional(v.string()),
     filename: v.string(),
     mimeType: v.string(),
     byteSize: v.number(),
   },
   handler: async (ctx, args) => {
-    const { workspace, listing } = await requireCurrentWorkspaceContext(ctx as never);
+    const { workspace, listing } = await requireCurrentWorkspaceContext(ctx);
     if (!listing) {
       throw new ConvexError("Listing not found");
     }
 
-    const existingFiles = await getListingFiles(ctx as never, listing._id);
+    const existingFiles = await getListingFiles(ctx, listing._id);
     const existingLogos = filterListingFilesByKind(existingFiles, "logo");
-    const fileId = await createFileRecord(ctx as never, {
+    const fileId = await createFileRecord(ctx, {
       workspaceId: workspace._id,
       listingId: listing._id,
       storageId: args.storageId,
       bucket: "listing-logos",
-      storageKey: args.storageKey,
+      storageKey: args.storageKey ?? args.storageId,
       filename: args.filename,
       mimeType: args.mimeType,
       byteSize: args.byteSize,
@@ -300,7 +224,7 @@ export const saveListingLogo = mutationGeneric({
       updatedAt: new Date().toISOString(),
     });
 
-    await deleteFileRecords(ctx as never, existingLogos);
+    await deleteFileRecords(ctx, existingLogos);
 
     return {
       id: fileId,
@@ -310,17 +234,17 @@ export const saveListingLogo = mutationGeneric({
   },
 });
 
-export const deleteListingLogo = mutationGeneric({
+export const deleteListingLogo = mutation({
   args: {},
   handler: async (ctx) => {
-    const { listing } = await requireCurrentWorkspaceContext(ctx as never);
+    const { listing } = await requireCurrentWorkspaceContext(ctx);
     if (!listing) {
       throw new ConvexError("Listing not found");
     }
 
-    const existingFiles = await getListingFiles(ctx as never, listing._id);
+    const existingFiles = await getListingFiles(ctx, listing._id);
     const existingLogos = filterListingFilesByKind(existingFiles, "logo");
-    await deleteFileRecords(ctx as never, existingLogos);
+    await deleteFileRecords(ctx, existingLogos);
     await ctx.db.patch(asId<"listings">(listing._id), {
       updatedAt: new Date().toISOString(),
     });
@@ -329,16 +253,16 @@ export const deleteListingLogo = mutationGeneric({
   },
 });
 
-export const getListingPhotos = queryGeneric({
+export const getListingPhotos = query({
   args: {},
   handler: async (ctx) => {
-    const { listing } = await requireCurrentWorkspaceContext(ctx as never);
+    const { listing } = await requireCurrentWorkspaceContext(ctx);
     if (!listing) {
       throw new ConvexError("Listing not found");
     }
 
     const files = filterListingFilesByKind(
-      await getListingFiles(ctx as never, listing._id),
+      await getListingFiles(ctx, listing._id),
       "photo",
     ).sort(
       (a, b) =>
@@ -357,29 +281,31 @@ export const getListingPhotos = queryGeneric({
       })),
     );
 
-    return photos.filter(
-      (photo): photo is { id: string; url: string; order: number } =>
-        typeof photo.url === "string" && photo.url.length > 0,
-    );
+    return {
+      photos: photos.filter(
+        (photo): photo is { id: string; url: string; order: number } =>
+          typeof photo.url === "string" && photo.url.length > 0,
+      ),
+    };
   },
 });
 
-export const saveListingPhoto = mutationGeneric({
+export const saveListingPhoto = mutation({
   args: {
     storageId: v.string(),
-    storageKey: v.string(),
+    storageKey: v.optional(v.string()),
     filename: v.string(),
     mimeType: v.string(),
     byteSize: v.number(),
   },
   handler: async (ctx, args) => {
-    const { workspace, listing } = await requireCurrentWorkspaceContext(ctx as never);
+    const { workspace, listing } = await requireCurrentWorkspaceContext(ctx);
     if (!listing) {
       throw new ConvexError("Listing not found");
     }
 
     const existingPhotos = filterListingFilesByKind(
-      await getListingFiles(ctx as never, listing._id),
+      await getListingFiles(ctx, listing._id),
       "photo",
     );
     const effectiveTier = getEffectivePlanTier(
@@ -401,12 +327,12 @@ export const saveListingPhoto = mutationGeneric({
         -1,
       ) + 1;
 
-    const fileId = await createFileRecord(ctx as never, {
+    const fileId = await createFileRecord(ctx, {
       workspaceId: workspace._id,
       listingId: listing._id,
       storageId: args.storageId,
       bucket: "listing-photos",
-      storageKey: args.storageKey,
+      storageKey: args.storageKey ?? args.storageId,
       filename: args.filename,
       mimeType: args.mimeType,
       byteSize: args.byteSize,
@@ -428,12 +354,12 @@ export const saveListingPhoto = mutationGeneric({
   },
 });
 
-export const deleteListingPhoto = mutationGeneric({
+export const deleteListingPhoto = mutation({
   args: {
     photoId: v.string(),
   },
   handler: async (ctx, args) => {
-    const { listing } = await requireCurrentWorkspaceContext(ctx as never);
+    const { listing } = await requireCurrentWorkspaceContext(ctx);
     if (!listing) {
       throw new ConvexError("Listing not found");
     }
@@ -447,10 +373,10 @@ export const deleteListingPhoto = mutationGeneric({
       throw new ConvexError("Photo not found");
     }
 
-    await deleteFileRecords(ctx as never, [photo]);
+    await deleteFileRecords(ctx, [photo]);
 
     const remainingPhotos = filterListingFilesByKind(
-      await getListingFiles(ctx as never, listing._id),
+      await getListingFiles(ctx, listing._id),
       "photo",
     ).sort(
       (a, b) =>
@@ -476,18 +402,18 @@ export const deleteListingPhoto = mutationGeneric({
   },
 });
 
-export const reorderListingPhotos = mutationGeneric({
+export const reorderListingPhotos = mutation({
   args: {
     photoIds: v.array(v.string()),
   },
   handler: async (ctx, args) => {
-    const { listing } = await requireCurrentWorkspaceContext(ctx as never);
+    const { listing } = await requireCurrentWorkspaceContext(ctx);
     if (!listing) {
       throw new ConvexError("Listing not found");
     }
 
     const listingPhotos = filterListingFilesByKind(
-      await getListingFiles(ctx as never, listing._id),
+      await getListingFiles(ctx, listing._id),
       "photo",
     );
     const validPhotoIds = new Set(listingPhotos.map((photo) => photo._id));
@@ -519,12 +445,12 @@ export const reorderListingPhotos = mutationGeneric({
   },
 });
 
-export const updateListingVideoUrl = mutationGeneric({
+export const updateListingVideoUrl = mutation({
   args: {
     videoUrl: v.union(v.string(), v.null()),
   },
   handler: async (ctx, args) => {
-    const { workspace, listing } = await requireCurrentWorkspaceContext(ctx as never);
+    const { workspace, listing } = await requireCurrentWorkspaceContext(ctx);
     if (!listing) {
       throw new ConvexError("Listing not found");
     }
@@ -551,10 +477,10 @@ export const updateListingVideoUrl = mutationGeneric({
   },
 });
 
-export const getListingVideoUrl = queryGeneric({
+export const getListingVideoUrl = query({
   args: {},
   handler: async (ctx) => {
-    const { listing } = await requireCurrentWorkspaceContext(ctx as never);
+    const { listing } = await requireCurrentWorkspaceContext(ctx);
     if (!listing) {
       throw new ConvexError("Listing not found");
     }
@@ -581,17 +507,17 @@ function filterSocialFiles(
   });
 }
 
-export const getSocialAssetsStatus = queryGeneric({
+export const getSocialAssetsStatus = query({
   args: {
     brandHash: v.string(),
   },
   handler: async (ctx, args: { brandHash: string }) => {
-    const { listing } = await requireCurrentWorkspaceContext(ctx as never);
+    const { listing } = await requireCurrentWorkspaceContext(ctx);
     if (!listing) {
       throw new ConvexError("Listing not found");
     }
 
-    const files = await getListingFiles(ctx as never, listing._id);
+    const files = await getListingFiles(ctx, listing._id);
     const posts = filterSocialFiles(files, "social-post", args.brandHash);
     const manifests = filterSocialFiles(files, "social-manifest", args.brandHash);
 
@@ -604,7 +530,7 @@ export const getSocialAssetsStatus = queryGeneric({
   },
 });
 
-export const saveSocialAsset = mutationGeneric({
+export const saveSocialAsset = mutation({
   args: {
     storageId: v.string(),
     templateId: v.string(),
@@ -622,12 +548,12 @@ export const saveSocialAsset = mutationGeneric({
       byteSize: number;
     },
   ) => {
-    const { workspace, listing } = await requireCurrentWorkspaceContext(ctx as never);
+    const { workspace, listing } = await requireCurrentWorkspaceContext(ctx);
     if (!listing) {
       throw new ConvexError("Listing not found");
     }
 
-    const fileId = await createFileRecord(ctx as never, {
+    const fileId = await createFileRecord(ctx, {
       workspaceId: workspace._id,
       listingId: listing._id,
       storageId: args.storageId,
@@ -644,22 +570,22 @@ export const saveSocialAsset = mutationGeneric({
   },
 });
 
-export const saveSocialManifest = mutationGeneric({
+export const saveSocialManifest = mutation({
   args: {
     brandHash: v.string(),
     count: v.number(),
   },
   handler: async (ctx, args: { brandHash: string; count: number }) => {
-    const { workspace, listing } = await requireCurrentWorkspaceContext(ctx as never);
+    const { workspace, listing } = await requireCurrentWorkspaceContext(ctx);
     if (!listing) {
       throw new ConvexError("Listing not found");
     }
 
-    const files = await getListingFiles(ctx as never, listing._id);
+    const files = await getListingFiles(ctx, listing._id);
 
     // Delete existing manifests for this listing
     const oldManifests = filterSocialFiles(files, "social-manifest");
-    await deleteFileRecords(ctx as never, oldManifests);
+    await deleteFileRecords(ctx, oldManifests);
 
     // Delete old social-post files with a different brandHash
     const stalePosts = files.filter((file) => {
@@ -668,7 +594,7 @@ export const saveSocialManifest = mutationGeneric({
       if (readString(meta.kind) !== "social-post") return false;
       return readString(meta.brandHash) !== args.brandHash;
     });
-    await deleteFileRecords(ctx as never, stalePosts);
+    await deleteFileRecords(ctx, stalePosts);
 
     // Create manifest record (no actual file blob — use a dummy storageKey)
     const now = new Date().toISOString();
@@ -696,17 +622,17 @@ export const saveSocialManifest = mutationGeneric({
   },
 });
 
-export const cleanupOldSocialAssets = mutationGeneric({
+export const cleanupOldSocialAssets = mutation({
   args: {
     currentBrandHash: v.string(),
   },
   handler: async (ctx, args: { currentBrandHash: string }) => {
-    const { listing } = await requireCurrentWorkspaceContext(ctx as never);
+    const { listing } = await requireCurrentWorkspaceContext(ctx);
     if (!listing) {
       throw new ConvexError("Listing not found");
     }
 
-    const files = await getListingFiles(ctx as never, listing._id);
+    const files = await getListingFiles(ctx, listing._id);
     const staleFiles = files.filter((file) => {
       if (readString(file.bucket) !== "social-posts") return false;
       const meta = asRecord(file.metadata);
@@ -715,7 +641,7 @@ export const cleanupOldSocialAssets = mutationGeneric({
       return readString(meta.brandHash) !== args.currentBrandHash;
     });
 
-    await deleteFileRecords(ctx as never, staleFiles);
+    await deleteFileRecords(ctx, staleFiles);
 
     return { deleted: staleFiles.length };
   },

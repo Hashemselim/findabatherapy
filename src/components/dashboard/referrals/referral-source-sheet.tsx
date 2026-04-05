@@ -61,7 +61,6 @@ interface ReferralSourceSheetProps {
 export function ReferralSourceSheet({
   sourceId,
   onClose,
-  templates: _templates,
   onSendEmail,
 }: ReferralSourceSheetProps) {
   const router = useRouter();

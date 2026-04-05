@@ -13,7 +13,8 @@ import { BrandedPageCard } from "@/components/dashboard/branded-page-card";
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
 import { SharePageHeaderActions } from "@/components/dashboard/share-page-header-actions";
 import { DashboardEmptyState, DashboardFeatureCard } from "@/components/dashboard/ui";
-import { getProfile, createClient } from "@/lib/supabase/server";
+import { getListingSlug } from "@/lib/actions/listings";
+import { getProfile } from "@/lib/platform/workspace/server";
 import { getProviderWebsitePath } from "@/lib/utils/public-paths";
 
 export default async function WebsitePage() {
@@ -23,14 +24,7 @@ export default async function WebsitePage() {
     return <OnboardingGate />;
   }
 
-  const supabase = await createClient();
-  const { data: listing } = await supabase
-    .from("listings")
-    .select("slug")
-    .eq("profile_id", profile.id)
-    .single();
-
-  const listingSlug = listing?.slug ?? null;
+  const listingSlug = await getListingSlug();
 
   if (!listingSlug) {
     return <NoListingState />;

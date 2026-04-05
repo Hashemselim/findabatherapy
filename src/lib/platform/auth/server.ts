@@ -46,15 +46,18 @@ export async function getConvexAuthToken(): Promise<string | undefined> {
   }
 
   const authState = await clerkAuth();
-  const sessionClaims = (authState.sessionClaims ?? null) as { aud?: unknown } | null;
-
-  if (sessionClaims?.aud === "convex") {
-    return (await authState.getToken()) ?? undefined;
+  if (!authState.userId) {
+    return undefined;
   }
 
-  return (
-    (await authState.getToken({ template: "convex" })) ??
-    (await authState.getToken()) ??
-    undefined
-  );
+  const token = await authState.getToken({ template: "convex" });
+  if (!token) {
+    throw new Error(
+      "Clerk Convex JWT template 'convex' is missing or not issuing tokens. " +
+        "Activate Clerk's Convex integration or create a JWT template named 'convex' " +
+        'with {"aud":"convex"}.',
+    );
+  }
+
+  return token;
 }

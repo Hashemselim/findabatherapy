@@ -2,8 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 
-import { createClient, getCurrentProfileId } from "@/lib/supabase/server";
-import { toUserFacingSupabaseError } from "@/lib/supabase/user-facing-errors";
+import { isConvexDataEnabled } from "@/lib/platform/config";
+import { queryConvex, mutateConvex } from "@/lib/platform/convex/server";
 import {
   createJobPostingSchema,
   updateJobPostingSchema,
@@ -20,7 +20,6 @@ import {
   JOB_LIMITS,
 } from "@/lib/validations/jobs";
 import { getEffectivePlanTier, type PlanTier } from "@/lib/plans/features";
-import { getEffectiveLimits } from "@/lib/actions/addons";
 
 type ActionResult<T = void> =
   | { success: true; data?: T }
@@ -112,11 +111,46 @@ function generateSlug(title: string, agencyName: string): string {
   return base;
 }
 
+async function getConvexJobRevalidationTargets(jobId?: string) {
+  if (!isConvexDataEnabled()) {
+    return { jobSlug: null, providerSlug: null };
+  }
+
+  const [job, providerSlug] = await Promise.all([
+    jobId
+      ? queryConvex<JobPostingWithRelations | null>("jobs:getDashboardJobPosting", { id: jobId }).catch(() => null)
+      : Promise.resolve(null),
+    queryConvex<string | null>("listings:getCurrentListingSlug", {}).catch(() => null),
+  ]);
+
+  return {
+    jobSlug: job?.slug ?? null,
+    providerSlug,
+  };
+}
+
+function revalidateConvexPublicJobPaths(params: {
+  jobSlug?: string | null;
+  providerSlug?: string | null;
+}) {
+  revalidatePath("/jobs/search");
+  revalidatePath("/jobs/employers");
+
+  if (params.jobSlug) {
+    revalidatePath(`/job/${params.jobSlug}`);
+  }
+
+  if (params.providerSlug) {
+    revalidatePath(`/jobs/employers/${params.providerSlug}`);
+  }
+}
+
 /**
  * Check if a slug is unique
  */
 async function isSlugUnique(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
   slug: string,
   excludeId?: string
 ): Promise<boolean> {
@@ -141,6 +175,19 @@ async function isSlugUnique(
  * Get all job postings for the current user
  */
 export async function getJobPostings(): Promise<ActionResult<JobPostingSummary[]>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const result = await queryConvex<JobPostingSummary[]>("jobs:getDashboardJobPostings", {});
+      return { success: true, data: result };
+    } catch (error) {
+      console.error("Convex getJobPostings error:", error);
+      return { success: false, error: "We could not load your job postings." };
+    }
+  }
+
+  const { createClient, getCurrentProfileId } = await import("@/lib/supabase/server");
+  const { toUserFacingSupabaseError } = await import("@/lib/supabase/user-facing-errors");
+
   const profileId = await getCurrentProfileId();
   if (!profileId) {
     return { success: false, error: "Not authenticated" };
@@ -223,6 +270,22 @@ export async function getJobPostings(): Promise<ActionResult<JobPostingSummary[]
  * Get a single job posting by ID (for edit page)
  */
 export async function getJobPosting(id: string): Promise<ActionResult<JobPostingWithRelations>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const result = await queryConvex<JobPostingWithRelations | null>("jobs:getDashboardJobPosting", { id });
+      if (!result) {
+        return { success: false, error: "Job posting not found" };
+      }
+      return { success: true, data: result };
+    } catch (error) {
+      console.error("Convex getJobPosting error:", error);
+      return { success: false, error: "We could not load this job posting." };
+    }
+  }
+
+  const { createClient, getCurrentProfileId } = await import("@/lib/supabase/server");
+  const { toUserFacingSupabaseError } = await import("@/lib/supabase/user-facing-errors");
+
   const profileId = await getCurrentProfileId();
   if (!profileId) {
     return { success: false, error: "Not authenticated" };
@@ -332,15 +395,56 @@ export async function getJobPosting(id: string): Promise<ActionResult<JobPosting
  * Create a new job posting
  */
 export async function createJobPosting(data: CreateJobPostingData): Promise<ActionResult<{ id: string; slug: string }>> {
-  const profileId = await getCurrentProfileId();
-  if (!profileId) {
-    return { success: false, error: "Not authenticated" };
-  }
-
-  // Validate input
+  // Validate input (shared for both paths)
   const parsed = createJobPostingSchema.safeParse(data);
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0]?.message || "Invalid input" };
+  }
+
+  if (isConvexDataEnabled()) {
+    try {
+      const result = await mutateConvex<{ id: string; slug: string }>("jobs:createDashboardJobPosting", {
+        title: parsed.data.title,
+        description: parsed.data.description,
+        positionType: parsed.data.positionType,
+        employmentTypes: parsed.data.employmentTypes,
+        locationId: parsed.data.locationId || null,
+        customCity: parsed.data.customCity || null,
+        customState: parsed.data.customState || null,
+        serviceStates: parsed.data.serviceStates || null,
+        remoteOption: parsed.data.remoteOption,
+        showSalary: parsed.data.showSalary,
+        salaryType: parsed.data.salaryType ?? null,
+        salaryMin: parsed.data.salaryMin ?? null,
+        salaryMax: parsed.data.salaryMax ?? null,
+        requirements: parsed.data.requirements || null,
+        benefits: parsed.data.benefits || [],
+        therapySettings: parsed.data.therapySettings || [],
+        scheduleTypes: parsed.data.scheduleTypes || [],
+        ageGroups: parsed.data.ageGroups || [],
+        status: parsed.data.status,
+        expiresAt: parsed.data.expiresAt || null,
+      });
+      revalidatePath("/dashboard/jobs");
+      revalidateConvexPublicJobPaths({
+        jobSlug: result.slug,
+        providerSlug: await queryConvex<string | null>("listings:getCurrentListingSlug", {}).catch(() => null),
+      });
+      return { success: true, data: result };
+    } catch (error) {
+      console.error("Convex createJobPosting error:", error);
+      const message = error instanceof Error ? error.message : "We could not create your job posting. Please try again.";
+      return { success: false, error: message };
+    }
+  }
+
+  const { createClient, getCurrentProfileId } = await import("@/lib/supabase/server");
+  const { toUserFacingSupabaseError } = await import("@/lib/supabase/user-facing-errors");
+  const { getEffectiveLimits } = await import("@/lib/actions/addons");
+
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
+    return { success: false, error: "Not authenticated" };
   }
 
   const supabase = await createClient();
@@ -440,15 +544,36 @@ export async function updateJobPosting(
   id: string,
   data: UpdateJobPostingData
 ): Promise<ActionResult> {
-  const profileId = await getCurrentProfileId();
-  if (!profileId) {
-    return { success: false, error: "Not authenticated" };
-  }
-
-  // Validate input
+  // Validate input (shared for both paths)
   const parsed = updateJobPostingSchema.safeParse(data);
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0]?.message || "Invalid input" };
+  }
+
+  if (isConvexDataEnabled()) {
+    try {
+      const targets = await getConvexJobRevalidationTargets(id);
+      await mutateConvex("jobs:updateDashboardJobPosting", {
+        id,
+        ...parsed.data,
+      });
+      revalidatePath("/dashboard/jobs");
+      revalidatePath(`/dashboard/jobs/${id}`);
+      revalidateConvexPublicJobPaths(targets);
+      return { success: true };
+    } catch (error) {
+      console.error("Convex updateJobPosting error:", error);
+      const message = error instanceof Error ? error.message : "We could not save your job posting. Please try again.";
+      return { success: false, error: message };
+    }
+  }
+
+  const { createClient, getCurrentProfileId } = await import("@/lib/supabase/server");
+  const { toUserFacingSupabaseError } = await import("@/lib/supabase/user-facing-errors");
+
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
+    return { success: false, error: "Not authenticated" };
   }
 
   const supabase = await createClient();
@@ -538,15 +663,36 @@ export async function updateJobStatus(
   id: string,
   status: JobStatus
 ): Promise<ActionResult> {
-  const profileId = await getCurrentProfileId();
-  if (!profileId) {
-    return { success: false, error: "Not authenticated" };
-  }
-
-  // Validate status
+  // Validate status (shared for both paths)
   const parsed = updateJobStatusSchema.safeParse({ status });
   if (!parsed.success) {
     return { success: false, error: "Invalid status" };
+  }
+
+  if (isConvexDataEnabled()) {
+    try {
+      const targets = await getConvexJobRevalidationTargets(id);
+      await mutateConvex("jobs:updateDashboardJobStatus", {
+        id,
+        status: parsed.data.status,
+      });
+      revalidatePath("/dashboard/jobs");
+      revalidatePath(`/dashboard/jobs/${id}`);
+      revalidateConvexPublicJobPaths(targets);
+      return { success: true };
+    } catch (error) {
+      console.error("Convex updateJobStatus error:", error);
+      const message = error instanceof Error ? error.message : "We could not update the job status. Please try again.";
+      return { success: false, error: message };
+    }
+  }
+
+  const { createClient, getCurrentProfileId } = await import("@/lib/supabase/server");
+  const { toUserFacingSupabaseError } = await import("@/lib/supabase/user-facing-errors");
+
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
+    return { success: false, error: "Not authenticated" };
   }
 
   const supabase = await createClient();
@@ -601,6 +747,23 @@ export async function updateJobStatus(
  * Delete a job posting
  */
 export async function deleteJobPosting(id: string): Promise<ActionResult> {
+  if (isConvexDataEnabled()) {
+    try {
+      const targets = await getConvexJobRevalidationTargets(id);
+      await mutateConvex("jobs:deleteDashboardJobPosting", { id });
+      revalidatePath("/dashboard/jobs");
+      revalidateConvexPublicJobPaths(targets);
+      return { success: true };
+    } catch (error) {
+      console.error("Convex deleteJobPosting error:", error);
+      const message = error instanceof Error ? error.message : "We could not delete the job posting. Please try again.";
+      return { success: false, error: message };
+    }
+  }
+
+  const { createClient, getCurrentProfileId } = await import("@/lib/supabase/server");
+  const { toUserFacingSupabaseError } = await import("@/lib/supabase/user-facing-errors");
+
   const profileId = await getCurrentProfileId();
   if (!profileId) {
     return { success: false, error: "Not authenticated" };
@@ -682,6 +845,19 @@ export async function reopenJobPosting(id: string): Promise<ActionResult> {
  * Get the current user's job count and limit
  */
 export async function getJobCountAndLimit(): Promise<ActionResult<{ count: number; limit: number; canCreate: boolean }>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const result = await queryConvex<{ count: number; limit: number; canCreate: boolean }>("jobs:getJobCountAndLimit", {});
+      return { success: true, data: result };
+    } catch (error) {
+      console.error("Convex getJobCountAndLimit error:", error);
+      return { success: false, error: "Could not load job limits." };
+    }
+  }
+
+  const { createClient, getCurrentProfileId } = await import("@/lib/supabase/server");
+  const { getEffectiveLimits } = await import("@/lib/actions/addons");
+
   const profileId = await getCurrentProfileId();
   if (!profileId) {
     return { success: false, error: "Not authenticated" };

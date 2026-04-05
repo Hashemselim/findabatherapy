@@ -2,7 +2,7 @@ import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
-import { getUser } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/platform/auth/server";
 import { getClientById } from "@/lib/actions/clients";
 import { Button } from "@/components/ui/button";
 
@@ -18,7 +18,7 @@ interface EditClientPageProps {
 }
 
 export default async function EditClientPage({ params }: EditClientPageProps) {
-  const user = await getUser();
+  const user = await getCurrentUser();
   if (!user) {
     redirect("/auth/sign-in");
   }

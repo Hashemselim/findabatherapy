@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { Clock, ArrowLeft, ArrowRight, Calendar, BookOpen, Lightbulb, Scale, Workflow, HelpCircle, User, BadgeCheck, Sparkles, CheckCircle } from "lucide-react";
+import { Clock, ArrowLeft, ArrowRight, Calendar, BookOpen, Lightbulb, Scale, Workflow, HelpCircle, User, BadgeCheck, Sparkles } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,7 +21,6 @@ import {
   getRelatedArticles,
   ARTICLE_CATEGORIES,
   DEFAULT_AUTHOR,
-  DEFAULT_REVIEWER,
 } from "@/lib/content/articles";
 
 const BASE_URL = "https://www.findabatherapy.org";
@@ -116,7 +115,6 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
 
   // Get author info (use default if not specified)
   const author = article.author || DEFAULT_AUTHOR;
-  const reviewer = article.reviewedBy || DEFAULT_REVIEWER;
   const lastReviewed = article.lastReviewed || article.updatedAt || article.publishedAt;
 
   // Generate schemas

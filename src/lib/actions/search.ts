@@ -1,11 +1,8 @@
 "use server";
 
+import { isConvexDataEnabled } from "@/lib/platform/config";
+
 import {
-  searchListings,
-  searchLocations,
-  searchLocationsWithGooglePlaces,
-  getListingsByState,
-  getFeaturedListings,
   type SearchFilters,
   type SearchOptions,
   type SearchResult,
@@ -25,7 +22,18 @@ export async function searchProviders(
   filters: SearchFilters,
   options?: SearchOptions
 ): Promise<ActionResult<SearchResult>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvexUnauthenticated } = await import("@/lib/platform/convex/server");
+      const result = await queryConvexUnauthenticated<SearchResult>("listings:searchProviders", { filters, options });
+      return { success: true, data: result };
+    } catch {
+      return { success: false, error: "Failed to search providers" };
+    }
+  }
+
   try {
+    const { searchListings } = await import("@/lib/queries/search");
     const result = await searchListings(filters, options);
     return { success: true, data: result };
   } catch {
@@ -40,7 +48,18 @@ export async function getStateProviders(
   state: string,
   options?: SearchOptions
 ): Promise<ActionResult<SearchResult>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvexUnauthenticated } = await import("@/lib/platform/convex/server");
+      const result = await queryConvexUnauthenticated<SearchResult>("listings:getStateProviders", { state, options });
+      return { success: true, data: result };
+    } catch {
+      return { success: false, error: "Failed to get providers" };
+    }
+  }
+
   try {
+    const { getListingsByState } = await import("@/lib/queries/search");
     const result = await getListingsByState(state, options);
     return { success: true, data: result };
   } catch {
@@ -54,7 +73,18 @@ export async function getStateProviders(
 export async function getHomepageFeaturedProviders(
   limit?: number
 ): Promise<ActionResult<SearchResultListing[]>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvexUnauthenticated } = await import("@/lib/platform/convex/server");
+      const result = await queryConvexUnauthenticated<SearchResultListing[]>("listings:getHomepageFeaturedProviders", { limit });
+      return { success: true, data: result };
+    } catch {
+      return { success: false, error: "Failed to get featured providers" };
+    }
+  }
+
   try {
+    const { getFeaturedListings } = await import("@/lib/queries/search");
     const result = await getFeaturedListings(limit);
     return { success: true, data: result };
   } catch {
@@ -68,9 +98,17 @@ export async function getHomepageFeaturedProviders(
 export async function getProviderCountByState(): Promise<
   ActionResult<Record<string, number>>
 > {
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvexUnauthenticated } = await import("@/lib/platform/convex/server");
+      const result = await queryConvexUnauthenticated<Record<string, number>>("listings:getProviderCountByState", {});
+      return { success: true, data: result };
+    } catch {
+      return { success: false, error: "Failed to get provider counts" };
+    }
+  }
+
   try {
-    // This would ideally be a database aggregation
-    // For now, we'll return a placeholder
     return {
       success: true,
       data: {},
@@ -88,7 +126,18 @@ export async function searchProviderLocations(
   filters: SearchFilters,
   options?: SearchOptions
 ): Promise<ActionResult<LocationSearchResult>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvexUnauthenticated } = await import("@/lib/platform/convex/server");
+      const result = await queryConvexUnauthenticated<LocationSearchResult>("listings:searchProviderLocations", { filters, options });
+      return { success: true, data: result };
+    } catch {
+      return { success: false, error: "Failed to search locations" };
+    }
+  }
+
   try {
+    const { searchLocations } = await import("@/lib/queries/search");
     const result = await searchLocations(filters, options);
     return { success: true, data: result };
   } catch {
@@ -104,7 +153,18 @@ export async function searchProviderLocationsWithGooglePlaces(
   filters: SearchFilters,
   options?: SearchOptions
 ): Promise<ActionResult<CombinedLocationSearchResult>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvexUnauthenticated } = await import("@/lib/platform/convex/server");
+      const result = await queryConvexUnauthenticated<CombinedLocationSearchResult>("listings:searchProviderLocationsWithGooglePlaces", { filters, options });
+      return { success: true, data: result };
+    } catch {
+      return { success: false, error: "Failed to search locations" };
+    }
+  }
+
   try {
+    const { searchLocationsWithGooglePlaces } = await import("@/lib/queries/search");
     const result = await searchLocationsWithGooglePlaces(filters, options);
     return { success: true, data: result };
   } catch {

@@ -22,7 +22,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { DashboardCallout } from "@/components/dashboard/ui";
 import { JobStatusBadge } from "@/components/jobs/job-status-badge";
-import { getProfile } from "@/lib/supabase/server";
+import { getProfile } from "@/lib/platform/workspace/server";
 import { getJobPosting } from "@/lib/actions/jobs";
 import {
   POSITION_TYPES,

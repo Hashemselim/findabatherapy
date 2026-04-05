@@ -183,7 +183,11 @@ export function VideoEmbedForm({
   // View Mode - Read-only display
   if (!isEditing) {
     return (
-      <Card className="border-border/60" data-tour={dataTour}>
+      <Card
+        className="border-border/60"
+        data-testid="video-embed-card"
+        data-tour={dataTour}
+      >
         <CardHeader>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0">
@@ -204,6 +208,7 @@ export function VideoEmbedForm({
                 }
               }}
               className="shrink-0 self-start"
+              data-testid="video-edit-button"
             >
               <Pencil className="mr-2 h-4 w-4" />
               Edit
@@ -231,6 +236,7 @@ export function VideoEmbedForm({
                   className="absolute inset-0 h-full w-full"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
+                  data-testid="video-preview"
                 />
               </div>
 
@@ -277,7 +283,7 @@ export function VideoEmbedForm({
 
   // Edit Mode - Full editing capability
   return (
-    <Card className="border-border/60">
+    <Card className="border-border/60" data-testid="video-embed-card">
       <CardHeader>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
@@ -307,6 +313,7 @@ export function VideoEmbedForm({
               <Label htmlFor="video-url">Video URL</Label>
               <Input
                 id="video-url"
+                data-testid="video-url"
                 placeholder="https://www.youtube.com/watch?v=..."
                 value={videoUrl}
                 onChange={(e) => {
@@ -347,6 +354,7 @@ export function VideoEmbedForm({
                     className="absolute inset-0 h-full w-full"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     allowFullScreen
+                    data-testid="video-preview"
                   />
                 </div>
                 <Button

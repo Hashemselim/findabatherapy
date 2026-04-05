@@ -4,13 +4,13 @@ export type DataRuntimeProvider = "supabase" | "convex";
 function normalizeAuthProvider(
   value: string | undefined,
 ): AuthRuntimeProvider {
-  return value === "clerk" ? "clerk" : "supabase";
+  return value === "supabase" ? "supabase" : "clerk";
 }
 
 function normalizeDataProvider(
   value: string | undefined,
 ): DataRuntimeProvider {
-  return value === "convex" ? "convex" : "supabase";
+  return value === "supabase" ? "supabase" : "convex";
 }
 
 export const platformConfig = {

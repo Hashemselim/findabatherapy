@@ -13,7 +13,7 @@ import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-heade
 import { DashboardCallout, DashboardEmptyState, DashboardStatusBadge } from "@/components/dashboard/ui";
 import { PreviewBanner } from "@/components/ui/preview-banner";
 import { PreviewOverlay } from "@/components/ui/preview-overlay";
-import { getProfile } from "@/lib/supabase/server";
+import { getProfile } from "@/lib/platform/workspace/server";
 import { getReferralAnalytics } from "@/lib/actions/referral-analytics";
 import { DEMO_REFERRAL_SOURCES } from "@/lib/demo/data";
 

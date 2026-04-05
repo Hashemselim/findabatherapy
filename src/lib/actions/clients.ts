@@ -6,6 +6,7 @@ import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 
 import { createClient as createSupabaseClient, getCurrentProfileId, getUser } from "@/lib/supabase/server";
+import { isConvexDataEnabled } from "@/lib/platform/config";
 import { z } from "zod";
 import {
   clientSchema,
@@ -128,6 +129,18 @@ function getClientDisplayName(client: {
   return [client.child_first_name, client.child_last_name].filter(Boolean).join(" ") || "your child";
 }
 
+async function getCurrentSiteOrigin() {
+  let siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://www.findabatherapy.org";
+  try {
+    const headersList = await headers();
+    siteUrl = getRequestOrigin(headersList, "therapy");
+  } catch {
+    // Fall back to env-based origin when there is no active request context.
+  }
+
+  return siteUrl;
+}
+
 async function getPublishedListingSlugForProfile(
   profileId: string
 ): Promise<string | null> {
@@ -181,13 +194,7 @@ async function createClientDocumentUploadLinkForProfile(params: {
     return { success: false, error: "Failed to create document upload link" };
   }
 
-  let siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://www.findabatherapy.org";
-  try {
-    const headersList = await headers();
-    siteUrl = getRequestOrigin(headersList, "therapy");
-  } catch {
-    // Fall back to env-based origin when there is no active request context.
-  }
+  const siteUrl = await getCurrentSiteOrigin();
 
   return {
     success: true,
@@ -239,6 +246,19 @@ export async function getClients(
   page: number = 1,
   pageSize: number = 50
 ): Promise<ActionResult<{ clients: ClientListItem[]; counts: ClientCounts; total: number }>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvex } = await import("@/lib/platform/convex/server");
+      const result = await queryConvex<{ clients: ClientListItem[]; counts: ClientCounts; total: number }>(
+        "crm:getClients",
+        { filters, page, pageSize },
+      );
+      return { success: true, data: result };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to fetch clients" };
+    }
+  }
+
   const user = await getUser();
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {
@@ -387,6 +407,16 @@ export async function getClients(
  * Get a simple list of client names for dropdowns/selectors
  */
 export async function getClientsList(): Promise<ActionResult<{ id: string; name: string }[]>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvex } = await import("@/lib/platform/convex/server");
+      const result = await queryConvex<{ id: string; name: string }[]>("crm:getClients", { listOnly: true });
+      return { success: true, data: result };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to fetch clients" };
+    }
+  }
+
   const user = await getUser();
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {
@@ -422,6 +452,16 @@ export async function getClientsList(): Promise<ActionResult<{ id: string; name:
 export async function getClientById(
   clientId: string
 ): Promise<ActionResult<ClientDetail>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvex } = await import("@/lib/platform/convex/server");
+      const result = await queryConvex<ClientDetail>("crm:getClientById", { clientId });
+      return { success: true, data: result };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Client not found" };
+    }
+  }
+
   const user = await getUser();
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {
@@ -523,6 +563,17 @@ export async function getClientById(
 export async function createClient(
   data: Partial<Client>
 ): Promise<ActionResult<{ id: string }>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { mutateConvex } = await import("@/lib/platform/convex/server");
+      const result = await mutateConvex<{ id: string }>("crm:createClient", { data });
+      revalidatePath("/dashboard/clients");
+      return { success: true, data: result };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to create client" };
+    }
+  }
+
   const user = await getUser();
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {
@@ -611,6 +662,18 @@ export async function updateClient(
   clientId: string,
   data: Partial<Client>
 ): Promise<ActionResult> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { mutateConvex } = await import("@/lib/platform/convex/server");
+      await mutateConvex("crm:updateClient", { clientId, data });
+      revalidatePath("/dashboard/clients");
+      revalidatePath(`/dashboard/clients/${clientId}`);
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to update client" };
+    }
+  }
+
   const user = await getUser();
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {
@@ -711,6 +774,17 @@ export async function updateClient(
  * Soft delete a client
  */
 export async function deleteClient(clientId: string): Promise<ActionResult> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { mutateConvex } = await import("@/lib/platform/convex/server");
+      await mutateConvex("crm:deleteClient", { clientId });
+      revalidatePath("/dashboard/clients");
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to delete client" };
+    }
+  }
+
   const user = await getUser();
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {
@@ -754,6 +828,18 @@ export async function updateClientStatus(
   clientId: string,
   status: ClientStatus
 ): Promise<ActionResult> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { mutateConvex } = await import("@/lib/platform/convex/server");
+      await mutateConvex("crm:updateClientStatus", { clientId, status });
+      revalidatePath("/dashboard/clients");
+      revalidatePath(`/dashboard/clients/${clientId}`);
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to update status" };
+    }
+  }
+
   const user = await getUser();
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {
@@ -829,6 +915,25 @@ export async function addClientParent(
   clientId: string,
   data: Partial<ClientParent>
 ): Promise<ActionResult<{ id: string }>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { mutateConvex } = await import("@/lib/platform/convex/server");
+      const result = await mutateConvex<{ id: string }>("crm:addClientParent", {
+        clientId,
+        firstName: data.first_name || "",
+        lastName: data.last_name || "",
+        relationship: data.relationship || undefined,
+        email: data.email || null,
+        phone: data.phone || null,
+        isPrimary: data.is_primary || false,
+      });
+      revalidatePath(`/dashboard/clients/${clientId}`);
+      return { success: true, data: result };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to add parent" };
+    }
+  }
+
   const user = await getUser();
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {
@@ -885,6 +990,25 @@ export async function updateClientParent(
   parentId: string,
   data: Partial<ClientParent>
 ): Promise<ActionResult> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { mutateConvex } = await import("@/lib/platform/convex/server");
+      await mutateConvex("crm:updateClientParent", {
+        recordId: parentId,
+        firstName: data.first_name ?? undefined,
+        lastName: data.last_name ?? undefined,
+        relationship: data.relationship ?? undefined,
+        email: data.email ?? undefined,
+        phone: data.phone ?? undefined,
+        isPrimary: data.is_primary ?? undefined,
+      });
+      revalidatePath("/dashboard/clients");
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to update parent" };
+    }
+  }
+
   const user = await getUser();
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {
@@ -935,6 +1059,17 @@ export async function updateClientParent(
 }
 
 export async function deleteClientParent(parentId: string): Promise<ActionResult> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { mutateConvex } = await import("@/lib/platform/convex/server");
+      await mutateConvex("crm:deleteClientParent", { recordId: parentId });
+      revalidatePath("/dashboard/clients");
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to delete parent" };
+    }
+  }
+
   const user = await getUser();
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {
@@ -977,6 +1112,26 @@ export async function addClientLocation(
   clientId: string,
   data: Partial<ClientLocation>
 ): Promise<ActionResult<{ id: string }>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { mutateConvex } = await import("@/lib/platform/convex/server");
+      const result = await mutateConvex<{ id: string }>("crm:addClientLocation", {
+        clientId,
+        address: data.street_address || undefined,
+        city: data.city || undefined,
+        state: data.state || undefined,
+        zipCode: data.postal_code || undefined,
+        locationType: data.label || undefined,
+        isPrimary: data.is_primary || false,
+        notes: data.notes || null,
+      });
+      revalidatePath(`/dashboard/clients/${clientId}`);
+      return { success: true, data: result };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to add location" };
+    }
+  }
+
   const user = await getUser();
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {
@@ -1036,6 +1191,26 @@ export async function updateClientLocation(
   locationId: string,
   data: Partial<ClientLocation>
 ): Promise<ActionResult> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { mutateConvex } = await import("@/lib/platform/convex/server");
+      await mutateConvex("crm:updateClientLocation", {
+        recordId: locationId,
+        address: data.street_address ?? undefined,
+        city: data.city ?? undefined,
+        state: data.state ?? undefined,
+        zipCode: data.postal_code ?? undefined,
+        locationType: data.label ?? undefined,
+        isPrimary: data.is_primary ?? undefined,
+        notes: data.notes ?? undefined,
+      });
+      revalidatePath("/dashboard/clients");
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to update location" };
+    }
+  }
+
   const user = await getUser();
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {
@@ -1089,6 +1264,17 @@ export async function updateClientLocation(
 }
 
 export async function deleteClientLocation(locationId: string): Promise<ActionResult> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { mutateConvex } = await import("@/lib/platform/convex/server");
+      await mutateConvex("crm:deleteClientLocation", { recordId: locationId });
+      revalidatePath("/dashboard/clients");
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to delete location" };
+    }
+  }
+
   const user = await getUser();
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {
@@ -1130,6 +1316,26 @@ export async function addClientInsurance(
   clientId: string,
   data: Partial<ClientInsurance>
 ): Promise<ActionResult<{ id: string }>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { mutateConvex } = await import("@/lib/platform/convex/server");
+      const result = await mutateConvex<{ id: string }>("crm:addClientInsurance", {
+        clientId,
+        provider: data.insurance_name || "",
+        policyNumber: data.member_id || null,
+        groupNumber: data.group_number || null,
+        isPrimary: data.is_primary || false,
+        effectiveDate: data.effective_date || null,
+        expirationDate: data.expiration_date || null,
+        notes: data.notes || null,
+      });
+      revalidatePath(`/dashboard/clients/${clientId}`);
+      return { success: true, data: result };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to add insurance" };
+    }
+  }
+
   const user = await getUser();
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {
@@ -1194,6 +1400,26 @@ export async function updateClientInsurance(
   insuranceId: string,
   data: Partial<ClientInsurance>
 ): Promise<ActionResult> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { mutateConvex } = await import("@/lib/platform/convex/server");
+      await mutateConvex("crm:updateClientInsurance", {
+        recordId: insuranceId,
+        provider: data.insurance_name ?? undefined,
+        policyNumber: data.member_id ?? undefined,
+        groupNumber: data.group_number ?? undefined,
+        isPrimary: data.is_primary ?? undefined,
+        effectiveDate: data.effective_date ?? undefined,
+        expirationDate: data.expiration_date ?? undefined,
+        notes: data.notes ?? undefined,
+      });
+      revalidatePath("/dashboard/clients");
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to update insurance" };
+    }
+  }
+
   const user = await getUser();
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {
@@ -1252,6 +1478,17 @@ export async function updateClientInsurance(
 }
 
 export async function deleteClientInsurance(insuranceId: string): Promise<ActionResult> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { mutateConvex } = await import("@/lib/platform/convex/server");
+      await mutateConvex("crm:deleteClientInsurance", { recordId: insuranceId });
+      revalidatePath("/dashboard/clients");
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to delete insurance" };
+    }
+  }
+
   const user = await getUser();
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {
@@ -1293,6 +1530,27 @@ export async function addClientAuthorization(
   clientId: string,
   data: Partial<ClientAuthorization>
 ): Promise<ActionResult<{ id: string }>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { mutateConvex } = await import("@/lib/platform/convex/server");
+      const result = await mutateConvex<{ id: string }>("crm:addClientAuthorization", {
+        clientId,
+        authorizationNumber: data.auth_reference_number || null,
+        insuranceId: data.insurance_id || null,
+        startDate: data.start_date || null,
+        endDate: data.end_date || null,
+        status: data.status || "draft",
+        totalUnits: data.units_requested || null,
+        usedUnits: data.units_used || null,
+        notes: data.notes || null,
+      });
+      revalidatePath(`/dashboard/clients/${clientId}`);
+      return { success: true, data: result };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to add authorization" };
+    }
+  }
+
   const user = await getUser();
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {
@@ -1386,6 +1644,27 @@ export async function updateClientAuthorization(
   authId: string,
   data: Partial<ClientAuthorization>
 ): Promise<ActionResult> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { mutateConvex } = await import("@/lib/platform/convex/server");
+      await mutateConvex("crm:updateClientAuthorization", {
+        recordId: authId,
+        authorizationNumber: data.auth_reference_number ?? undefined,
+        insuranceId: data.insurance_id ?? undefined,
+        startDate: data.start_date ?? undefined,
+        endDate: data.end_date ?? undefined,
+        status: data.status ?? undefined,
+        totalUnits: data.units_requested ?? undefined,
+        usedUnits: data.units_used ?? undefined,
+        notes: data.notes ?? undefined,
+      });
+      revalidatePath("/dashboard/clients");
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to update authorization" };
+    }
+  }
+
   const user = await getUser();
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {
@@ -1443,6 +1722,17 @@ export async function updateClientAuthorization(
 }
 
 export async function deleteClientAuthorization(authId: string): Promise<ActionResult> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { mutateConvex } = await import("@/lib/platform/convex/server");
+      await mutateConvex("crm:deleteClientAuthorization", { recordId: authId });
+      revalidatePath("/dashboard/clients");
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to delete authorization" };
+    }
+  }
+
   const user = await getUser();
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {
@@ -1485,6 +1775,27 @@ export async function addAuthorizationService(
   authId: string,
   data: Partial<ClientAuthorizationService>
 ): Promise<ActionResult<{ id: string }>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { mutateConvex } = await import("@/lib/platform/convex/server");
+      const result = await mutateConvex<{ id: string }>("crm:addAuthorizationService", {
+        clientId: "", // The Convex function needs clientId; we pass authId and it resolves
+        authorizationId: authId,
+        serviceCode: data.billing_code || data.service_type || "",
+        serviceName: data.service_type || null,
+        authorizedUnits: data.units_per_auth || null,
+        usedUnits: data.units_used || null,
+        unitType: data.custom_billing_code || null,
+        rate: null,
+        notes: data.notes || null,
+      });
+      revalidatePath("/dashboard/clients");
+      return { success: true, data: result };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to add service" };
+    }
+  }
+
   const user = await getUser();
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {
@@ -1544,6 +1855,25 @@ export async function updateAuthorizationService(
   serviceId: string,
   data: Partial<ClientAuthorizationService>
 ): Promise<ActionResult> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { mutateConvex } = await import("@/lib/platform/convex/server");
+      await mutateConvex("crm:updateAuthorizationService", {
+        recordId: serviceId,
+        serviceCode: data.billing_code ?? undefined,
+        serviceName: data.service_type ?? undefined,
+        authorizedUnits: data.units_per_auth ?? undefined,
+        usedUnits: data.units_used ?? undefined,
+        unitType: data.custom_billing_code ?? undefined,
+        notes: data.notes ?? undefined,
+      });
+      revalidatePath("/dashboard/clients");
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to update service" };
+    }
+  }
+
   const user = await getUser();
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {
@@ -1613,6 +1943,17 @@ export async function updateAuthorizationService(
 }
 
 export async function deleteAuthorizationService(serviceId: string): Promise<ActionResult> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { mutateConvex } = await import("@/lib/platform/convex/server");
+      await mutateConvex("crm:deleteAuthorizationService", { recordId: serviceId });
+      revalidatePath("/dashboard/clients");
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to delete service" };
+    }
+  }
+
   const user = await getUser();
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {
@@ -1671,6 +2012,25 @@ export async function addClientDocument(
   clientId: string,
   data: Partial<ClientDocument>
 ): Promise<ActionResult<{ id: string }>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { mutateConvex } = await import("@/lib/platform/convex/server");
+      const result = await mutateConvex<{ id: string }>("crm:addClientDocument", {
+        clientId,
+        storageId: "", // Metadata-only document, no storage file
+        filename: data.label || data.file_path || "document",
+        mimeType: "application/octet-stream",
+        byteSize: 0,
+        category: data.document_type || null,
+        notes: data.notes || null,
+      });
+      revalidatePath(`/dashboard/clients/${clientId}`);
+      return { success: true, data: result };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to add document" };
+    }
+  }
+
   const user = await getUser();
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {
@@ -1723,6 +2083,62 @@ export async function uploadClientDocument(
   clientId: string,
   formData: FormData
 ): Promise<ActionResult<{ id: string }>> {
+  if (isConvexDataEnabled()) {
+    try {
+      // In Convex mode, file uploads go through Convex storage
+      const file = formData.get("file") as File | null;
+      if (!file) {
+        return { success: false, error: "No file provided" };
+      }
+      if (!isValidDocumentType(file.type)) {
+        return { success: false, error: "Invalid file type. Allowed: PDF, DOC, DOCX, JPEG, PNG, WebP." };
+      }
+      if (!isValidDocumentSize(file.size)) {
+        return { success: false, error: `File too large. Maximum size is ${Math.round(DOCUMENT_MAX_SIZE / 1024 / 1024)}MB.` };
+      }
+
+      const arrayBuffer = await file.arrayBuffer();
+      if (!verifyDocumentMagicBytes(arrayBuffer, file.type)) {
+        return {
+          success: false,
+          error: "File content does not match its type. Please upload a valid file.",
+        };
+      }
+
+      const metadata = clientDocumentUploadSchema.safeParse({
+        label: formData.get("label") || file.name,
+        document_type: formData.get("document_type") || undefined,
+        file_description: formData.get("file_description") || undefined,
+        notes: formData.get("notes") || undefined,
+      });
+      if (!metadata.success) {
+        return {
+          success: false,
+          error: metadata.error.issues[0]?.message || "Invalid input",
+        };
+      }
+
+      const { mutateConvex, uploadFileToConvexStorage } = await import("@/lib/platform/convex/server");
+      const storageId = await uploadFileToConvexStorage(new Blob([arrayBuffer], { type: file.type }));
+
+      const result = await mutateConvex<{ id: string }>("crm:addClientDocument", {
+        clientId,
+        storageId,
+        filename: file.name,
+        mimeType: file.type,
+        byteSize: file.size,
+        label: metadata.data.label,
+        category: metadata.data.document_type || null,
+        fileDescription: metadata.data.file_description || null,
+        notes: metadata.data.notes || null,
+      });
+      revalidatePath(`/dashboard/clients/${clientId}`);
+      return { success: true, data: result };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to upload document" };
+    }
+  }
+
   const user = await getUser();
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {
@@ -1857,6 +2273,16 @@ export async function uploadClientDocument(
 export async function getDocumentSignedUrl(
   documentId: string
 ): Promise<ActionResult<{ url: string }>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvex } = await import("@/lib/platform/convex/server");
+      const result = await queryConvex<{ url: string }>("crm:getDocumentUrl", { recordId: documentId });
+      return { success: true, data: result };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Document not found" };
+    }
+  }
+
   const user = await getUser();
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {
@@ -1895,6 +2321,24 @@ export async function getDocumentSignedUrl(
 export async function downloadClientDocument(
   documentId: string
 ): Promise<ActionResult<{ url: string; fileName: string }>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvex } = await import("@/lib/platform/convex/server");
+      const result = await queryConvex<{ url: string; fileName?: string | null }>("crm:getDocumentUrl", {
+        recordId: documentId,
+      });
+      return {
+        success: true,
+        data: {
+          url: result.url,
+          fileName: result.fileName || "document",
+        },
+      };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Document not found" };
+    }
+  }
+
   const user = await getUser();
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {
@@ -1936,6 +2380,27 @@ export async function updateClientDocument(
   documentId: string,
   data: Pick<Partial<ClientDocument>, "label" | "document_type" | "file_description" | "notes">
 ): Promise<ActionResult> {
+  if (isConvexDataEnabled()) {
+    try {
+      const parsed = clientDocumentUploadSchema.partial().safeParse(data);
+      if (!parsed.success) {
+        return { success: false, error: parsed.error.issues[0]?.message || "Invalid input" };
+      }
+
+      const { mutateConvex } = await import("@/lib/platform/convex/server");
+      await mutateConvex("crm:updateClientDocument", {
+        recordId: documentId,
+        label: parsed.data.label ?? undefined,
+        category: parsed.data.document_type ?? undefined,
+        fileDescription: parsed.data.file_description ?? undefined,
+        notes: parsed.data.notes ?? undefined,
+      });
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to update document" };
+    }
+  }
+
   const user = await getUser();
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {
@@ -1987,6 +2452,17 @@ export async function updateClientDocument(
 }
 
 export async function deleteClientDocument(documentId: string): Promise<ActionResult> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { mutateConvex } = await import("@/lib/platform/convex/server");
+      await mutateConvex("crm:deleteClientDocument", { recordId: documentId });
+      revalidatePath("/dashboard/clients");
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to delete document" };
+    }
+  }
+
   const user = await getUser();
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {
@@ -2036,6 +2512,36 @@ export async function deleteClientDocument(documentId: string): Promise<ActionRe
 export async function createClientDocumentUploadToken(
   clientId: string
 ): Promise<ActionResult<{ token: string; url: string }>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { mutateConvex, queryConvex } = await import("@/lib/platform/convex/server");
+      const listingSlug = await queryConvex<string | null>("listings:getCurrentListingSlug", {});
+      if (!listingSlug) {
+        return { success: false, error: "No published listing found" };
+      }
+
+      const token = generatePublicUploadToken();
+      await mutateConvex("intake:createClientDocumentUploadToken", {
+        clientId,
+        token,
+      });
+
+      const siteUrl = await getCurrentSiteOrigin();
+      return {
+        success: true,
+        data: {
+          token,
+          url: `${siteUrl}${getProviderDocumentUploadPath(listingSlug)}?token=${token}`,
+        },
+      };
+    } catch (err) {
+      return {
+        success: false,
+        error: err instanceof Error ? err.message : "Failed to create document upload link",
+      };
+    }
+  }
+
   const profileId = await getCurrentProfileId();
   if (!profileId) {
     return { success: false, error: "Not authenticated" };
@@ -2047,6 +2553,24 @@ export async function createClientDocumentUploadToken(
 export async function getClientDocumentUploadTokenData(
   token: string
 ): Promise<ActionResult<ClientDocumentUploadAccessData>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvexUnauthenticated } = await import("@/lib/platform/convex/server");
+      const data = await queryConvexUnauthenticated<ClientDocumentUploadAccessData>(
+        "intake:getClientDocumentUploadTokenData",
+        { token },
+      );
+      return { success: true, data };
+    } catch (err) {
+      return {
+        success: false,
+        error: err instanceof Error
+          ? err.message
+          : "Invalid or expired document upload link",
+      };
+    }
+  }
+
   const validated = await validateClientDocumentUploadToken(token);
   if (!validated.success) {
     return { success: false, error: validated.error };
@@ -2100,6 +2624,104 @@ export async function submitPublicClientDocumentUpload(
   token: string,
   formData: FormData
 ): Promise<ActionResult<{ id: string }>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const file = formData.get("file") as File | null;
+      if (!file) {
+        return { success: false, error: "No file provided" };
+      }
+
+      if (!isValidDocumentType(file.type)) {
+        return {
+          success: false,
+          error: "Invalid file type. Allowed: PDF, DOC, DOCX, JPEG, PNG, WebP.",
+        };
+      }
+
+      if (!isValidDocumentSize(file.size)) {
+        return {
+          success: false,
+          error: `File too large. Maximum size is ${Math.round(DOCUMENT_MAX_SIZE / 1024 / 1024)}MB.`,
+        };
+      }
+
+      const arrayBuffer = await file.arrayBuffer();
+      if (!verifyDocumentMagicBytes(arrayBuffer, file.type)) {
+        return {
+          success: false,
+          error: "File content does not match its type. Please upload a valid file.",
+        };
+      }
+
+      const metadata = clientDocumentUploadSchema.safeParse({
+        label: formData.get("label") || file.name,
+        document_type: formData.get("document_type") || undefined,
+        file_description: formData.get("file_description") || undefined,
+        notes: formData.get("notes") || undefined,
+      });
+
+      if (!metadata.success) {
+        return {
+          success: false,
+          error: metadata.error.issues[0]?.message || "Invalid input",
+        };
+      }
+
+      const {
+        mutateConvexUnauthenticated,
+        queryConvexUnauthenticated,
+      } = await import("@/lib/platform/convex/server");
+
+      const tokenData = await queryConvexUnauthenticated<{
+        clientId: string;
+        profileId: string;
+      }>("intake:getClientDocumentUploadTokenData", { token });
+
+      const uploadUrl = await mutateConvexUnauthenticated<string>(
+        "intake:generateClientDocumentUploadUrl",
+        { token },
+      );
+
+      const uploadResponse = await fetch(uploadUrl, {
+        method: "POST",
+        headers: { "Content-Type": file.type },
+        body: new Blob([arrayBuffer], { type: file.type }),
+      });
+
+      if (!uploadResponse.ok) {
+        return { success: false, error: "Failed to upload file" };
+      }
+
+      const uploadPayload = (await uploadResponse.json()) as { storageId?: string };
+      if (!uploadPayload.storageId) {
+        return { success: false, error: "Failed to upload file" };
+      }
+
+      const result = await mutateConvexUnauthenticated<{ id: string }>(
+        "intake:submitPublicClientDocumentUpload",
+        {
+          token,
+          storageId: uploadPayload.storageId,
+          filename: file.name,
+          mimeType: file.type,
+          byteSize: file.size,
+          label: metadata.data.label,
+          category: metadata.data.document_type || null,
+          fileDescription: metadata.data.file_description || null,
+          notes: metadata.data.notes || null,
+        },
+      );
+
+      revalidatePath(`/dashboard/clients/${tokenData.clientId}`);
+      return { success: true, data: result };
+    } catch (err) {
+      return {
+        success: false,
+        error: err instanceof Error ? err.message : "Failed to save document",
+      };
+    }
+  }
+
   const validated = await validateClientDocumentUploadToken(token);
   if (!validated.success) {
     return { success: false, error: validated.error };
@@ -2243,6 +2865,26 @@ export async function addClientTask(
   clientId: string | null,
   data: Partial<ClientTask>
 ): Promise<ActionResult<{ id: string }>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { mutateConvex } = await import("@/lib/platform/convex/server");
+      const result = await mutateConvex<{ id: string }>("crm:addClientTask", {
+        clientId: clientId || "",
+        title: data.title || "",
+        description: data.content || null,
+        dueDate: data.due_date || null,
+        priority: "medium",
+      });
+      if (clientId) {
+        revalidatePath(`/dashboard/clients/${clientId}`);
+      }
+      revalidatePath("/dashboard/tasks");
+      return { success: true, data: result };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to add task" };
+    }
+  }
+
   const user = await getUser();
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {
@@ -2301,6 +2943,23 @@ export async function updateClientTask(
   taskId: string,
   data: Partial<ClientTask>
 ): Promise<ActionResult> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { mutateConvex } = await import("@/lib/platform/convex/server");
+      await mutateConvex("crm:updateClientTask", {
+        recordId: taskId,
+        title: data.title ?? undefined,
+        description: data.content ?? undefined,
+        dueDate: data.due_date ?? undefined,
+        status: data.status ?? undefined,
+      });
+      revalidatePath("/dashboard/tasks");
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to update task" };
+    }
+  }
+
   const user = await getUser();
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {
@@ -2350,6 +3009,17 @@ export async function updateClientTask(
 }
 
 export async function completeClientTask(taskId: string): Promise<ActionResult> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { mutateConvex } = await import("@/lib/platform/convex/server");
+      await mutateConvex("crm:completeClientTask", { recordId: taskId });
+      revalidatePath("/dashboard/tasks");
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to complete task" };
+    }
+  }
+
   const user = await getUser();
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {
@@ -2391,6 +3061,17 @@ export async function completeClientTask(taskId: string): Promise<ActionResult> 
 }
 
 export async function deleteClientTask(taskId: string): Promise<ActionResult> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { mutateConvex } = await import("@/lib/platform/convex/server");
+      await mutateConvex("crm:deleteClientTask", { recordId: taskId });
+      revalidatePath("/dashboard/tasks");
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to delete task" };
+    }
+  }
+
   const user = await getUser();
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {
@@ -2434,6 +3115,19 @@ export async function deleteClientTask(taskId: string): Promise<ActionResult> {
 export async function getTasks(
   filter?: { status?: "pending" | "completed"; clientId?: string }
 ): Promise<ActionResult<{ tasks: (ClientTask & { id: string; client_id: string | null; created_at: string; completed_at: string | null; client_name?: string })[] }>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvex } = await import("@/lib/platform/convex/server");
+      const result = await queryConvex<{ tasks: unknown[]; total: number }>("crm:getTasks", {
+        status: filter?.status,
+        clientId: filter?.clientId,
+      });
+      return { success: true, data: { tasks: result.tasks as (ClientTask & { id: string; client_id: string | null; created_at: string; completed_at: string | null; client_name?: string })[] } };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to fetch tasks" };
+    }
+  }
+
   const user = await getUser();
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {
@@ -2492,6 +3186,16 @@ export async function getTasks(
  * Used for sidebar badge display.
  */
 export async function getActionableTaskCount(): Promise<ActionResult<number>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvex } = await import("@/lib/platform/convex/server");
+      const result = await queryConvex<{ pending: number; overdue: number; total: number }>("crm:getActionableTaskCount", {});
+      return { success: true, data: result.total };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to count tasks" };
+    }
+  }
+
   const user = await getUser();
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {
@@ -2525,6 +3229,25 @@ export async function addClientContact(
   clientId: string,
   data: Partial<ClientContact>
 ): Promise<ActionResult<{ id: string }>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { mutateConvex } = await import("@/lib/platform/convex/server");
+      const result = await mutateConvex<{ id: string }>("crm:addClientContact", {
+        clientId,
+        contactType: data.contact_type || "other",
+        firstName: data.label || null,
+        lastName: null,
+        email: data.value && data.contact_type === "email" ? data.value : null,
+        phone: data.value && data.contact_type === "phone" ? data.value : null,
+        notes: data.notes || null,
+      });
+      revalidatePath(`/dashboard/clients/${clientId}`);
+      return { success: true, data: result };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to add contact" };
+    }
+  }
+
   const user = await getUser();
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {
@@ -2579,6 +3302,24 @@ export async function updateClientContact(
   contactId: string,
   data: Partial<ClientContact>
 ): Promise<ActionResult> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { mutateConvex } = await import("@/lib/platform/convex/server");
+      await mutateConvex("crm:updateClientContact", {
+        recordId: contactId,
+        contactType: data.contact_type ?? undefined,
+        firstName: data.label ?? undefined,
+        email: data.value && data.contact_type === "email" ? data.value : undefined,
+        phone: data.value && data.contact_type === "phone" ? data.value : undefined,
+        notes: data.notes ?? undefined,
+      });
+      revalidatePath("/dashboard/clients");
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to update contact" };
+    }
+  }
+
   const user = await getUser();
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {
@@ -2627,6 +3368,17 @@ export async function updateClientContact(
 }
 
 export async function deleteClientContact(contactId: string): Promise<ActionResult> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { mutateConvex } = await import("@/lib/platform/convex/server");
+      await mutateConvex("crm:deleteClientContact", { recordId: contactId });
+      revalidatePath("/dashboard/clients");
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to delete contact" };
+    }
+  }
+
   const user = await getUser();
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {
@@ -2670,6 +3422,63 @@ export async function deleteClientContact(contactId: string): Promise<ActionResu
 export async function convertInquiryToClient(
   inquiryId: string
 ): Promise<ActionResult<{ clientId: string; prefillData: Partial<ClientWithRelated> }>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvex } = await import("@/lib/platform/convex/server");
+      const inquiry = await queryConvex<{
+        id: string;
+        name: string;
+        email: string;
+        phone: string | null;
+        message: string;
+        source: string | null;
+      } | null>("inquiries:getInquiry", { inquiryId });
+
+      if (!inquiry) {
+        return { success: false, error: "Inquiry not found" };
+      }
+
+      const nameParts = inquiry.name.trim().split(/\s+/);
+      const firstName = nameParts[0] || "";
+      const lastName = nameParts.slice(1).join(" ") || "";
+
+      return {
+        success: true,
+        data: {
+          clientId: "",
+          prefillData: {
+            inquiry_id: inquiryId,
+            status: "intake_pending",
+            referral_source: inquiry.source || "findabatherapy",
+            referral_source_other: "",
+            notes: inquiry.message || "",
+            parents: [
+              {
+                first_name: firstName,
+                last_name: lastName,
+                phone: inquiry.phone || "",
+                email: inquiry.email || "",
+                is_primary: true,
+                sort_order: 0,
+              },
+            ],
+            locations: [],
+            insurances: [],
+            authorizations: [],
+            documents: [],
+            tasks: [],
+            contacts: [],
+          },
+        },
+      };
+    } catch (err) {
+      return {
+        success: false,
+        error: err instanceof Error ? err.message : "Inquiry not found",
+      };
+    }
+  }
+
   const user = await getUser();
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {
@@ -2743,6 +3552,20 @@ export async function convertInquiryToClient(
  * Mark inquiry as converted (called after client is created)
  */
 export async function markInquiryAsConverted(inquiryId: string): Promise<ActionResult> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { mutateConvex } = await import("@/lib/platform/convex/server");
+      await mutateConvex("inquiries:markInquiryAsConverted", { inquiryId });
+      revalidatePath("/dashboard/notifications");
+      return { success: true };
+    } catch (err) {
+      return {
+        success: false,
+        error: err instanceof Error ? err.message : "Failed to update inquiry",
+      };
+    }
+  }
+
   const user = await getUser();
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {
@@ -2791,6 +3614,98 @@ export async function submitPublicClientIntake(data: {
   /** Dynamic field values from the configurable intake form */
   fields: Record<string, unknown>;
 }): Promise<ActionResult<{ clientId: string; documentUploadUrl?: string }>> {
+  if (isConvexDataEnabled()) {
+    if (data.turnstileToken) {
+      const { env } = await import("@/env");
+      const verifyResponse = await fetch(
+        "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({
+            secret: env.TURNSTILE_SECRET_KEY,
+            response: data.turnstileToken,
+          }),
+        },
+      );
+      const verifyResult = await verifyResponse.json();
+      if (!verifyResult.success) {
+        return { success: false, error: "Verification failed. Please try again." };
+      }
+    }
+
+    try {
+      const { routeFieldsToTables } = await import("@/lib/intake/build-intake-schema");
+      const { mutateConvexUnauthenticated } = await import("@/lib/platform/convex/server");
+      const tables = routeFieldsToTables(data.fields);
+      const uploadToken = generatePublicUploadToken();
+      const result = await mutateConvexUnauthenticated<{
+        clientId: string;
+        documentUploadToken: string | null;
+        listingSlug: string | null;
+      }>("crm:createPublicIntakeClient", {
+        profileId: data.profileId,
+        listingId: data.listingId,
+        clientData: tables.clients,
+        parentData: tables.client_parents,
+        insuranceData: tables.client_insurances,
+        homeLocationData: tables.client_locations,
+        serviceLocationData: tables.service_locations,
+        documentUploadToken: uploadToken,
+      });
+
+      const childName =
+        [
+          (tables.clients as Record<string, unknown>).child_first_name as
+            | string
+            | undefined,
+          (tables.clients as Record<string, unknown>).child_last_name as
+            | string
+            | undefined,
+        ]
+          .filter(Boolean)
+          .join(" ") || "Unknown";
+      const parentData = tables.client_parents as Record<string, unknown>;
+      const parentFirst = parentData.first_name as string | undefined;
+      const parentLast = parentData.last_name as string | undefined;
+
+      const { createNotification } = await import("@/lib/actions/notifications");
+      createNotification({
+        profileId: data.profileId,
+        type: "intake_submission",
+        title: `Intake form submitted for ${childName}`,
+        body: parentFirst
+          ? `Parent: ${parentFirst} ${parentLast || ""}`.trim()
+          : undefined,
+        link: `/dashboard/clients/${result.clientId}`,
+        entityId: result.clientId,
+        entityType: "client",
+      }).catch((err) => {
+        console.error("[CLIENTS] Failed to create intake notification:", err);
+      });
+
+      const siteUrl = await getCurrentSiteOrigin();
+      const documentUploadUrl =
+        result.listingSlug && result.documentUploadToken
+          ? `${siteUrl}${getProviderDocumentUploadPath(result.listingSlug)}?token=${result.documentUploadToken}`
+          : undefined;
+
+      return {
+        success: true,
+        data: {
+          clientId: result.clientId,
+          documentUploadUrl,
+        },
+      };
+    } catch (err) {
+      console.error("[CLIENTS] Failed to create Convex intake client:", err);
+      return {
+        success: false,
+        error: err instanceof Error ? err.message : "Failed to submit intake form",
+      };
+    }
+  }
+
   // Verify Turnstile token
   if (data.turnstileToken) {
     const { env } = await import("@/env");

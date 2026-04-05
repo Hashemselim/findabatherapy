@@ -182,6 +182,7 @@ export default async function InsurancePage({ params }: InsurancePageProps) {
           </h2>
           <p className="mt-2 text-muted-foreground">
             Click on a state to view ABA therapy providers accepting {insurance.name}.
+            Provider results are shown on the search page after you select a state.
           </p>
 
           <div className="mt-6 grid gap-3 sm:grid-cols-2 md:grid-cols-3">

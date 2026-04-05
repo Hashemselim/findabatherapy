@@ -6,7 +6,7 @@ import { type CompanyDefaults } from "@/components/dashboard/locations-manager";
 import { LocationsPageContent } from "@/components/dashboard/locations-header-wrapper";
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
 import { DashboardCallout, DashboardEmptyState } from "@/components/dashboard/ui";
-import { getProfile } from "@/lib/supabase/server";
+import { getProfile } from "@/lib/platform/workspace/server";
 import { getLocations } from "@/lib/actions/locations";
 import { getListing } from "@/lib/actions/listings";
 import { getFeaturedAddonPrices } from "@/lib/stripe/actions";

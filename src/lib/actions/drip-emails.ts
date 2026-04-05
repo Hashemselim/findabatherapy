@@ -7,8 +7,7 @@
  * Designed to be called from a cron job or edge function.
  */
 
-import { Resend } from "resend";
-import { createAdminClient } from "@/lib/supabase/server";
+import { isConvexDataEnabled } from "@/lib/platform/config";
 import { DRIP_SEQUENCE, DRIP_TOTAL_STEPS } from "@/lib/email/drip-templates";
 import { getFormattedFromEmail } from "@/lib/utils/domains";
 
@@ -16,12 +15,14 @@ type ActionResult<T = void> =
   | { success: true; data?: T }
   | { success: false; error: string };
 
-let resend: Resend | null = null;
+let resend: import("resend").Resend | null = null;
 
-function getResendClient(): Resend | null {
+function getResendClient(): import("resend").Resend | null {
   if (resend) return resend;
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) return null;
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { Resend } = require("resend") as typeof import("resend");
   resend = new Resend(apiKey);
   return resend;
 }
@@ -38,12 +39,20 @@ function getResendClient(): Resend | null {
  * Returns count of emails sent.
  */
 export async function processDripEmails(): Promise<ActionResult<{ sent: number; errors: number }>> {
+  if (isConvexDataEnabled()) {
+    // Drip emails will be handled differently in Convex mode
+    // (e.g., via Convex scheduled functions)
+    console.log("[drip] Convex mode: drip emails handled by Convex scheduled functions");
+    return { success: true, data: { sent: 0, errors: 0 } };
+  }
+
   const client = getResendClient();
   if (!client) {
     console.log("[drip] Resend not configured, skipping drip emails");
     return { success: true, data: { sent: 0, errors: 0 } };
   }
 
+  const { createAdminClient } = await import("@/lib/supabase/server");
   const supabase = await createAdminClient();
 
   // Fetch free users who haven't completed the drip sequence
@@ -125,6 +134,20 @@ export async function processDripEmails(): Promise<ActionResult<{ sent: number; 
  * Sets drip_email_step to the max so no more emails are sent.
  */
 export async function stopDripForUser(profileId: string): Promise<ActionResult> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { mutateConvexUnauthenticated } = await import("@/lib/platform/convex/server");
+      await mutateConvexUnauthenticated("notifications:stopDripForUser", {
+        profileId,
+      });
+      return { success: true };
+    } catch (error) {
+      console.error("[drip] Convex stopDripForUser error:", error);
+      return { success: false, error: "Failed to stop drip emails" };
+    }
+  }
+
+  const { createAdminClient } = await import("@/lib/supabase/server");
   const supabase = await createAdminClient();
 
   const { error } = await supabase

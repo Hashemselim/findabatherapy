@@ -1,7 +1,8 @@
 import { unstable_noStore as noStore } from "next/cache";
 
+import { isConvexDataEnabled } from "@/lib/platform/config";
 import { filterPublicProfiles, isPublicProfileVisible } from "@/lib/public-visibility";
-import { createAdminClient } from "@/lib/supabase/server";
+import type { createAdminClient } from "@/lib/supabase/server";
 import {
   type PositionType,
   type EmploymentType,
@@ -276,6 +277,111 @@ async function getVisiblePublishedListingBySlug(
 }
 
 // =============================================================================
+// CONVEX DATASET TYPES
+// =============================================================================
+
+/** Shape returned by `jobs:getPublicJobs` (Convex public dataset) */
+interface ConvexPublicJob {
+  id: string;
+  slug: string;
+  title: string;
+  description: string | null;
+  positionType: string;
+  employmentTypes: string[];
+  salaryMin: number | null;
+  salaryMax: number | null;
+  salaryType: string | null;
+  remoteOption: boolean;
+  requirements: string | null;
+  benefits: string[];
+  therapySettings: string[];
+  scheduleTypes: string[];
+  ageGroups: string[];
+  publishedAt: string;
+  expiresAt: string | null;
+  isFeatured: boolean;
+  provider: {
+    id: string;
+    slug: string;
+    agencyName: string;
+    logoUrl: string | null;
+    planTier: string;
+    isVerified: boolean;
+  };
+  location: {
+    city: string;
+    state: string;
+    lat: number | null;
+    lng: number | null;
+  } | null;
+  serviceStates: string[] | null;
+}
+
+/** Shape returned by `jobs:getPublicEmployers` (Convex public dataset) */
+interface ConvexPublicEmployer {
+  id: string;
+  slug: string;
+  agencyName: string;
+  logoUrl: string | null;
+  headline: string | null;
+  planTier: string;
+  isVerified: boolean;
+  primaryLocation: { city: string; state: string } | null;
+  locationCount: number;
+  openJobCount: number;
+}
+
+/** Map a Convex public job entry to the local JobSearchResult shape */
+function mapConvexJobToSearchResult(job: ConvexPublicJob): JobSearchResult {
+  return {
+    id: job.id,
+    slug: job.slug,
+    title: job.title,
+    description: job.description,
+    positionType: job.positionType as PositionType,
+    employmentTypes: job.employmentTypes as EmploymentType[],
+    salaryMin: job.salaryMin,
+    salaryMax: job.salaryMax,
+    salaryType: job.salaryType as "hourly" | "annual" | null,
+    remoteOption: job.remoteOption,
+    publishedAt: job.publishedAt,
+    isFeatured: job.isFeatured,
+    provider: {
+      ...job.provider,
+      planTier: job.provider.planTier as PlanTier,
+    },
+    location: job.location,
+    serviceStates: job.serviceStates,
+  };
+}
+
+/** Map a Convex public employer entry to the local EmployerListItem shape */
+function mapConvexEmployerToListItem(employer: ConvexPublicEmployer): EmployerListItem {
+  return {
+    id: employer.id,
+    slug: employer.slug,
+    agencyName: employer.agencyName,
+    logoUrl: employer.logoUrl,
+    headline: employer.headline,
+    planTier: employer.planTier as PlanTier,
+    isVerified: employer.isVerified,
+    primaryLocation: employer.primaryLocation,
+    locationCount: employer.locationCount,
+    openJobCount: employer.openJobCount,
+  };
+}
+
+/** Check if a Convex job matches a state code (mirrors Supabase-side helper) */
+function convexJobMatchesState(job: ConvexPublicJob, stateCode: string): boolean {
+  if (job.serviceStates && job.serviceStates.length > 0) {
+    if (job.serviceStates.includes("*")) return true;
+    if (job.serviceStates.includes(stateCode)) return true;
+  }
+  if (job.location?.state?.toUpperCase() === stateCode) return true;
+  return false;
+}
+
+// =============================================================================
 // JOB QUERIES
 // =============================================================================
 
@@ -287,6 +393,39 @@ export async function getPublishedJobBySlug(
 ): Promise<PublicJobPosting | null> {
   noStore();
 
+  if (isConvexDataEnabled()) {
+    const { queryConvexUnauthenticated } = await import(
+      "@/lib/platform/convex/server"
+    );
+    const job = await queryConvexUnauthenticated<ConvexPublicJob | null>(
+      "jobs:getPublicJobBySlug",
+      { slug }
+    );
+    if (!job) return null;
+    return {
+      id: job.id,
+      slug: job.slug,
+      title: job.title,
+      description: job.description,
+      positionType: job.positionType as PositionType,
+      employmentTypes: job.employmentTypes as EmploymentType[],
+      salaryMin: job.salaryMin,
+      salaryMax: job.salaryMax,
+      salaryType: job.salaryType as "hourly" | "annual" | null,
+      remoteOption: job.remoteOption,
+      requirements: job.requirements,
+      benefits: job.benefits as BenefitType[],
+      publishedAt: job.publishedAt,
+      expiresAt: job.expiresAt,
+      provider: {
+        ...job.provider,
+        planTier: job.provider.planTier as PlanTier,
+      },
+      location: job.location,
+    };
+  }
+
+  const { createAdminClient } = await import("@/lib/supabase/server");
   const supabase = await createAdminClient();
 
   const { data: job, error } = await supabase
@@ -395,6 +534,133 @@ export async function searchJobs(
   const { filters = {}, page = 1, limit = 20, sort = "relevance" } = params;
   const offset = (page - 1) * limit;
 
+  if (isConvexDataEnabled()) {
+    const { queryConvexUnauthenticated } = await import(
+      "@/lib/platform/convex/server"
+    );
+    const allJobs = await queryConvexUnauthenticated<ConvexPublicJob[]>(
+      "jobs:getPublicJobs",
+      {}
+    );
+
+    let filtered = allJobs;
+
+    // Apply filters
+    if (filters.positionTypes && filters.positionTypes.length > 0) {
+      filtered = filtered.filter((j) =>
+        filters.positionTypes!.includes(j.positionType as PositionType)
+      );
+    }
+    if (filters.employmentTypes && filters.employmentTypes.length > 0) {
+      filtered = filtered.filter((j) =>
+        j.employmentTypes.some((et) =>
+          filters.employmentTypes!.includes(et as EmploymentType)
+        )
+      );
+    }
+    if (filters.remote === true) {
+      filtered = filtered.filter((j) => j.remoteOption);
+    }
+    if (filters.providerId) {
+      filtered = filtered.filter((j) => j.provider.id === filters.providerId);
+    }
+    if (filters.state) {
+      const stateCode =
+        getStateCode(filters.state) || filters.state.toUpperCase();
+      filtered = filtered.filter((j) => convexJobMatchesState(j, stateCode));
+    }
+    if (filters.postedWithin) {
+      const now = Date.now();
+      const cutoff =
+        filters.postedWithin === "24h"
+          ? now - 24 * 60 * 60 * 1000
+          : filters.postedWithin === "7d"
+            ? now - 7 * 24 * 60 * 60 * 1000
+            : now - 30 * 24 * 60 * 60 * 1000;
+      filtered = filtered.filter(
+        (j) => new Date(j.publishedAt).getTime() >= cutoff
+      );
+    }
+    if (filters.therapySettings && filters.therapySettings.length > 0) {
+      filtered = filtered.filter((j) =>
+        j.therapySettings.some((ts) =>
+          (filters.therapySettings as string[]).includes(ts)
+        )
+      );
+    }
+    if (filters.scheduleTypes && filters.scheduleTypes.length > 0) {
+      filtered = filtered.filter((j) =>
+        j.scheduleTypes.some((st) =>
+          (filters.scheduleTypes as string[]).includes(st)
+        )
+      );
+    }
+    if (filters.ageGroups && filters.ageGroups.length > 0) {
+      filtered = filtered.filter((j) =>
+        j.ageGroups.some((ag) =>
+          (filters.ageGroups as string[]).includes(ag)
+        )
+      );
+    }
+
+    // Map to result shape
+    let results: JobSearchResult[] = filtered.map((j) => {
+      const result = mapConvexJobToSearchResult(j);
+
+      // Calculate distance when proximity search is active
+      if (
+        filters.lat !== undefined &&
+        filters.lng !== undefined &&
+        j.location?.lat != null &&
+        j.location?.lng != null
+      ) {
+        const distance = calculateDistance(
+          { latitude: filters.lat, longitude: filters.lng },
+          { latitude: j.location.lat, longitude: j.location.lng }
+        );
+        result.distance = distance;
+        result.distanceFormatted = formatDistance(distance);
+      }
+
+      return result;
+    });
+
+    // Filter by radius when explicitly provided
+    const isProximitySearch =
+      filters.lat !== undefined && filters.lng !== undefined;
+    if (isProximitySearch && filters.radius !== undefined) {
+      results = results.filter((job) => {
+        if (job.distance === undefined) return job.remoteOption;
+        return job.distance <= filters.radius!;
+      });
+    }
+
+    // Sort
+    if (sort === "relevance" || sort === "distance") {
+      const sortable = results.map((job) => ({
+        ...job,
+        planTier: job.provider.planTier as SharedPlanTier,
+        distanceMiles: job.distance,
+      }));
+      sortSearchResultsByRelevance(sortable);
+      results = sortable;
+    } else if (sort === "date") {
+      results.sort(
+        (a, b) =>
+          new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
+      );
+    } else if (sort === "salary") {
+      results.sort((a, b) => (b.salaryMax ?? 0) - (a.salaryMax ?? 0));
+    }
+
+    const total = results.length;
+    const paginatedResults = results.slice(offset, offset + limit);
+    const totalPages = Math.ceil(total / limit);
+
+    return { jobs: paginatedResults, total, page, totalPages };
+  }
+
+  const { createAdminClient } = await import("@/lib/supabase/server");
   const supabase = await createAdminClient();
 
   // Check if this is a proximity search (has lat/lng)
@@ -881,6 +1147,24 @@ export async function getJobsByState(
     return { jobs: [], total: 0 };
   }
 
+  if (isConvexDataEnabled()) {
+    const { queryConvexUnauthenticated } = await import(
+      "@/lib/platform/convex/server"
+    );
+    const allJobs = await queryConvexUnauthenticated<ConvexPublicJob[]>(
+      "jobs:getPublicJobs",
+      {}
+    );
+    const filtered = allJobs.filter((j) =>
+      convexJobMatchesState(j, stateCode)
+    );
+    const results = filtered
+      .slice(0, limit)
+      .map(mapConvexJobToSearchResult);
+    return { jobs: results, total: filtered.length };
+  }
+
+  const { createAdminClient } = await import("@/lib/supabase/server");
   const supabase = await createAdminClient();
 
   // Fetch all jobs and filter in JS for OR logic
@@ -1014,6 +1298,28 @@ export async function getJobsByCity(
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
 
+  if (isConvexDataEnabled()) {
+    const { queryConvexUnauthenticated } = await import(
+      "@/lib/platform/convex/server"
+    );
+    const allJobs = await queryConvexUnauthenticated<ConvexPublicJob[]>(
+      "jobs:getPublicJobs",
+      {}
+    );
+    const filtered = allJobs.filter((j) => {
+      if (!j.location) return false;
+      return (
+        j.location.city.toLowerCase() === cityName.toLowerCase() &&
+        j.location.state.toUpperCase() === stateCode
+      );
+    });
+    const results = filtered
+      .slice(0, limit)
+      .map(mapConvexJobToSearchResult);
+    return { jobs: results, total: filtered.length };
+  }
+
+  const { createAdminClient } = await import("@/lib/supabase/server");
   const supabase = await createAdminClient();
 
   // Fetch jobs and filter in JS to handle custom_city OR location.city
@@ -1145,6 +1451,18 @@ export async function getJobsByProvider(
 ): Promise<JobSearchResult[]> {
   noStore();
 
+  if (isConvexDataEnabled()) {
+    const { queryConvexUnauthenticated } = await import(
+      "@/lib/platform/convex/server"
+    );
+    const jobs = await queryConvexUnauthenticated<ConvexPublicJob[]>(
+      "jobs:getPublicJobsByProvider",
+      { providerSlug }
+    );
+    return jobs.map(mapConvexJobToSearchResult);
+  }
+
+  const { createAdminClient } = await import("@/lib/supabase/server");
   const supabase = await createAdminClient();
 
   // First, look up the listing by slug to get the profile_id
@@ -1246,6 +1564,31 @@ export async function getJobsByProvider(
 export async function getFeaturedJobs(limit = 6): Promise<JobSearchResult[]> {
   noStore();
 
+  if (isConvexDataEnabled()) {
+    const { queryConvexUnauthenticated } = await import(
+      "@/lib/platform/convex/server"
+    );
+    const allJobs = await queryConvexUnauthenticated<ConvexPublicJob[]>(
+      "jobs:getPublicJobs",
+      {}
+    );
+    // Sort: Featured -> Paid -> Free -> then by date
+    const results = allJobs.map(mapConvexJobToSearchResult);
+    results.sort((a, b) => {
+      if (a.isFeatured && !b.isFeatured) return -1;
+      if (!a.isFeatured && b.isFeatured) return 1;
+      const aIsPaid = a.provider.planTier !== "free";
+      const bIsPaid = b.provider.planTier !== "free";
+      if (aIsPaid && !bIsPaid) return -1;
+      if (!aIsPaid && bIsPaid) return 1;
+      return (
+        new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
+      );
+    });
+    return results.slice(0, limit);
+  }
+
+  const { createAdminClient } = await import("@/lib/supabase/server");
   const supabase = await createAdminClient();
 
   // Get published jobs, prioritizing featured and paid plans
@@ -1365,6 +1708,18 @@ export async function getFeaturedJobs(limit = 6): Promise<JobSearchResult[]> {
 export async function getTotalJobCount(): Promise<number> {
   noStore();
 
+  if (isConvexDataEnabled()) {
+    const { queryConvexUnauthenticated } = await import(
+      "@/lib/platform/convex/server"
+    );
+    const allJobs = await queryConvexUnauthenticated<ConvexPublicJob[]>(
+      "jobs:getPublicJobs",
+      {}
+    );
+    return allJobs.length;
+  }
+
+  const { createAdminClient } = await import("@/lib/supabase/server");
   const supabase = await createAdminClient();
 
   const { data: jobs } = await supabase
@@ -1386,6 +1741,33 @@ export async function getTotalJobCount(): Promise<number> {
 export async function getJobCountsByState(): Promise<Map<string, number>> {
   noStore();
 
+  if (isConvexDataEnabled()) {
+    const { queryConvexUnauthenticated } = await import(
+      "@/lib/platform/convex/server"
+    );
+    const allJobs = await queryConvexUnauthenticated<ConvexPublicJob[]>(
+      "jobs:getPublicJobs",
+      {}
+    );
+    const counts = new Map<string, number>();
+    for (const job of allJobs) {
+      const jobStates = new Set<string>();
+      if (job.serviceStates && job.serviceStates.length > 0) {
+        job.serviceStates.forEach((s) => {
+          if (s !== "*") jobStates.add(s.toUpperCase());
+        });
+      }
+      if (job.location?.state) {
+        jobStates.add(job.location.state.toUpperCase());
+      }
+      jobStates.forEach((state) => {
+        counts.set(state, (counts.get(state) || 0) + 1);
+      });
+    }
+    return counts;
+  }
+
+  const { createAdminClient } = await import("@/lib/supabase/server");
   const supabase = await createAdminClient();
 
   const { data, error } = await supabase
@@ -1478,6 +1860,18 @@ export async function getAllEmployers(options?: {
 }): Promise<EmployerListItem[]> {
   noStore();
 
+  if (isConvexDataEnabled()) {
+    const { queryConvexUnauthenticated } = await import(
+      "@/lib/platform/convex/server"
+    );
+    const employers = await queryConvexUnauthenticated<ConvexPublicEmployer[]>(
+      "jobs:getPublicEmployers",
+      { hiringOnly: options?.hiringOnly ?? false }
+    );
+    return employers.map(mapConvexEmployerToListItem);
+  }
+
+  const { createAdminClient } = await import("@/lib/supabase/server");
   const supabase = await createAdminClient();
 
   // Get all published listings with their profiles
@@ -1610,6 +2004,18 @@ export async function getAllEmployers(options?: {
 export async function getTotalEmployerCount(): Promise<number> {
   noStore();
 
+  if (isConvexDataEnabled()) {
+    const { queryConvexUnauthenticated } = await import(
+      "@/lib/platform/convex/server"
+    );
+    const count = await queryConvexUnauthenticated<number>(
+      "jobs:getPublicEmployerCount",
+      {}
+    );
+    return count;
+  }
+
+  const { createAdminClient } = await import("@/lib/supabase/server");
   const supabase = await createAdminClient();
 
   const { data, error } = await supabase

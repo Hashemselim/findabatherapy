@@ -21,12 +21,11 @@ import { BrandedLogo } from "@/components/branded/branded-logo";
 import { Separator } from "@/components/ui/separator";
 import { ApplyButton } from "@/components/jobs/apply-button";
 import { JsonLd } from "@/components/seo/json-ld";
+import { getListingBySlug } from "@/lib/actions/listings";
 import { getPublishedJobBySlug } from "@/lib/queries/jobs";
-import { createAdminClient } from "@/lib/supabase/server";
 import { POSITION_TYPES, EMPLOYMENT_TYPES, BENEFITS_OPTIONS } from "@/lib/validations/jobs";
 import { generateJobPostingSchema } from "@/lib/seo/job-schemas";
 import type { PlanTier } from "@/lib/plans/features";
-import { isPublicProfileVisible } from "@/lib/public-visibility";
 import { getContrastingTextColor } from "@/lib/utils/brand-color";
 import { getProviderCareersPath } from "@/lib/utils/public-paths";
 
@@ -49,65 +48,32 @@ interface ProviderProfile {
 }
 
 async function getProviderBySlug(slug: string): Promise<ProviderProfile | null> {
-  const supabase = await createAdminClient();
-
-  const { data: listing, error: listingError } = await supabase
-    .from("listings")
-    .select(`
-      profile_id,
-      slug,
-      logo_url
-    `)
-    .eq("slug", slug)
-    .eq("status", "published")
-    .single();
-
-  if (listingError || !listing) {
+  const listingResult = await getListingBySlug(slug);
+  if (!listingResult.success || !listingResult.data) {
     return null;
   }
 
-  const { data: profile, error: profileError } = await supabase
-    .from("profiles")
-    .select(`
-      id,
-      agency_name,
-      contact_email,
-      website,
-      plan_tier,
-      subscription_status,
-      intake_form_settings,
-      is_seeded
-    `)
-    .eq("id", listing.profile_id)
-    .single();
-
-  if (profileError || !profile) {
-    return null;
-  }
-
-  if (!isPublicProfileVisible(profile)) {
-    return null;
-  }
-
+  const listing = listingResult.data;
   const isActiveSubscription =
-    profile.subscription_status === "active" ||
-    profile.subscription_status === "trialing";
-  const effectiveTier = (isActiveSubscription ? profile.plan_tier : "free") as PlanTier;
-  const intakeFormSettings = (profile.intake_form_settings as
-    | { background_color?: string; show_powered_by?: boolean }
-    | null) || null;
+    listing.profile.subscriptionStatus === "active" ||
+    listing.profile.subscriptionStatus === "trialing";
+  const effectiveTier = (
+    isActiveSubscription ? listing.profile.planTier : "free"
+  ) as PlanTier;
 
   return {
-    id: profile.id,
+    id: listing.id,
     slug: listing.slug,
-    agencyName: profile.agency_name,
-    logoUrl: listing.logo_url || null,
-    website: profile.website,
+    agencyName: listing.profile.agencyName,
+    logoUrl: listing.logoUrl || null,
+    website: listing.profile.website,
     planTier: effectiveTier,
     isVerified: effectiveTier !== "free",
     intakeFormSettings: {
-      background_color: intakeFormSettings?.background_color || "#0866FF",
-      show_powered_by: intakeFormSettings?.show_powered_by ?? true,
+      background_color:
+        listing.profile.intakeFormSettings.background_color || "#0866FF",
+      show_powered_by:
+        listing.profile.intakeFormSettings.show_powered_by ?? true,
     },
   };
 }

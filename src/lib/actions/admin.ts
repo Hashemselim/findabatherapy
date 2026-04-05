@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient, createAdminClient } from "@/lib/supabase/server";
+import { isConvexDataEnabled } from "@/lib/platform/config";
 
 export interface RemovalRequestWithDetails {
   id: string;
@@ -41,6 +41,17 @@ export interface ActionResult<T = void> {
  * Check if current user is an admin
  */
 export async function isCurrentUserAdmin(): Promise<boolean> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvex } = await import("@/lib/platform/convex/server");
+      const result = await queryConvex<boolean>("admin:isCurrentUserAdmin", {});
+      return result;
+    } catch {
+      return false;
+    }
+  }
+
+  const { createClient } = await import("@/lib/supabase/server");
   const supabase = await createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
@@ -63,11 +74,25 @@ export async function getRemovalRequests(filters: {
   page?: number;
   limit?: number;
 }): Promise<ActionResult<{ requests: RemovalRequestWithDetails[]; total: number }>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvex } = await import("@/lib/platform/convex/server");
+      const result = await queryConvex<{ requests: RemovalRequestWithDetails[]; total: number }>(
+        "admin:getRemovalRequests",
+        { filters },
+      );
+      return { success: true, data: result };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to fetch removal requests" };
+    }
+  }
+
   const isAdmin = await isCurrentUserAdmin();
   if (!isAdmin) {
     return { success: false, error: "Unauthorized" };
   }
 
+  const { createClient } = await import("@/lib/supabase/server");
   const supabase = await createClient();
 
   const page = filters.page || 1;
@@ -181,6 +206,17 @@ export async function approveRemovalRequest(
   requestId: string,
   adminNotes?: string
 ): Promise<ActionResult> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { mutateConvex } = await import("@/lib/platform/convex/server");
+      await mutateConvex("admin:approveRemovalRequest", { requestId, adminNotes });
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to approve removal request" };
+    }
+  }
+
+  const { createClient } = await import("@/lib/supabase/server");
   const supabase = await createClient();
 
   const isAdmin = await isCurrentUserAdmin();
@@ -245,6 +281,17 @@ export async function denyRemovalRequest(
   requestId: string,
   adminNotes?: string
 ): Promise<ActionResult> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { mutateConvex } = await import("@/lib/platform/convex/server");
+      await mutateConvex("admin:denyRemovalRequest", { requestId, adminNotes });
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to deny removal request" };
+    }
+  }
+
+  const { createClient } = await import("@/lib/supabase/server");
   const supabase = await createClient();
 
   const isAdmin = await isCurrentUserAdmin();
@@ -337,11 +384,28 @@ export async function getAdminStats(): Promise<
     totalRemovalRequests: number;
   }>
 > {
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvex } = await import("@/lib/platform/convex/server");
+      const result = await queryConvex<{
+        totalGooglePlacesListings: number;
+        activeGooglePlacesListings: number;
+        removedGooglePlacesListings: number;
+        pendingRemovalRequests: number;
+        totalRemovalRequests: number;
+      }>("admin:getAdminStats", {});
+      return { success: true, data: result };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to fetch admin stats" };
+    }
+  }
+
   const isAdmin = await isCurrentUserAdmin();
   if (!isAdmin) {
     return { success: false, error: "Unauthorized" };
   }
 
+  const { createClient } = await import("@/lib/supabase/server");
   const supabase = await createClient();
 
   // Get Google Places counts
@@ -386,11 +450,22 @@ export async function getAdminStats(): Promise<
  * Returns real listings (from locations table) and scraped listings (from google_places_listings)
  */
 export async function getListingsPerState(): Promise<ActionResult<StateListingCounts[]>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvex } = await import("@/lib/platform/convex/server");
+      const result = await queryConvex<StateListingCounts[]>("admin:getListingsPerState", {});
+      return { success: true, data: result };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to fetch listings per state" };
+    }
+  }
+
   const isAdmin = await isCurrentUserAdmin();
   if (!isAdmin) {
     return { success: false, error: "Unauthorized" };
   }
 
+  const { createClient } = await import("@/lib/supabase/server");
   const supabase = await createClient();
 
   // Get real listings per state (from locations table, only published listings)
@@ -452,11 +527,22 @@ export async function getListingsPerState(): Promise<ActionResult<StateListingCo
  * Returns views, searches, inquiries, and contact clicks
  */
 export async function getApplicationAnalytics(): Promise<ActionResult<ApplicationAnalytics>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvex } = await import("@/lib/platform/convex/server");
+      const result = await queryConvex<ApplicationAnalytics>("admin:getApplicationAnalytics", {});
+      return { success: true, data: result };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to fetch application analytics" };
+    }
+  }
+
   const isAdmin = await isCurrentUserAdmin();
   if (!isAdmin) {
     return { success: false, error: "Unauthorized" };
   }
 
+  const { createClient, createAdminClient } = await import("@/lib/supabase/server");
   const supabase = await createClient();
   // Use admin client to read audit_events (RLS only allows service_role access)
   const adminClient = await createAdminClient();
@@ -517,7 +603,6 @@ export async function getApplicationAnalytics(): Promise<ActionResult<Applicatio
   // would double-count (client-side also tracks with source="user")
   const [
     totalViews,
-    totalSearches,
     totalUserSearches,
     totalAiSearches,
     totalBotSearches,
@@ -538,7 +623,6 @@ export async function getApplicationAnalytics(): Promise<ActionResult<Applicatio
   ] = await Promise.all([
     // Total counts
     countEvents("listing_view"),
-    countEvents("search_performed"),
     countSearchesBySource("user"),
     countSearchesBySource("ai"),
     countSearchesBySource("bot"),
@@ -565,7 +649,6 @@ export async function getApplicationAnalytics(): Promise<ActionResult<Applicatio
     success: true,
     data: {
       totalViews,
-      // totalSearches is all search events (for reference/debugging)
       // totalUserSearches is confirmed real user searches (from client-side tracking)
       totalSearches: totalUserSearches, // Show only confirmed user searches as the main count
       totalUserSearches,
@@ -660,11 +743,22 @@ export interface ConversionMetrics {
  * Get customer metrics (admin only)
  */
 export async function getCustomerMetrics(): Promise<ActionResult<CustomerMetrics>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvex } = await import("@/lib/platform/convex/server");
+      const result = await queryConvex<CustomerMetrics>("admin:getCustomerMetrics", {});
+      return { success: true, data: result };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to fetch customer metrics" };
+    }
+  }
+
   const isAdmin = await isCurrentUserAdmin();
   if (!isAdmin) {
     return { success: false, error: "Unauthorized" };
   }
 
+  const { createClient } = await import("@/lib/supabase/server");
   const supabase = await createClient();
 
   const now = new Date();
@@ -721,11 +815,22 @@ export async function getCustomerMetrics(): Promise<ActionResult<CustomerMetrics
  * Get onboarding metrics (admin only)
  */
 export async function getOnboardingMetrics(): Promise<ActionResult<OnboardingMetrics>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvex } = await import("@/lib/platform/convex/server");
+      const result = await queryConvex<OnboardingMetrics>("admin:getOnboardingMetrics", {});
+      return { success: true, data: result };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to fetch onboarding metrics" };
+    }
+  }
+
   const isAdmin = await isCurrentUserAdmin();
   if (!isAdmin) {
     return { success: false, error: "Unauthorized" };
   }
 
+  const { createClient } = await import("@/lib/supabase/server");
   const supabase = await createClient();
 
   // Get all profiles (non-seeded)
@@ -769,11 +874,22 @@ export async function getOnboardingMetrics(): Promise<ActionResult<OnboardingMet
  * Get customers by state (admin only)
  */
 export async function getCustomersByState(): Promise<ActionResult<CustomersByState[]>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvex } = await import("@/lib/platform/convex/server");
+      const result = await queryConvex<CustomersByState[]>("admin:getCustomersByState", {});
+      return { success: true, data: result };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to fetch customers by state" };
+    }
+  }
+
   const isAdmin = await isCurrentUserAdmin();
   if (!isAdmin) {
     return { success: false, error: "Unauthorized" };
   }
 
+  const { createClient } = await import("@/lib/supabase/server");
   const supabase = await createClient();
 
   // Get all locations with their listing and profile info
@@ -830,12 +946,23 @@ export async function getCustomersByState(): Promise<ActionResult<CustomersBySta
 export async function getSearchAnalytics(
   dateRange?: DateRange
 ): Promise<ActionResult<SearchAnalytics>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvex } = await import("@/lib/platform/convex/server");
+      const result = await queryConvex<SearchAnalytics>("admin:getSearchAnalytics", { dateRange });
+      return { success: true, data: result };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to fetch search analytics" };
+    }
+  }
+
   const isAdmin = await isCurrentUserAdmin();
   if (!isAdmin) {
     return { success: false, error: "Unauthorized" };
   }
 
   // Use admin client to read audit_events (RLS only allows service_role access)
+  const { createAdminClient } = await import("@/lib/supabase/server");
   const adminClient = await createAdminClient();
 
   // Build base query - only count confirmed user searches (source="user")
@@ -948,11 +1075,22 @@ export async function getAnalyticsTimeSeries(
   dateRange?: DateRange,
   granularity: "day" | "week" | "month" = "day"
 ): Promise<ActionResult<AnalyticsTimeSeries>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvex } = await import("@/lib/platform/convex/server");
+      const result = await queryConvex<AnalyticsTimeSeries>("admin:getAnalyticsTimeSeries", { dateRange, granularity });
+      return { success: true, data: result };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to fetch analytics time series" };
+    }
+  }
+
   const isAdmin = await isCurrentUserAdmin();
   if (!isAdmin) {
     return { success: false, error: "Unauthorized" };
   }
 
+  const { createClient, createAdminClient } = await import("@/lib/supabase/server");
   const supabase = await createClient();
   // Use admin client to read audit_events (RLS only allows service_role access)
   const adminClient = await createAdminClient();
@@ -1076,11 +1214,22 @@ export async function getAnalyticsTimeSeries(
 export async function getConversionMetrics(
   dateRange?: DateRange
 ): Promise<ActionResult<ConversionMetrics>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvex } = await import("@/lib/platform/convex/server");
+      const result = await queryConvex<ConversionMetrics>("admin:getConversionMetrics", { dateRange });
+      return { success: true, data: result };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to fetch conversion metrics" };
+    }
+  }
+
   const isAdmin = await isCurrentUserAdmin();
   if (!isAdmin) {
     return { success: false, error: "Unauthorized" };
   }
 
+  const { createClient, createAdminClient } = await import("@/lib/supabase/server");
   const supabase = await createClient();
   // Use admin client to read audit_events (RLS only allows service_role access)
   const adminClient = await createAdminClient();
@@ -1148,7 +1297,6 @@ export async function getConversionMetrics(
     { count: searches },
     { count: userSearches },
     { count: botSearches },
-    { count: impressions },
     { count: humanImpressions },
     { count: clicks },
     { count: views },
@@ -1157,7 +1305,6 @@ export async function getConversionMetrics(
     buildQuery("search_performed"),
     buildSearchQuery("user"),
     buildSearchQuery("bot"),
-    buildQuery("search_impression"), // Total impressions
     buildImpressionQuery(true), // User impressions (source="user" only, client-side confirmed)
     buildQuery("search_click"),
     buildQuery("listing_view"),
@@ -1171,7 +1318,6 @@ export async function getConversionMetrics(
   const searchCount = searches || 0;
   const userSearchCount = userSearches || 0;
   const botSearchCount = botSearches || 0;
-  const impressionCount = impressions || 0;
   const humanImpressionCount = humanImpressions || 0;
   const clickCount = clicks || 0;
   const viewCount = views || 0;
@@ -1254,11 +1400,22 @@ export async function getCustomerList(options?: {
   tierFilter?: string;
   searchQuery?: string;
 }): Promise<ActionResult<CustomerListResult>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvex } = await import("@/lib/platform/convex/server");
+      const result = await queryConvex<CustomerListResult>("admin:getCustomerList", { options });
+      return { success: true, data: result };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to fetch customer list" };
+    }
+  }
+
   const isAdmin = await isCurrentUserAdmin();
   if (!isAdmin) {
     return { success: false, error: "Unauthorized" };
   }
 
+  const { createClient } = await import("@/lib/supabase/server");
   const supabase = await createClient();
 
   const page = options?.page || 1;
@@ -1389,11 +1546,22 @@ export async function getCustomerList(options?: {
  * Get customer conversion funnel metrics (admin only)
  */
 export async function getCustomerConversionFunnel(): Promise<ActionResult<CustomerConversionFunnel>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvex } = await import("@/lib/platform/convex/server");
+      const result = await queryConvex<CustomerConversionFunnel>("admin:getCustomerConversionFunnel", {});
+      return { success: true, data: result };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to fetch conversion funnel" };
+    }
+  }
+
   const isAdmin = await isCurrentUserAdmin();
   if (!isAdmin) {
     return { success: false, error: "Unauthorized" };
   }
 
+  const { createClient } = await import("@/lib/supabase/server");
   const supabase = await createClient();
 
   const now = new Date();
@@ -1500,6 +1668,16 @@ export async function exportAnalyticsCSV(
   dataType: "customers" | "searches" | "timeseries" | "states" | "customer_list",
   dateRange?: DateRange
 ): Promise<ActionResult<string>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvex } = await import("@/lib/platform/convex/server");
+      const result = await queryConvex<string>("admin:exportAnalyticsCSV", { dataType, dateRange });
+      return { success: true, data: result };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to export analytics CSV" };
+    }
+  }
+
   const isAdmin = await isCurrentUserAdmin();
   if (!isAdmin) {
     return { success: false, error: "Unauthorized" };
@@ -1639,11 +1817,22 @@ export interface BotAnalytics {
 export async function getBotAnalytics(
   dateRange?: DateRange
 ): Promise<ActionResult<BotAnalytics>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvex } = await import("@/lib/platform/convex/server");
+      const result = await queryConvex<BotAnalytics>("admin:getBotAnalytics", { dateRange });
+      return { success: true, data: result };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Failed to fetch bot analytics" };
+    }
+  }
+
   const isAdmin = await isCurrentUserAdmin();
   if (!isAdmin) {
     return { success: false, error: "Unauthorized" };
   }
 
+  const { createAdminClient } = await import("@/lib/supabase/server");
   const adminClient = await createAdminClient();
 
   // Default to last 30 days if no range provided

@@ -5,7 +5,7 @@ import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
 import { PreviewBanner, LockedButton } from "@/components/ui/preview-banner";
-import { getUser } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/platform/auth/server";
 import { getClients } from "@/lib/actions/clients";
 import { getCurrentPlanTier } from "@/lib/plans/guards";
 import { DEMO_CLIENTS, DEMO_CLIENT_COUNTS } from "@/lib/demo/data";
@@ -19,7 +19,7 @@ export const metadata = {
 };
 
 export default async function ClientsPage() {
-  const user = await getUser();
+  const user = await getCurrentUser();
   if (!user) {
     redirect("/auth/sign-in");
   }

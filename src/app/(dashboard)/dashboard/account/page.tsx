@@ -6,11 +6,12 @@ import { CardContent, CardDescription, CardHeader, CardTitle } from "@/component
 import { Badge } from "@/components/ui/badge";
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
 import { DashboardCallout, DashboardCard } from "@/components/dashboard/ui";
-import { getCurrentMembership, getUser, getProfile } from "@/lib/supabase/server";
+import { getProfile, getCurrentMembership } from "@/lib/platform/workspace/server";
+import { getCurrentUser } from "@/lib/platform/auth/server";
 import { getListing } from "@/lib/actions/listings";
 
 export default async function AccountPage() {
-  const user = await getUser();
+  const user = await getCurrentUser();
 
   if (!user) {
     redirect("/auth/sign-in");
@@ -29,7 +30,7 @@ export default async function AccountPage() {
   const isPaidPlan = planTier !== "free" && isActiveSubscription;
 
   // Get display name
-  const displayName = profile?.full_name || user.user_metadata?.full_name || user.user_metadata?.name || null;
+  const displayName = profile?.full_name || user.firstName || null;
 
   return (
     <div className="space-y-6 sm:space-y-8">

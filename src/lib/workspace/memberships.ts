@@ -106,6 +106,38 @@ export async function createWorkspaceForUser(params: {
 export async function getWorkspaceInviteDetails(
   token: string
 ): Promise<WorkspaceInviteDetails | null> {
+  const { isConvexDataEnabled } = await import("@/lib/platform/config");
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvexUnauthenticated } = await import("@/lib/platform/convex/server");
+      const tokenHash = hashInvitationToken(token);
+      const result = await queryConvexUnauthenticated<{
+        id: string;
+        profileId: string;
+        agencyName: string;
+        invitedEmail: string;
+        role: string;
+        status: string;
+        expiresAt: string | null;
+      } | null>("workspaces:getInvitationDetails", { tokenHash });
+
+      if (!result) return null;
+
+      return {
+        id: result.id,
+        profileId: result.profileId,
+        agencyName: result.agencyName,
+        invitedEmail: result.invitedEmail,
+        role: result.role as ProfileRole,
+        status: result.status as WorkspaceInviteDetails["status"],
+        expiresAt: result.expiresAt ?? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        inviterName: null,
+      };
+    } catch {
+      return null;
+    }
+  }
+
   const adminClient = await createAdminClient();
   const tokenHash = hashInvitationToken(token);
 

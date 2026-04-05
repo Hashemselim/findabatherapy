@@ -35,7 +35,7 @@ export function BillingPortalButton({
       } else {
         setError(result.success ? "Failed to get portal URL" : result.error);
       }
-    } catch (err) {
+    } catch {
       setError("Something went wrong. Please try again.");
     } finally {
       setIsLoading(false);

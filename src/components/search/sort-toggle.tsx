@@ -40,7 +40,7 @@ export function SortToggle({ className }: SortToggleProps) {
   return (
     <div className={className}>
       <Select value={currentSort} onValueChange={handleSortChange}>
-        <SelectTrigger className="w-[160px]">
+        <SelectTrigger className="w-[160px]" data-testid="sort-toggle">
           <ArrowUpDown className="mr-2 h-4 w-4" />
           <SelectValue placeholder="Sort by" />
         </SelectTrigger>

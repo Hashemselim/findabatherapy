@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import path from "path";
+import type { Page } from "@playwright/test";
 
 const authFile = path.join(__dirname, "../.auth/user.json");
 
@@ -21,6 +22,15 @@ async function checkAuthAvailable(): Promise<boolean> {
   }
 }
 
+async function hideNextDevOverlay(page: Page) {
+  await page
+    .addStyleTag({
+      content:
+        "nextjs-portal { display: none !important; pointer-events: none !important; }",
+    })
+    .catch(() => undefined);
+}
+
 test.describe("Dashboard - Overview", () => {
   test.use({
     storageState: async ({}, use) => {
@@ -34,7 +44,8 @@ test.describe("Dashboard - Overview", () => {
   });
 
   test("DASH-001: Dashboard page loads", async ({ page }) => {
-    await page.goto("/dashboard");
+    await page.goto("/dashboard", { waitUntil: "domcontentloaded" });
+    await hideNextDevOverlay(page);
 
     const url = page.url();
     if (url.includes("/auth/")) {
@@ -42,11 +53,19 @@ test.describe("Dashboard - Overview", () => {
       return;
     }
 
-    await expect(page.getByRole("main")).toBeVisible();
+    await page.waitForURL(/\/dashboard\/clients\/pipeline/, {
+      timeout: 15000,
+      waitUntil: "domcontentloaded",
+    });
+    await expect(page).toHaveURL(/\/dashboard\/clients\/pipeline/);
+    await expect(
+      page.getByRole("heading", { name: /client pipeline/i })
+    ).toBeVisible({ timeout: 15000 });
   });
 
   test("Dashboard shows quick stats", async ({ page }) => {
-    await page.goto("/dashboard");
+    await page.goto("/dashboard/clients/pipeline");
+    await hideNextDevOverlay(page);
 
     const url = page.url();
     if (url.includes("/auth/")) {
@@ -61,7 +80,8 @@ test.describe("Dashboard - Overview", () => {
   });
 
   test("Dashboard shows listing status", async ({ page }) => {
-    await page.goto("/dashboard");
+    await page.goto("/dashboard/clients/pipeline");
+    await hideNextDevOverlay(page);
 
     const url = page.url();
     if (url.includes("/auth/")) {
@@ -69,14 +89,15 @@ test.describe("Dashboard - Overview", () => {
       return;
     }
 
-    // Published or Draft status
+    // Current dashboard lands on Client Pipeline and shows workflow/status tabs.
     await expect(
-      page.locator("text=/published|draft|listing/i").first()
+      page.locator("text=/client pipeline|leads|waitlist|in progress|discharged|status/i").first()
     ).toBeVisible();
   });
 
   test("Dashboard shows current plan", async ({ page }) => {
-    await page.goto("/dashboard");
+    await page.goto("/dashboard/clients/pipeline");
+    await hideNextDevOverlay(page);
 
     const url = page.url();
     if (url.includes("/auth/")) {
@@ -91,7 +112,8 @@ test.describe("Dashboard - Overview", () => {
   });
 
   test("Dashboard has sidebar navigation", async ({ page }) => {
-    await page.goto("/dashboard");
+    await page.goto("/dashboard/clients/pipeline");
+    await hideNextDevOverlay(page);
 
     const url = page.url();
     if (url.includes("/auth/")) {
@@ -104,7 +126,8 @@ test.describe("Dashboard - Overview", () => {
   });
 
   test("Dashboard sidebar has key links", async ({ page }) => {
-    await page.goto("/dashboard");
+    await page.goto("/dashboard/clients/pipeline");
+    await hideNextDevOverlay(page);
 
     const url = page.url();
     if (url.includes("/auth/")) {
@@ -112,17 +135,20 @@ test.describe("Dashboard - Overview", () => {
       return;
     }
 
-    // Key navigation items
-    const navItems = ["Company", "Locations", "Jobs", "Billing", "Settings"];
+    const navItems = ["Dashboard", "Tasks", "Notifications", "Clients"];
 
-    for (const item of navItems.slice(0, 3)) {
+    for (const item of navItems) {
       const link = page.getByRole("link", { name: new RegExp(item, "i") });
       await expect(link).toBeVisible();
     }
+
+    await expect(page.getByRole("button", { name: /team/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: /company/i })).toBeVisible();
   });
 
   test("Dashboard has onboarding checklist if incomplete", async ({ page }) => {
-    await page.goto("/dashboard");
+    await page.goto("/dashboard/clients/pipeline");
+    await hideNextDevOverlay(page);
 
     const url = page.url();
     if (url.includes("/auth/")) {
@@ -137,7 +163,8 @@ test.describe("Dashboard - Overview", () => {
   });
 
   test("Dashboard navigation to Company page works", async ({ page }) => {
-    await page.goto("/dashboard");
+    await page.goto("/dashboard/clients/pipeline");
+    await hideNextDevOverlay(page);
 
     const url = page.url();
     if (url.includes("/auth/")) {
@@ -145,13 +172,20 @@ test.describe("Dashboard - Overview", () => {
       return;
     }
 
-    const companyLink = page.getByRole("link", { name: /company/i });
+    await page.getByRole("button", { name: /company/i }).click();
+    const companyLink = page.getByRole("link", { name: /company profile/i });
+    await expect(companyLink).toBeVisible({ timeout: 15000 });
     await companyLink.click();
-    await expect(page).toHaveURL(/\/dashboard\/company/);
+    await page.waitForURL(/\/dashboard\/settings\/profile/, {
+      timeout: 15000,
+      waitUntil: "domcontentloaded",
+    });
+    await expect(page).toHaveURL(/\/dashboard\/settings\/profile/);
   });
 
   test("Dashboard navigation to Locations page works", async ({ page }) => {
-    await page.goto("/dashboard");
+    await page.goto("/dashboard/clients/pipeline");
+    await hideNextDevOverlay(page);
 
     const url = page.url();
     if (url.includes("/auth/")) {
@@ -159,13 +193,20 @@ test.describe("Dashboard - Overview", () => {
       return;
     }
 
-    const locationsLink = page.getByRole("link", { name: /location/i });
+    await page.getByRole("button", { name: /company/i }).click();
+    const locationsLink = page.getByRole("link", { name: /^locations$/i });
+    await expect(locationsLink).toBeVisible({ timeout: 15000 });
     await locationsLink.click();
-    await expect(page).toHaveURL(/\/dashboard\/location/);
+    await page.waitForURL(/\/dashboard\/settings\/locations/, {
+      timeout: 15000,
+      waitUntil: "domcontentloaded",
+    });
+    await expect(page).toHaveURL(/\/dashboard\/settings\/locations/);
   });
 
   test("Dashboard navigation to Jobs page works", async ({ page }) => {
-    await page.goto("/dashboard");
+    await page.goto("/dashboard/clients/pipeline");
+    await hideNextDevOverlay(page);
 
     const url = page.url();
     if (url.includes("/auth/")) {
@@ -173,13 +214,20 @@ test.describe("Dashboard - Overview", () => {
       return;
     }
 
-    const jobsLink = page.getByRole("link", { name: /job/i });
+    await page.getByRole("button", { name: /team/i }).click();
+    const jobsLink = page.getByRole("link", { name: /^jobs$/i });
+    await expect(jobsLink).toBeVisible({ timeout: 15000 });
     await jobsLink.click();
-    await expect(page).toHaveURL(/\/dashboard\/job/);
+    await page.waitForURL(/\/dashboard\/team\/jobs/, {
+      timeout: 15000,
+      waitUntil: "domcontentloaded",
+    });
+    await expect(page).toHaveURL(/\/dashboard\/team\/jobs/);
   });
 
   test("Dashboard navigation to Billing page works", async ({ page }) => {
-    await page.goto("/dashboard");
+    await page.goto("/dashboard/clients/pipeline");
+    await hideNextDevOverlay(page);
 
     const url = page.url();
     if (url.includes("/auth/")) {
@@ -187,13 +235,22 @@ test.describe("Dashboard - Overview", () => {
       return;
     }
 
-    const billingLink = page.getByRole("link", { name: /billing/i });
-    await billingLink.click();
-    await expect(page).toHaveURL(/\/dashboard\/billing/);
+    await page.getByRole("button", { name: /e2e user|plan/i }).click();
+    const billingMenuItem = page.getByRole("menuitem", {
+      name: /billing|plan & billing/i,
+    });
+    await expect(billingMenuItem).toBeVisible({ timeout: 15000 });
+    await billingMenuItem.click();
+    await page.waitForURL(/\/dashboard\/(settings\/)?billing/, {
+      timeout: 15000,
+      waitUntil: "domcontentloaded",
+    });
+    await expect(page).toHaveURL(/\/dashboard\/(settings\/)?billing/);
   });
 
   test("Dashboard has logout option", async ({ page }) => {
-    await page.goto("/dashboard");
+    await page.goto("/dashboard/clients/pipeline");
+    await hideNextDevOverlay(page);
 
     const url = page.url();
     if (url.includes("/auth/")) {
@@ -201,8 +258,10 @@ test.describe("Dashboard - Overview", () => {
       return;
     }
 
-    // Logout button
-    const logoutButton = page.locator("text=/logout|sign out|log out/i").first();
+    await page.getByRole("button", { name: /e2e user|plan/i }).click();
+    const logoutButton = page.getByRole("menuitem", {
+      name: /logout|sign out|log out/i,
+    });
     await expect(logoutButton).toBeVisible();
   });
 });

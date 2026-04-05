@@ -9,7 +9,7 @@ import { PreviewBanner } from "@/components/ui/preview-banner";
 import { PreviewOverlay } from "@/components/ui/preview-overlay";
 import { LockedButton } from "@/components/ui/preview-banner";
 import { JobList } from "@/components/jobs/job-list";
-import { getProfile } from "@/lib/supabase/server";
+import { getProfile } from "@/lib/platform/workspace/server";
 import { getJobPostings, getJobCountAndLimit } from "@/lib/actions/jobs";
 import { DEMO_JOBS } from "@/lib/demo/data";
 

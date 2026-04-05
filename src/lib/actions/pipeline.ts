@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient as createSupabaseClient, getUser } from "@/lib/supabase/server";
+import { isConvexDataEnabled } from "@/lib/platform/config";
 
 // =============================================================================
 // TYPES
@@ -41,6 +41,19 @@ export interface PipelineSummary {
  * Get full pipeline data: stage counts, attention items, and recent activity
  */
 export async function getPipelineData(): Promise<ActionResult<PipelineSummary>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvex } = await import("@/lib/platform/convex/server");
+      const result = await queryConvex<PipelineSummary>("crm:getPipelineData", {});
+      return { success: true, data: result };
+    } catch (error) {
+      console.error("Convex error:", error);
+      return { success: false, error: "Not authenticated" };
+    }
+  }
+
+  const { createClient: createSupabaseClient, getUser } = await import("@/lib/supabase/server");
+
   const user = await getUser();
   if (!user) {
     return { success: false, error: "Not authenticated" };
@@ -69,7 +82,7 @@ export async function getPipelineData(): Promise<ActionResult<PipelineSummary>> 
 // INTERNAL HELPERS
 // =============================================================================
 
-type SupabaseClient = Awaited<ReturnType<typeof createSupabaseClient>>;
+type SupabaseClient = Awaited<ReturnType<Awaited<typeof import("@/lib/supabase/server")>["createClient"]>>;
 
 const STATUS_LABELS: Record<string, string> = {
   inquiry: "Inquiry",

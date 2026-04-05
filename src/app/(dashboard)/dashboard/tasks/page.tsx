@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { getUser } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/platform/auth/server";
 import { getTasks, getClientsList } from "@/lib/actions/clients";
 import { getCurrentPlanTier } from "@/lib/plans/guards";
 import { DEMO_TASKS } from "@/lib/demo/data";
@@ -20,7 +20,7 @@ export const metadata = {
 };
 
 export default async function TasksPage() {
-  const user = await getUser();
+  const user = await getCurrentUser();
   if (!user) {
     redirect("/auth/sign-in");
   }

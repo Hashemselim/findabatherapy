@@ -100,12 +100,10 @@ export function ReferralSendDialog({
     [templates]
   );
   const prepareDraftsAction = actionOverrides?.prepareDrafts ?? prepareReferralInboxDrafts;
-  const sourceIdsKey = sourceIds.join("|");
   const parsedTestRecipients = useMemo(
     () => parseTestRecipientEmails(testRecipientsInput),
     [testRecipientsInput]
   );
-  const testRecipientsKey = parsedTestRecipients.join("|");
   const invalidTestRecipient = useMemo(
     () => parsedTestRecipients.find((email) => !isValidEmailAddress(email)) || null,
     [parsedTestRecipients]
@@ -184,10 +182,10 @@ export function ReferralSendDialog({
   }, [
     open,
     prepareDraftsAction,
-    sourceIdsKey,
+    sourceIds,
     subject,
     body,
-    testRecipientsKey,
+    parsedTestRecipients,
     invalidTestRecipient,
   ]);
 

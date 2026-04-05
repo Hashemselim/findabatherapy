@@ -7,7 +7,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
 import { DashboardCard, DashboardCallout } from "@/components/dashboard/ui";
-import { getCurrentMembership, getUser, getProfile } from "@/lib/supabase/server";
+import { getProfile, getCurrentMembership } from "@/lib/platform/workspace/server";
+import { getCurrentUser } from "@/lib/platform/auth/server";
+import { isConvexDataEnabled } from "@/lib/platform/config";
 
 // Provider icons as separate components for cleaner code
 function GoogleIcon() {
@@ -33,7 +35,7 @@ function MicrosoftIcon() {
 }
 
 export default async function DashboardSettingsPage() {
-  const user = await getUser();
+  const user = await getCurrentUser();
 
   if (!user) {
     redirect("/auth/sign-in");
@@ -43,7 +45,25 @@ export default async function DashboardSettingsPage() {
   const membership = await getCurrentMembership();
 
   // Get all linked authentication methods from identities array
-  const identities = user.identities || [];
+  // In Convex mode, we don't have Supabase identities - show Clerk provider info
+  let identities: Array<{ provider: string }> = [];
+  let userMetadata: Record<string, unknown> = {};
+  let userCreatedAt: string | null = null;
+  let emailConfirmedAt: string | null = null;
+
+  if (!isConvexDataEnabled()) {
+    const { getUser } = await import("@/lib/supabase/server");
+    const supabaseUser = await getUser();
+    if (supabaseUser) {
+      identities = (supabaseUser.identities as Array<{ provider: string }>) || [];
+      userMetadata = (supabaseUser.user_metadata as Record<string, unknown>) || {};
+      userCreatedAt = supabaseUser.created_at || null;
+      emailConfirmedAt = (supabaseUser as unknown as { email_confirmed_at?: string }).email_confirmed_at || null;
+    }
+  } else {
+    identities = [{ provider: "email" }];
+    emailConfirmedAt = new Date().toISOString(); // Clerk emails are always verified
+  }
 
   // Map provider names to display info
   const getProviderDisplay = (provider: string) => {
@@ -60,12 +80,12 @@ export default async function DashboardSettingsPage() {
 
   // Get unique providers (user may have multiple identities)
   const linkedProviders = identities.length > 0
-    ? [...new Set(identities.map(id => id.provider))].map(getProviderDisplay)
+    ? [...new Set(identities.map((id: { provider: string }) => id.provider))].map(getProviderDisplay)
     : [getProviderDisplay("email")]; // Fallback if no identities
 
   // Determine security note based on linked providers
-  const hasOAuthProvider = identities.some(id => id.provider === "google" || id.provider === "azure");
-  const hasEmailProvider = identities.some(id => id.provider === "email");
+  const hasOAuthProvider = identities.some((id: { provider: string }) => id.provider === "google" || id.provider === "azure");
+  const hasEmailProvider = identities.some((id: { provider: string }) => id.provider === "email");
 
   const getSecurityNote = () => {
     if (hasOAuthProvider && hasEmailProvider) {
@@ -78,11 +98,11 @@ export default async function DashboardSettingsPage() {
   };
 
   // Get display name from profile or user metadata
-  const displayName = profile?.full_name || user.user_metadata?.full_name || user.user_metadata?.name || null;
+  const displayName = profile?.full_name || (userMetadata?.full_name as string) || (userMetadata?.name as string) || user.firstName || null;
 
   // Format account creation date
-  const createdAt = user.created_at
-    ? new Date(user.created_at).toLocaleDateString("en-US", {
+  const createdAt = userCreatedAt
+    ? new Date(userCreatedAt).toLocaleDateString("en-US", {
         month: "long",
         day: "numeric",
         year: "numeric",
@@ -133,7 +153,7 @@ export default async function DashboardSettingsPage() {
               </div>
               <div className="flex items-center gap-2">
                 <p className="text-sm text-foreground">{user.email}</p>
-                {user.email_confirmed_at && (
+                {emailConfirmedAt && (
                   <Badge variant="outline" className="border-primary/20 bg-primary/10 text-primary">
                     Verified
                   </Badge>

@@ -2,7 +2,7 @@
 
 import { headers } from "next/headers";
 
-import { createAdminClient } from "@/lib/supabase/server";
+import { isConvexDataEnabled } from "@/lib/platform/config";
 import {
   type IntakeFieldsConfig,
   mergeWithDefaults,
@@ -47,6 +47,18 @@ type ActionResult<T = void> =
 export async function getContactPageData(
   slug: string
 ): Promise<ActionResult<ContactPageData>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvexUnauthenticated } = await import("@/lib/platform/convex/server");
+      const result = await queryConvexUnauthenticated<ContactPageData>("intake:getContactPageData", { slug });
+      return { success: true, data: result };
+    } catch (error) {
+      console.error("Convex error:", error);
+      return { success: false, error: "Provider not found" };
+    }
+  }
+
+  const { createAdminClient } = await import("@/lib/supabase/server");
   const supabase = await createAdminClient();
 
   // Fetch listing with profile data
@@ -189,6 +201,18 @@ export interface ClientResourcesPageData {
 export async function getClientIntakePageData(
   slug: string
 ): Promise<ActionResult<ClientIntakePageData>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvexUnauthenticated } = await import("@/lib/platform/convex/server");
+      const result = await queryConvexUnauthenticated<ClientIntakePageData>("intake:getClientIntakePageData", { slug });
+      return { success: true, data: result };
+    } catch (error) {
+      console.error("Convex error:", error);
+      return { success: false, error: "Provider not found" };
+    }
+  }
+
+  const { createAdminClient } = await import("@/lib/supabase/server");
   const supabase = await createAdminClient();
 
   // Fetch listing with profile data
@@ -288,6 +312,18 @@ export async function getClientIntakePageData(
 export async function getClientResourcesPageData(
   slug: string
 ): Promise<ActionResult<ClientResourcesPageData>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvexUnauthenticated } = await import("@/lib/platform/convex/server");
+      const result = await queryConvexUnauthenticated<ClientResourcesPageData>("intake:getClientResourcesPageData", { slug });
+      return { success: true, data: result };
+    } catch (error) {
+      console.error("Convex error:", error);
+      return { success: false, error: "Provider not found" };
+    }
+  }
+
+  const { createAdminClient } = await import("@/lib/supabase/server");
   const supabase = await createAdminClient();
 
   const { data: listing, error: listingError } = await supabase
@@ -366,7 +402,19 @@ export async function getClientResourcesPageData(
 export async function updateIntakeFormSettings(
   settings: Partial<IntakeFormSettings>
 ): Promise<ActionResult> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { mutateConvex } = await import("@/lib/platform/convex/server");
+      await mutateConvex("intake:updateIntakeFormSettings", { settings });
+      return { success: true };
+    } catch (error) {
+      console.error("Convex error:", error);
+      return { success: false, error: "Failed to update settings" };
+    }
+  }
+
   const { getCurrentProfileId } = await import("@/lib/supabase/server");
+  const { createAdminClient } = await import("@/lib/supabase/server");
   const supabase = await createAdminClient();
 
   const profileId = await getCurrentProfileId();
@@ -416,7 +464,19 @@ export async function updateIntakeFormSettings(
 export async function updateIntakeFieldsConfig(
   fieldsConfig: IntakeFieldsConfig,
 ): Promise<ActionResult> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { mutateConvex } = await import("@/lib/platform/convex/server");
+      await mutateConvex("intake:updateIntakeFieldsConfig", { fieldsConfig });
+      return { success: true };
+    } catch (error) {
+      console.error("Convex error:", error);
+      return { success: false, error: "Failed to save field configuration" };
+    }
+  }
+
   const { getCurrentProfileId } = await import("@/lib/supabase/server");
+  const { createAdminClient } = await import("@/lib/supabase/server");
   const supabase = await createAdminClient();
 
   const profileId = await getCurrentProfileId();
@@ -461,6 +521,18 @@ export async function updateIntakeFieldsConfig(
 export async function getIntakeFieldsConfig(
   profileId: string,
 ): Promise<IntakeFieldsConfig> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvex } = await import("@/lib/platform/convex/server");
+      const result = await queryConvex<IntakeFieldsConfig>("intake:getIntakeFieldsConfig", { profileId });
+      return result;
+    } catch (error) {
+      console.error("Convex error:", error);
+      return mergeWithDefaults(undefined);
+    }
+  }
+
+  const { createAdminClient } = await import("@/lib/supabase/server");
   const supabase = await createAdminClient();
 
   const { data: profile } = await supabase
@@ -496,7 +568,19 @@ export interface PrefillData {
 export async function createIntakeToken(
   clientId: string,
 ): Promise<ActionResult<{ url: string; token: string }>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { mutateConvex } = await import("@/lib/platform/convex/server");
+      const result = await mutateConvex<{ url: string; token: string }>("intake:createIntakeToken", { clientId });
+      return { success: true, data: result };
+    } catch (error) {
+      console.error("Convex error:", error);
+      return { success: false, error: "Failed to create intake token" };
+    }
+  }
+
   const { getCurrentProfileId } = await import("@/lib/supabase/server");
+  const { createAdminClient } = await import("@/lib/supabase/server");
   const supabase = await createAdminClient();
 
   const profileId = await getCurrentProfileId();
@@ -563,6 +647,18 @@ export async function createIntakeToken(
 export async function getIntakeTokenData(
   token: string,
 ): Promise<ActionResult<PrefillData>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvexUnauthenticated } = await import("@/lib/platform/convex/server");
+      const result = await queryConvexUnauthenticated<PrefillData>("intake:getIntakeTokenData", { token });
+      return { success: true, data: result };
+    } catch (error) {
+      console.error("Convex error:", error);
+      return { success: false, error: "Invalid or expired link" };
+    }
+  }
+
+  const { createAdminClient } = await import("@/lib/supabase/server");
   const supabase = await createAdminClient();
 
   // Look up the token
@@ -684,6 +780,18 @@ export async function getIntakeTokenData(
  * Mark an intake token as used (called after successful form submission).
  */
 export async function markIntakeTokenUsed(token: string): Promise<void> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { mutateConvexUnauthenticated } = await import("@/lib/platform/convex/server");
+      await mutateConvexUnauthenticated("intake:markIntakeTokenUsed", { token });
+      return;
+    } catch (error) {
+      console.error("Convex error:", error);
+      return;
+    }
+  }
+
+  const { createAdminClient } = await import("@/lib/supabase/server");
   const supabase = await createAdminClient();
   await supabase
     .from("intake_tokens")
@@ -696,6 +804,27 @@ export async function markIntakeTokenUsed(token: string): Promise<void> {
  * Used by the Service Location section to let parents pick a Center/Clinic.
  */
 export async function getPublicAgencyLocations(listingId: string) {
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvexUnauthenticated } = await import("@/lib/platform/convex/server");
+      const result = await queryConvexUnauthenticated<Array<{
+        id: string;
+        label: string;
+        street: string | null;
+        city: string | null;
+        state: string | null;
+        postal_code: string | null;
+        latitude: number | null;
+        longitude: number | null;
+      }>>("intake:getPublicAgencyLocations", { listingId });
+      return result;
+    } catch (error) {
+      console.error("Convex error:", error);
+      return [];
+    }
+  }
+
+  const { createAdminClient } = await import("@/lib/supabase/server");
   const supabase = await createAdminClient();
   const { data, error } = await supabase
     .from("locations")

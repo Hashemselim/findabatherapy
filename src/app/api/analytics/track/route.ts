@@ -32,9 +32,9 @@ const trackEventSchema = z.object({
     EVENT_TYPES.JOB_SEARCH_CLICK,
     EVENT_TYPES.JOB_APPLY_CLICK,
   ]),
-  listingId: z.string().uuid().optional(),
+  listingId: z.string().min(1).optional(),
   listingSlug: z.string().optional(),
-  locationId: z.string().uuid().optional(),
+  locationId: z.string().min(1).optional(),
   source: z.enum(["search", "direct", "state_page", "homepage"]).optional(),
   clickType: z.enum(["contact", "phone", "email", "website"]).optional(),
   position: z.number().optional(),
@@ -46,24 +46,38 @@ const trackEventSchema = z.object({
   searchSource: z.enum(["user", "bot", "unknown"]).optional(),
   // Search impression specific fields
   impressions: z.array(z.object({
-    id: z.string().uuid(),
-    locationId: z.string().uuid().optional(),
+    id: z.string().min(1),
+    locationId: z.string().min(1).optional(),
     position: z.number(),
   })).optional(),
   // Job-specific fields
-  jobId: z.string().uuid().optional(),
+  jobId: z.string().min(1).optional(),
   jobSlug: z.string().optional(),
-  profileId: z.string().uuid().optional(),
+  profileId: z.string().min(1).optional(),
   positionType: z.string().optional(),
   jobImpressions: z.array(z.object({
-    id: z.string().uuid(),
+    id: z.string().min(1),
     position: z.number(),
   })).optional(),
 });
 
+async function readJsonBody(request: NextRequest): Promise<unknown> {
+  const rawBody = await request.text();
+
+  if (!rawBody.trim()) {
+    throw new Error("EMPTY_BODY");
+  }
+
+  try {
+    return JSON.parse(rawBody) as unknown;
+  } catch {
+    throw new Error("INVALID_JSON");
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    const body = await readJsonBody(request);
     const parsed = trackEventSchema.safeParse(body);
 
     if (!parsed.success) {
@@ -160,6 +174,20 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ error: "Failed to track event" }, { status: 500 });
   } catch (error) {
+    if (error instanceof Error && error.message === "EMPTY_BODY") {
+      return NextResponse.json(
+        { error: "Request body is required" },
+        { status: 400 }
+      );
+    }
+
+    if (error instanceof Error && error.message === "INVALID_JSON") {
+      return NextResponse.json(
+        { error: "Invalid JSON body" },
+        { status: 400 }
+      );
+    }
+
     console.error("Analytics tracking error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }

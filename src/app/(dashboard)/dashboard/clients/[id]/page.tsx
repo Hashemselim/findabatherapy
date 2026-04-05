@@ -5,7 +5,7 @@ import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PreviewBanner } from "@/components/ui/preview-banner";
 import { ClientDetailPanel } from "@/components/dashboard/clients";
-import { getUser } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/platform/auth/server";
 import { getClientById } from "@/lib/actions/clients";
 import { getAgreementPacketOptions } from "@/lib/actions/agreements";
 import { getCurrentPlanTier } from "@/lib/plans/guards";
@@ -51,7 +51,7 @@ export async function generateMetadata({ params }: ClientDetailPageProps) {
 }
 
 export default async function ClientDetailPage({ params }: ClientDetailPageProps) {
-  const user = await getUser();
+  const user = await getCurrentUser();
   if (!user) {
     redirect("/auth/sign-in");
   }

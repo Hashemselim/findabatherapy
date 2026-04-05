@@ -59,7 +59,7 @@ test.describe("Find ABA Therapy - Home Page", () => {
     await searchButton.click();
 
     // Should redirect to search page with params
-    await expect(page).toHaveURL(/\/search/);
+    await expect(page).toHaveURL(/\/search/, { timeout: 30000 });
   });
 
   test("Search card has service type filters", async ({ page }) => {
@@ -117,29 +117,38 @@ test.describe("Find ABA Therapy - Home Page", () => {
 
   test("State links navigate correctly", async ({ page }) => {
     // Find California link
-    const californiaLink = page.getByRole("link", { name: /california/i }).first();
+    const californiaLink = page.locator('a[href="/california"]').first();
 
     if (await californiaLink.isVisible()) {
-      await californiaLink.click();
+      await Promise.all([
+        page.waitForURL(/\/california/i, { timeout: 15000 }),
+        californiaLink.click(),
+      ]);
       await expect(page).toHaveURL(/\/california/i);
     }
   });
 
   test("Insurance links navigate correctly", async ({ page }) => {
     // Find an insurance link
-    const insuranceLink = page.getByRole("link", { name: /medicaid/i }).first();
+    const insuranceLink = page.locator('a[href="/insurance/medicaid"]').first();
 
     if (await insuranceLink.isVisible()) {
-      await insuranceLink.click();
+      await Promise.all([
+        page.waitForURL(/\/insurance|search.*insurance/i, { timeout: 15000 }),
+        insuranceLink.click(),
+      ]);
       await expect(page).toHaveURL(/\/insurance|search.*insurance/i);
     }
   });
 
   test("Get Listed CTA navigates to sign up or pricing", async ({ page }) => {
-    const getListedCTA = page.getByRole("link", { name: /get listed|for providers|list your practice/i }).first();
+    const getListedCTA = page.locator('a[href="/get-listed"]').first();
 
     if (await getListedCTA.isVisible()) {
-      await getListedCTA.click();
+      await Promise.all([
+        page.waitForURL(/\/get-listed|\/auth\/sign-up/, { timeout: 15000 }),
+        getListedCTA.click(),
+      ]);
       await expect(page).toHaveURL(/\/get-listed|\/auth\/sign-up/);
     }
   });

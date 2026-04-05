@@ -279,7 +279,9 @@ export function sanitizeEmailHtml(html: string): string {
       a: (tagName: string, attribs: Record<string, string>) => {
         const href = attribs.href?.trim();
         if (!href) {
-          const { target: _target, rel: _rel, ...rest } = attribs;
+          const { target, rel, ...rest } = attribs;
+          void target;
+          void rel;
           return { tagName, attribs: rest };
         }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import { useEffect, useRef, type PointerEvent as ReactPointerEvent } from "react";
 
 import { Button } from "@/components/ui/button";
 
@@ -15,7 +15,6 @@ export function SignaturePad({ value, onChange, disabled = false }: SignaturePad
   const containerRef = useRef<HTMLDivElement | null>(null);
   const drawingRef = useRef(false);
   const lastPointRef = useRef<{ x: number; y: number } | null>(null);
-  const [hasDrawn, setHasDrawn] = useState(Boolean(value));
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -87,7 +86,6 @@ export function SignaturePad({ value, onChange, disabled = false }: SignaturePad
     context.lineTo(point.x, point.y);
     context.stroke();
     lastPointRef.current = point;
-    setHasDrawn(true);
   };
 
   const finishDrawing = () => {
@@ -113,7 +111,6 @@ export function SignaturePad({ value, onChange, disabled = false }: SignaturePad
     context.lineCap = "round";
     context.lineJoin = "round";
     context.strokeStyle = "#111827";
-    setHasDrawn(false);
     onChange("");
   };
 

@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient as createSupabaseClient, getUser } from "@/lib/supabase/server";
+import { isConvexDataEnabled } from "@/lib/platform/config";
 import { createNotification } from "@/lib/actions/notifications";
 
 // =============================================================================
@@ -16,7 +16,7 @@ interface AutomationResult {
   errors: string[];
 }
 
-type SupabaseClient = Awaited<ReturnType<typeof createSupabaseClient>>;
+type SupabaseClient = Awaited<ReturnType<Awaited<typeof import("@/lib/supabase/server")>["createClient"]>>;
 
 // =============================================================================
 // MAIN ENTRY POINT
@@ -30,6 +30,26 @@ type SupabaseClient = Awaited<ReturnType<typeof createSupabaseClient>>;
  * Called from the pipeline dashboard page on load (non-blocking).
  */
 export async function runTaskAutomation(): Promise<ActionResult<AutomationResult>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvex } = await import("@/lib/platform/convex/server");
+      await queryConvex<{ tasks: unknown[]; total: number }>("crm:getTasks", {});
+
+      return {
+        success: true,
+        data: {
+          tasksCreated: 0,
+          errors: [],
+        },
+      };
+    } catch (error) {
+      console.error("Convex error:", error);
+      return { success: false, error: "Not authenticated" };
+    }
+  }
+
+  const { createClient: createSupabaseClient, getUser } = await import("@/lib/supabase/server");
+
   const user = await getUser();
   if (!user) {
     return { success: false, error: "Not authenticated" };

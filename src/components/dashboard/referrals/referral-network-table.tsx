@@ -73,14 +73,12 @@ function SortHeader({
   label,
   sortKey,
   currentKey,
-  currentDir: _currentDir,
   onSort,
   className,
 }: {
   label: string;
   sortKey: SortKey;
   currentKey: SortKey;
-  currentDir: SortDirection;
   onSort: (key: SortKey) => void;
   className?: string;
 }) {
@@ -107,7 +105,6 @@ export function ReferralNetworkTable({
   onStageChange,
   onEnrich,
   sortKey,
-  sortDirection,
   onSortChange,
   previewMode = false,
 }: ReferralNetworkTableProps) {
@@ -155,12 +152,12 @@ export function ReferralNetworkTable({
               disabled={previewMode}
             />
           </DashboardTableHead>
-          <SortHeader label="Name" sortKey="name" currentKey={sortKey} currentDir={sortDirection} onSort={onSortChange} className={COL.name} />
-          <SortHeader label="Type" sortKey="category" currentKey={sortKey} currentDir={sortDirection} onSort={onSortChange} className={COL.category} />
+          <SortHeader label="Name" sortKey="name" currentKey={sortKey} onSort={onSortChange} className={COL.name} />
+          <SortHeader label="Type" sortKey="category" currentKey={sortKey} onSort={onSortChange} className={COL.category} />
           <DashboardTableHead className={COL.contact} />
-          <SortHeader label="Stage" sortKey="stage" currentKey={sortKey} currentDir={sortDirection} onSort={onSortChange} className={COL.stage} />
-          <SortHeader label="Contacted" sortKey="last_contacted" currentKey={sortKey} currentDir={sortDirection} onSort={onSortChange} className={COL.lastContacted} />
-          <SortHeader label="Score" sortKey="priority" currentKey={sortKey} currentDir={sortDirection} onSort={onSortChange} className={COL.priority} />
+          <SortHeader label="Stage" sortKey="stage" currentKey={sortKey} onSort={onSortChange} className={COL.stage} />
+          <SortHeader label="Contacted" sortKey="last_contacted" currentKey={sortKey} onSort={onSortChange} className={COL.lastContacted} />
+          <SortHeader label="Score" sortKey="priority" currentKey={sortKey} onSort={onSortChange} className={COL.priority} />
           <DashboardTableHead className={COL.actions} />
         </DashboardTableRow>
       </DashboardTableHeader>

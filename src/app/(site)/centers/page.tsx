@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BubbleBackground } from "@/components/ui/bubble-background";
+import { SearchResults } from "@/components/search/search-results";
 import { US_STATES } from "@/lib/data/us-states";
 import { searchProviderLocationsWithGooglePlaces } from "@/lib/actions/search";
 import {
@@ -180,6 +181,19 @@ export default async function CentersPage() {
             <div className="mt-4">
               <HomeSearchCard />
             </div>
+          </section>
+
+          {/* Provider Preview */}
+          <section>
+            <h2 className="text-2xl font-semibold">Center-Based Provider Directory</h2>
+            <p className="mt-2 text-muted-foreground">
+              Preview providers in the directory, then use the search filters above
+              to narrow by city, insurance, and therapy setting.
+            </p>
+            <SearchResults
+              results={locations.slice(0, 8)}
+              className="mt-6"
+            />
           </section>
 
           {/* What is Center-Based ABA */}

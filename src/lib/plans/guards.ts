@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient, getCurrentProfileId } from "@/lib/supabase/server";
+import { isConvexDataEnabled } from "@/lib/platform/config";
 import {
   type PlanTier,
   type PlanFeatures,
@@ -22,6 +22,19 @@ export type GuardResult<T = void> =
  * After onboarding: Returns "free" if subscription is not active, regardless of plan_tier
  */
 export async function getCurrentPlanTier(): Promise<PlanTier> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvex } = await import("@/lib/platform/convex/server");
+      const result = await queryConvex<{ planTier: "free" | "pro" }>(
+        "billing:getCurrentPlanTierQuery",
+      );
+      return result?.planTier ?? "free";
+    } catch {
+      return "free";
+    }
+  }
+
+  const { getCurrentProfileId, createClient } = await import("@/lib/supabase/server");
   const profileId = await getCurrentProfileId();
   if (!profileId) {
     return "free";
@@ -91,6 +104,7 @@ export async function canAccessFeature(
 export async function guardAddLocation(
   currentCount: number
 ): Promise<GuardResult> {
+  const { getCurrentProfileId } = await import("@/lib/platform/workspace/server");
   const profileId = await getCurrentProfileId();
   const tier = await getCurrentPlanTier();
   const features = getPlanFeatures(tier);
@@ -132,6 +146,7 @@ export async function guardAddLocation(
 export async function guardAddJob(
   currentCount: number
 ): Promise<GuardResult> {
+  const { getCurrentProfileId } = await import("@/lib/platform/workspace/server");
   const profileId = await getCurrentProfileId();
   const tier = await getCurrentPlanTier();
   const features = getPlanFeatures(tier);

@@ -12,7 +12,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { getUser } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/platform/auth/server";
 
 const primaryNav = [
   { href: "/search", label: "Search" },
@@ -25,7 +25,7 @@ function SiteLogo() {
 }
 
 export async function SiteHeader() {
-  const user = await getUser();
+  const user = await getCurrentUser();
 
   return (
     <header className="sticky top-0 z-50 border-b border-border/60 bg-background/95 backdrop-blur-sm supports-backdrop-filter:bg-background/80">

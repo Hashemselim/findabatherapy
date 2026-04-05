@@ -162,11 +162,13 @@ test.describe("Find ABA Jobs - Search Results", () => {
 
     if (await jobCard.isVisible()) {
       // Job title
-      await expect(jobCard.locator("h2, h3, .job-title").first()).toBeVisible();
+      await expect(
+        jobCard.locator('[data-testid="job-card-title"], h2, h3, .job-title').first()
+      ).toBeVisible();
 
       // Company name
       await expect(
-        jobCard.locator("text=/company|agency|organization/i, span, p").first()
+        jobCard.locator('[data-testid="job-card-company"], span, p').first()
       ).toBeVisible();
     }
   });
@@ -338,9 +340,10 @@ test.describe("Find ABA Jobs - Additional Filters", () => {
     await page.goto("/jobs/search?position=bcba&employment=full_time");
 
     // Find active filter badges
-    const filterBadge = page.locator(
-      '[data-testid="filter-badge"], .badge:has(svg), button:has-text("BCBA")'
-    ).first();
+    const filterBadge = page
+      .getByTestId("job-active-filter-badge")
+      .filter({ hasText: /bcba/i })
+      .first();
 
     if (await filterBadge.isVisible()) {
       await filterBadge.click();
@@ -401,7 +404,7 @@ test.describe("Find ABA Jobs - Sort Options", () => {
   });
 
   test("Sort by salary option works", async ({ page }) => {
-    await page.goto("/jobs/search");
+    await page.goto("/jobs/search", { waitUntil: "domcontentloaded", timeout: 60000 });
 
     const sortDropdown = page.locator(
       'button:has(svg), [data-testid="sort-toggle"], button:has-text("Sort"), select[name*="sort"]'
@@ -451,20 +454,31 @@ test.describe("Find ABA Jobs - Search Mobile", () => {
 
     if (await filterButton.isVisible()) {
       await filterButton.click();
-      await page.waitForTimeout(300);
+      const dialog = page.getByRole("dialog", { name: /filter jobs/i });
+      await expect(dialog).toBeVisible();
 
       // Check for filter sections in sheet
-      const positionSection = page.locator('text=/position type/i');
-      const employmentSection = page.locator('text=/employment type/i');
-      const remoteToggle = page.locator('text=/remote/i');
-      const workSettingSection = page.locator('text=/work setting/i');
-      const scheduleSection = page.locator('text=/schedule/i');
-
-      const hasPosition = await positionSection.first().isVisible().catch(() => false);
-      const hasEmployment = await employmentSection.first().isVisible().catch(() => false);
-      const hasRemote = await remoteToggle.first().isVisible().catch(() => false);
-      const hasWorkSetting = await workSettingSection.first().isVisible().catch(() => false);
-      const hasSchedule = await scheduleSection.first().isVisible().catch(() => false);
+      const hasPosition = await dialog
+        .getByTestId("job-filter-position-type")
+        .isVisible()
+        .catch(() => false);
+      const hasEmployment = await dialog
+        .getByTestId("job-filter-employment-type")
+        .isVisible()
+        .catch(() => false);
+      const hasRemote = await dialog
+        .getByText(/remote only/i)
+        .first()
+        .isVisible()
+        .catch(() => false);
+      const hasWorkSetting = await dialog
+        .getByTestId("job-filter-work-setting")
+        .isVisible()
+        .catch(() => false);
+      const hasSchedule = await dialog
+        .getByTestId("job-filter-schedule")
+        .isVisible()
+        .catch(() => false);
 
       expect(hasPosition || hasEmployment || hasRemote || hasWorkSetting || hasSchedule).toBeTruthy();
     }

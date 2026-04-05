@@ -1,5 +1,23 @@
 import { defineSchema, defineTable } from "convex/server";
-import { v } from "convex/values";
+import { v, type Validator } from "convex/values";
+
+const payloadScalar = v.union(v.string(), v.number(), v.boolean(), v.null());
+const payloadLeaf = v.union(
+  payloadScalar,
+  v.array(v.string()),
+  v.array(v.number()),
+  v.array(v.boolean()),
+  v.array(v.null()),
+);
+const payloadObjectLevel1 = v.record(v.string(), payloadLeaf);
+const payloadValue = v.union(
+  payloadLeaf,
+  payloadObjectLevel1,
+  v.array(payloadObjectLevel1),
+) as unknown as Validator<unknown>;
+const payloadObject = v.record(v.string(), payloadValue) as Validator<
+  Record<string, unknown>
+>;
 
 const timestamps = {
   createdAt: v.optional(v.string()),
@@ -10,7 +28,7 @@ const timestamps = {
 const legacySync = {
   legacySourceId: v.optional(v.string()),
   legacyTable: v.optional(v.string()),
-  legacyPayload: v.optional(v.any()),
+  legacyPayload: v.optional(payloadObject),
 };
 
 export default defineSchema({
@@ -22,6 +40,7 @@ export default defineSchema({
     displayName: v.optional(v.string()),
     imageUrl: v.optional(v.string()),
     activeWorkspaceId: v.optional(v.id("workspaces")),
+    isAdmin: v.optional(v.boolean()),
     ...timestamps,
     ...legacySync,
   }).index("by_clerk_user_id", ["clerkUserId"]),
@@ -35,7 +54,7 @@ export default defineSchema({
     billingInterval: v.optional(v.string()),
     onboardingCompletedAt: v.optional(v.string()),
     primaryIntent: v.optional(v.string()),
-    settings: v.optional(v.any()),
+    settings: v.optional(payloadObject),
     ...timestamps,
     ...legacySync,
   })
@@ -82,22 +101,23 @@ export default defineSchema({
     workspaceId: v.id("workspaces"),
     slug: v.optional(v.string()),
     status: v.optional(v.string()),
-    publicReadModel: v.optional(v.any()),
-    searchDocument: v.optional(v.any()),
-    metadata: v.optional(v.any()),
+    publicReadModel: v.optional(payloadObject),
+    searchDocument: v.optional(payloadObject),
+    metadata: v.optional(payloadObject),
     ...timestamps,
     ...legacySync,
   })
     .index("by_workspace", ["workspaceId"])
-    .index("by_slug", ["slug"]),
+    .index("by_slug", ["slug"])
+    .index("by_status", ["status"]),
 
   locations: defineTable({
     workspaceId: v.id("workspaces"),
     listingId: v.optional(v.id("listings")),
     slug: v.optional(v.string()),
     status: v.optional(v.string()),
-    metadata: v.optional(v.any()),
-    searchDocument: v.optional(v.any()),
+    metadata: v.optional(payloadObject),
+    searchDocument: v.optional(payloadObject),
     ...timestamps,
     ...legacySync,
   })
@@ -107,7 +127,7 @@ export default defineSchema({
   listingAttributes: defineTable({
     listingId: v.id("listings"),
     attributeKey: v.string(),
-    value: v.any(),
+    value: payloadValue,
     ...timestamps,
     ...legacySync,
   })
@@ -119,7 +139,7 @@ export default defineSchema({
     listingId: v.optional(v.id("listings")),
     locationId: v.optional(v.id("locations")),
     placeId: v.string(),
-    payload: v.any(),
+    payload: payloadObject,
     ...timestamps,
     ...legacySync,
   }).index("by_place_id", ["placeId"]),
@@ -128,7 +148,7 @@ export default defineSchema({
     placeRecordId: v.optional(v.id("googlePlacesRecords")),
     listingId: v.optional(v.id("listings")),
     reviewId: v.string(),
-    payload: v.any(),
+    payload: payloadObject,
     ...timestamps,
     ...legacySync,
   }).index("by_review_id", ["reviewId"]),
@@ -138,31 +158,51 @@ export default defineSchema({
     listingId: v.optional(v.id("listings")),
     hostname: v.string(),
     status: v.optional(v.string()),
-    metadata: v.optional(v.any()),
+    metadata: v.optional(payloadObject),
     ...timestamps,
     ...legacySync,
-  }).index("by_hostname", ["hostname"]),
+  })
+    .index("by_hostname", ["hostname"])
+    .index("by_listing", ["listingId"]),
 
   jobPostings: defineTable({
     workspaceId: v.id("workspaces"),
     listingId: v.optional(v.id("listings")),
     slug: v.optional(v.string()),
     status: v.optional(v.string()),
-    searchDocument: v.optional(v.any()),
-    metadata: v.optional(v.any()),
+    searchDocument: v.optional(payloadObject),
+    metadata: v.optional(payloadObject),
     ...timestamps,
     ...legacySync,
   })
     .index("by_workspace", ["workspaceId"])
     .index("by_listing", ["listingId"])
-    .index("by_slug", ["slug"]),
+    .index("by_slug", ["slug"])
+    .index("by_status", ["status"]),
+
+  removalRequests: defineTable({
+    workspaceId: v.id("workspaces"),
+    listingId: v.id("listings"),
+    googlePlacesListingId: v.string(),
+    reason: v.optional(v.string()),
+    status: v.union(
+      v.literal("pending"),
+      v.literal("approved"),
+      v.literal("rejected"),
+    ),
+    ...timestamps,
+    ...legacySync,
+  })
+    .index("by_workspace", ["workspaceId"])
+    .index("by_listing", ["listingId"])
+    .index("by_google_places_listing", ["googlePlacesListingId"]),
 
   jobApplications: defineTable({
     workspaceId: v.id("workspaces"),
     jobPostingId: v.optional(v.id("jobPostings")),
     applicantEmail: v.optional(v.string()),
     status: v.optional(v.string()),
-    metadata: v.optional(v.any()),
+    metadata: v.optional(payloadObject),
     ...timestamps,
     ...legacySync,
   }).index("by_job_posting", ["jobPostingId"]),
@@ -171,8 +211,8 @@ export default defineSchema({
     workspaceId: v.id("workspaces"),
     recordType: v.string(),
     status: v.optional(v.string()),
-    payload: v.any(),
-    relatedIds: v.optional(v.any()),
+    payload: payloadObject,
+    relatedIds: v.optional(payloadObject),
     ...timestamps,
     ...legacySync,
   })
@@ -183,7 +223,7 @@ export default defineSchema({
     workspaceId: v.optional(v.id("workspaces")),
     listingId: v.optional(v.id("listings")),
     status: v.optional(v.string()),
-    payload: v.any(),
+    payload: payloadObject,
     ...timestamps,
     ...legacySync,
   })
@@ -196,7 +236,7 @@ export default defineSchema({
     subjectId: v.optional(v.string()),
     token: v.string(),
     expiresAt: v.optional(v.string()),
-    payload: v.optional(v.any()),
+    payload: v.optional(payloadObject),
     ...timestamps,
     ...legacySync,
   }).index("by_token", ["token"]),
@@ -205,7 +245,7 @@ export default defineSchema({
     workspaceId: v.id("workspaces"),
     slug: v.optional(v.string()),
     status: v.optional(v.string()),
-    payload: v.any(),
+    payload: payloadObject,
     ...timestamps,
     ...legacySync,
   })
@@ -219,7 +259,7 @@ export default defineSchema({
     submissionId: v.optional(v.string()),
     fileId: v.optional(v.id("files")),
     artifactType: v.string(),
-    payload: v.optional(v.any()),
+    payload: v.optional(payloadObject),
     ...timestamps,
     ...legacySync,
   })
@@ -229,7 +269,7 @@ export default defineSchema({
   referralRecords: defineTable({
     workspaceId: v.id("workspaces"),
     recordType: v.string(),
-    payload: v.any(),
+    payload: payloadObject,
     status: v.optional(v.string()),
     ...timestamps,
     ...legacySync,
@@ -242,7 +282,7 @@ export default defineSchema({
     userId: v.optional(v.id("users")),
     notificationType: v.string(),
     status: v.optional(v.string()),
-    payload: v.optional(v.any()),
+    payload: v.optional(payloadObject),
     ...timestamps,
     ...legacySync,
   })
@@ -255,7 +295,7 @@ export default defineSchema({
     subjectId: v.optional(v.string()),
     channel: v.optional(v.string()),
     status: v.optional(v.string()),
-    payload: v.any(),
+    payload: payloadObject,
     ...timestamps,
     ...legacySync,
   })
@@ -269,7 +309,7 @@ export default defineSchema({
     stripePriceId: v.optional(v.string()),
     recordType: v.string(),
     status: v.optional(v.string()),
-    payload: v.optional(v.any()),
+    payload: v.optional(payloadObject),
     ...timestamps,
     ...legacySync,
   })
@@ -289,7 +329,7 @@ export default defineSchema({
     relatedTable: v.optional(v.string()),
     relatedId: v.optional(v.string()),
     publicPath: v.optional(v.string()),
-    metadata: v.optional(v.any()),
+    metadata: v.optional(payloadObject),
     ...timestamps,
     ...legacySync,
   })
@@ -306,11 +346,12 @@ export default defineSchema({
     state: v.optional(v.string()),
     city: v.optional(v.string()),
     searchText: v.optional(v.string()),
-    payload: v.any(),
+    payload: payloadObject,
     ...timestamps,
     ...legacySync,
   })
     .index("by_model_type", ["modelType"])
+    .index("by_listing_and_type", ["listingId", "modelType"])
     .index("by_slug", ["slug"])
     .index("by_route_path", ["routePath"]),
 
@@ -318,7 +359,7 @@ export default defineSchema({
     workspaceId: v.optional(v.id("workspaces")),
     actorUserId: v.optional(v.id("users")),
     eventType: v.string(),
-    payload: v.optional(v.any()),
+    payload: v.optional(payloadObject),
     ...timestamps,
     ...legacySync,
   })
@@ -333,7 +374,7 @@ export default defineSchema({
     targetId: v.optional(v.string()),
     status: v.string(),
     checksum: v.optional(v.string()),
-    payload: v.optional(v.any()),
+    payload: v.optional(payloadObject),
     error: v.optional(v.string()),
     ...timestamps,
   })

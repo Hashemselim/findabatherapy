@@ -3,7 +3,7 @@ import { getJobPostings, type JobPostingSummary } from "@/lib/actions/jobs";
 import { getTeamMembers, type TeamMember } from "@/lib/actions/team";
 import { DEMO_EMPLOYEES } from "@/lib/demo/data";
 import { getCurrentPlanTier } from "@/lib/plans/guards";
-import { getProfile } from "@/lib/supabase/server";
+import { getProfile } from "@/lib/platform/workspace/server";
 
 interface TeamPageData {
   onboardingComplete: boolean;
