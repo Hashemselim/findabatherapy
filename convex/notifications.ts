@@ -1,11 +1,13 @@
-import { mutationGeneric, queryGeneric } from "convex/server";
+import { mutation, query } from "./_generated/server";
 import { ConvexError, v } from "convex/values";
+import type { MutationCtx, QueryCtx } from "./_generated/server";
 
 type Identity = {
   subject: string;
 };
 
 type ConvexDoc = Record<string, unknown> & { _id: string };
+type ConvexCtx = QueryCtx | MutationCtx;
 
 function asRecord(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -23,9 +25,7 @@ function asId<TableName extends string>(value: unknown) {
   return value as string & { __tableName: TableName };
 }
 
-async function requireIdentity(ctx: {
-  auth: { getUserIdentity(): Promise<Identity | null> };
-}) {
+async function requireIdentity(ctx: ConvexCtx) {
   const identity = await ctx.auth.getUserIdentity();
   if (!identity) {
     throw new ConvexError("Not authenticated");
@@ -35,16 +35,7 @@ async function requireIdentity(ctx: {
 }
 
 async function findUserByClerkUserId(
-  ctx: {
-    db: {
-      query(table: "users"): {
-        withIndex(
-          index: "by_clerk_user_id",
-          cb: (q: { eq(field: "clerkUserId", value: string): unknown }) => unknown,
-        ): { collect(): Promise<ConvexDoc[]> };
-      };
-    };
-  },
+  ctx: ConvexCtx,
   clerkUserId: string,
 ) {
   const users = await ctx.db
@@ -55,25 +46,9 @@ async function findUserByClerkUserId(
   return users[0] ?? null;
 }
 
-async function requireCurrentWorkspace(ctx: {
-  auth: { getUserIdentity(): Promise<Identity | null> };
-  db: {
-    query(table: "users"): {
-      withIndex(
-        index: "by_clerk_user_id",
-        cb: (q: { eq(field: "clerkUserId", value: string): unknown }) => unknown,
-      ): { collect(): Promise<ConvexDoc[]> };
-    };
-    query(table: "workspaceMemberships"): {
-      withIndex(
-        index: "by_user",
-        cb: (q: { eq(field: "userId", value: string): unknown }) => unknown,
-      ): { collect(): Promise<ConvexDoc[]> };
-    };
-  };
-}) {
+async function requireCurrentWorkspace(ctx: ConvexCtx) {
   const identity = await requireIdentity(ctx);
-  const user = await findUserByClerkUserId(ctx as never, identity.subject);
+  const user = await findUserByClerkUserId(ctx, identity.subject);
   if (!user) {
     throw new ConvexError("Not authenticated");
   }
@@ -117,16 +92,7 @@ function mapNotification(row: ConvexDoc) {
 }
 
 async function getWorkspaceNotificationRows(
-  ctx: {
-    db: {
-      query(table: "notificationRecords"): {
-        withIndex(
-          index: "by_workspace",
-          cb: (q: { eq(field: "workspaceId", value: string): unknown }) => unknown,
-        ): { collect(): Promise<ConvexDoc[]> };
-      };
-    };
-  },
+  ctx: ConvexCtx,
   workspaceId: string,
 ) {
   return ctx.db
@@ -135,7 +101,7 @@ async function getWorkspaceNotificationRows(
     .collect();
 }
 
-export const createNotification = mutationGeneric({
+export const createNotification = mutation({
   args: {
     workspaceId: v.string(),
     type: v.string(),
@@ -168,7 +134,7 @@ export const createNotification = mutationGeneric({
   },
 });
 
-export const getNotifications = queryGeneric({
+export const getNotifications = query({
   args: {
     type: v.optional(v.string()),
     isRead: v.optional(v.boolean()),
@@ -176,11 +142,11 @@ export const getNotifications = queryGeneric({
     offset: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const { workspaceId } = await requireCurrentWorkspace(ctx as never);
+    const { workspaceId } = await requireCurrentWorkspace(ctx);
     const limit = args.limit ?? 50;
     const offset = args.offset ?? 0;
 
-    const rows = await getWorkspaceNotificationRows(ctx as never, workspaceId);
+    const rows = await getWorkspaceNotificationRows(ctx, workspaceId);
     const filtered = rows
       .filter((row) => !args.type || row.notificationType === args.type)
       .filter((row) => args.isRead === undefined || (row.status === "read") === args.isRead)
@@ -198,20 +164,20 @@ export const getNotifications = queryGeneric({
   },
 });
 
-export const getUnreadNotificationCount = queryGeneric({
+export const getUnreadNotificationCount = query({
   args: {},
   handler: async (ctx) => {
-    const { workspaceId } = await requireCurrentWorkspace(ctx as never);
-    const rows = await getWorkspaceNotificationRows(ctx as never, workspaceId);
+    const { workspaceId } = await requireCurrentWorkspace(ctx);
+    const rows = await getWorkspaceNotificationRows(ctx, workspaceId);
     return rows.filter((row) => row.status !== "read").length;
   },
 });
 
-export const getUnreadCountsByType = queryGeneric({
+export const getUnreadCountsByType = query({
   args: {},
   handler: async (ctx) => {
-    const { workspaceId } = await requireCurrentWorkspace(ctx as never);
-    const rows = await getWorkspaceNotificationRows(ctx as never, workspaceId);
+    const { workspaceId } = await requireCurrentWorkspace(ctx);
+    const rows = await getWorkspaceNotificationRows(ctx, workspaceId);
 
     const counts: Record<string, number> = {};
     for (const row of rows) {
@@ -231,12 +197,12 @@ export const getUnreadCountsByType = queryGeneric({
   },
 });
 
-export const markNotificationAsRead = mutationGeneric({
+export const markNotificationAsRead = mutation({
   args: {
     notificationId: v.string(),
   },
   handler: async (ctx, args) => {
-    const { workspaceId } = await requireCurrentWorkspace(ctx as never);
+    const { workspaceId } = await requireCurrentWorkspace(ctx);
     const notification = await ctx.db.get(asId<"notificationRecords">(args.notificationId));
     if (!notification || String(notification.workspaceId) !== workspaceId) {
       throw new ConvexError("Notification not found");
@@ -256,13 +222,13 @@ export const markNotificationAsRead = mutationGeneric({
   },
 });
 
-export const markAllNotificationsAsRead = mutationGeneric({
+export const markAllNotificationsAsRead = mutation({
   args: {
     type: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const { workspaceId } = await requireCurrentWorkspace(ctx as never);
-    const rows = await getWorkspaceNotificationRows(ctx as never, workspaceId);
+    const { workspaceId } = await requireCurrentWorkspace(ctx);
+    const rows = await getWorkspaceNotificationRows(ctx, workspaceId);
 
     for (const row of rows) {
       if (row.status === "read") {

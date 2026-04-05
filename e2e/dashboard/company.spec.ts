@@ -68,10 +68,9 @@ test.describe("Dashboard - Company/Listing Management", () => {
       return;
     }
 
-    // Company name input
-    const nameInput = page.locator(
-      'input[name*="name" i], input[placeholder*="company" i], input[placeholder*="name" i]'
-    ).first();
+    await page.getByRole("button", { name: /^edit$/i }).first().click();
+
+    const nameInput = page.locator("#agencyName").first();
     await expect(nameInput).toBeVisible();
   });
 
@@ -101,8 +100,9 @@ test.describe("Dashboard - Company/Listing Management", () => {
       return;
     }
 
-    // Description textarea
-    const descriptionInput = page.locator("textarea").first();
+    await page.getByRole("button", { name: /^edit$/i }).first().click();
+
+    const descriptionInput = page.locator("#description").first();
     await expect(descriptionInput).toBeVisible();
   });
 
@@ -115,11 +115,12 @@ test.describe("Dashboard - Company/Listing Management", () => {
       return;
     }
 
-    // Logo upload section
-    const logoUpload = page.locator(
-      'input[type="file"], [data-testid="logo-upload"], button:has-text("Upload")'
-    ).first();
-    await expect(logoUpload).toBeVisible();
+    await page.getByRole("button", { name: /^edit$/i }).first().click();
+
+    await expect(
+      page.getByRole("button", { name: /upload logo|change logo/i })
+    ).toBeVisible();
+    await expect(page.locator('input[type="file"]').first()).toBeAttached();
   });
 
   test("Company page has contact info section", async ({ page }) => {
@@ -161,10 +162,9 @@ test.describe("Dashboard - Company/Listing Management", () => {
       return;
     }
 
-    // Save button
-    const saveButton = page.locator(
-      'button[type="submit"], button:has-text("Save"), button:has-text("Update")'
-    ).first();
+    await page.getByRole("button", { name: /^edit$/i }).first().click();
+
+    const saveButton = page.getByRole("button", { name: /save changes/i }).first();
     await expect(saveButton).toBeVisible();
   });
 

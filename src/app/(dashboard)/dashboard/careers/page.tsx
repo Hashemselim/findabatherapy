@@ -7,7 +7,7 @@ import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-heade
 import { SharePageHeaderActions } from "@/components/dashboard/share-page-header-actions";
 import { DashboardEmptyState } from "@/components/dashboard/ui";
 import { CareersPageShareCard } from "@/components/dashboard/jobs/careers-page-share-card";
-import { getProfile } from "@/lib/supabase/server";
+import { getProfile } from "@/lib/platform/workspace/server";
 import { getListingSlug } from "@/lib/actions/listings";
 import { getJobsByProvider } from "@/lib/queries/jobs";
 import { getProviderCareersPath } from "@/lib/utils/public-paths";

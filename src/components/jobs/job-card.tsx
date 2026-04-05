@@ -94,7 +94,7 @@ export function JobCard({ job, index }: JobCardProps) {
   const serviceArea = formatServiceArea(job.serviceStates);
 
   return (
-    <Link href={`/job/${job.slug}`} className="group block">
+    <Link href={`/job/${job.slug}`} className="group block" data-testid="job-card">
       <Card
         className={cn(
           "border transition-all duration-300 ease-premium hover:-translate-y-[2px] hover:shadow-[0_8px_30px_rgba(16,185,129,0.1)]",
@@ -121,7 +121,10 @@ export function JobCard({ job, index }: JobCardProps) {
           <div className="min-w-0 flex-1">
             {/* Header */}
             <div className="flex flex-wrap items-center gap-2">
-              <h3 className="text-lg font-semibold text-foreground transition-colors duration-300 group-hover:text-emerald-700">
+              <h3
+                className="text-lg font-semibold text-foreground transition-colors duration-300 group-hover:text-emerald-700"
+                data-testid="job-card-title"
+              >
                 {job.title}
               </h3>
               {isPremium && (
@@ -135,7 +138,7 @@ export function JobCard({ job, index }: JobCardProps) {
             {/* Company Name */}
             <div className="mt-0.5 flex items-center gap-1.5 text-sm text-muted-foreground">
               <Building2 className="h-3.5 w-3.5" />
-              <span>{job.provider.agencyName}</span>
+              <span data-testid="job-card-company">{job.provider.agencyName}</span>
             </div>
 
             {/* Location and Salary Row */}

@@ -4,7 +4,7 @@ import { ArrowLeft, ExternalLink } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { JobForm } from "@/components/jobs/job-form";
-import { getProfile } from "@/lib/supabase/server";
+import { getProfile } from "@/lib/platform/workspace/server";
 import { getJobPosting } from "@/lib/actions/jobs";
 import { getLocations } from "@/lib/actions/locations";
 

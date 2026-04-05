@@ -107,7 +107,7 @@ test.describe("Dashboard - Billing", () => {
     console.log(`Upgrade option visible: ${hasUpgrade}`);
   });
 
-  test("Billing page shows Pro plan details", async ({ page }) => {
+  test("Billing page shows the current plan section", async ({ page }) => {
     await page.goto("/dashboard/billing");
 
     const url = page.url();
@@ -116,9 +116,8 @@ test.describe("Dashboard - Billing", () => {
       return;
     }
 
-    // Pro plan card/section
     await expect(
-      page.locator("text=/pro/i").first()
+      page.getByRole("heading", { name: /free plan|pro plan/i }).first(),
     ).toBeVisible();
   });
 
@@ -164,7 +163,7 @@ test.describe("Dashboard - Billing", () => {
 
     // Success message
     await expect(
-      page.locator("text=/success|thank|welcome|upgraded/i").first()
+      page.locator("text=/you're live|success|thank|welcome|upgraded/i").first()
     ).toBeVisible();
   });
 });

@@ -35,13 +35,12 @@ import {
 } from "@/components/ui/card";
 import { BubbleBackground } from "@/components/ui/bubble-background";
 import { JobCard } from "@/components/jobs/job-card";
+import { getListingBySlug } from "@/lib/actions/listings";
 import { getJobsByProvider } from "@/lib/queries/jobs";
-import { createAdminClient } from "@/lib/supabase/server";
 import { generateJobsSiteOrganizationSchema } from "@/lib/seo/job-schemas";
 import { getVideoEmbedUrl } from "@/lib/storage/config";
 import { brandColors } from "@/config/brands";
 import type { PlanTier } from "@/lib/plans/features";
-import { isPublicProfileVisible } from "@/lib/public-visibility";
 import { getJobsEmployersPath } from "@/lib/utils/public-paths";
 
 interface EmployerPageProps {
@@ -90,120 +89,53 @@ const getCachedEmployer = cache(async (slug: string) => {
 });
 
 async function getEmployerBySlug(slug: string): Promise<EmployerProfile | null> {
-  const supabase = await createAdminClient();
-
-  // Find the listing by slug
-  const { data: listing, error: listingError } = await supabase
-    .from("listings")
-    .select(`
-      id,
-      profile_id,
-      slug,
-      logo_url,
-      headline,
-      description,
-      service_modes,
-      video_url,
-      profiles!inner (
-        id,
-        agency_name,
-        website,
-        contact_email,
-        contact_phone,
-        plan_tier,
-        subscription_status,
-        is_seeded
-      )
-    `)
-    .eq("slug", slug)
-    .eq("status", "published")
-    .single();
-
-  if (listingError || !listing) {
+  const listingResult = await getListingBySlug(slug);
+  if (!listingResult.success || !listingResult.data) {
     return null;
   }
 
-  // Extract profile data
-  const profile = listing.profiles as unknown as {
-    id: string;
-    agency_name: string;
-    website: string | null;
-    contact_email: string | null;
-    contact_phone: string | null;
-    plan_tier: string;
-    subscription_status: string | null;
-    is_seeded: boolean;
-  };
-
-  if (!isPublicProfileVisible(profile)) {
-    return null;
-  }
+  const listing = listingResult.data;
 
   // Determine subscription status
   const isActiveSubscription =
-    profile.subscription_status === "active" ||
-    profile.subscription_status === "trialing";
-  const effectiveTier = (isActiveSubscription ? profile.plan_tier : "free") as PlanTier;
+    listing.profile.subscriptionStatus === "active" ||
+    listing.profile.subscriptionStatus === "trialing";
+  const effectiveTier = (
+    isActiveSubscription ? listing.profile.planTier : "free"
+  ) as PlanTier;
   const isPremium = effectiveTier !== "free";
 
-  // Fetch locations, attributes, and photos in parallel
-  const [locationsResult, attrsResult, photosResult] = await Promise.all([
-    // Get all locations (uses listing_id, not profile_id)
-    supabase
-      .from("locations")
-      .select("id, city, state, label, is_primary, insurances")
-      .eq("listing_id", listing.id)
-      .order("is_primary", { ascending: false }),
-    // Get clinical specialties from attributes
-    supabase
-      .from("listing_attribute_values")
-      .select("attribute_key, value_json")
-      .eq("listing_id", listing.id)
-      .eq("attribute_key", "clinical_specialties")
-      .single(),
-    // Get photos (premium only)
-    isPremium
-      ? supabase
-          .from("listing_photos")
-          .select("url")
-          .eq("listing_id", listing.id)
-          .order("display_order", { ascending: true })
-      : Promise.resolve({ data: null }),
-  ]);
-
-  const locations = locationsResult.data || [];
-  const specialties = (attrsResult.data?.value_json as string[]) || [];
-  const photoUrls = photosResult.data?.map((p) => p.url) || [];
-
-  // Get insurances from first location
-  const insurances = locations[0]?.insurances || [];
+  const specialties = Array.isArray(listing.attributes.clinical_specialties)
+    ? (listing.attributes.clinical_specialties as string[])
+    : [];
+  const insurances = listing.locations[0]?.insurances || [];
 
   return {
-    id: listing.profile_id,
+    id: listing.id,
     listingId: listing.id,
     slug: listing.slug,
-    agencyName: profile.agency_name,
-    logoUrl: listing.logo_url || null,
-    headline: listing.headline || null,
-    description: listing.description || null,
-    website: profile.website,
-    contactEmail: profile.contact_email,
-    contactPhone: profile.contact_phone,
+    agencyName: listing.profile.agencyName,
+    logoUrl: listing.logoUrl || null,
+    headline: listing.headline,
+    description: listing.description,
+    website: listing.profile.website,
+    contactEmail: listing.profile.contactEmail,
+    contactPhone: listing.profile.contactPhone,
     planTier: effectiveTier,
     isVerified: isPremium,
     isPremium,
-    serviceModes: listing.service_modes || [],
-    videoUrl: listing.video_url,
-    locations: locations.map((loc) => ({
+    serviceModes: listing.serviceModes || [],
+    videoUrl: listing.videoUrl,
+    locations: listing.locations.map((loc) => ({
       id: loc.id,
       city: loc.city,
       state: loc.state,
       label: loc.label,
-      isPrimary: loc.is_primary,
+      isPrimary: loc.isPrimary,
     })),
     specialties,
     insurances,
-    photoUrls,
+    photoUrls: isPremium ? listing.photoUrls || [] : [],
   };
 }
 
@@ -376,7 +308,10 @@ export default async function EmployerPage({ params }: EmployerPageProps) {
       {/* Main Content */}
       <div className="mx-auto mt-10 max-w-5xl space-y-6 px-4 sm:px-6">
         {/* 1. Open Positions Card - PRIMARY SECTION */}
-        <Card className="border border-border/80 transition-all duration-500 ease-premium hover:shadow-[0_8px_30px_rgba(0,0,0,0.08)]">
+        <Card
+          className="border border-border/80 transition-all duration-500 ease-premium hover:shadow-[0_8px_30px_rgba(0,0,0,0.08)]"
+          data-testid="jobs"
+        >
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/10">

@@ -5,14 +5,14 @@ import { Button } from "@/components/ui/button";
 import { DashboardTracker } from "@/components/analytics/dashboard-tracker";
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
 import { PreviewBanner } from "@/components/ui/preview-banner";
-import { getUser } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/platform/auth/server";
 import { getCurrentPlanTier } from "@/lib/plans/guards";
 import { getAllCommunications } from "@/lib/actions/communications";
 import { DEMO_COMMUNICATIONS } from "@/lib/demo/data";
 import { CommunicationsPageClient } from "@/components/dashboard/clients/communications-page-client";
 
 export default async function CommunicationsPage() {
-  const user = await getUser();
+  const user = await getCurrentUser();
   if (!user) redirect("/auth/sign-in");
 
   const planTier = await getCurrentPlanTier();

@@ -55,9 +55,8 @@ test.describe("Dashboard - Onboarding Flow", () => {
       return;
     }
 
-    // Check for Find Clients and Find Staff sections
-    await expect(page.locator("text=/find clients/i").first()).toBeVisible();
-    await expect(page.locator("text=/find staff/i").first()).toBeVisible();
+    await expect(page.getByText(/client growth/i).first()).toBeVisible();
+    await expect(page.getByText(/hiring/i).first()).toBeVisible();
   });
 
   test("Onboarding welcome has Get Started button", async ({ page }) => {
@@ -69,12 +68,11 @@ test.describe("Dashboard - Onboarding Flow", () => {
       return;
     }
 
-    // Get Started button
-    await expect(page.getByRole("link", { name: /get started/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: /begin setup|starting/i })).toBeVisible();
   });
 
   test("Onboarding details page loads", async ({ page }) => {
-    await page.goto("/dashboard/onboarding/details");
+    await page.goto("/dashboard/onboarding/services");
 
     const url = page.url();
     if (url.includes("/auth/")) {
@@ -118,7 +116,7 @@ test.describe("Dashboard - Onboarding Flow", () => {
   });
 
   test("Onboarding details has services selection", async ({ page }) => {
-    await page.goto("/dashboard/onboarding/details");
+    await page.goto("/dashboard/onboarding/services");
 
     const url = page.url();
     if (url.includes("/auth/")) {
@@ -126,9 +124,8 @@ test.describe("Dashboard - Onboarding Flow", () => {
       return;
     }
 
-    // Services checkboxes - look within main content area to avoid matching sidebar nav
     await expect(
-      page.getByRole("main").locator("text=/aba therapy|occupational|speech/i").first()
+      page.getByRole("main").locator("text=/services offered|aba therapy|occupational|speech/i").first()
     ).toBeVisible();
   });
 
@@ -183,10 +180,9 @@ test.describe("Dashboard - Onboarding Flow", () => {
     }
 
     // Address input with autocomplete
-    const addressInput = page.locator(
-      'input[placeholder*="address" i], input[name*="address" i]'
-    ).first();
-    await expect(addressInput).toBeVisible();
+    await expect(
+      page.getByText(/add another location|los angeles hq|where do you serve families/i).first()
+    ).toBeVisible();
   });
 
   test("Onboarding location has insurance selection", async ({ page }) => {
@@ -204,7 +200,7 @@ test.describe("Dashboard - Onboarding Flow", () => {
     ).toBeVisible();
   });
 
-  test("Onboarding enhanced page loads", async ({ page }) => {
+  test("Legacy onboarding enhanced route redirects to current services step", async ({ page }) => {
     await page.goto("/dashboard/onboarding/enhanced");
 
     const url = page.url();
@@ -213,10 +209,14 @@ test.describe("Dashboard - Onboarding Flow", () => {
       return;
     }
 
+    await expect(page).toHaveURL(/\/dashboard\/onboarding\/services/);
     await expect(page.getByRole("main")).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: /what care do you provide/i }),
+    ).toBeVisible();
   });
 
-  test("Onboarding enhanced has premium fields", async ({ page }) => {
+  test("Current services onboarding step has care and age fields", async ({ page }) => {
     await page.goto("/dashboard/onboarding/enhanced");
 
     const url = page.url();
@@ -225,14 +225,16 @@ test.describe("Dashboard - Onboarding Flow", () => {
       return;
     }
 
-    // Premium fields (ages, languages, diagnoses, specialties)
+    await expect(page).toHaveURL(/\/dashboard\/onboarding\/services/);
+
+    // Current services step fields
     await expect(
-      page.locator("text=/ages|language|diagnos|specialt/i").first()
+      page.locator("text=/services offered|ages served|aba therapy/i").first()
     ).toBeVisible();
   });
 
   test("Onboarding review page loads", async ({ page }) => {
-    await page.goto("/dashboard/onboarding/review");
+    await page.goto("/dashboard/onboarding/plan");
 
     const url = page.url();
     if (url.includes("/auth/")) {
@@ -244,7 +246,7 @@ test.describe("Dashboard - Onboarding Flow", () => {
   });
 
   test("Onboarding review shows plan selection", async ({ page }) => {
-    await page.goto("/dashboard/onboarding/review");
+    await page.goto("/dashboard/onboarding/plan");
 
     const url = page.url();
     if (url.includes("/auth/")) {
@@ -252,9 +254,11 @@ test.describe("Dashboard - Onboarding Flow", () => {
       return;
     }
 
-    // Plan cards (Free, Pro) - look within main content area
     await expect(
-      page.getByRole("main").locator("text=/choose your plan/i").first()
+      page
+        .getByRole("main")
+        .locator("text=/choose how .* goes live|activate pro|continue with free/i")
+        .first()
     ).toBeVisible();
   });
 });

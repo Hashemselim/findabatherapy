@@ -37,7 +37,10 @@ test.describe("FAT-018: States Directory", () => {
     const hasCaliforniaLink = await californiaLink.isVisible().catch(() => false);
 
     if (hasCaliforniaLink) {
-      await californiaLink.click();
+      await Promise.all([
+        page.waitForURL("**/california", { timeout: 15000 }),
+        californiaLink.click(),
+      ]);
       await expect(page).toHaveURL("/california");
     } else {
       // Skip if no state links found
@@ -142,10 +145,9 @@ test.describe("FAT-021: State Guide Pages", () => {
       return;
     }
 
-    // Look for search or browse CTA
-    const searchCta = page.locator('a[href*="/search"], a[href*="/california"], button:has-text(/search|find|browse/i)');
-    const hasCta = await searchCta.first().isVisible().catch(() => false);
-    expect(hasCta).toBeTruthy();
+    await expect(
+      page.getByRole("link", { name: /find providers/i }).first()
+    ).toBeVisible();
   });
 });
 
@@ -166,7 +168,7 @@ test.describe("FAT-022, FAT-023: Glossary Page", () => {
 
     // Look for term entries
     const termEntries = page.locator(
-      '[data-testid="glossary-term"], .glossary-term, dt, .term, article'
+      '[data-testid="glossary-term"], h3'
     );
     const count = await termEntries.count();
 
@@ -312,7 +314,10 @@ test.describe("Learn Hub Additional Tests", () => {
       return;
     }
 
-    await articleLink.click();
+    await Promise.all([
+      page.waitForURL(/\/learn\/[a-z0-9-]+/, { timeout: 30000 }),
+      articleLink.click(),
+    ]);
     await expect(page).toHaveURL(/\/learn\/[a-z0-9-]+/);
 
     // Article page should have heading

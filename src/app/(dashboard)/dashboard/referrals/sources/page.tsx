@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getUser } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/platform/auth/server";
 import { getLocations } from "@/lib/actions/locations";
 import { getReferralTemplates, listReferralSources } from "@/lib/actions/referrals";
 import { getCurrentPlanTier } from "@/lib/plans/guards";
@@ -14,7 +14,7 @@ import {
 } from "@/lib/demo/feature-previews";
 
 export default async function ReferralSourcesPage() {
-  const user = await getUser();
+  const user = await getCurrentUser();
   if (!user) redirect("/auth/sign-in");
 
   const planTier = await getCurrentPlanTier();

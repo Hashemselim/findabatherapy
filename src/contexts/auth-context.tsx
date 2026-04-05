@@ -8,10 +8,12 @@ import {
   useCallback,
   type ReactNode,
 } from "react";
+import { useUser as useClerkUser } from "@clerk/nextjs";
 import type { User, Session } from "@supabase/supabase-js";
 import { useRouter } from "next/navigation";
 import posthog from "posthog-js";
 
+import { platformConfig } from "@/lib/platform/config";
 import { createSupabaseBrowserClient } from "@/lib/supabase/clients";
 import { resolveCurrentWorkspaceProfileId } from "@/lib/workspace/current-profile";
 
@@ -40,7 +42,33 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+/* ---------- Clerk-mode provider ---------- */
+
+function ClerkAuthProvider({ children }: { children: ReactNode }) {
+  const { user, isLoaded } = useClerkUser();
+
+  const value: AuthContextType = {
+    // Clerk user mapped to a minimal shape; downstream code that truly needs
+    // the Supabase User type should use server-side helpers instead.
+    user: user
+      ? ({ id: user.id, email: user.primaryEmailAddress?.emailAddress } as unknown as User)
+      : null,
+    session: null,
+    profile: null, // dashboard pages use server-side getProfile()
+    loading: !isLoaded,
+    isAuthenticated: !!user,
+    isOnboardingComplete: false, // resolved server-side in Clerk mode
+    refreshProfile: async () => {
+      /* no-op – profile is fetched server-side */
+    },
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+/* ---------- Supabase-mode provider ---------- */
+
+function SupabaseAuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -140,6 +168,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       {children}
     </AuthContext.Provider>
   );
+}
+
+/* ---------- Routing provider ---------- */
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  if (platformConfig.authProvider === "clerk") {
+    return <ClerkAuthProvider>{children}</ClerkAuthProvider>;
+  }
+
+  return <SupabaseAuthProvider>{children}</SupabaseAuthProvider>;
 }
 
 export function useAuth() {

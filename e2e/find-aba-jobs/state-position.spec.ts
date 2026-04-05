@@ -92,7 +92,7 @@ test.describe("Find ABA Jobs - State Jobs Pages", () => {
 
 test.describe("Find ABA Jobs - Position Type Pages", () => {
   test("FAJ-010: BCBA jobs page loads", async ({ page }) => {
-    await page.goto("/bcba-jobs");
+    await page.goto("/jobs/role/bcba");
 
     // Position title
     await expect(page.locator("text=/bcba/i").first()).toBeVisible();
@@ -104,7 +104,7 @@ test.describe("Find ABA Jobs - Position Type Pages", () => {
   });
 
   test("Position page shows nationwide job count", async ({ page }) => {
-    await page.goto("/bcba-jobs");
+    await page.goto("/jobs/role/bcba");
 
     // Job count
     const jobCount = page.locator("text=/\\d+.*job|job.*\\d+/i").first();
@@ -113,7 +113,7 @@ test.describe("Find ABA Jobs - Position Type Pages", () => {
   });
 
   test("Position page has typical requirements card", async ({ page }) => {
-    await page.goto("/bcba-jobs");
+    await page.goto("/jobs/role/bcba");
 
     // Requirements section
     const requirements = page.locator("text=/requirement|qualification|credential/i").first();
@@ -122,7 +122,7 @@ test.describe("Find ABA Jobs - Position Type Pages", () => {
   });
 
   test("Position page has salary range card", async ({ page }) => {
-    await page.goto("/bcba-jobs");
+    await page.goto("/jobs/role/bcba");
 
     // Salary section
     const salary = page.locator("text=/salary|compensation|\\$\\d+/i").first();
@@ -131,7 +131,7 @@ test.describe("Find ABA Jobs - Position Type Pages", () => {
   });
 
   test("Position page has browse by state section", async ({ page }) => {
-    await page.goto("/bcba-jobs");
+    await page.goto("/jobs/role/bcba");
 
     // State links
     const stateLinks = page.locator("text=/california|texas|florida|new york/i");
@@ -140,7 +140,7 @@ test.describe("Find ABA Jobs - Position Type Pages", () => {
   });
 
   test("Position page shows latest jobs for position", async ({ page }) => {
-    await page.goto("/bcba-jobs");
+    await page.goto("/jobs/role/bcba");
 
     // Job listings
     const hasJobs = await page.locator('[data-testid="job-card"], article, .job-card').first().isVisible().catch(() => false);
@@ -148,10 +148,10 @@ test.describe("Find ABA Jobs - Position Type Pages", () => {
   });
 
   const positionPages = [
-    { name: "RBT", slug: "rbt-jobs" },
-    { name: "Behavior Technician", slug: "bt-jobs" },
-    { name: "Clinical Director", slug: "clinical-director-jobs" },
-    { name: "BCaBA", slug: "bcaba-jobs" },
+    { name: "RBT", slug: "jobs/role/rbt" },
+    { name: "Behavior Technician", slug: "jobs/role/bt" },
+    { name: "Clinical Director", slug: "jobs/role/clinical-director" },
+    { name: "BCaBA", slug: "jobs/role/bcaba" },
   ];
 
   for (const position of positionPages) {
@@ -258,24 +258,16 @@ test.describe("Find ABA Jobs - Provider Careers Page", () => {
   });
 
   test("Provider careers page has View Full Profile link", async ({ page }) => {
-    await page.goto("/jobs/search");
+    await page.goto("/jobs/employers/goodaba-demo-aba", {
+      waitUntil: "domcontentloaded",
+      timeout: 60000,
+    });
 
-    const jobLink = page.locator('[data-testid="job-card"] a, article a').first();
-
-    if (await jobLink.isVisible()) {
-      await jobLink.click();
-
-      const companyLink = page.locator('a:has-text("View Company")').first();
-
-      if (await companyLink.isVisible()) {
-        await companyLink.click();
-
-        // Full profile link
-        const profileLink = page.locator('a:has-text("View Full Profile"), a:has-text("Profile")').first();
-        const hasProfileLink = await profileLink.isVisible().catch(() => false);
-        console.log(`View Full Profile link visible: ${hasProfileLink}`);
-      }
-    }
+    const profileLink = page
+      .locator('a:has-text("View Therapy Profile"), a:has-text("Profile")')
+      .first();
+    const hasProfileLink = await profileLink.isVisible().catch(() => false);
+    console.log(`View Full Profile link visible: ${hasProfileLink}`);
   });
 
   test("Provider careers page has Search All Jobs CTA", async ({ page }) => {

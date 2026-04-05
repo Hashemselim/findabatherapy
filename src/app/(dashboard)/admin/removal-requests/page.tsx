@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useTransition } from "react";
+import { useCallback, useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { CheckCircle, XCircle, Clock, ExternalLink, Loader2 } from "lucide-react";
 
@@ -37,11 +37,7 @@ export default function RemovalRequestsPage() {
   const [adminNotes, setAdminNotes] = useState("");
   const [isPending, startTransition] = useTransition();
 
-  useEffect(() => {
-    loadRequests();
-  }, [statusFilter]);
-
-  async function loadRequests() {
+  const loadRequests = useCallback(async () => {
     setIsLoading(true);
     const result = await getRemovalRequests({
       status: statusFilter === "all" ? undefined : statusFilter,
@@ -52,7 +48,11 @@ export default function RemovalRequestsPage() {
       setTotal(result.data.total);
     }
     setIsLoading(false);
-  }
+  }, [statusFilter]);
+
+  useEffect(() => {
+    void loadRequests();
+  }, [loadRequests]);
 
   function handleAction(type: "approve" | "deny", request: RemovalRequestWithDetails) {
     setActionModal({ type, request });
@@ -68,7 +68,7 @@ export default function RemovalRequestsPage() {
 
       if (result.success) {
         setActionModal(null);
-        loadRequests();
+        void loadRequests();
       } else {
         alert(result.error);
       }

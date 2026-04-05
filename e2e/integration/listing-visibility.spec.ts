@@ -1,154 +1,78 @@
 import { test, expect } from "@playwright/test";
-import path from "path";
 
-const authFile = path.join(__dirname, "../.auth/user.json");
+import {
+  AUTH_STATE_FILE,
+  BASE_URL,
+  loadSessionUser,
+  provisionDashboardWorkspaceForUser,
+  type ProvisionedWorkspace,
+} from "../lib/convex-e2e";
 
-/**
- * Integration Tests - Listing Visibility (INT-001, INT-002)
- *
- * Tests that dashboard changes are reflected on public pages.
- */
+test.describe.configure({ mode: "serial" });
+test.use({ storageState: AUTH_STATE_FILE });
+test.setTimeout(60000);
 
-async function checkAuthAvailable(): Promise<boolean> {
-  const fs = await import("fs");
-  try {
-    const content = fs.readFileSync(authFile, "utf-8");
-    const data = JSON.parse(content);
-    return data.cookies?.length > 0 || data.origins?.length > 0;
-  } catch {
-    return false;
-  }
+async function seedWorkspace(): Promise<ProvisionedWorkspace> {
+  const user = loadSessionUser();
+  return provisionDashboardWorkspaceForUser(user);
 }
 
 test.describe("Integration - Listing Visibility", () => {
-  test.use({
-    storageState: async ({}, use) => {
-      const hasAuth = await checkAuthAvailable();
-      if (hasAuth) {
-        await use(authFile);
-      } else {
-        await use({ cookies: [], origins: [] });
-      }
-    },
+  test("published listing appears on the live public profile", async ({ page }) => {
+    const seeded = await seedWorkspace();
+
+    await page.goto(`${BASE_URL}/provider/${seeded.slug}`, {
+      waitUntil: "domcontentloaded",
+    });
+
+    await expect(page.getByRole("heading", { name: "E2E User", exact: true })).toBeVisible();
+    await expect(
+      page.getByText("Evidence-based ABA care for families and a supportive workplace for clinicians.").first(),
+    ).toBeVisible();
   });
 
-  test("INT-001: Published listing appears in search results", async ({ page }) => {
-    // First check if user has a published listing
-    await page.goto("/dashboard/company");
+  test("dashboard listing edits are reflected on the public provider page and search", async ({ page }) => {
+    const seeded = await seedWorkspace();
+    const unique = Date.now();
+    const headline = `Codex integration headline ${unique} for ABA families`;
+    const description = [
+      `Codex integration description ${unique}.`,
+      "This verifies that dashboard listing edits persist through Convex and render publicly.",
+      "Families should see this exact text on the live provider page.",
+    ].join(" ");
 
-    const url = page.url();
-    if (url.includes("/auth/")) {
-      test.skip(true, "Authentication required");
-      return;
-    }
+    await page.goto(`${BASE_URL}/dashboard/company`, {
+      waitUntil: "domcontentloaded",
+    });
+    await expect(page.getByRole("heading", { name: "Company Details", exact: true })).toBeVisible();
 
-    // Check listing status
-    const publishedBadge = page.locator("text=/published/i").first();
-    const isPublished = await publishedBadge.isVisible().catch(() => false);
+    await page.getByRole("button", { name: /^edit$/i }).first().click();
+    await expect(page.locator("#headline")).toBeVisible();
 
-    if (!isPublished) {
-      console.log("Listing not published - skipping visibility test");
-      return;
-    }
+    await page.locator("#headline").fill(headline);
+    await page.locator("#description").fill(description);
+    await page.getByRole("button", { name: /save changes/i }).click();
 
-    // Get company name
-    const companyNameInput = page.locator('input[name*="name" i]').first();
-    const companyName = await companyNameInput.inputValue().catch(() => "");
+    await expect(page.getByText("Changes saved successfully")).toBeVisible({
+      timeout: 15000,
+    });
 
-    if (!companyName) {
-      console.log("Could not get company name");
-      return;
-    }
+    await page.goto(`${BASE_URL}/provider/${seeded.slug}`, {
+      waitUntil: "domcontentloaded",
+    });
 
-    // Search for the company on public site
-    await page.goto(`/search?query=${encodeURIComponent(companyName)}`);
+    await expect(page.getByText(headline, { exact: true })).toBeVisible({
+      timeout: 15000,
+    });
+    await expect(page.getByText(description, { exact: true })).toBeVisible({
+      timeout: 15000,
+    });
 
-    // Should appear in search results
-    const searchResults = page.locator(`text=/${companyName}/i`).first();
-    const appearsInSearch = await searchResults.isVisible().catch(() => false);
-
-    console.log(`Listing "${companyName}" appears in search: ${appearsInSearch}`);
-  });
-
-  test("INT-002: Updated listing details reflected publicly", async ({ page }) => {
-    // Check if user has a published listing
-    await page.goto("/dashboard/company");
-
-    const url = page.url();
-    if (url.includes("/auth/")) {
-      test.skip(true, "Authentication required");
-      return;
-    }
-
-    // Check listing status
-    const publishedBadge = page.locator("text=/published/i").first();
-    const isPublished = await publishedBadge.isVisible().catch(() => false);
-
-    if (!isPublished) {
-      console.log("Listing not published - skipping update test");
-      return;
-    }
-
-    // Get current description
-    const descriptionInput = page.locator("textarea").first();
-    const currentDescription = await descriptionInput.inputValue().catch(() => "");
-
-    // Check View Live button
-    const viewLiveButton = page.locator('a:has-text("View Live"), a:has-text("View Listing")').first();
-
-    if (await viewLiveButton.isVisible()) {
-      // Get the public URL
-      const href = await viewLiveButton.getAttribute("href");
-
-      if (href) {
-        // Visit public profile
-        await page.goto(href);
-
-        // Description should match
-        if (currentDescription) {
-          const publicDescription = page.locator(`text=/${currentDescription.slice(0, 50)}/i`).first();
-          const descriptionMatches = await publicDescription.isVisible().catch(() => false);
-          console.log(`Description matches public profile: ${descriptionMatches}`);
-        }
-      }
-    }
-  });
-
-  test("Verified badge appears for premium providers", async ({ page }) => {
-    await page.goto("/dashboard/billing");
-
-    const url = page.url();
-    if (url.includes("/auth/")) {
-      test.skip(true, "Authentication required");
-      return;
-    }
-
-    // Check if user is on Pro plan
-    const proPlan = page.locator("text=/pro.*active|active.*pro/i").first();
-
-    const isPremium = await proPlan.isVisible().catch(() => false);
-
-    if (!isPremium) {
-      console.log("User not on premium plan - skipping verified badge test");
-      return;
-    }
-
-    // Check View Live link
-    await page.goto("/dashboard/company");
-
-    const viewLiveButton = page.locator('a:has-text("View Live")').first();
-
-    if (await viewLiveButton.isVisible()) {
-      const href = await viewLiveButton.getAttribute("href");
-
-      if (href) {
-        await page.goto(href);
-
-        // Look for verified badge
-        const verifiedBadge = page.locator('[data-testid="verified-badge"], .verified, text=/verified/i').first();
-        const hasVerified = await verifiedBadge.isVisible().catch(() => false);
-        console.log(`Verified badge visible: ${hasVerified}`);
-      }
-    }
+    await page.goto(`${BASE_URL}/search?query=${encodeURIComponent(headline)}`, {
+      waitUntil: "domcontentloaded",
+    });
+    await expect(page.locator(`a[href^="/provider/${seeded.slug}"]`).first()).toBeVisible({
+      timeout: 15000,
+    });
   });
 });

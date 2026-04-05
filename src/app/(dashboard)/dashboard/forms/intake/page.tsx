@@ -9,7 +9,8 @@ import { DashboardEmptyState } from "@/components/dashboard/ui";
 import { ClientSharePageActions } from "@/components/dashboard/forms/client-share-page-actions";
 import { IntakeFieldConfig } from "@/components/dashboard/intake/intake-field-config";
 import { getClientsList } from "@/lib/actions/clients";
-import { getProfile, createClient } from "@/lib/supabase/server";
+import { getClientIntakeEnabled, getListingSlug } from "@/lib/actions/listings";
+import { getProfile } from "@/lib/platform/workspace/server";
 import { getIntakeFieldsConfig } from "@/lib/actions/intake";
 
 export default async function IntakeFormPage() {
@@ -19,15 +20,9 @@ export default async function IntakeFormPage() {
     return <OnboardingGate />;
   }
 
-  const supabase = await createClient();
-  const { data: listing } = await supabase
-    .from("listings")
-    .select("slug, client_intake_enabled")
-    .eq("profile_id", profile.id)
-    .single();
-
-  const listingSlug = listing?.slug ?? null;
-  const clientIntakeEnabled = listing?.client_intake_enabled ?? false;
+  const listingSlug = await getListingSlug();
+  const intakeEnabledResult = await getClientIntakeEnabled();
+  const clientIntakeEnabled = intakeEnabledResult.success ? intakeEnabledResult.data ?? false : false;
 
   if (!listingSlug) {
     return <NoListingState />;

@@ -4,7 +4,7 @@ import { Share2 } from "lucide-react";
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
 import { DashboardCard, DashboardEmptyState } from "@/components/dashboard/ui";
 import { PreviewBanner } from "@/components/ui/preview-banner";
-import { getUser } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/platform/auth/server";
 import { getCurrentPlanTier } from "@/lib/plans/guards";
 import { getSocialBrandData, checkSocialAssetsStatus } from "@/lib/actions/social";
 import { SOCIAL_TEMPLATES } from "@/lib/social/templates";
@@ -17,7 +17,7 @@ export const metadata = {
 };
 
 export default async function SocialPostsPage() {
-  const user = await getUser();
+  const user = await getCurrentUser();
   if (!user) {
     redirect("/auth/sign-in");
   }

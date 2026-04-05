@@ -1,7 +1,7 @@
 "use server";
 
 import { headers } from "next/headers";
-import { createClient, createAdminClient } from "@/lib/supabase/server";
+import { isConvexDataEnabled } from "@/lib/platform/config";
 import {
   EVENT_TYPES,
   type EventType,
@@ -125,6 +125,22 @@ export async function trackEvent(
   profileId?: string
 ): Promise<{ success: boolean }> {
   try {
+    if (isConvexDataEnabled()) {
+      const { mutateConvexUnauthenticated } = await import("@/lib/platform/convex/server");
+      const baseMetadata = await getBaseMetadata();
+      await mutateConvexUnauthenticated("analytics:trackEvent", {
+        eventType,
+        payload: {
+          ...baseMetadata,
+          ...metadata,
+          ...(listingId ? { listingId } : {}),
+          ...(profileId ? { profileId } : {}),
+        },
+      });
+      return { success: true };
+    }
+
+    const { createAdminClient } = await import("@/lib/supabase/server");
     const supabase = await createAdminClient();
     const baseMetadata = await getBaseMetadata();
 
@@ -239,7 +255,22 @@ export async function trackSearchImpressions(
   searchQuery?: string,
   source?: "user" | "ai" | "bot" | "unknown"
 ): Promise<{ success: boolean }> {
+  if (isConvexDataEnabled()) {
+    // Track each impression individually via trackEvent
+    for (const listing of listings) {
+      await trackEvent(EVENT_TYPES.SEARCH_IMPRESSION, {
+        listingId: listing.id,
+        locationId: listing.locationId,
+        position: listing.position,
+        searchQuery,
+        source: source || "unknown",
+      } as SearchImpressionMetadata, listing.id);
+    }
+    return { success: true };
+  }
+
   try {
+    const { createAdminClient } = await import("@/lib/supabase/server");
     const supabase = await createAdminClient();
     const baseMetadata = await getBaseMetadata();
 
@@ -293,8 +324,22 @@ export async function trackSearchImpressionsFromClient(
   listings: Array<{ id: string; locationId?: string; position: number }>,
   searchQuery?: string
 ): Promise<{ success: boolean }> {
+  if (isConvexDataEnabled()) {
+    // Track each impression individually via the main trackEvent path
+    for (const listing of listings) {
+      await trackEvent(EVENT_TYPES.SEARCH_IMPRESSION, {
+        listingId: listing.id,
+        locationId: listing.locationId,
+        position: listing.position,
+        searchQuery,
+        source: "user",
+      } as SearchImpressionMetadata, listing.id);
+    }
+    return { success: true };
+  }
+
   try {
-    const supabase = await createAdminClient();
+    const { createAdminClient: _createAdminClient } = await import("@/lib/supabase/server"); const supabase = await _createAdminClient();
 
     const events = listings.map((listing) => ({
       event_type: EVENT_TYPES.SEARCH_IMPRESSION,
@@ -305,7 +350,7 @@ export async function trackSearchImpressionsFromClient(
         locationId: listing.locationId,
         position: listing.position,
         searchQuery,
-        source: "user", // Client-side = confirmed real user
+        source: "user",
       } as SearchImpressionMetadata,
     }));
 
@@ -365,10 +410,16 @@ export async function wasEventTracked(
   eventType: EventType,
   listingId: string
 ): Promise<boolean> {
+  if (isConvexDataEnabled()) {
+    // In Convex mode, skip dedup check for now (Convex handles idempotency differently)
+    return false;
+  }
+
   try {
     const headersList = await headers();
     const sessionId = generateSessionId(headersList);
 
+    const { createClient } = await import("@/lib/supabase/server");
     const supabase = await createClient();
     const today = new Date().toISOString().split("T")[0];
 
@@ -445,8 +496,20 @@ export async function trackJobSearchImpressions(
   searchQuery?: string,
   source?: "user" | "ai" | "bot" | "unknown"
 ): Promise<{ success: boolean }> {
+  if (isConvexDataEnabled()) {
+    for (const job of jobs) {
+      await trackEvent(EVENT_TYPES.JOB_SEARCH_IMPRESSION, {
+        jobId: job.id,
+        position: job.position,
+        searchQuery,
+        source: source || "unknown",
+      } as JobSearchImpressionMetadata);
+    }
+    return { success: true };
+  }
+
   try {
-    const supabase = await createAdminClient();
+    const { createAdminClient: _createAdminClient } = await import("@/lib/supabase/server"); const supabase = await _createAdminClient();
     const baseMetadata = await getBaseMetadata();
 
     const events = jobs.map((job) => ({
@@ -481,8 +544,20 @@ export async function trackJobSearchImpressionsFromClient(
   jobs: Array<{ id: string; position: number }>,
   searchQuery?: string
 ): Promise<{ success: boolean }> {
+  if (isConvexDataEnabled()) {
+    for (const job of jobs) {
+      await trackEvent(EVENT_TYPES.JOB_SEARCH_IMPRESSION, {
+        jobId: job.id,
+        position: job.position,
+        searchQuery,
+        source: "user",
+      } as JobSearchImpressionMetadata);
+    }
+    return { success: true };
+  }
+
   try {
-    const supabase = await createAdminClient();
+    const { createAdminClient: _createAdminClient } = await import("@/lib/supabase/server"); const supabase = await _createAdminClient();
 
     const events = jobs.map((job) => ({
       event_type: EVENT_TYPES.JOB_SEARCH_IMPRESSION,

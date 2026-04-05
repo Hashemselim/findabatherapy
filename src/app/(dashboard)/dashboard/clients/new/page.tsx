@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, FileEdit } from "lucide-react";
 
-import { getUser } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/platform/auth/server";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { convertInquiryToClient } from "@/lib/actions/clients";
@@ -20,7 +20,7 @@ interface NewClientPageProps {
 }
 
 export default async function NewClientPage({ searchParams }: NewClientPageProps) {
-  const user = await getUser();
+  const user = await getCurrentUser();
   if (!user) {
     redirect("/auth/sign-in");
   }

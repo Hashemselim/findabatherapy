@@ -68,7 +68,9 @@ export function PhotoGalleryManager({
     async function loadPhotos() {
       const result = await getPhotos();
       if (result.success && result.data) {
-        setPhotos(result.data.photos);
+        setPhotos(result.data.photos ?? []);
+      } else {
+        setPhotos([]);
       }
       setIsLoading(false);
     }
@@ -185,7 +187,13 @@ export function PhotoGalleryManager({
               </CardTitle>
               <CardDescription className="mt-1">Photos visible on your listing page</CardDescription>
             </div>
-            <Button variant="ghost" size="sm" onClick={handleEditClick} className="shrink-0 self-start">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleEditClick}
+              className="shrink-0 self-start"
+              data-testid="photo-gallery-edit"
+            >
               <Pencil className="mr-2 h-4 w-4" />
               Edit
             </Button>
@@ -268,6 +276,7 @@ export function PhotoGalleryManager({
               {photos.map((photo, index) => (
                 <div
                   key={photo.id}
+                  data-testid="photo-item"
                   draggable
                   onDragStart={() => handleDragStart(index)}
                   onDragOver={(e) => handleDragOver(e, index)}
@@ -285,7 +294,7 @@ export function PhotoGalleryManager({
 
                   {/* Drag Handle */}
                   <div className="absolute left-2 top-2 rounded bg-black/50 p-1 opacity-0 transition-opacity group-hover:opacity-100">
-                    <GripVertical className="h-4 w-4 text-white" />
+                    <GripVertical className="h-4 w-4 text-white" data-testid="drag-handle" />
                   </div>
 
                   {/* Delete Button */}
@@ -294,6 +303,9 @@ export function PhotoGalleryManager({
                       <button
                         className="absolute right-2 top-2 rounded-full bg-black/50 p-1 opacity-0 transition-opacity hover:bg-destructive group-hover:opacity-100"
                         disabled={deletingId === photo.id}
+                        type="button"
+                        aria-label={`Delete gallery photo ${index + 1}`}
+                        data-testid="delete-photo"
                       >
                         {deletingId === photo.id ? (
                           <Loader2 className="h-4 w-4 animate-spin text-white" />

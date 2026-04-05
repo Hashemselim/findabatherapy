@@ -3,7 +3,7 @@ import { Lock, ExternalLink, Eye, EyeOff, AlertCircle, ClipboardList, ArrowRight
 
 import { getListing } from "@/lib/actions/listings";
 import { getLocations } from "@/lib/actions/locations";
-import { getProfile } from "@/lib/supabase/server";
+import { getProfile } from "@/lib/platform/workspace/server";
 import { ListingForm } from "@/components/dashboard/listing-form";
 import { ListingStatusCard } from "@/components/dashboard/listing-status-card";
 import { CompanyContactCard } from "@/components/dashboard/company-contact-card";

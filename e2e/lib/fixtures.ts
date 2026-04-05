@@ -1,5 +1,11 @@
 import { test as baseTest } from "@playwright/test";
-import { getAdminClient, signInViaAPI, type TestUser } from "./auth-helper";
+import {
+  AUTH_PROVIDER,
+  getAdminClient,
+  signInViaAPI,
+  signInViaClerkUI,
+  type TestUser,
+} from "./auth-helper";
 
 /**
  * Extended Playwright fixtures with auto-cleanup test users.
@@ -19,6 +25,16 @@ export const test = baseTest.extend<{
   proUser: TestUser;
 }>({
   freshUser: async ({ browser }, use) => {
+    if (AUTH_PROVIDER === "clerk") {
+      const user = getClerkFixtureUser("fresh");
+      const context = await browser.newContext();
+      const page = await context.newPage();
+      await signInViaClerkUI(page, user.email, user.password);
+      await use({ ...user, _page: page } as TestUser);
+      await context.close();
+      return;
+    }
+
     const user = await createTestUser("fresh", {
       planTier: "free",
       onboarded: false,
@@ -38,6 +54,16 @@ export const test = baseTest.extend<{
   },
 
   onboardedUser: async ({ browser }, use) => {
+    if (AUTH_PROVIDER === "clerk") {
+      const user = getClerkFixtureUser("onboarded");
+      const context = await browser.newContext();
+      const page = await context.newPage();
+      await signInViaClerkUI(page, user.email, user.password);
+      await use({ ...user, _page: page } as TestUser);
+      await context.close();
+      return;
+    }
+
     const user = await createTestUser("onboarded", {
       planTier: "free",
       onboarded: true,
@@ -55,6 +81,16 @@ export const test = baseTest.extend<{
   },
 
   proUser: async ({ browser }, use) => {
+    if (AUTH_PROVIDER === "clerk") {
+      const user = getClerkFixtureUser("pro");
+      const context = await browser.newContext();
+      const page = await context.newPage();
+      await signInViaClerkUI(page, user.email, user.password);
+      await use({ ...user, _page: page } as TestUser);
+      await context.close();
+      return;
+    }
+
     const user = await createTestUser("pro", {
       planTier: "pro",
       onboarded: true,
@@ -129,4 +165,27 @@ async function createTestUser(
   }
 
   return { id: data.user.id, email, password };
+}
+
+function getClerkFixtureUser(prefix: "fresh" | "onboarded" | "pro"): TestUser {
+  const keyPrefix = `E2E_${prefix.toUpperCase()}_USER`;
+  const email =
+    process.env[`${keyPrefix}_EMAIL`] ||
+    process.env.E2E_USER_EMAIL;
+  const password =
+    process.env[`${keyPrefix}_PASSWORD`] ||
+    process.env.E2E_USER_PASSWORD;
+  const id =
+    process.env[`${keyPrefix}_ID`] ||
+    email ||
+    `${prefix}-clerk-user`;
+
+  if (!email || !password) {
+    throw new Error(
+      `[E2E] Clerk fixtures require ${keyPrefix}_EMAIL/${keyPrefix}_PASSWORD ` +
+        "or E2E_USER_EMAIL/E2E_USER_PASSWORD.",
+    );
+  }
+
+  return { id, email, password };
 }

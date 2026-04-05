@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { POSITION_TYPES, EMPLOYMENT_TYPES } from "@/lib/validations/jobs";
 import type { JobSearchResult } from "@/lib/queries/jobs";
 import { getProviderJobPath } from "@/lib/utils/public-paths";
-import { cn } from "@/lib/utils";
 
 function formatSalary(job: JobSearchResult): string | null {
   if (!job.salaryMin) return null;
@@ -91,7 +90,11 @@ export function BrandedJobCard({ job, providerSlug, index, brandColor = "#10B981
   const descriptionPreview = getDescriptionPreview(job.description);
 
   return (
-    <Link href={getProviderJobPath(providerSlug, job.slug)} className="group block">
+    <Link
+      href={getProviderJobPath(providerSlug, job.slug)}
+      className="group block"
+      data-testid="job-card"
+    >
       <Card
         className="border border-border/60 bg-white transition-all duration-300 ease-premium hover:-translate-y-[2px]"
         style={{

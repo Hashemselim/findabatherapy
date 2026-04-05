@@ -32,7 +32,7 @@ import {
 } from "@/components/dashboard/ui";
 import { LockedButton, PreviewBanner } from "@/components/ui/preview-banner";
 import { PreviewOverlay } from "@/components/ui/preview-overlay";
-import { getProfile } from "@/lib/supabase/server";
+import { getProfile } from "@/lib/platform/workspace/server";
 import { getPipelineData } from "@/lib/actions/pipeline";
 import { runTaskAutomation } from "@/lib/actions/task-automation";
 import { getCurrentPlanFeatures, getCurrentPlanTier } from "@/lib/plans/guards";

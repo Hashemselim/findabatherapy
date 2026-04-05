@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { createClient, createAdminClient, getCurrentProfileId } from "@/lib/supabase/server";
+import { isConvexDataEnabled } from "@/lib/platform/config";
 import { verifyTurnstileToken } from "@/lib/turnstile";
 import { createNotification } from "@/lib/actions/notifications";
 import {
@@ -108,6 +108,106 @@ export async function submitApplication(
     return { success: false, error: "Security verification failed. Please try again." };
   }
 
+  if (isConvexDataEnabled()) {
+    try {
+      const { mutateConvexUnauthenticated } = await import("@/lib/platform/convex/server");
+
+      // If there's a resume, upload it first via Convex storage
+      let resume: {
+        storageId: string;
+        filename: string;
+        mimeType: string;
+        byteSize: number;
+      } | undefined;
+
+      if (resumeFile) {
+        if (!isValidResumeType(resumeFile.type)) {
+          return { success: false, error: "Resume must be a PDF, DOC, or DOCX file" };
+        }
+        if (!isValidResumeSize(resumeFile.size)) {
+          return { success: false, error: "Resume must be less than 10MB" };
+        }
+
+        // Generate upload URL and upload via Convex storage
+        const uploadUrl = await mutateConvexUnauthenticated<string>(
+          "jobs:generateResumeUploadUrl",
+          {},
+        );
+
+        const uploadResponse = await fetch(uploadUrl, {
+          method: "POST",
+          headers: { "Content-Type": resumeFile.type },
+          body: resumeFile.arrayBuffer,
+        });
+
+        if (!uploadResponse.ok) {
+          return { success: false, error: "Failed to upload resume. Please try again." };
+        }
+
+        const { storageId } = (await uploadResponse.json()) as { storageId: string };
+        resume = {
+          storageId,
+          filename: resumeFile.name,
+          mimeType: resumeFile.type,
+          byteSize: resumeFile.size,
+        };
+      }
+
+      const result = await mutateConvexUnauthenticated<{
+        applicationId: string;
+        jobTitle: string;
+        jobSlug: string;
+        providerName: string;
+        providerEmail: string;
+        hasResume: boolean;
+      }>("jobs:submitApplication", {
+        jobPostingId,
+        applicantName: parsed.data.applicantName,
+        applicantEmail: parsed.data.applicantEmail.toLowerCase(),
+        applicantPhone: parsed.data.applicantPhone || null,
+        coverLetter: parsed.data.coverLetter || null,
+        linkedinUrl: parsed.data.linkedinUrl || null,
+        source: parsed.data.source || "direct",
+        resume,
+      });
+
+      // Send email notifications (fire and forget)
+      const jobUrl = `https://www.goodaba.com/jobs/post/${result.jobSlug}`;
+
+      sendJobApplicationConfirmation({
+        to: parsed.data.applicantEmail,
+        applicantName: parsed.data.applicantName,
+        jobTitle: result.jobTitle,
+        providerName: result.providerName,
+        jobUrl,
+      }).catch((err) => {
+        console.error("[APPLICATION] Failed to send applicant confirmation email:", err);
+      });
+
+      sendProviderNewApplicationNotification({
+        to: result.providerEmail,
+        providerName: result.providerName,
+        jobTitle: result.jobTitle,
+        applicantName: parsed.data.applicantName,
+        applicantEmail: parsed.data.applicantEmail,
+        applicantPhone: parsed.data.applicantPhone || null,
+        linkedinUrl: parsed.data.linkedinUrl || null,
+        coverLetter: parsed.data.coverLetter || null,
+        hasResume: result.hasResume,
+        applicationId: result.applicationId,
+      }).catch((err) => {
+        console.error("[APPLICATION] Failed to send provider notification email:", err);
+      });
+
+      return { success: true };
+    } catch (error) {
+      console.error("[APPLICATION] Convex submitApplication error:", error);
+      // If resume was uploaded but submission failed, try to clean up
+      return { success: false, error: "Failed to submit application. Please try again." };
+    }
+  }
+
+  const { createAdminClient } = await import("@/lib/supabase/server");
   const supabase = await createAdminClient();
 
   // Verify job posting exists and is published
@@ -259,6 +359,24 @@ export async function getApplications(filter?: {
   status?: ApplicationStatus;
   jobId?: string;
 }): Promise<ActionResult<{ applications: ApplicationSummary[]; newCount: number }>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvex } = await import("@/lib/platform/convex/server");
+      const result = await queryConvex<{
+        applications: ApplicationSummary[];
+        newCount: number;
+      }>("jobs:getWorkspaceApplications", {
+        status: filter?.status ?? undefined,
+        jobId: filter?.jobId ?? undefined,
+      });
+      return { success: true, data: result };
+    } catch (error) {
+      console.error("[APPLICATION] Convex getApplications error:", error);
+      return { success: false, error: "Failed to fetch applications" };
+    }
+  }
+
+  const { createClient, getCurrentProfileId } = await import("@/lib/supabase/server");
   const profileId = await getCurrentProfileId();
   if (!profileId) {
     return { success: false, error: "Not authenticated" };
@@ -345,6 +463,24 @@ export async function getApplications(filter?: {
  * Get a single application by ID
  */
 export async function getApplication(id: string): Promise<ActionResult<ApplicationWithJob>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvex } = await import("@/lib/platform/convex/server");
+      const result = await queryConvex<ApplicationWithJob | null>(
+        "jobs:getWorkspaceApplication",
+        { id },
+      );
+      if (!result) {
+        return { success: false, error: "Application not found" };
+      }
+      return { success: true, data: result };
+    } catch (error) {
+      console.error("[APPLICATION] Convex getApplication error:", error);
+      return { success: false, error: "Application not found" };
+    }
+  }
+
+  const { createClient, getCurrentProfileId } = await import("@/lib/supabase/server");
   const profileId = await getCurrentProfileId();
   if (!profileId) {
     return { success: false, error: "Not authenticated" };
@@ -418,15 +554,32 @@ export async function updateApplicationStatus(
   id: string,
   status: ApplicationStatus
 ): Promise<ActionResult> {
-  const profileId = await getCurrentProfileId();
-  if (!profileId) {
-    return { success: false, error: "Not authenticated" };
-  }
-
   // Validate status
   const parsed = updateApplicationStatusSchema.safeParse({ status });
   if (!parsed.success) {
     return { success: false, error: "Invalid status" };
+  }
+
+  if (isConvexDataEnabled()) {
+    try {
+      const { mutateConvex } = await import("@/lib/platform/convex/server");
+      await mutateConvex("jobs:updateWorkspaceApplicationStatus", {
+        id,
+        status: parsed.data.status,
+      });
+      revalidatePath("/dashboard/applications");
+      revalidatePath(`/dashboard/applications/${id}`);
+      return { success: true };
+    } catch (error) {
+      console.error("[APPLICATION] Convex updateApplicationStatus error:", error);
+      return { success: false, error: "Failed to update application status" };
+    }
+  }
+
+  const { createClient, getCurrentProfileId } = await import("@/lib/supabase/server");
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
+    return { success: false, error: "Not authenticated" };
   }
 
   const supabase = await createClient();
@@ -483,15 +636,33 @@ export async function updateApplicationDetails(
   id: string,
   data: { notes?: string | null; rating?: number | null }
 ): Promise<ActionResult> {
-  const profileId = await getCurrentProfileId();
-  if (!profileId) {
-    return { success: false, error: "Not authenticated" };
-  }
-
   // Validate input
   const parsed = updateApplicationDetailsSchema.safeParse(data);
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0]?.message || "Invalid input" };
+  }
+
+  if (isConvexDataEnabled()) {
+    try {
+      const { mutateConvex } = await import("@/lib/platform/convex/server");
+      await mutateConvex("jobs:updateWorkspaceApplicationDetails", {
+        id,
+        notes: parsed.data.notes !== undefined ? parsed.data.notes : undefined,
+        rating: parsed.data.rating !== undefined ? parsed.data.rating : undefined,
+      });
+      revalidatePath("/dashboard/applications");
+      revalidatePath(`/dashboard/applications/${id}`);
+      return { success: true };
+    } catch (error) {
+      console.error("[APPLICATION] Convex updateApplicationDetails error:", error);
+      return { success: false, error: "Failed to update application" };
+    }
+  }
+
+  const { createClient, getCurrentProfileId } = await import("@/lib/supabase/server");
+  const profileId = await getCurrentProfileId();
+  if (!profileId) {
+    return { success: false, error: "Not authenticated" };
   }
 
   const supabase = await createClient();
@@ -545,6 +716,21 @@ export async function updateApplicationDetails(
 export async function getResumeDownloadUrl(
   applicationId: string
 ): Promise<ActionResult<{ url: string }>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvex } = await import("@/lib/platform/convex/server");
+      const result = await queryConvex<{ url: string }>(
+        "jobs:getWorkspaceApplicationResumeUrl",
+        { applicationId },
+      );
+      return { success: true, data: result };
+    } catch (error) {
+      console.error("[APPLICATION] Convex getResumeDownloadUrl error:", error);
+      return { success: false, error: "Failed to generate resume download link" };
+    }
+  }
+
+  const { createClient, getCurrentProfileId } = await import("@/lib/supabase/server");
   const profileId = await getCurrentProfileId();
   if (!profileId) {
     return { success: false, error: "Not authenticated" };
@@ -593,6 +779,18 @@ export async function getResumeDownloadUrl(
  * Get new application count (for sidebar badge)
  */
 export async function getNewApplicationCount(): Promise<ActionResult<number>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvex } = await import("@/lib/platform/convex/server");
+      const count = await queryConvex<number>("jobs:getNewWorkspaceApplicationCount", {});
+      return { success: true, data: count };
+    } catch (error) {
+      console.error("[APPLICATION] Convex getNewApplicationCount error:", error);
+      return { success: true, data: 0 };
+    }
+  }
+
+  const { createClient, getCurrentProfileId } = await import("@/lib/supabase/server");
   const profileId = await getCurrentProfileId();
   if (!profileId) {
     return { success: true, data: 0 };

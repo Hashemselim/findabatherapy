@@ -1,5 +1,6 @@
-import { mutationGeneric, queryGeneric } from "convex/server";
+import { mutation, query } from "./_generated/server";
 import { ConvexError, v } from "convex/values";
+import type { MutationCtx, QueryCtx } from "./_generated/server";
 
 type Identity = {
   subject: string;
@@ -11,6 +12,7 @@ type Identity = {
 
 type ConvexDoc = Record<string, unknown> & { _id: string };
 type WorkspaceRole = "owner" | "admin" | "member";
+type ConvexCtx = QueryCtx | MutationCtx;
 
 const ROLE_ORDER: Record<WorkspaceRole, number> = {
   member: 1,
@@ -55,7 +57,7 @@ function asId<TableName extends string>(value: unknown) {
   return value as string & { __tableName: TableName };
 }
 
-async function requireIdentity(ctx: { auth: { getUserIdentity(): Promise<Identity | null> } }) {
+async function requireIdentity(ctx: ConvexCtx) {
   const identity = await ctx.auth.getUserIdentity();
   if (!identity) {
     throw new ConvexError("Not authenticated");
@@ -65,7 +67,7 @@ async function requireIdentity(ctx: { auth: { getUserIdentity(): Promise<Identit
 }
 
 async function findUserByClerkUserId(
-  ctx: { db: { query(table: "users"): { withIndex(index: "by_clerk_user_id", cb: (q: { eq(field: "clerkUserId", value: string): unknown }) => unknown): { collect(): Promise<ConvexDoc[]> } } } },
+  ctx: ConvexCtx,
   clerkUserId: string,
 ) {
   const users = await ctx.db
@@ -77,65 +79,44 @@ async function findUserByClerkUserId(
 }
 
 async function findMembershipsByUserId(
-  ctx: { db: { query(table: "workspaceMemberships"): { withIndex(index: "by_user", cb: (q: { eq(field: "userId", value: string): unknown }) => unknown): { collect(): Promise<ConvexDoc[]> } } } },
+  ctx: ConvexCtx,
   userId: string,
 ) {
   return ctx.db
     .query("workspaceMemberships")
-    .withIndex("by_user", (q) => q.eq("userId", userId))
+    .withIndex("by_user", (q) => q.eq("userId", asId<"users">(userId)))
     .collect();
 }
 
 async function findWorkspaceMemberships(
-  ctx: {
-    db: {
-      query(table: "workspaceMemberships"): {
-        withIndex(index: "by_workspace", cb: (q: { eq(field: "workspaceId", value: string): unknown }) => unknown): {
-          collect(): Promise<ConvexDoc[]>;
-        };
-      };
-    };
-  },
+  ctx: ConvexCtx,
   workspaceId: string,
 ) {
   return ctx.db
     .query("workspaceMemberships")
-    .withIndex("by_workspace", (q) => q.eq("workspaceId", workspaceId))
+    .withIndex("by_workspace", (q) =>
+      q.eq("workspaceId", asId<"workspaces">(workspaceId)),
+    )
     .collect();
 }
 
 async function findWorkspaceInvitations(
-  ctx: {
-    db: {
-      query(table: "workspaceInvitations"): {
-        withIndex(index: "by_workspace", cb: (q: { eq(field: "workspaceId", value: string): unknown }) => unknown): {
-          collect(): Promise<ConvexDoc[]>;
-        };
-      };
-    };
-  },
+  ctx: ConvexCtx,
   workspaceId: string,
 ) {
   return ctx.db
     .query("workspaceInvitations")
-    .withIndex("by_workspace", (q) => q.eq("workspaceId", workspaceId))
+    .withIndex("by_workspace", (q) =>
+      q.eq("workspaceId", asId<"workspaces">(workspaceId)),
+    )
     .collect();
 }
 
 async function findCurrentMembership(
-  ctx: {
-    db: {
-      get(id: string): Promise<ConvexDoc | null>;
-      query(table: "workspaceMemberships"): {
-        withIndex(index: "by_user", cb: (q: { eq(field: "userId", value: string): unknown }) => unknown): {
-          collect(): Promise<ConvexDoc[]>;
-        };
-      };
-    };
-  },
+  ctx: ConvexCtx,
   user: ConvexDoc,
 ) {
-  const memberships = (await findMembershipsByUserId(ctx as never, user._id)).filter(
+  const memberships = (await findMembershipsByUserId(ctx, user._id)).filter(
     (membership) => membership.status === "active",
   );
 
@@ -173,20 +154,10 @@ function getEffectiveInvitationStatus(invitation: ConvexDoc) {
 }
 
 async function ensureUserRecord(
-  ctx: {
-    db: {
-      insert(table: "users", value: Record<string, unknown>): Promise<string>;
-      patch(id: string, value: Record<string, unknown>): Promise<void>;
-      query(table: "users"): {
-        withIndex(index: "by_clerk_user_id", cb: (q: { eq(field: "clerkUserId", value: string): unknown }) => unknown): {
-          collect(): Promise<ConvexDoc[]>;
-        };
-      };
-    };
-  },
+  ctx: MutationCtx,
   identity: Identity,
 ) {
-  const existingUser = await findUserByClerkUserId(ctx as never, identity.subject);
+  const existingUser = await findUserByClerkUserId(ctx, identity.subject);
   const displayName =
     [identity.givenName, identity.familyName].filter(Boolean).join(" ") || null;
 
@@ -194,7 +165,7 @@ async function ensureUserRecord(
     await ctx.db.patch(asId<"users">(existingUser._id), {
       primaryEmail: identity.email ?? existingUser.primaryEmail ?? undefined,
       firstName: identity.givenName ?? existingUser.firstName ?? undefined,
-      lastName: identity.familyName ?? existingUser.familyName ?? undefined,
+      lastName: identity.familyName ?? existingUser.lastName ?? undefined,
       displayName: displayName ?? existingUser.displayName ?? undefined,
       imageUrl: identity.pictureUrl ?? existingUser.imageUrl ?? undefined,
       updatedAt: new Date().toISOString(),
@@ -207,7 +178,7 @@ async function ensureUserRecord(
     primaryEmail: identity.email,
     firstName: identity.givenName,
     lastName: identity.familyName,
-    displayName,
+    displayName: displayName ?? undefined,
     imageUrl: identity.pictureUrl,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
@@ -215,30 +186,15 @@ async function ensureUserRecord(
 }
 
 async function getCurrentWorkspaceContext(
-  ctx: {
-    auth: { getUserIdentity(): Promise<Identity | null> };
-    db: {
-      get(id: string): Promise<ConvexDoc | null>;
-      query(table: "users"): {
-        withIndex(index: "by_clerk_user_id", cb: (q: { eq(field: "clerkUserId", value: string): unknown }) => unknown): {
-          collect(): Promise<ConvexDoc[]>;
-        };
-      };
-      query(table: "workspaceMemberships"): {
-        withIndex(index: "by_user", cb: (q: { eq(field: "userId", value: string): unknown }) => unknown): {
-          collect(): Promise<ConvexDoc[]>;
-        };
-      };
-    };
-  },
+  ctx: ConvexCtx,
 ) {
   const identity = await requireIdentity(ctx);
-  const user = await findUserByClerkUserId(ctx as never, identity.subject);
+  const user = await findUserByClerkUserId(ctx, identity.subject);
   if (!user) {
     throw new ConvexError("Not authenticated");
   }
 
-  const membership = await findCurrentMembership(ctx as never, user);
+  const membership = await findCurrentMembership(ctx, user);
   if (!membership || membership.status !== "active") {
     throw new ConvexError("Not authenticated");
   }
@@ -272,20 +228,14 @@ function resolveEffectivePlanTier(workspace: ConvexDoc): "free" | "pro" {
 }
 
 async function getExtraUserSeatCount(
-  ctx: {
-    db: {
-      query(table: "billingRecords"): {
-        withIndex(index: "by_workspace", cb: (q: { eq(field: "workspaceId", value: string): unknown }) => unknown): {
-          collect(): Promise<ConvexDoc[]>;
-        };
-      };
-    };
-  },
+  ctx: ConvexCtx,
   workspaceId: string,
 ) {
   const records = await ctx.db
     .query("billingRecords")
-    .withIndex("by_workspace", (q) => q.eq("workspaceId", workspaceId))
+    .withIndex("by_workspace", (q) =>
+      q.eq("workspaceId", asId<"workspaces">(workspaceId)),
+    )
     .collect();
 
   return records.reduce((sum, record) => {
@@ -309,31 +259,13 @@ async function getExtraUserSeatCount(
 }
 
 async function buildSeatSummary(
-  ctx: {
-    db: {
-      query(table: "workspaceMemberships"): {
-        withIndex(index: "by_workspace", cb: (q: { eq(field: "workspaceId", value: string): unknown }) => unknown): {
-          collect(): Promise<ConvexDoc[]>;
-        };
-      };
-      query(table: "workspaceInvitations"): {
-        withIndex(index: "by_workspace", cb: (q: { eq(field: "workspaceId", value: string): unknown }) => unknown): {
-          collect(): Promise<ConvexDoc[]>;
-        };
-      };
-      query(table: "billingRecords"): {
-        withIndex(index: "by_workspace", cb: (q: { eq(field: "workspaceId", value: string): unknown }) => unknown): {
-          collect(): Promise<ConvexDoc[]>;
-        };
-      };
-    };
-  },
+  ctx: ConvexCtx,
   workspace: ConvexDoc,
 ) {
   const [memberships, invitations, extraSeats] = await Promise.all([
-    findWorkspaceMemberships(ctx as never, workspace._id),
-    findWorkspaceInvitations(ctx as never, workspace._id),
-    getExtraUserSeatCount(ctx as never, workspace._id),
+    findWorkspaceMemberships(ctx, workspace._id),
+    findWorkspaceInvitations(ctx, workspace._id),
+    getExtraUserSeatCount(ctx, workspace._id),
   ]);
 
   const planTier = resolveEffectivePlanTier(workspace);
@@ -354,15 +286,7 @@ async function buildSeatSummary(
 }
 
 async function findUniqueListingSlug(
-  ctx: {
-    db: {
-      query(table: "listings"): {
-        withIndex(index: "by_slug", cb: (q: { eq(field: "slug", value: string): unknown }) => unknown): {
-          collect(): Promise<ConvexDoc[]>;
-        };
-      };
-    };
-  },
+  ctx: ConvexCtx,
   agencyName: string,
   currentWorkspaceId?: string,
 ) {
@@ -431,41 +355,13 @@ function buildWorkspacePayload(workspace: ConvexDoc, membership: ConvexDoc) {
 }
 
 async function getWorkspaceUsersPayload(
-  ctx: {
-    auth: { getUserIdentity(): Promise<Identity | null> };
-    db: {
-      get(id: string): Promise<ConvexDoc | null>;
-      query(table: "users"): {
-        withIndex(index: "by_clerk_user_id", cb: (q: { eq(field: "clerkUserId", value: string): unknown }) => unknown): {
-          collect(): Promise<ConvexDoc[]>;
-        };
-      };
-      query(table: "workspaceMemberships"): {
-        withIndex(index: "by_user", cb: (q: { eq(field: "userId", value: string): unknown }) => unknown): {
-          collect(): Promise<ConvexDoc[]>;
-        };
-        withIndex(index: "by_workspace", cb: (q: { eq(field: "workspaceId", value: string): unknown }) => unknown): {
-          collect(): Promise<ConvexDoc[]>;
-        };
-      };
-      query(table: "workspaceInvitations"): {
-        withIndex(index: "by_workspace", cb: (q: { eq(field: "workspaceId", value: string): unknown }) => unknown): {
-          collect(): Promise<ConvexDoc[]>;
-        };
-      };
-      query(table: "billingRecords"): {
-        withIndex(index: "by_workspace", cb: (q: { eq(field: "workspaceId", value: string): unknown }) => unknown): {
-          collect(): Promise<ConvexDoc[]>;
-        };
-      };
-    };
-  },
+  ctx: ConvexCtx,
 ) {
   const { membership, workspace } = await getCurrentWorkspaceContext(ctx);
   const [memberships, invitations, seatSummary] = await Promise.all([
-    findWorkspaceMemberships(ctx as never, workspace._id),
-    findWorkspaceInvitations(ctx as never, workspace._id),
-    buildSeatSummary(ctx as never, workspace),
+    findWorkspaceMemberships(ctx, workspace._id),
+    findWorkspaceInvitations(ctx, workspace._id),
+    buildSeatSummary(ctx, workspace),
   ]);
 
   const members = memberships
@@ -518,7 +414,7 @@ async function getWorkspaceUsersPayload(
   };
 }
 
-export const getCurrentMembership = queryGeneric({
+export const getCurrentMembership = query({
   args: {},
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -526,12 +422,12 @@ export const getCurrentMembership = queryGeneric({
       return null;
     }
 
-    const user = await findUserByClerkUserId(ctx as never, identity.subject);
+    const user = await findUserByClerkUserId(ctx, identity.subject);
     if (!user) {
       return null;
     }
 
-    const membership = await findCurrentMembership(ctx as never, user);
+    const membership = await findCurrentMembership(ctx, user);
     if (!membership) {
       return null;
     }
@@ -551,7 +447,7 @@ export const getCurrentMembership = queryGeneric({
   },
 });
 
-export const getCurrentWorkspace = queryGeneric({
+export const getCurrentWorkspace = query({
   args: {},
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -559,12 +455,12 @@ export const getCurrentWorkspace = queryGeneric({
       return null;
     }
 
-    const user = await findUserByClerkUserId(ctx as never, identity.subject);
+    const user = await findUserByClerkUserId(ctx, identity.subject);
     if (!user) {
       return null;
     }
 
-    const membership = await findCurrentMembership(ctx as never, user);
+    const membership = await findCurrentMembership(ctx, user);
     if (!membership) {
       return null;
     }
@@ -578,7 +474,7 @@ export const getCurrentWorkspace = queryGeneric({
   },
 });
 
-export const getInvitationDetails = queryGeneric({
+export const getInvitationDetails = query({
   args: {
     tokenHash: v.string(),
   },
@@ -616,20 +512,20 @@ export const getInvitationDetails = queryGeneric({
   },
 });
 
-export const getWorkspaceSeatSummary = queryGeneric({
+export const getWorkspaceSeatSummary = query({
   args: {},
   handler: async (ctx) => {
-    const { workspace } = await getCurrentWorkspaceContext(ctx as never);
-    return buildSeatSummary(ctx as never, workspace);
+    const { workspace } = await getCurrentWorkspaceContext(ctx);
+    return buildSeatSummary(ctx, workspace);
   },
 });
 
-export const getWorkspaceUsersManagement = queryGeneric({
+export const getWorkspaceUsersManagement = query({
   args: {},
-  handler: async (ctx) => getWorkspaceUsersPayload(ctx as never),
+  handler: async (ctx) => getWorkspaceUsersPayload(ctx),
 });
 
-export const createWorkspaceForCurrentUser = mutationGeneric({
+export const createWorkspaceForCurrentUser = mutation({
   args: {
     email: v.string(),
     agencyName: v.string(),
@@ -640,12 +536,12 @@ export const createWorkspaceForCurrentUser = mutationGeneric({
   },
   handler: async (ctx, args) => {
     const identity = await requireIdentity(ctx);
-    const userId = await ensureUserRecord(ctx as never, {
+    const userId = await ensureUserRecord(ctx, {
       ...identity,
       email: args.email,
     });
 
-    const existingMemberships = (await findMembershipsByUserId(ctx as never, userId)).filter(
+    const existingMemberships = (await findMembershipsByUserId(ctx, userId)).filter(
       (membership) => membership.status === "active",
     );
     if (existingMemberships.length > 0) {
@@ -682,7 +578,7 @@ export const createWorkspaceForCurrentUser = mutationGeneric({
 
     const membershipId = await ctx.db.insert("workspaceMemberships", {
       workspaceId,
-      userId,
+      userId: asId<"users">(userId),
       email: normalizedEmail,
       role: "owner",
       status: "active",
@@ -694,11 +590,11 @@ export const createWorkspaceForCurrentUser = mutationGeneric({
     });
 
     await ctx.db.patch(asId<"users">(userId), {
-      activeWorkspaceId: workspaceId,
+      activeWorkspaceId: asId<"workspaces">(workspaceId),
       updatedAt: timestamp,
     });
 
-    const listingSlug = await findUniqueListingSlug(ctx as never, args.agencyName);
+    const listingSlug = await findUniqueListingSlug(ctx, args.agencyName);
     await ctx.db.insert("listings", {
       workspaceId,
       slug: listingSlug,
@@ -736,7 +632,7 @@ export const createWorkspaceForCurrentUser = mutationGeneric({
   },
 });
 
-export const acceptWorkspaceInvitation = mutationGeneric({
+export const acceptWorkspaceInvitation = mutation({
   args: {
     tokenHash: v.string(),
   },
@@ -777,8 +673,8 @@ export const acceptWorkspaceInvitation = mutationGeneric({
       throw new ConvexError("This invitation must be accepted with the invited email address");
     }
 
-    const userId = await ensureUserRecord(ctx as never, identity);
-    const activeMemberships = (await findMembershipsByUserId(ctx as never, userId)).filter(
+    const userId = await ensureUserRecord(ctx, identity);
+    const activeMemberships = (await findMembershipsByUserId(ctx, userId)).filter(
       (membership) => membership.status === "active",
     );
     const conflictingMembership = activeMemberships.find(
@@ -798,17 +694,17 @@ export const acceptWorkspaceInvitation = mutationGeneric({
     if (existingMembership) {
       await ctx.db.patch(asId<"workspaceMemberships">(existingMembership._id), {
         email: normalizedEmail,
-        role: invitation.role,
+        role: invitation.role as WorkspaceRole,
         status: "active",
-        joinedAt: existingMembership.joinedAt ?? timestamp,
+        joinedAt: readString(existingMembership.joinedAt) ?? timestamp,
         updatedAt: timestamp,
       });
     } else {
       membershipId = await ctx.db.insert("workspaceMemberships", {
-        workspaceId: invitation.workspaceId,
-        userId,
+        workspaceId: asId<"workspaces">(invitation.workspaceId),
+        userId: asId<"users">(userId),
         email: normalizedEmail,
-        role: invitation.role,
+        role: invitation.role as WorkspaceRole,
         status: "active",
         joinedAt: timestamp,
         createdAt: timestamp,
@@ -818,13 +714,13 @@ export const acceptWorkspaceInvitation = mutationGeneric({
 
     await ctx.db.patch(asId<"workspaceInvitations">(invitation._id), {
       status: "accepted",
-      acceptedByUserId: userId,
+      acceptedByUserId: asId<"users">(userId),
       acceptedAt: timestamp,
       updatedAt: timestamp,
     });
 
     await ctx.db.patch(asId<"users">(userId), {
-      activeWorkspaceId: invitation.workspaceId,
+      activeWorkspaceId: asId<"workspaces">(invitation.workspaceId),
       updatedAt: timestamp,
     });
 
@@ -841,7 +737,7 @@ export const acceptWorkspaceInvitation = mutationGeneric({
   },
 });
 
-export const inviteWorkspaceUser = mutationGeneric({
+export const inviteWorkspaceUser = mutation({
   args: {
     email: v.string(),
     role: v.union(v.literal("admin"), v.literal("member")),
@@ -849,18 +745,18 @@ export const inviteWorkspaceUser = mutationGeneric({
     expiresAt: v.string(),
   },
   handler: async (ctx, args) => {
-    const { membership, workspace } = await getCurrentWorkspaceContext(ctx as never);
+    const { membership, workspace } = await getCurrentWorkspaceContext(ctx);
     requireMinimumRole(membership, "admin");
 
     const normalizedEmail = normalizeEmail(args.email);
-    const seatSummary = await buildSeatSummary(ctx as never, workspace);
+    const seatSummary = await buildSeatSummary(ctx, workspace);
     if (seatSummary.availableSeats < 1) {
       throw new ConvexError("No available user seats. Add another seat before inviting.");
     }
 
     const [memberships, invitations] = await Promise.all([
-      findWorkspaceMemberships(ctx as never, workspace._id),
-      findWorkspaceInvitations(ctx as never, workspace._id),
+      findWorkspaceMemberships(ctx, workspace._id),
+      findWorkspaceInvitations(ctx, workspace._id),
     ]);
 
     const existingMember = memberships.find(
@@ -902,12 +798,12 @@ export const inviteWorkspaceUser = mutationGeneric({
   },
 });
 
-export const revokeWorkspaceInvitation = mutationGeneric({
+export const revokeWorkspaceInvitation = mutation({
   args: {
     invitationId: v.string(),
   },
   handler: async (ctx, args) => {
-    const { membership, workspace } = await getCurrentWorkspaceContext(ctx as never);
+    const { membership, workspace } = await getCurrentWorkspaceContext(ctx);
     requireMinimumRole(membership, "admin");
 
     const invitation = await ctx.db.get(asId<"workspaceInvitations">(args.invitationId));
@@ -929,14 +825,14 @@ export const revokeWorkspaceInvitation = mutationGeneric({
   },
 });
 
-export const resendWorkspaceInvitation = mutationGeneric({
+export const resendWorkspaceInvitation = mutation({
   args: {
     invitationId: v.string(),
     tokenHash: v.string(),
     expiresAt: v.string(),
   },
   handler: async (ctx, args) => {
-    const { membership, workspace } = await getCurrentWorkspaceContext(ctx as never);
+    const { membership, workspace } = await getCurrentWorkspaceContext(ctx);
     requireMinimumRole(membership, "admin");
 
     const invitation = await ctx.db.get(asId<"workspaceInvitations">(args.invitationId));
@@ -966,12 +862,12 @@ export const resendWorkspaceInvitation = mutationGeneric({
   },
 });
 
-export const removeWorkspaceUser = mutationGeneric({
+export const removeWorkspaceUser = mutation({
   args: {
     membershipId: v.string(),
   },
   handler: async (ctx, args) => {
-    const { membership } = await getCurrentWorkspaceContext(ctx as never);
+    const { membership } = await getCurrentWorkspaceContext(ctx);
 
     const target = await ctx.db.get(asId<"workspaceMemberships">(args.membershipId));
     if (!target || target.workspaceId !== membership.workspaceId) {
@@ -1003,13 +899,13 @@ export const removeWorkspaceUser = mutationGeneric({
   },
 });
 
-export const updateWorkspaceUserRole = mutationGeneric({
+export const updateWorkspaceUserRole = mutation({
   args: {
     membershipId: v.string(),
     role: v.union(v.literal("admin"), v.literal("member")),
   },
   handler: async (ctx, args) => {
-    const { membership } = await getCurrentWorkspaceContext(ctx as never);
+    const { membership } = await getCurrentWorkspaceContext(ctx);
     requireMinimumRole(membership, "owner");
 
     const target = await ctx.db.get(asId<"workspaceMemberships">(args.membershipId));
@@ -1030,7 +926,7 @@ export const updateWorkspaceUserRole = mutationGeneric({
   },
 });
 
-export const setCurrentWorkspacePrimaryIntentIfMissing = mutationGeneric({
+export const setCurrentWorkspacePrimaryIntentIfMissing = mutation({
   args: {
     primaryIntent: v.union(
       v.literal("therapy"),
@@ -1039,7 +935,7 @@ export const setCurrentWorkspacePrimaryIntentIfMissing = mutationGeneric({
     ),
   },
   handler: async (ctx, args) => {
-    const { workspace } = await getCurrentWorkspaceContext(ctx as never);
+    const { workspace } = await getCurrentWorkspaceContext(ctx);
     if (readString(workspace.primaryIntent)) {
       return { success: true, updated: false };
     }
@@ -1050,5 +946,61 @@ export const setCurrentWorkspacePrimaryIntentIfMissing = mutationGeneric({
     });
 
     return { success: true, updated: true };
+  },
+});
+
+export const getOnboardingFlowState = query({
+  args: {},
+  handler: async (ctx) => {
+    try {
+      const { workspace } = await getCurrentWorkspaceContext(ctx);
+
+      // Get listing for this workspace
+      const listings = await ctx.db
+        .query("listings")
+        .withIndex("by_workspace", (q) => q.eq("workspaceId", workspace._id))
+        .collect();
+      const listing = listings[0] ?? null;
+      const listingMetadata = listing ? asRecord(listing.metadata) : {};
+
+      // Check location step
+      let hasLocationStep = false;
+      let hasServicesStep = false;
+      if (listing) {
+        const locations = await ctx.db
+          .query("locations")
+          .withIndex("by_listing", (q) => q.eq("listingId", listing._id))
+          .collect();
+        hasLocationStep = locations.length > 0;
+
+        const attrs = await ctx.db
+          .query("listingAttributes")
+          .withIndex("by_listing", (q) => q.eq("listingId", listing._id))
+          .collect();
+        const servicesAttr = (attrs as Array<Record<string, unknown>>).find(
+          (a) => a.attributeKey === "services_offered",
+        );
+        hasServicesStep =
+          Array.isArray(servicesAttr?.value) &&
+          (servicesAttr.value as unknown[]).length > 0;
+      }
+
+      const hasAgencyStep =
+        Boolean(readString(workspace.agencyName)) &&
+        Boolean(readString(workspace.contactEmail)) &&
+        Boolean(readString(listingMetadata.description)?.trim());
+
+      return {
+        onboardingCompleted: Boolean(readString(workspace.onboardingCompletedAt)),
+        selectedPlan: readString(workspace.planTier),
+        billingInterval: readString(workspace.billingInterval),
+        subscriptionStatus: readString(workspace.subscriptionStatus),
+        hasAgencyStep,
+        hasLocationStep,
+        hasServicesStep,
+      };
+    } catch {
+      return null;
+    }
   },
 });

@@ -6,6 +6,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2, Check, ShieldCheck } from "lucide-react";
 import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
 
+import { SignUp } from "@clerk/nextjs";
+
+import { platformConfig } from "@/lib/platform/config";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -409,6 +412,18 @@ function SignUpSkeleton() {
 }
 
 export default function SignUpPage() {
+  if (platformConfig.authProvider === "clerk") {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <SignUp
+          routing="hash"
+          forceRedirectUrl="/auth/callback"
+          signInUrl="/auth/sign-in"
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-4 py-6 sm:py-10">
       <Suspense fallback={<SignUpSkeleton />}>

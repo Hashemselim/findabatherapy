@@ -1,11 +1,13 @@
-import { mutationGeneric, queryGeneric } from "convex/server";
+import { mutation, query } from "./_generated/server";
 import { ConvexError, v } from "convex/values";
+import type { MutationCtx, QueryCtx } from "./_generated/server";
 
 type Identity = {
   subject: string;
 };
 
 type ConvexDoc = Record<string, unknown> & { _id: string };
+type ConvexCtx = QueryCtx | MutationCtx;
 type EffectiveLimits = {
   maxLocations: number;
   maxJobPostings: number;
@@ -67,9 +69,7 @@ function readStripeSubscriptionId(workspace: ConvexDoc) {
   return readString(asRecord(workspace.settings).stripeSubscriptionId);
 }
 
-async function requireIdentity(ctx: {
-  auth: { getUserIdentity(): Promise<Identity | null> };
-}) {
+async function requireIdentity(ctx: ConvexCtx) {
   const identity = await ctx.auth.getUserIdentity();
   if (!identity) {
     throw new ConvexError("Not authenticated");
@@ -79,16 +79,7 @@ async function requireIdentity(ctx: {
 }
 
 async function findUserByClerkUserId(
-  ctx: {
-    db: {
-      query(table: "users"): {
-        withIndex(
-          index: "by_clerk_user_id",
-          cb: (q: { eq(field: "clerkUserId", value: string): unknown }) => unknown,
-        ): { collect(): Promise<ConvexDoc[]> };
-      };
-    };
-  },
+  ctx: ConvexCtx,
   clerkUserId: string,
 ) {
   const users = await ctx.db
@@ -99,42 +90,9 @@ async function findUserByClerkUserId(
   return users[0] ?? null;
 }
 
-async function requireCurrentWorkspaceContext(ctx: {
-  auth: { getUserIdentity(): Promise<Identity | null> };
-  db: {
-    get(id: string): Promise<ConvexDoc | null>;
-    query(table: "users"): {
-      withIndex(
-        index: "by_clerk_user_id",
-        cb: (q: { eq(field: "clerkUserId", value: string): unknown }) => unknown,
-      ): { collect(): Promise<ConvexDoc[]> };
-    };
-    query(table: "workspaceMemberships"): {
-      withIndex(
-        index: "by_user",
-        cb: (q: { eq(field: "userId", value: string): unknown }) => unknown,
-      ): { collect(): Promise<ConvexDoc[]> };
-      withIndex(
-        index: "by_workspace",
-        cb: (q: { eq(field: "workspaceId", value: string): unknown }) => unknown,
-      ): { collect(): Promise<ConvexDoc[]> };
-    };
-    query(table: "workspaceInvitations"): {
-      withIndex(
-        index: "by_workspace",
-        cb: (q: { eq(field: "workspaceId", value: string): unknown }) => unknown,
-      ): { collect(): Promise<ConvexDoc[]> };
-    };
-    query(table: "billingRecords"): {
-      withIndex(
-        index: "by_workspace",
-        cb: (q: { eq(field: "workspaceId", value: string): unknown }) => unknown,
-      ): { collect(): Promise<ConvexDoc[]> };
-    };
-  };
-}) {
+async function requireCurrentWorkspaceContext(ctx: ConvexCtx) {
   const identity = await requireIdentity(ctx);
-  const user = await findUserByClerkUserId(ctx as never, identity.subject);
+  const user = await findUserByClerkUserId(ctx, identity.subject);
   if (!user) {
     throw new ConvexError("Not authenticated");
   }
@@ -301,21 +259,14 @@ function getSeatUsage(memberships: ConvexDoc[], invitations: ConvexDoc[]) {
 }
 
 async function getCurrentListing(
-  ctx: {
-    db: {
-      query(table: "listings"): {
-        withIndex(
-          index: "by_workspace",
-          cb: (q: { eq(field: "workspaceId", value: string): unknown }) => unknown,
-        ): { collect(): Promise<ConvexDoc[]> };
-      };
-    };
-  },
+  ctx: ConvexCtx,
   workspaceId: string,
 ) {
   const listings = await ctx.db
     .query("listings")
-    .withIndex("by_workspace", (q) => q.eq("workspaceId", workspaceId))
+    .withIndex("by_workspace", (q) =>
+      q.eq("workspaceId", asId<"workspaces">(workspaceId)),
+    )
     .collect();
 
   return listings[0] ?? null;
@@ -356,10 +307,10 @@ function mapFeaturedLocationRecord(record: ConvexDoc, locations: Map<string, Con
   };
 }
 
-export const getPaymentStatus = queryGeneric({
+export const getPaymentStatus = query({
   args: {},
   handler: async (ctx) => {
-    const { workspace } = await requireCurrentWorkspaceContext(ctx as never);
+    const { workspace } = await requireCurrentWorkspaceContext(ctx);
     const selectedPlanTier = getSelectedPlanTier(workspace);
     const hasSubscription = Boolean(readStripeSubscriptionId(workspace));
     const isPaid =
@@ -375,11 +326,11 @@ export const getPaymentStatus = queryGeneric({
   },
 });
 
-export const getCurrentBillingWorkspaceState = queryGeneric({
+export const getCurrentBillingWorkspaceState = query({
   args: {},
   handler: async (ctx) => {
-    const { workspace } = await requireCurrentWorkspaceContext(ctx as never);
-    const listing = await getCurrentListing(ctx as never, workspace._id);
+    const { workspace } = await requireCurrentWorkspaceContext(ctx);
+    const listing = await getCurrentListing(ctx, workspace._id);
 
     return {
       workspaceId: workspace._id,
@@ -393,53 +344,53 @@ export const getCurrentBillingWorkspaceState = queryGeneric({
   },
 });
 
-export const getSelectedPlanTierQuery = queryGeneric({
+export const getSelectedPlanTierQuery = query({
   args: {},
   handler: async (ctx) => {
-    const { workspace } = await requireCurrentWorkspaceContext(ctx as never);
+    const { workspace } = await requireCurrentWorkspaceContext(ctx);
     return { planTier: getSelectedPlanTier(workspace) };
   },
 });
 
-export const getCurrentPlanTierQuery = queryGeneric({
+export const getCurrentPlanTierQuery = query({
   args: {},
   handler: async (ctx) => {
-    const { workspace } = await requireCurrentWorkspaceContext(ctx as never);
+    const { workspace } = await requireCurrentWorkspaceContext(ctx);
     return { planTier: getCurrentPlanTier(workspace) };
   },
 });
 
-export const getActiveAddons = queryGeneric({
+export const getActiveAddons = query({
   args: {},
   handler: async (ctx) => {
-    const { billingRecords } = await requireCurrentWorkspaceContext(ctx as never);
+    const { billingRecords } = await requireCurrentWorkspaceContext(ctx);
     return getActiveAddonsFromRecords(billingRecords);
   },
 });
 
-export const getEffectiveLimits = queryGeneric({
+export const getEffectiveLimits = query({
   args: {},
   handler: async (ctx) => {
-    const { workspace, billingRecords } = await requireCurrentWorkspaceContext(ctx as never);
+    const { workspace, billingRecords } = await requireCurrentWorkspaceContext(ctx);
     return buildEffectiveLimits(workspace, billingRecords);
   },
 });
 
-export const getFeaturedLocations = queryGeneric({
+export const getFeaturedLocations = query({
   args: {},
   handler: async (ctx) => {
-    const { workspace, billingRecords } = await requireCurrentWorkspaceContext(ctx as never);
+    const { workspace, billingRecords } = await requireCurrentWorkspaceContext(ctx);
     const db = ctx.db as {
       query(table: "locations"): {
         withIndex(
           index: "by_workspace",
-          cb: (q: { eq(field: "workspaceId", value: string): unknown }) => unknown,
+          cb: (q: { eq(field: "workspaceId", value: any): any }) => any,
         ): { collect(): Promise<ConvexDoc[]> };
       };
     };
     const locationRows = await db
       .query("locations")
-      .withIndex("by_workspace", (q: { eq(field: "workspaceId", value: string): unknown }) =>
+      .withIndex("by_workspace", (q: { eq(field: "workspaceId", value: any): any }) =>
         q.eq("workspaceId", workspace._id),
       )
       .collect();
@@ -466,12 +417,12 @@ export const getFeaturedLocations = queryGeneric({
   },
 });
 
-export const setStripeCustomerId = mutationGeneric({
+export const setStripeCustomerId = mutation({
   args: {
     stripeCustomerId: v.string(),
   },
   handler: async (ctx, args) => {
-    const { membership, workspace } = await requireCurrentWorkspaceContext(ctx as never);
+    const { membership, workspace } = await requireCurrentWorkspaceContext(ctx);
     if (membership.role !== "owner") {
       throw new ConvexError("Not authenticated");
     }
@@ -489,7 +440,7 @@ export const setStripeCustomerId = mutationGeneric({
   },
 });
 
-export const syncCheckoutSubscription = mutationGeneric({
+export const syncCheckoutSubscription = mutation({
   args: {
     stripeCustomerId: v.string(),
     stripeSubscriptionId: v.string(),
@@ -498,7 +449,7 @@ export const syncCheckoutSubscription = mutationGeneric({
     subscriptionStatus: v.string(),
   },
   handler: async (ctx, args) => {
-    const { membership, workspace } = await requireCurrentWorkspaceContext(ctx as never);
+    const { membership, workspace } = await requireCurrentWorkspaceContext(ctx);
     if (membership.role !== "owner") {
       throw new ConvexError("Not authenticated");
     }
@@ -517,7 +468,7 @@ export const syncCheckoutSubscription = mutationGeneric({
       updatedAt: timestamp,
     });
 
-    const listing = await getCurrentListing(ctx as never, workspace._id);
+    const listing = await getCurrentListing(ctx, workspace._id);
     if (listing) {
       await ctx.db.patch(asId<"listings">(listing._id), {
         status: "published",
@@ -529,7 +480,7 @@ export const syncCheckoutSubscription = mutationGeneric({
       query(table: "billingRecords"): {
         withIndex(
           index: "by_stripe_subscription_id",
-          cb: (q: { eq(field: "stripeSubscriptionId", value: string): unknown }) => unknown,
+          cb: (q: { eq(field: "stripeSubscriptionId", value: any): any }) => any,
         ): { collect(): Promise<ConvexDoc[]> };
       };
     };
@@ -537,7 +488,7 @@ export const syncCheckoutSubscription = mutationGeneric({
       .query("billingRecords")
       .withIndex(
         "by_stripe_subscription_id",
-        (q: { eq(field: "stripeSubscriptionId", value: string): unknown }) =>
+        (q: { eq(field: "stripeSubscriptionId", value: any): any }) =>
           q.eq("stripeSubscriptionId", args.stripeSubscriptionId),
       )
       .collect();
@@ -548,7 +499,7 @@ export const syncCheckoutSubscription = mutationGeneric({
         workspaceId: asId<"workspaces">(workspace._id),
         stripeCustomerId: args.stripeCustomerId,
         stripeSubscriptionId: args.stripeSubscriptionId,
-        recordType: existingRecord.recordType,
+        recordType: readString(existingRecord.recordType) ?? "subscription",
         status: args.subscriptionStatus,
         payload: {
           ...asRecord(existingRecord.payload),
@@ -577,11 +528,11 @@ export const syncCheckoutSubscription = mutationGeneric({
   },
 });
 
-export const resetPlanToFree = mutationGeneric({
+export const resetPlanToFree = mutation({
   args: {},
   handler: async (ctx) => {
     const { membership, workspace, workspaceMemberships, invitations } =
-      await requireCurrentWorkspaceContext(ctx as never);
+      await requireCurrentWorkspaceContext(ctx);
 
     if (membership.role !== "owner") {
       throw new ConvexError("Not authenticated");
@@ -616,17 +567,7 @@ export const resetPlanToFree = mutationGeneric({
 // ============================================================================
 
 async function findWorkspaceByStripeCustomerId(
-  ctx: {
-    db: {
-      query(table: "billingRecords"): {
-        withIndex(
-          index: "by_stripe_customer_id",
-          cb: (q: { eq(field: "stripeCustomerId", value: string): unknown }) => unknown,
-        ): { collect(): Promise<ConvexDoc[]> };
-      };
-      get(id: string): Promise<ConvexDoc | null>;
-    };
-  },
+  ctx: ConvexCtx,
   stripeCustomerId: string,
 ) {
   const records = await ctx.db
@@ -637,25 +578,14 @@ async function findWorkspaceByStripeCustomerId(
     .collect();
 
   if (records.length > 0) {
-    const workspaceId = records[0].workspaceId as string;
-    return ctx.db.get(workspaceId);
+    return ctx.db.get(records[0].workspaceId);
   }
 
   return null;
 }
 
 async function findWorkspaceByStripeSubscriptionId(
-  ctx: {
-    db: {
-      query(table: "billingRecords"): {
-        withIndex(
-          index: "by_stripe_subscription_id",
-          cb: (q: { eq(field: "stripeSubscriptionId", value: string): unknown }) => unknown,
-        ): { collect(): Promise<ConvexDoc[]> };
-      };
-      get(id: string): Promise<ConvexDoc | null>;
-    };
-  },
+  ctx: ConvexCtx,
   stripeSubscriptionId: string,
 ) {
   const records = await ctx.db
@@ -666,8 +596,7 @@ async function findWorkspaceByStripeSubscriptionId(
     .collect();
 
   if (records.length > 0) {
-    const workspaceId = records[0].workspaceId as string;
-    return ctx.db.get(workspaceId);
+    return ctx.db.get(records[0].workspaceId);
   }
 
   return null;
@@ -676,7 +605,7 @@ async function findWorkspaceByStripeSubscriptionId(
 /**
  * Webhook: checkout.session.completed for main plan subscription.
  */
-export const webhookCheckoutCompleted = mutationGeneric({
+export const webhookCheckoutCompleted = mutation({
   args: {
     stripeCustomerId: v.string(),
     stripeSubscriptionId: v.string(),
@@ -686,7 +615,7 @@ export const webhookCheckoutCompleted = mutationGeneric({
     listingId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const workspace = await findWorkspaceByStripeCustomerId(ctx as never, args.stripeCustomerId);
+    const workspace = await findWorkspaceByStripeCustomerId(ctx, args.stripeCustomerId);
     if (!workspace) {
       console.error("webhookCheckoutCompleted: no workspace found for customer", args.stripeCustomerId);
       return { success: false };
@@ -707,7 +636,7 @@ export const webhookCheckoutCompleted = mutationGeneric({
     });
 
     // Publish listing if exists
-    const listing = await getCurrentListing(ctx as never, workspace._id);
+    const listing = await getCurrentListing(ctx, workspace._id);
     if (listing) {
       await ctx.db.patch(asId<"listings">(listing._id), {
         status: "published",
@@ -720,12 +649,12 @@ export const webhookCheckoutCompleted = mutationGeneric({
       query(table: "billingRecords"): {
         withIndex(
           index: "by_stripe_subscription_id",
-          cb: (q: { eq(field: "stripeSubscriptionId", value: string): unknown }) => unknown,
+          cb: (q: { eq(field: "stripeSubscriptionId", value: any): any }) => any,
         ): { collect(): Promise<ConvexDoc[]> };
       };
     })
       .query("billingRecords")
-      .withIndex("by_stripe_subscription_id", (q: { eq(field: "stripeSubscriptionId", value: string): unknown }) =>
+      .withIndex("by_stripe_subscription_id", (q: { eq(field: "stripeSubscriptionId", value: any): any }) =>
         q.eq("stripeSubscriptionId", args.stripeSubscriptionId),
       )
       .collect();
@@ -764,7 +693,7 @@ export const webhookCheckoutCompleted = mutationGeneric({
 /**
  * Webhook: customer.subscription.updated for main plan.
  */
-export const webhookSubscriptionUpdated = mutationGeneric({
+export const webhookSubscriptionUpdated = mutation({
   args: {
     stripeCustomerId: v.string(),
     stripeSubscriptionId: v.string(),
@@ -774,8 +703,8 @@ export const webhookSubscriptionUpdated = mutationGeneric({
   },
   handler: async (ctx, args) => {
     const workspace =
-      (await findWorkspaceByStripeSubscriptionId(ctx as never, args.stripeSubscriptionId)) ??
-      (await findWorkspaceByStripeCustomerId(ctx as never, args.stripeCustomerId));
+      (await findWorkspaceByStripeSubscriptionId(ctx, args.stripeSubscriptionId)) ??
+      (await findWorkspaceByStripeCustomerId(ctx, args.stripeCustomerId));
 
     if (!workspace) {
       console.error("webhookSubscriptionUpdated: no workspace found", args.stripeSubscriptionId);
@@ -798,7 +727,7 @@ export const webhookSubscriptionUpdated = mutationGeneric({
     });
 
     // Update listing
-    const listing = await getCurrentListing(ctx as never, workspace._id);
+    const listing = await getCurrentListing(ctx, workspace._id);
     if (listing) {
       await ctx.db.patch(asId<"listings">(listing._id), {
         updatedAt: timestamp,
@@ -810,12 +739,12 @@ export const webhookSubscriptionUpdated = mutationGeneric({
       query(table: "billingRecords"): {
         withIndex(
           index: "by_stripe_subscription_id",
-          cb: (q: { eq(field: "stripeSubscriptionId", value: string): unknown }) => unknown,
+          cb: (q: { eq(field: "stripeSubscriptionId", value: any): any }) => any,
         ): { collect(): Promise<ConvexDoc[]> };
       };
     })
       .query("billingRecords")
-      .withIndex("by_stripe_subscription_id", (q: { eq(field: "stripeSubscriptionId", value: string): unknown }) =>
+      .withIndex("by_stripe_subscription_id", (q: { eq(field: "stripeSubscriptionId", value: any): any }) =>
         q.eq("stripeSubscriptionId", args.stripeSubscriptionId),
       )
       .collect();
@@ -840,15 +769,15 @@ export const webhookSubscriptionUpdated = mutationGeneric({
 /**
  * Webhook: customer.subscription.deleted for main plan.
  */
-export const webhookSubscriptionDeleted = mutationGeneric({
+export const webhookSubscriptionDeleted = mutation({
   args: {
     stripeCustomerId: v.string(),
     stripeSubscriptionId: v.string(),
   },
   handler: async (ctx, args) => {
     const workspace =
-      (await findWorkspaceByStripeSubscriptionId(ctx as never, args.stripeSubscriptionId)) ??
-      (await findWorkspaceByStripeCustomerId(ctx as never, args.stripeCustomerId));
+      (await findWorkspaceByStripeSubscriptionId(ctx, args.stripeSubscriptionId)) ??
+      (await findWorkspaceByStripeCustomerId(ctx, args.stripeCustomerId));
 
     if (!workspace) {
       console.error("webhookSubscriptionDeleted: no workspace found", args.stripeSubscriptionId);
@@ -870,7 +799,7 @@ export const webhookSubscriptionDeleted = mutationGeneric({
     });
 
     // Update listing
-    const listing = await getCurrentListing(ctx as never, workspace._id);
+    const listing = await getCurrentListing(ctx, workspace._id);
     if (listing) {
       await ctx.db.patch(asId<"listings">(listing._id), {
         updatedAt: timestamp,
@@ -882,12 +811,12 @@ export const webhookSubscriptionDeleted = mutationGeneric({
       query(table: "billingRecords"): {
         withIndex(
           index: "by_stripe_subscription_id",
-          cb: (q: { eq(field: "stripeSubscriptionId", value: string): unknown }) => unknown,
+          cb: (q: { eq(field: "stripeSubscriptionId", value: any): any }) => any,
         ): { collect(): Promise<ConvexDoc[]> };
       };
     })
       .query("billingRecords")
-      .withIndex("by_stripe_subscription_id", (q: { eq(field: "stripeSubscriptionId", value: string): unknown }) =>
+      .withIndex("by_stripe_subscription_id", (q: { eq(field: "stripeSubscriptionId", value: any): any }) =>
         q.eq("stripeSubscriptionId", args.stripeSubscriptionId),
       )
       .collect();
@@ -907,7 +836,7 @@ export const webhookSubscriptionDeleted = mutationGeneric({
 /**
  * Webhook: addon subscription created (inline charge or checkout).
  */
-export const webhookAddonCreated = mutationGeneric({
+export const webhookAddonCreated = mutation({
   args: {
     stripeCustomerId: v.string(),
     stripeSubscriptionId: v.string(),
@@ -916,7 +845,7 @@ export const webhookAddonCreated = mutationGeneric({
     currentPeriodEnd: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const workspace = await findWorkspaceByStripeCustomerId(ctx as never, args.stripeCustomerId);
+    const workspace = await findWorkspaceByStripeCustomerId(ctx, args.stripeCustomerId);
     if (!workspace) {
       console.error("webhookAddonCreated: no workspace found", args.stripeCustomerId);
       return { success: false };
@@ -927,12 +856,12 @@ export const webhookAddonCreated = mutationGeneric({
       query(table: "billingRecords"): {
         withIndex(
           index: "by_stripe_subscription_id",
-          cb: (q: { eq(field: "stripeSubscriptionId", value: string): unknown }) => unknown,
+          cb: (q: { eq(field: "stripeSubscriptionId", value: any): any }) => any,
         ): { collect(): Promise<ConvexDoc[]> };
       };
     })
       .query("billingRecords")
-      .withIndex("by_stripe_subscription_id", (q: { eq(field: "stripeSubscriptionId", value: string): unknown }) =>
+      .withIndex("by_stripe_subscription_id", (q: { eq(field: "stripeSubscriptionId", value: any): any }) =>
         q.eq("stripeSubscriptionId", args.stripeSubscriptionId),
       )
       .collect();
@@ -965,7 +894,7 @@ export const webhookAddonCreated = mutationGeneric({
 /**
  * Webhook: addon subscription updated.
  */
-export const webhookAddonUpdated = mutationGeneric({
+export const webhookAddonUpdated = mutation({
   args: {
     stripeSubscriptionId: v.string(),
     status: v.string(),
@@ -978,12 +907,12 @@ export const webhookAddonUpdated = mutationGeneric({
       query(table: "billingRecords"): {
         withIndex(
           index: "by_stripe_subscription_id",
-          cb: (q: { eq(field: "stripeSubscriptionId", value: string): unknown }) => unknown,
+          cb: (q: { eq(field: "stripeSubscriptionId", value: any): any }) => any,
         ): { collect(): Promise<ConvexDoc[]> };
       };
     })
       .query("billingRecords")
-      .withIndex("by_stripe_subscription_id", (q: { eq(field: "stripeSubscriptionId", value: string): unknown }) =>
+      .withIndex("by_stripe_subscription_id", (q: { eq(field: "stripeSubscriptionId", value: any): any }) =>
         q.eq("stripeSubscriptionId", args.stripeSubscriptionId),
       )
       .collect();
@@ -1012,7 +941,7 @@ export const webhookAddonUpdated = mutationGeneric({
 /**
  * Webhook: addon subscription deleted.
  */
-export const webhookAddonDeleted = mutationGeneric({
+export const webhookAddonDeleted = mutation({
   args: {
     stripeSubscriptionId: v.string(),
   },
@@ -1021,12 +950,12 @@ export const webhookAddonDeleted = mutationGeneric({
       query(table: "billingRecords"): {
         withIndex(
           index: "by_stripe_subscription_id",
-          cb: (q: { eq(field: "stripeSubscriptionId", value: string): unknown }) => unknown,
+          cb: (q: { eq(field: "stripeSubscriptionId", value: any): any }) => any,
         ): { collect(): Promise<ConvexDoc[]> };
       };
     })
       .query("billingRecords")
-      .withIndex("by_stripe_subscription_id", (q: { eq(field: "stripeSubscriptionId", value: string): unknown }) =>
+      .withIndex("by_stripe_subscription_id", (q: { eq(field: "stripeSubscriptionId", value: any): any }) =>
         q.eq("stripeSubscriptionId", args.stripeSubscriptionId),
       )
       .collect();
@@ -1049,7 +978,7 @@ export const webhookAddonDeleted = mutationGeneric({
 /**
  * Webhook: featured location subscription created (checkout or inline charge).
  */
-export const webhookFeaturedLocationCreated = mutationGeneric({
+export const webhookFeaturedLocationCreated = mutation({
   args: {
     stripeCustomerId: v.string(),
     stripeSubscriptionId: v.string(),
@@ -1058,7 +987,7 @@ export const webhookFeaturedLocationCreated = mutationGeneric({
     currentPeriodEnd: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const workspace = await findWorkspaceByStripeCustomerId(ctx as never, args.stripeCustomerId);
+    const workspace = await findWorkspaceByStripeCustomerId(ctx, args.stripeCustomerId);
     if (!workspace) {
       console.error("webhookFeaturedLocationCreated: no workspace found", args.stripeCustomerId);
       return { success: false };
@@ -1069,12 +998,12 @@ export const webhookFeaturedLocationCreated = mutationGeneric({
       query(table: "billingRecords"): {
         withIndex(
           index: "by_stripe_subscription_id",
-          cb: (q: { eq(field: "stripeSubscriptionId", value: string): unknown }) => unknown,
+          cb: (q: { eq(field: "stripeSubscriptionId", value: any): any }) => any,
         ): { collect(): Promise<ConvexDoc[]> };
       };
     })
       .query("billingRecords")
-      .withIndex("by_stripe_subscription_id", (q: { eq(field: "stripeSubscriptionId", value: string): unknown }) =>
+      .withIndex("by_stripe_subscription_id", (q: { eq(field: "stripeSubscriptionId", value: any): any }) =>
         q.eq("stripeSubscriptionId", args.stripeSubscriptionId),
       )
       .collect();
@@ -1105,13 +1034,13 @@ export const webhookFeaturedLocationCreated = mutationGeneric({
       query(table: "locations"): {
         withIndex(
           index: "by_workspace",
-          cb: (q: { eq(field: "workspaceId", value: string): unknown }) => unknown,
+          cb: (q: { eq(field: "workspaceId", value: any): any }) => any,
         ): { collect(): Promise<ConvexDoc[]> };
       };
     };
     const locations = await db
       .query("locations")
-      .withIndex("by_workspace", (q: { eq(field: "workspaceId", value: string): unknown }) =>
+      .withIndex("by_workspace", (q: { eq(field: "workspaceId", value: any): any }) =>
         q.eq("workspaceId", workspace._id),
       )
       .collect();
@@ -1134,7 +1063,7 @@ export const webhookFeaturedLocationCreated = mutationGeneric({
 /**
  * Webhook: featured location subscription updated.
  */
-export const webhookFeaturedLocationUpdated = mutationGeneric({
+export const webhookFeaturedLocationUpdated = mutation({
   args: {
     stripeSubscriptionId: v.string(),
     status: v.string(),
@@ -1147,12 +1076,12 @@ export const webhookFeaturedLocationUpdated = mutationGeneric({
       query(table: "billingRecords"): {
         withIndex(
           index: "by_stripe_subscription_id",
-          cb: (q: { eq(field: "stripeSubscriptionId", value: string): unknown }) => unknown,
+          cb: (q: { eq(field: "stripeSubscriptionId", value: any): any }) => any,
         ): { collect(): Promise<ConvexDoc[]> };
       };
     })
       .query("billingRecords")
-      .withIndex("by_stripe_subscription_id", (q: { eq(field: "stripeSubscriptionId", value: string): unknown }) =>
+      .withIndex("by_stripe_subscription_id", (q: { eq(field: "stripeSubscriptionId", value: any): any }) =>
         q.eq("stripeSubscriptionId", args.stripeSubscriptionId),
       )
       .collect();
@@ -1183,13 +1112,13 @@ export const webhookFeaturedLocationUpdated = mutationGeneric({
           query(table: "locations"): {
             withIndex(
               index: "by_workspace",
-              cb: (q: { eq(field: "workspaceId", value: string): unknown }) => unknown,
+              cb: (q: { eq(field: "workspaceId", value: any): any }) => any,
             ): { collect(): Promise<ConvexDoc[]> };
           };
         };
         const locations = await db
           .query("locations")
-          .withIndex("by_workspace", (q: { eq(field: "workspaceId", value: string): unknown }) =>
+          .withIndex("by_workspace", (q: { eq(field: "workspaceId", value: any): any }) =>
             q.eq("workspaceId", workspace._id),
           )
           .collect();
@@ -1214,7 +1143,7 @@ export const webhookFeaturedLocationUpdated = mutationGeneric({
 /**
  * Webhook: featured location subscription deleted.
  */
-export const webhookFeaturedLocationDeleted = mutationGeneric({
+export const webhookFeaturedLocationDeleted = mutation({
   args: {
     stripeSubscriptionId: v.string(),
     locationId: v.optional(v.string()),
@@ -1224,12 +1153,12 @@ export const webhookFeaturedLocationDeleted = mutationGeneric({
       query(table: "billingRecords"): {
         withIndex(
           index: "by_stripe_subscription_id",
-          cb: (q: { eq(field: "stripeSubscriptionId", value: string): unknown }) => unknown,
+          cb: (q: { eq(field: "stripeSubscriptionId", value: any): any }) => any,
         ): { collect(): Promise<ConvexDoc[]> };
       };
     })
       .query("billingRecords")
-      .withIndex("by_stripe_subscription_id", (q: { eq(field: "stripeSubscriptionId", value: string): unknown }) =>
+      .withIndex("by_stripe_subscription_id", (q: { eq(field: "stripeSubscriptionId", value: any): any }) =>
         q.eq("stripeSubscriptionId", args.stripeSubscriptionId),
       )
       .collect();
@@ -1255,13 +1184,13 @@ export const webhookFeaturedLocationDeleted = mutationGeneric({
           query(table: "locations"): {
             withIndex(
               index: "by_workspace",
-              cb: (q: { eq(field: "workspaceId", value: string): unknown }) => unknown,
+              cb: (q: { eq(field: "workspaceId", value: any): any }) => any,
             ): { collect(): Promise<ConvexDoc[]> };
           };
         };
         const locations = await db
           .query("locations")
-          .withIndex("by_workspace", (q: { eq(field: "workspaceId", value: string): unknown }) =>
+          .withIndex("by_workspace", (q: { eq(field: "workspaceId", value: any): any }) =>
             q.eq("workspaceId", workspace._id),
           )
           .collect();
@@ -1286,7 +1215,7 @@ export const webhookFeaturedLocationDeleted = mutationGeneric({
 /**
  * Webhook: sync verify-and-sync checkout (race condition fix from success page).
  */
-export const webhookSyncCheckout = mutationGeneric({
+export const webhookSyncCheckout = mutation({
   args: {
     stripeCustomerId: v.string(),
     stripeSubscriptionId: v.string(),
@@ -1294,7 +1223,7 @@ export const webhookSyncCheckout = mutationGeneric({
     billingInterval: v.string(),
   },
   handler: async (ctx, args) => {
-    const workspace = await findWorkspaceByStripeCustomerId(ctx as never, args.stripeCustomerId);
+    const workspace = await findWorkspaceByStripeCustomerId(ctx, args.stripeCustomerId);
     if (!workspace) {
       console.error("webhookSyncCheckout: no workspace found", args.stripeCustomerId);
       return { success: false };
@@ -1315,7 +1244,7 @@ export const webhookSyncCheckout = mutationGeneric({
     });
 
     // Publish listing
-    const listing = await getCurrentListing(ctx as never, workspace._id);
+    const listing = await getCurrentListing(ctx, workspace._id);
     if (listing) {
       await ctx.db.patch(asId<"listings">(listing._id), {
         status: "published",

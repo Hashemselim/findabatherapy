@@ -145,7 +145,11 @@ export default function InsurancePage() {
 
         <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {INSURANCES.map((insurance) => (
-            <Link key={insurance.slug} href={`/insurance/${insurance.slug}`}>
+            <Link
+              key={insurance.slug}
+              href={`/insurance/${insurance.slug}`}
+              data-testid="insurance-card"
+            >
               <Card className="h-full transition-all duration-300 hover:-translate-y-1 hover:border-violet-500/30 hover:shadow-lg">
                 <CardHeader className="pb-2">
                   <div className="flex items-center gap-3">

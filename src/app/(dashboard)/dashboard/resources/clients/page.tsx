@@ -7,7 +7,8 @@ import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-heade
 import { SharePageHeaderActions } from "@/components/dashboard/share-page-header-actions";
 import { DashboardEmptyState } from "@/components/dashboard/ui";
 import { ClientResourcesShareCard } from "@/components/dashboard/resources/client-resources-share-card";
-import { getProfile, createClient } from "@/lib/supabase/server";
+import { getListingSlug } from "@/lib/actions/listings";
+import { getProfile } from "@/lib/platform/workspace/server";
 import { getProviderResourcesPath } from "@/lib/utils/public-paths";
 
 export default async function ClientResourcesPage() {
@@ -39,14 +40,7 @@ export default async function ClientResourcesPage() {
     );
   }
 
-  const supabase = await createClient();
-  const listingResult = await supabase
-    .from("listings")
-    .select("slug")
-    .eq("profile_id", profile.id)
-    .single();
-
-  const listingSlug = listingResult.data?.slug ?? null;
+  const listingSlug = await getListingSlug();
   const resourcesPath = listingSlug ? getProviderResourcesPath(listingSlug) : null;
 
   if (!listingSlug) {

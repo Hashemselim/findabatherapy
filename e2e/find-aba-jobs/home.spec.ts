@@ -12,7 +12,9 @@ test.describe("Find ABA Jobs - Home Page", () => {
 
   test("FAJ-001: Jobs home page loads", async ({ page }) => {
     // Hero section
-    await expect(page.getByRole("heading")).toBeVisible();
+    await expect(
+      page.getByRole("heading", { level: 1, name: /find your next aba career/i })
+    ).toBeVisible();
 
     // Jobs-related content
     await expect(
@@ -28,17 +30,11 @@ test.describe("Find ABA Jobs - Home Page", () => {
   });
 
   test("Jobs home has search bar", async ({ page }) => {
-    // Search inputs
-    const keywordInput = page.locator(
-      'input[placeholder*="job" i], input[placeholder*="keyword" i], input[placeholder*="search" i]'
-    ).first();
-    await expect(keywordInput).toBeVisible();
+    await expect(page.getByTestId("jobs-position-trigger")).toBeVisible();
 
-    const locationInput = page.locator(
-      'input[placeholder*="location" i], input[placeholder*="city" i]'
-    ).first();
-    const hasLocation = await locationInput.isVisible().catch(() => false);
-    console.log(`Location input visible: ${hasLocation}`);
+    await expect(
+      page.getByPlaceholder(/city, state or zip/i).first()
+    ).toBeVisible();
   });
 
   test("Jobs home has quick filters", async ({ page }) => {
@@ -92,19 +88,15 @@ test.describe("Find ABA Jobs - Home Page", () => {
   });
 
   test("Search submits correctly", async ({ page }) => {
-    const keywordInput = page.locator(
-      'input[placeholder*="job" i], input[placeholder*="keyword" i], input[placeholder*="search" i]'
-    ).first();
+    await page.getByTestId("jobs-position-trigger").click();
+    await page.getByRole("option", { name: "BCBA" }).click();
 
-    await keywordInput.fill("BCBA");
+    await Promise.all([
+      page.waitForURL(/\/jobs\/search\?position=bcba/i, { timeout: 15000 }),
+      page.getByRole("button", { name: /^search jobs$/i }).click(),
+    ]);
 
-    const searchButton = page.locator(
-      'button[type="submit"], button:has-text("search"), button:has-text("find")'
-    ).first();
-
-    await searchButton.click();
-
-    await expect(page).toHaveURL(/\/jobs\/search|q=BCBA/i);
+    await expect(page).toHaveURL(/\/jobs\/search\?position=bcba/i);
   });
 
   test("Position type cards navigate to filtered search", async ({ page }) => {
@@ -123,7 +115,7 @@ test.describe("Find ABA Jobs - Home Page", () => {
 
     if (await californiaLink.isVisible()) {
       await californiaLink.click();
-      await expect(page).toHaveURL(/\/california\/jobs|state=california/i);
+      await expect(page).toHaveURL(/\/jobs\/california|state=california/i);
     }
   });
 });
@@ -136,9 +128,9 @@ test.describe("Find ABA Jobs - Home Page Responsive", () => {
     await expect(page.getByRole("main")).toBeVisible();
 
     // Search should still be accessible
-    const searchInput = page.locator(
-      'input[placeholder*="job" i], input[placeholder*="search" i]'
-    ).first();
-    await expect(searchInput).toBeVisible();
+    await expect(page.getByTestId("jobs-position-trigger")).toBeVisible();
+    await expect(
+      page.getByPlaceholder(/city, state or zip/i).first()
+    ).toBeVisible();
   });
 });

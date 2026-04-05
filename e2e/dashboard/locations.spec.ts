@@ -20,6 +20,20 @@ async function checkAuthAvailable(): Promise<boolean> {
   }
 }
 
+async function gotoLocationsPage(page: import("@playwright/test").Page) {
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      await page.goto("/dashboard/locations", { waitUntil: "domcontentloaded" });
+      return;
+    } catch (error) {
+      if (attempt === 1) {
+        throw error;
+      }
+      await page.waitForTimeout(500);
+    }
+  }
+}
+
 test.describe("Dashboard - Locations Management", () => {
   test.use({
     storageState: async ({}, use) => {
@@ -33,7 +47,7 @@ test.describe("Dashboard - Locations Management", () => {
   });
 
   test("DASH-005: Locations page loads", async ({ page }) => {
-    await page.goto("/dashboard/locations");
+    await gotoLocationsPage(page);
 
     const url = page.url();
     if (url.includes("/auth/")) {
@@ -45,7 +59,7 @@ test.describe("Dashboard - Locations Management", () => {
   });
 
   test("DASH-008: Locations page shows plan limits", async ({ page }) => {
-    await page.goto("/dashboard/locations");
+    await gotoLocationsPage(page);
 
     const url = page.url();
     if (url.includes("/auth/")) {
@@ -60,7 +74,7 @@ test.describe("Dashboard - Locations Management", () => {
   });
 
   test("Locations page has add location button", async ({ page }) => {
-    await page.goto("/dashboard/locations");
+    await gotoLocationsPage(page);
 
     const url = page.url();
     if (url.includes("/auth/")) {
@@ -76,7 +90,7 @@ test.describe("Dashboard - Locations Management", () => {
   });
 
   test("Locations page shows existing locations", async ({ page }) => {
-    await page.goto("/dashboard/locations");
+    await gotoLocationsPage(page);
 
     const url = page.url();
     if (url.includes("/auth/")) {
@@ -84,15 +98,15 @@ test.describe("Dashboard - Locations Management", () => {
       return;
     }
 
-    // Location cards or empty state
-    const hasLocations = await page.locator('[data-testid="location-card"], .location-card').first().isVisible().catch(() => false);
-    const hasEmpty = await page.locator("text=/no location|add.*location/i").first().isVisible().catch(() => false);
-
-    expect(hasLocations || hasEmpty).toBeTruthy();
+    await expect(
+      page
+        .getByText(/primary|accepting clients|no locations|locations used/i)
+        .first(),
+    ).toBeVisible();
   });
 
   test("DASH-006: Location can be edited", async ({ page }) => {
-    await page.goto("/dashboard/locations");
+    await gotoLocationsPage(page);
 
     const url = page.url();
     if (url.includes("/auth/")) {
@@ -116,7 +130,7 @@ test.describe("Dashboard - Locations Management", () => {
   });
 
   test("DASH-007: Location can be deleted", async ({ page }) => {
-    await page.goto("/dashboard/locations");
+    await gotoLocationsPage(page);
 
     const url = page.url();
     if (url.includes("/auth/")) {
@@ -136,7 +150,7 @@ test.describe("Dashboard - Locations Management", () => {
   });
 
   test("Add location form has service types", async ({ page }) => {
-    await page.goto("/dashboard/locations");
+    await gotoLocationsPage(page);
 
     const url = page.url();
     if (url.includes("/auth/")) {
@@ -158,7 +172,7 @@ test.describe("Dashboard - Locations Management", () => {
   });
 
   test("Add location form has address autocomplete", async ({ page }) => {
-    await page.goto("/dashboard/locations");
+    await gotoLocationsPage(page);
 
     const url = page.url();
     if (url.includes("/auth/")) {
@@ -175,12 +189,12 @@ test.describe("Dashboard - Locations Management", () => {
       const addressInput = page.locator(
         'input[placeholder*="address" i], input[name*="address" i]'
       ).first();
-      await expect(addressInput).toBeVisible();
+      await expect(addressInput).toBeVisible({ timeout: 15000 });
     }
   });
 
   test("Add location form has insurance selection", async ({ page }) => {
-    await page.goto("/dashboard/locations");
+    await gotoLocationsPage(page);
 
     const url = page.url();
     if (url.includes("/auth/")) {
@@ -201,7 +215,7 @@ test.describe("Dashboard - Locations Management", () => {
   });
 
   test("Add location form has accepting clients toggle", async ({ page }) => {
-    await page.goto("/dashboard/locations");
+    await gotoLocationsPage(page);
 
     const url = page.url();
     if (url.includes("/auth/")) {

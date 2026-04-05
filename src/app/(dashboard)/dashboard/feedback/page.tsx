@@ -2,7 +2,7 @@ import { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { FeedbackForm } from "@/components/feedback/feedback-form";
-import { getUser } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/platform/auth/server";
 
 export const metadata: Metadata = {
   title: "Send Feedback | Dashboard | GoodABA",
@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 };
 
 export default async function DashboardFeedbackPage() {
-  const user = await getUser();
+  const user = await getCurrentUser();
 
   if (!user) {
     redirect("/auth/sign-in");

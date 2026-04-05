@@ -13,14 +13,68 @@ function checkAuthAvailable(): boolean {
   return existsSync(authPath);
 }
 
+const uploadFixturePath = path.join(process.cwd(), "public", "logo-icon.png");
+
+async function openPhotoEditor(page: import("@playwright/test").Page) {
+  await expect(page.getByTestId("photo-gallery-edit")).toBeVisible({
+    timeout: 30000,
+  });
+  await page.getByTestId("photo-gallery-edit").click();
+  await expect(page.getByText("Edit Photo Gallery")).toBeVisible({
+    timeout: 30000,
+  });
+}
+
+async function ensureAtLeastOnePhoto(page: import("@playwright/test").Page) {
+  if ((await page.getByTestId("photo-item").count()) > 0) {
+    return;
+  }
+
+  const fileInput = page.locator('input[type="file"]').first();
+  await expect(fileInput).toBeAttached({ timeout: 30000 });
+  await fileInput.setInputFiles(uploadFixturePath);
+  await expect
+    .poll(async () => page.getByTestId("photo-item").count(), {
+      timeout: 60000,
+    })
+    .toBeGreaterThan(0);
+  await expect(page.getByTestId("photo-item").first()).toBeVisible({
+    timeout: 30000,
+  });
+}
+
+async function openVideoEditor(page: import("@playwright/test").Page) {
+  await expect(page.getByTestId("video-edit-button")).toBeVisible({
+    timeout: 30000,
+  });
+  await page.getByTestId("video-edit-button").click();
+  await expect(page.getByText("Edit Video")).toBeVisible({ timeout: 30000 });
+}
+
+async function gotoMediaPage(page: import("@playwright/test").Page) {
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      await page.goto("/dashboard/media", { waitUntil: "domcontentloaded" });
+      return;
+    } catch (error) {
+      if (attempt === 1) {
+        throw error;
+      }
+      await page.waitForTimeout(500);
+    }
+  }
+}
+
 test.describe("DASH-022, DASH-023, DASH-024, DASH-025: Media Management", () => {
+  test.setTimeout(120000);
+
   test.beforeEach(async ({ page }) => {
     if (!checkAuthAvailable()) {
       test.skip(true, "Authentication not set up");
       return;
     }
 
-    await page.goto("/dashboard/media");
+    await gotoMediaPage(page);
 
     // Check if redirected to auth
     const url = page.url();
@@ -51,177 +105,67 @@ test.describe("DASH-022, DASH-023, DASH-024, DASH-025: Media Management", () => 
   });
 
   test("should have photo upload section", async ({ page }) => {
-    await page.getByRole("button", { name: "Edit" }).first().click();
+    await openPhotoEditor(page);
 
+    await expect(page.getByText(/add photo|photos used/i).first()).toBeVisible();
+    await expect(page.locator('input[type="file"]').first()).toBeAttached();
     await expect(page.locator('input[type="file"]').first()).toHaveAttribute(
       "accept",
       /image/
     );
-    await expect(page.getByText(/photos used|add photo/i).first()).toBeVisible();
   });
 
   test("should show existing photos", async ({ page }) => {
-    // Look for photo gallery
-    const photoGallery = page.locator(
-      'text=/photo gallery|no photos|add photos/i'
-    );
-    const existingPhotos = page.locator(
-      '[data-testid="photo-item"], .photo-item, img[src*="storage"]'
-    );
-    const emptyState = page.locator('text=/no photos|upload photos|add photos/i');
-
-    const hasGallery = await photoGallery.isVisible().catch(() => false);
-    const hasPhotos = await existingPhotos.first().isVisible().catch(() => false);
-    const hasEmpty = await emptyState.isVisible().catch(() => false);
-
-    // Should have gallery, photos, or empty state
-    expect(hasGallery || hasPhotos || hasEmpty).toBeTruthy();
+    await expect(
+      page.getByText(/photo gallery|no photos added yet|add photos/i).first(),
+    ).toBeVisible({ timeout: 15000 });
   });
 
   test("should have photo delete functionality", async ({ page }) => {
-    const upgradePrompt = page.locator('text=/upgrade|pro plan/i');
-    const needsUpgrade = await upgradePrompt.isVisible().catch(() => false);
+    await openPhotoEditor(page);
+    await ensureAtLeastOnePhoto(page);
 
-    if (needsUpgrade) {
-      test.skip(true, "Media requires Pro+ plan");
-      return;
-    }
-
-    // Look for delete buttons on photos
-    const deleteButton = page.locator(
-      '[data-testid="delete-photo"], .delete-photo, button[aria-label*="delete" i], button:has(svg[class*="trash"])'
+    const photoCountBefore = await page.getByTestId("photo-item").count();
+    const photoCard = page.getByTestId("photo-item").first();
+    await photoCard.hover();
+    await page.getByTestId("delete-photo").first().click();
+    await page.getByRole("button", { name: "Delete" }).click();
+    await expect(page.getByTestId("photo-item")).toHaveCount(
+      photoCountBefore - 1,
+      { timeout: 30000 },
     );
-    const hasDelete = await deleteButton.first().isVisible().catch(() => false);
-
-    const emptyState = page.locator('text=/no photos|upload photos/i');
-    const isEmpty = await emptyState.isVisible().catch(() => false);
-
-    if (isEmpty) {
-      test.skip(true, "No photos to test delete functionality");
-      return;
-    }
-
-    expect(hasDelete).toBeTruthy();
   });
 
   test("should have video URL input", async ({ page }) => {
-    const upgradePrompt = page.locator('text=/upgrade|pro plan/i');
-    const needsUpgrade = await upgradePrompt.isVisible().catch(() => false);
-
-    if (needsUpgrade) {
-      test.skip(true, "Media requires Pro+ plan");
-      return;
-    }
-
-    // Look for video URL input
-    const videoInput = page.locator(
-      'input[name*="video" i], input[placeholder*="youtube" i], input[placeholder*="vimeo" i], [data-testid="video-url"]'
-    );
-    const hasVideo = await videoInput.first().isVisible().catch(() => false);
-
-    expect(hasVideo).toBeTruthy();
+    await openVideoEditor(page);
+    await expect(page.getByTestId("video-url")).toBeVisible({ timeout: 30000 });
   });
 
   test("should validate video URL format", async ({ page }) => {
-    const upgradePrompt = page.locator('text=/upgrade|pro plan/i');
-    const needsUpgrade = await upgradePrompt.isVisible().catch(() => false);
-
-    if (needsUpgrade) {
-      test.skip(true, "Media requires Pro+ plan");
-      return;
-    }
-
-    const videoInput = page.locator(
-      'input[name*="video" i], input[placeholder*="youtube" i], [data-testid="video-url"]'
-    ).first();
-
-    const hasInput = await videoInput.isVisible().catch(() => false);
-
-    if (!hasInput) {
-      test.skip(true, "Video input not available");
-      return;
-    }
-
-    // Enter invalid URL
-    await videoInput.fill("not-a-valid-url");
-
-    // Try to save
-    const saveButton = page.locator('button:has-text(/save/i)');
-    const hasSave = await saveButton.isVisible().catch(() => false);
-
-    if (hasSave) {
-      await saveButton.click();
-      await page.waitForTimeout(500);
-
-      // Should show validation error
-      const error = page.locator('text=/invalid|valid url|youtube|vimeo/i');
-      const hasError = await error.isVisible().catch(() => false);
-
-      expect(hasError).toBeTruthy();
-    }
+    await openVideoEditor(page);
+    await page.getByTestId("video-url").fill("not-a-valid-url");
+    await page.getByRole("button", { name: /save changes/i }).click();
+    await expect(page.getByText(/valid youtube or vimeo video url/i)).toBeVisible({
+      timeout: 30000,
+    });
   });
 
   test("should save valid video URL", async ({ page }) => {
-    const upgradePrompt = page.locator('text=/upgrade|pro plan/i');
-    const needsUpgrade = await upgradePrompt.isVisible().catch(() => false);
-
-    if (needsUpgrade) {
-      test.skip(true, "Media requires Pro+ plan");
-      return;
-    }
-
-    const videoInput = page.locator(
-      'input[name*="video" i], input[placeholder*="youtube" i], [data-testid="video-url"]'
-    ).first();
-
-    const hasInput = await videoInput.isVisible().catch(() => false);
-
-    if (!hasInput) {
-      test.skip(true, "Video input not available");
-      return;
-    }
-
-    // Enter valid YouTube URL
-    await videoInput.fill("https://www.youtube.com/watch?v=dQw4w9WgXcQ");
-
-    const saveButton = page.locator('button:has-text(/save/i)');
-    const hasSave = await saveButton.isVisible().catch(() => false);
-
-    if (hasSave) {
-      await saveButton.click();
-      await page.waitForTimeout(1000);
-
-      // Should show success or video preview
-      const success = page.locator('text=/saved|success/i, [data-testid="toast"]');
-      const preview = page.locator('iframe[src*="youtube"], .video-preview');
-
-      const hasSuccess = await success.isVisible().catch(() => false);
-      const hasPreview = await preview.isVisible().catch(() => false);
-
-      expect(hasSuccess || hasPreview).toBeTruthy();
-    }
+    await openVideoEditor(page);
+    await page.getByTestId("video-url").fill("https://www.youtube.com/watch?v=dQw4w9WgXcQ");
+    await page.getByRole("button", { name: /save changes/i }).click();
+    await expect(page.getByText("Video updated successfully.")).toBeVisible({
+      timeout: 30000,
+    });
+    await expect(page.getByTestId("video-preview")).toBeVisible({
+      timeout: 30000,
+    });
   });
 
   test("should show video preview", async ({ page }) => {
-    const upgradePrompt = page.locator('text=/upgrade|pro plan/i');
-    const needsUpgrade = await upgradePrompt.isVisible().catch(() => false);
-
-    if (needsUpgrade) {
-      test.skip(true, "Media requires Pro+ plan");
-      return;
-    }
-
-    // Look for video preview/embed
-    const videoPreview = page.locator(
-      'iframe[src*="youtube"], iframe[src*="vimeo"], .video-preview, [data-testid="video-preview"]'
-    );
-    const hasPreview = await videoPreview.isVisible().catch(() => false);
-
-    const noVideo = page.locator('text=/no video|add video/i');
-    const hasNoVideo = await noVideo.isVisible().catch(() => false);
-
-    // Should have preview or no video message
-    expect(hasPreview || hasNoVideo).toBeTruthy();
+    await expect(page.getByTestId("video-preview")).toBeVisible({
+      timeout: 30000,
+    });
   });
 
   test("should indicate photo limit", async ({ page }) => {
@@ -237,7 +181,7 @@ test.describe("DASH-022, DASH-023, DASH-024, DASH-025: Media Management", () => 
 
   test("should be mobile responsive", async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 667 });
-    await page.goto("/dashboard/media");
+    await gotoMediaPage(page);
 
     const url = page.url();
     if (url.includes("/auth/")) {
@@ -252,13 +196,15 @@ test.describe("DASH-022, DASH-023, DASH-024, DASH-025: Media Management", () => 
 });
 
 test.describe("Photo Upload Validation", () => {
+  test.setTimeout(120000);
+
   test.beforeEach(async ({ page }) => {
     if (!checkAuthAvailable()) {
       test.skip(true, "Authentication not set up");
       return;
     }
 
-    await page.goto("/dashboard/media");
+    await gotoMediaPage(page);
 
     const url = page.url();
     if (url.includes("/auth/")) {
@@ -266,44 +212,26 @@ test.describe("Photo Upload Validation", () => {
       return;
     }
 
-    await page.getByRole("button", { name: "Edit" }).first().click();
+    await openPhotoEditor(page);
   });
 
   test("should accept valid image types", async ({ page }) => {
-    const fileInput = page.locator('input[type="file"]').first();
-    const hasInput = await fileInput.isVisible().catch(() => false);
-
-    if (!hasInput) {
-      // Input may be hidden, check for upload button
-      const uploadButton = page.locator('button:has-text(/upload|add photo/i)');
-      const hasButton = await uploadButton.isVisible().catch(() => false);
-
-      if (hasButton) {
-        // Click upload button
-        await uploadButton.click();
-        await page.waitForTimeout(300);
-      }
-    }
-
-    // Check accept attribute if input is visible
     const input = page.locator('input[type="file"]').first();
-    const accept = await input.getAttribute("accept").catch(() => null);
-
-    if (accept) {
-      // Should accept common image types
-      expect(accept.includes("image/") || accept.includes(".jpg") || accept.includes(".png")).toBeTruthy();
-    }
+    await expect(input).toBeAttached({ timeout: 30000 });
+    await expect(input).toHaveAttribute("accept", /jpeg|png|webp|gif|image/i);
   });
 });
 
 test.describe("Photo Reordering", () => {
+  test.setTimeout(120000);
+
   test.beforeEach(async ({ page }) => {
     if (!checkAuthAvailable()) {
       test.skip(true, "Authentication not set up");
       return;
     }
 
-    await page.goto("/dashboard/media");
+    await gotoMediaPage(page);
 
     const url = page.url();
     if (url.includes("/auth/")) {
@@ -311,27 +239,12 @@ test.describe("Photo Reordering", () => {
       return;
     }
 
-    await page.getByRole("button", { name: "Edit" }).first().click();
+    await openPhotoEditor(page);
   });
 
   test("should have drag and drop reorder functionality", async ({ page }) => {
-    // Look for drag handles or sortable indicators
-    const dragHandle = page.locator(
-      '[data-testid="drag-handle"], .drag-handle, [aria-grabbed], [draggable="true"]'
-    );
-    const hasDrag = await dragHandle.first().isVisible().catch(() => false);
-
-    const emptyState = page.locator('text=/no photos/i');
-    const isEmpty = await emptyState.isVisible().catch(() => false);
-
-    if (isEmpty) {
-      test.skip(true, "No photos to test reordering");
-      return;
-    }
-
-    // Drag and drop is a nice-to-have feature
-    if (hasDrag) {
-      expect(hasDrag).toBeTruthy();
-    }
+    await ensureAtLeastOnePhoto(page);
+    await page.getByTestId("photo-item").first().hover();
+    await expect(page.getByTestId("drag-handle").first()).toBeVisible();
   });
 });

@@ -3,7 +3,7 @@ import { cache } from "react";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { CheckCircle, ChevronRight, Mail, MapPin, BadgeCheck, Phone, Globe, Building2, Home, Star, Stethoscope, Shield, Navigation, Images, Users, Sparkles } from "lucide-react";
+import { CheckCircle, ChevronRight, Mail, MapPin, BadgeCheck, Phone, Globe, Building2, Home, Stethoscope, Shield, Navigation, Images, Users, Sparkles } from "lucide-react";
 
 import { ProviderLogo } from "@/components/provider/provider-logo";
 import { ContactForm } from "@/components/provider/contact-form";

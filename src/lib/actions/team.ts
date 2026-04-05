@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { createClient as createSupabaseClient, getCurrentProfileId } from "@/lib/supabase/server";
+import { isConvexDataEnabled } from "@/lib/platform/config";
 import { guardCredentialTracking } from "@/lib/plans/guards";
 import {
   teamMemberSchema,
@@ -86,6 +86,19 @@ export interface TeamTask {
  * List all team members for the current user
  */
 export async function getTeamMembers(): Promise<ActionResult<TeamMember[]>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvex } = await import("@/lib/platform/convex/server");
+      const result = await queryConvex<TeamMember[]>("team:getTeamMembers");
+      return { success: true, data: result };
+    } catch (error) {
+      console.error("[TEAM] Convex getTeamMembers error:", error);
+      return { success: false, error: "Failed to load team members" };
+    }
+  }
+
+  const { createClient: createSupabaseClient, getCurrentProfileId } = await import("@/lib/supabase/server");
+
   const profileId = await getCurrentProfileId();
   if (!profileId) return { success: false, error: "Not authenticated" };
 
@@ -161,6 +174,24 @@ export async function getTeamMember(
     tasks: TeamTask[];
   }>
 > {
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvex } = await import("@/lib/platform/convex/server");
+      const result = await queryConvex<{
+        member: TeamMember;
+        credentials: TeamCredential[];
+        documents: TeamDocument[];
+        tasks: TeamTask[];
+      }>("team:getTeamMember", { memberId });
+      return { success: true, data: result };
+    } catch (error) {
+      console.error("[TEAM] Convex getTeamMember error:", error);
+      return { success: false, error: "Team member not found" };
+    }
+  }
+
+  const { createClient: createSupabaseClient, getCurrentProfileId } = await import("@/lib/supabase/server");
+
   const profileId = await getCurrentProfileId();
   if (!profileId) return { success: false, error: "Not authenticated" };
 
@@ -219,6 +250,24 @@ export async function getTeamMember(
 export async function createTeamMember(
   data: Record<string, unknown>
 ): Promise<ActionResult<{ id: string }>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const parsed = teamMemberSchema.safeParse(data);
+      if (!parsed.success) {
+        return { success: false, error: parsed.error.issues[0]?.message || "Invalid input" };
+      }
+      const { mutateConvex } = await import("@/lib/platform/convex/server");
+      const result = await mutateConvex<{ id: string }>("team:createTeamMember", parsed.data);
+      revalidatePath("/dashboard/team/employees");
+      return { success: true, data: result };
+    } catch (error) {
+      console.error("[TEAM] Convex createTeamMember error:", error);
+      return { success: false, error: "Failed to create team member" };
+    }
+  }
+
+  const { createClient: createSupabaseClient, getCurrentProfileId } = await import("@/lib/supabase/server");
+
   const profileId = await getCurrentProfileId();
   if (!profileId) return { success: false, error: "Not authenticated" };
 
@@ -265,6 +314,25 @@ export async function updateTeamMember(
   memberId: string,
   data: Record<string, unknown>
 ): Promise<ActionResult> {
+  if (isConvexDataEnabled()) {
+    try {
+      const parsed = teamMemberSchema.partial().safeParse(data);
+      if (!parsed.success) {
+        return { success: false, error: parsed.error.issues[0]?.message || "Invalid input" };
+      }
+      const { mutateConvex } = await import("@/lib/platform/convex/server");
+      await mutateConvex("team:updateTeamMember", { memberId, ...parsed.data });
+      revalidatePath("/dashboard/team/employees");
+      revalidatePath(`/dashboard/team/employees/${memberId}`);
+      return { success: true };
+    } catch (error) {
+      console.error("[TEAM] Convex updateTeamMember error:", error);
+      return { success: false, error: "Failed to update team member" };
+    }
+  }
+
+  const { createClient: createSupabaseClient, getCurrentProfileId } = await import("@/lib/supabase/server");
+
   const profileId = await getCurrentProfileId();
   if (!profileId) return { success: false, error: "Not authenticated" };
 
@@ -305,6 +373,20 @@ export async function updateTeamMember(
  * Soft delete a team member
  */
 export async function deleteTeamMember(memberId: string): Promise<ActionResult> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { mutateConvex } = await import("@/lib/platform/convex/server");
+      await mutateConvex("team:deleteTeamMember", { memberId });
+      revalidatePath("/dashboard/team/employees");
+      return { success: true };
+    } catch (error) {
+      console.error("[TEAM] Convex deleteTeamMember error:", error);
+      return { success: false, error: "Failed to delete team member" };
+    }
+  }
+
+  const { createClient: createSupabaseClient, getCurrentProfileId } = await import("@/lib/supabase/server");
+
   const profileId = await getCurrentProfileId();
   if (!profileId) return { success: false, error: "Not authenticated" };
 
@@ -333,6 +415,27 @@ export async function addTeamCredential(
   teamMemberId: string,
   data: Record<string, unknown>
 ): Promise<ActionResult<{ id: string }>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const parsed = teamCredentialSchema.safeParse(data);
+      if (!parsed.success) {
+        return { success: false, error: parsed.error.issues[0]?.message || "Invalid input" };
+      }
+      const { mutateConvex } = await import("@/lib/platform/convex/server");
+      const result = await mutateConvex<{ id: string }>("team:addTeamCredential", {
+        teamMemberId,
+        ...parsed.data,
+      });
+      revalidatePath(`/dashboard/team/employees/${teamMemberId}`);
+      return { success: true, data: result };
+    } catch (error) {
+      console.error("[TEAM] Convex addTeamCredential error:", error);
+      return { success: false, error: "Failed to add credential" };
+    }
+  }
+
+  const { createClient: createSupabaseClient, getCurrentProfileId } = await import("@/lib/supabase/server");
+
   const profileId = await getCurrentProfileId();
   if (!profileId) return { success: false, error: "Not authenticated" };
 
@@ -382,6 +485,24 @@ export async function updateTeamCredential(
   credentialId: string,
   data: Record<string, unknown>
 ): Promise<ActionResult> {
+  if (isConvexDataEnabled()) {
+    try {
+      const parsed = teamCredentialSchema.partial().safeParse(data);
+      if (!parsed.success) {
+        return { success: false, error: parsed.error.issues[0]?.message || "Invalid input" };
+      }
+      const { mutateConvex } = await import("@/lib/platform/convex/server");
+      await mutateConvex("team:updateTeamCredential", { credentialId, ...parsed.data });
+      revalidatePath("/dashboard/team/employees");
+      return { success: true };
+    } catch (error) {
+      console.error("[TEAM] Convex updateTeamCredential error:", error);
+      return { success: false, error: "Failed to update credential" };
+    }
+  }
+
+  const { createClient: createSupabaseClient, getCurrentProfileId } = await import("@/lib/supabase/server");
+
   const profileId = await getCurrentProfileId();
   if (!profileId) return { success: false, error: "Not authenticated" };
 
@@ -413,6 +534,20 @@ export async function updateTeamCredential(
 }
 
 export async function deleteTeamCredential(credentialId: string): Promise<ActionResult> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { mutateConvex } = await import("@/lib/platform/convex/server");
+      await mutateConvex("team:deleteTeamCredential", { credentialId });
+      revalidatePath("/dashboard/team/employees");
+      return { success: true };
+    } catch (error) {
+      console.error("[TEAM] Convex deleteTeamCredential error:", error);
+      return { success: false, error: "Failed to delete credential" };
+    }
+  }
+
+  const { createClient: createSupabaseClient, getCurrentProfileId } = await import("@/lib/supabase/server");
+
   const profileId = await getCurrentProfileId();
   if (!profileId) return { success: false, error: "Not authenticated" };
 
@@ -441,6 +576,27 @@ export async function addTeamDocument(
   teamMemberId: string,
   data: Record<string, unknown>
 ): Promise<ActionResult<{ id: string }>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const parsed = teamDocumentSchema.safeParse(data);
+      if (!parsed.success) {
+        return { success: false, error: parsed.error.issues[0]?.message || "Invalid input" };
+      }
+      const { mutateConvex } = await import("@/lib/platform/convex/server");
+      const result = await mutateConvex<{ id: string }>("team:addTeamDocument", {
+        teamMemberId,
+        ...parsed.data,
+      });
+      revalidatePath(`/dashboard/team/employees/${teamMemberId}`);
+      return { success: true, data: result };
+    } catch (error) {
+      console.error("[TEAM] Convex addTeamDocument error:", error);
+      return { success: false, error: "Failed to add document" };
+    }
+  }
+
+  const { createClient: createSupabaseClient, getCurrentProfileId } = await import("@/lib/supabase/server");
+
   const profileId = await getCurrentProfileId();
   if (!profileId) return { success: false, error: "Not authenticated" };
 
@@ -484,6 +640,20 @@ export async function addTeamDocument(
 }
 
 export async function deleteTeamDocument(documentId: string): Promise<ActionResult> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { mutateConvex } = await import("@/lib/platform/convex/server");
+      await mutateConvex("team:deleteTeamDocument", { documentId });
+      revalidatePath("/dashboard/team/employees");
+      return { success: true };
+    } catch (error) {
+      console.error("[TEAM] Convex deleteTeamDocument error:", error);
+      return { success: false, error: "Failed to delete document" };
+    }
+  }
+
+  const { createClient: createSupabaseClient, getCurrentProfileId } = await import("@/lib/supabase/server");
+
   const profileId = await getCurrentProfileId();
   if (!profileId) return { success: false, error: "Not authenticated" };
 
@@ -528,6 +698,19 @@ export async function deleteTeamDocument(documentId: string): Promise<ActionResu
 export async function getTeamMemberTasks(
   teamMemberId: string
 ): Promise<ActionResult<TeamTask[]>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvex } = await import("@/lib/platform/convex/server");
+      const result = await queryConvex<TeamTask[]>("team:getTeamMemberTasks", { teamMemberId });
+      return { success: true, data: result };
+    } catch (error) {
+      console.error("[TEAM] Convex getTeamMemberTasks error:", error);
+      return { success: false, error: "Failed to load tasks" };
+    }
+  }
+
+  const { createClient: createSupabaseClient, getCurrentProfileId } = await import("@/lib/supabase/server");
+
   const profileId = await getCurrentProfileId();
   if (!profileId) return { success: false, error: "Not authenticated" };
 
@@ -554,6 +737,27 @@ export async function createTeamTask(
   teamMemberId: string,
   data: Record<string, unknown>
 ): Promise<ActionResult<{ id: string }>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const parsed = teamTaskSchema.safeParse(data);
+      if (!parsed.success) {
+        return { success: false, error: parsed.error.issues[0]?.message || "Invalid input" };
+      }
+      const { mutateConvex } = await import("@/lib/platform/convex/server");
+      const result = await mutateConvex<{ id: string }>("team:createTeamTask", {
+        teamMemberId,
+        ...parsed.data,
+      });
+      revalidatePath(`/dashboard/team/employees/${teamMemberId}`);
+      return { success: true, data: result };
+    } catch (error) {
+      console.error("[TEAM] Convex createTeamTask error:", error);
+      return { success: false, error: "Failed to create task" };
+    }
+  }
+
+  const { createClient: createSupabaseClient, getCurrentProfileId } = await import("@/lib/supabase/server");
+
   const profileId = await getCurrentProfileId();
   if (!profileId) return { success: false, error: "Not authenticated" };
 

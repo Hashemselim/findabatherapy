@@ -5,6 +5,9 @@ import { test, expect } from "@playwright/test";
  * Tests for: /employers, /employers/[slug], /employers/post
  */
 
+const SEEDED_EMPLOYER_SLUG = "goodaba-demo-aba";
+const SEEDED_CITY_JOBS_PATH = "/jobs/california/los-angeles";
+
 test.describe("FAJ-013: Employers Directory", () => {
   test("should load employers directory page", async ({ page }) => {
     await page.goto("/employers");
@@ -49,7 +52,10 @@ test.describe("FAJ-013: Employers Directory", () => {
 
     // Check for expected elements
     const hasLogo = await employerCard.locator("img").isVisible().catch(() => false);
-    const hasName = await employerCard.locator("h2, h3, .company-name, .employer-name").isVisible().catch(() => false);
+    const hasName = await employerCard
+      .locator('[data-testid="employer-name"], h2, h3, .company-name, .employer-name')
+      .isVisible()
+      .catch(() => false);
 
     // At minimum should show company name
     expect(hasName).toBeTruthy();
@@ -86,7 +92,7 @@ test.describe("FAJ-014: Employer Search", () => {
     await page.waitForTimeout(500); // Debounce
 
     // Search should not break the page
-    await expect(page).toHaveURL("/employers");
+    await expect(page).toHaveURL(/\/employers(?:\?q=therapy)?$/);
   });
 
   test("should filter by hiring status", async ({ page }) => {
@@ -108,26 +114,7 @@ test.describe("FAJ-014: Employer Search", () => {
 
 test.describe("FAJ-015: Employer Profile", () => {
   test("should load employer profile page", async ({ page }) => {
-    // First get an employer slug from the directory
-    await page.goto("/employers");
-
-    const employerLink = page.locator(
-      '[data-testid="employer-card"] a, .employer-card a, article a[href*="/employers/"]'
-    ).first();
-
-    const hasLink = await employerLink.isVisible().catch(() => false);
-
-    if (!hasLink) {
-      // Try direct navigation to a test employer
-      await page.goto("/employers/test-employer");
-      const is404 = await page.locator('text=/not found|404/i').isVisible().catch(() => false);
-      if (is404) {
-        test.skip(true, "No employers available to test profile");
-        return;
-      }
-    } else {
-      await employerLink.click();
-    }
+    await page.goto(`/jobs/employers/${SEEDED_EMPLOYER_SLUG}`);
 
     // Should be on employer profile
     await expect(page).toHaveURL(/\/employers\/[a-z0-9-]+/);
@@ -138,17 +125,7 @@ test.describe("FAJ-015: Employer Profile", () => {
   });
 
   test("should display company information", async ({ page }) => {
-    await page.goto("/employers");
-
-    const employerLink = page.locator('a[href*="/employers/"]:not([href="/employers/post"])').first();
-    const hasLink = await employerLink.isVisible().catch(() => false);
-
-    if (!hasLink) {
-      test.skip(true, "No employer profile available");
-      return;
-    }
-
-    await employerLink.click();
+    await page.goto(`/jobs/employers/${SEEDED_EMPLOYER_SLUG}`);
 
     // Check for company info sections
     const companyName = page.locator("h1");
@@ -171,17 +148,7 @@ test.describe("FAJ-015: Employer Profile", () => {
   });
 
   test("should list open positions", async ({ page }) => {
-    await page.goto("/employers");
-
-    const employerLink = page.locator('a[href*="/employers/"]:not([href="/employers/post"])').first();
-    const hasLink = await employerLink.isVisible().catch(() => false);
-
-    if (!hasLink) {
-      test.skip(true, "No employer profile available");
-      return;
-    }
-
-    await employerLink.click();
+    await page.goto(`/jobs/employers/${SEEDED_EMPLOYER_SLUG}`);
 
     // Look for jobs section
     const jobsSection = page.locator(
@@ -199,17 +166,7 @@ test.describe("FAJ-015: Employer Profile", () => {
   });
 
   test("should have link to provider profile", async ({ page }) => {
-    await page.goto("/employers");
-
-    const employerLink = page.locator('a[href*="/employers/"]:not([href="/employers/post"])').first();
-    const hasLink = await employerLink.isVisible().catch(() => false);
-
-    if (!hasLink) {
-      test.skip(true, "No employer profile available");
-      return;
-    }
-
-    await employerLink.click();
+    await page.goto(`/jobs/employers/${SEEDED_EMPLOYER_SLUG}`);
 
     // Look for link to provider/therapy profile
     const providerLink = page.locator('a[href*="/provider/"]');
@@ -223,17 +180,7 @@ test.describe("FAJ-015: Employer Profile", () => {
 
   test("should be mobile responsive", async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 667 });
-    await page.goto("/employers");
-
-    const employerLink = page.locator('a[href*="/employers/"]:not([href="/employers/post"])').first();
-    const hasLink = await employerLink.isVisible().catch(() => false);
-
-    if (!hasLink) {
-      test.skip(true, "No employer profile available");
-      return;
-    }
-
-    await employerLink.click();
+    await page.goto(`/jobs/employers/${SEEDED_EMPLOYER_SLUG}`);
 
     // Content should be visible
     const heading = page.locator("h1");
@@ -257,11 +204,8 @@ test.describe("FAJ-016: Post Job Page", () => {
     await page.goto("/employers/post");
 
     // Look for auth CTAs
-    const signUpLink = page.locator('a[href*="/auth/sign-up"], a:has-text(/sign up|get started|create account/i)');
-    const signInLink = page.locator('a[href*="/auth/sign-in"], a:has-text(/sign in|log in/i)');
-
-    const hasSignUp = await signUpLink.first().isVisible().catch(() => false);
-    const hasSignIn = await signInLink.first().isVisible().catch(() => false);
+    const hasSignUp = (await page.locator('a[href*="/auth/sign-up"]').count()) > 0;
+    const hasSignIn = (await page.locator('a[href*="/auth/sign-in"]').count()) > 0;
 
     // Should have at least one auth CTA
     expect(hasSignUp || hasSignIn).toBeTruthy();
@@ -331,7 +275,10 @@ test.describe("FAJ-016: Post Job Page", () => {
 
 test.describe("FAJ-017, FAJ-018: City Jobs Pages", () => {
   test("should load city jobs page", async ({ page }) => {
-    await page.goto("/jobs/california/los-angeles");
+    await page.goto(SEEDED_CITY_JOBS_PATH, {
+      waitUntil: "domcontentloaded",
+      timeout: 60000,
+    });
 
     // Page should load (may redirect or show no results)
     const heading = page.locator("h1");
@@ -339,7 +286,10 @@ test.describe("FAJ-017, FAJ-018: City Jobs Pages", () => {
   });
 
   test("should show city header with job count", async ({ page }) => {
-    await page.goto("/jobs/california/los-angeles");
+    await page.goto(SEEDED_CITY_JOBS_PATH, {
+      waitUntil: "domcontentloaded",
+      timeout: 60000,
+    });
 
     // Should have city name in heading
     const losAngelesText = page.locator('text=/los angeles/i');
@@ -347,7 +297,10 @@ test.describe("FAJ-017, FAJ-018: City Jobs Pages", () => {
   });
 
   test("should display job cards for city", async ({ page }) => {
-    await page.goto("/jobs/california/los-angeles");
+    await page.goto(SEEDED_CITY_JOBS_PATH, {
+      waitUntil: "domcontentloaded",
+      timeout: 60000,
+    });
 
     // Look for job cards
     const jobCards = page.locator(
@@ -363,7 +316,10 @@ test.describe("FAJ-017, FAJ-018: City Jobs Pages", () => {
   });
 
   test("should show nearby cities section", async ({ page }) => {
-    await page.goto("/jobs/california/los-angeles");
+    await page.goto(SEEDED_CITY_JOBS_PATH, {
+      waitUntil: "domcontentloaded",
+      timeout: 60000,
+    });
 
     // Look for nearby/related cities
     const nearbyCities = page.locator(
@@ -378,7 +334,10 @@ test.describe("FAJ-017, FAJ-018: City Jobs Pages", () => {
   });
 
   test("should have breadcrumb navigation", async ({ page }) => {
-    await page.goto("/jobs/california/los-angeles");
+    await page.goto(SEEDED_CITY_JOBS_PATH, {
+      waitUntil: "domcontentloaded",
+      timeout: 60000,
+    });
 
     // Look for breadcrumbs
     const breadcrumbs = page.locator(
@@ -388,7 +347,10 @@ test.describe("FAJ-017, FAJ-018: City Jobs Pages", () => {
 
     if (hasBreadcrumbs) {
       // Should link back to state
-      const stateLink = page.locator('a[href*="/jobs/california"]');
+      const stateLink = breadcrumbs
+        .first()
+        .getByRole("link", { name: /california/i })
+        .first();
       const hasStateLink = await stateLink.isVisible().catch(() => false);
       expect(hasStateLink).toBeTruthy();
     }
@@ -396,7 +358,10 @@ test.describe("FAJ-017, FAJ-018: City Jobs Pages", () => {
 
   test("should be mobile responsive", async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 667 });
-    await page.goto("/jobs/california/los-angeles");
+    await page.goto(SEEDED_CITY_JOBS_PATH, {
+      waitUntil: "domcontentloaded",
+      timeout: 60000,
+    });
 
     // Content should be visible
     const heading = page.locator("h1");

@@ -142,7 +142,7 @@ export function SocialPostsClient({
         ? `${supabaseUrl}/storage/v1/object/public/social-posts/${profileId}/${hash}/${templateId}.png`
         : `${supabaseUrl}/storage/v1/object/public/social-posts/${profileId}/${templateId}.png`;
     },
-    [profileId, cacheBuster, brandHash]
+    [brandHash, cacheBuster, previewAgencyName, previewMode, profileId, templates]
   );
 
   // Trigger generation only if assets truly don't exist.
@@ -218,7 +218,7 @@ export function SocialPostsClient({
 
     checkAndGenerate();
     return () => { cancelled = true; };
-  }, [assetsReady, alreadyGenerating, brandHash, buildImageUrl, previewMode, templates]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [assetsReady, alreadyGenerating, brandHash, buildImageUrl, previewMode, templates]);
 
   const filteredTemplates =
     filter === "all"

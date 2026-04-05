@@ -6,7 +6,6 @@ import { isDevOnboardingPreviewEnabled } from "@/lib/onboarding-preview";
 import { createClient, getCurrentProfileId, getUser } from "@/lib/supabase/server";
 import { toUserFacingSupabaseError } from "@/lib/supabase/user-facing-errors";
 import { isConvexDataEnabled } from "@/lib/platform/config";
-import { queryConvex, mutateConvex } from "@/lib/platform/convex/server";
 import { createWorkspaceForUser } from "@/lib/workspace/memberships";
 import type {
   CompanyBasics,
@@ -27,6 +26,22 @@ function unauthenticatedResult<T = void>(data?: T): ActionResult<T> {
     return data === undefined ? { success: true } : { success: true, data };
   }
   return { success: false, error: "Not authenticated" };
+}
+
+async function queryConvex<T>(
+  functionName: string,
+  args: Record<string, unknown> = {},
+): Promise<T> {
+  const { queryConvex: executeQuery } = await import("@/lib/platform/convex/server");
+  return executeQuery<T>(functionName as never, args);
+}
+
+async function mutateConvex<T>(
+  functionName: string,
+  args: Record<string, unknown> = {},
+): Promise<T> {
+  const { mutateConvex: executeMutation } = await import("@/lib/platform/convex/server");
+  return executeMutation<T>(functionName as never, args);
 }
 
 function normalizeOnboardingIntent(value: unknown): OnboardingIntent {

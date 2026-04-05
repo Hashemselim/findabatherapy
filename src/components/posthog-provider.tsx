@@ -13,7 +13,7 @@ if (typeof window !== "undefined" && process.env.NEXT_PUBLIC_POSTHOG_KEY) {
     person_profiles: "identified_only",
     capture_pageview: false, // We'll capture manually for SPA navigation
     capture_pageleave: true,
-    loaded: (ph) => {
+    loaded: () => {
       if (process.env.NODE_ENV === "development") {
         // Uncomment to debug: ph.debug();
       }

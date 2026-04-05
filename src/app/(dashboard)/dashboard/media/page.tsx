@@ -7,7 +7,7 @@ import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-heade
 import { PhotoGalleryManager } from "@/components/dashboard/photo-gallery-manager";
 import { VideoEmbedForm } from "@/components/dashboard/video-embed-form";
 import { LockedButton } from "@/components/ui/preview-banner";
-import { getProfile } from "@/lib/supabase/server";
+import { getProfile } from "@/lib/platform/workspace/server";
 
 // PRD 4.5.3: Media section
 // Free: photos, Pro: photos + video

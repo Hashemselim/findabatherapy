@@ -6,10 +6,9 @@ import { Button } from "@/components/ui/button";
 import { BrandedLogo } from "@/components/branded/branded-logo";
 import { JsonLd } from "@/components/seo/json-ld";
 import { CareersJobFilter } from "@/components/jobs/careers-job-filter";
+import { getListingBySlug } from "@/lib/actions/listings";
 import { getJobsByProvider } from "@/lib/queries/jobs";
-import { createAdminClient } from "@/lib/supabase/server";
 import type { PlanTier } from "@/lib/plans/features";
-import { isPublicProfileVisible } from "@/lib/public-visibility";
 import { getContrastingTextColor } from "@/lib/utils/brand-color";
 import { getProviderCareersPath } from "@/lib/utils/public-paths";
 
@@ -38,83 +37,43 @@ interface ProviderProfile {
 }
 
 async function getProviderBySlug(slug: string): Promise<ProviderProfile | null> {
-  const supabase = await createAdminClient();
-
-  // First get the listing by slug to find the profile
-  const { data: listing, error: listingError } = await supabase
-    .from("listings")
-    .select(`
-      profile_id,
-      slug,
-      logo_url,
-      headline,
-      description
-    `)
-    .eq("slug", slug)
-    .eq("status", "published")
-    .single();
-
-  if (listingError || !listing) {
+  const listingResult = await getListingBySlug(slug);
+  if (!listingResult.success || !listingResult.data) {
     return null;
   }
 
-  // Get the profile
-  const { data: profile, error: profileError } = await supabase
-    .from("profiles")
-    .select(`
-      id,
-      agency_name,
-      contact_email,
-      website,
-      plan_tier,
-      subscription_status,
-      intake_form_settings,
-      is_seeded
-    `)
-    .eq("id", listing.profile_id)
-    .single();
-
-  if (profileError || !profile) {
-    return null;
-  }
-
-  if (!isPublicProfileVisible(profile)) {
-    return null;
-  }
-
-  // Get primary location
-  const { data: locations } = await supabase
-    .from("locations")
-    .select("city, state")
-    .eq("profile_id", profile.id)
-    .eq("is_primary", true)
-    .limit(1);
-
-  const primaryLocation = locations && locations.length > 0 ? locations[0] : null;
+  const listing = listingResult.data;
+  const primaryLocation = listing.primaryLocation
+    ? {
+        city: listing.primaryLocation.city,
+        state: listing.primaryLocation.state,
+      }
+    : null;
 
   // Determine effective plan tier
   const isActiveSubscription =
-    profile.subscription_status === "active" ||
-    profile.subscription_status === "trialing";
-  const effectiveTier = (isActiveSubscription ? profile.plan_tier : "free") as PlanTier;
-  const intakeFormSettings = (profile.intake_form_settings as
-    | { background_color?: string; show_powered_by?: boolean }
-    | null) || null;
+    listing.profile.subscriptionStatus === "active" ||
+    listing.profile.subscriptionStatus === "trialing";
+  const effectiveTier = (
+    isActiveSubscription ? listing.profile.planTier : "free"
+  ) as PlanTier;
 
   return {
-    id: profile.id,
+    id: listing.id,
     slug: listing.slug,
-    agencyName: profile.agency_name,
-    logoUrl: listing.logo_url || null,
-    headline: listing.headline || null,
-    description: listing.description || null,
-    website: profile.website,
+    agencyName: listing.profile.agencyName,
+    logoUrl: listing.logoUrl || null,
+    headline: listing.headline,
+    description: listing.description,
+    website: listing.profile.website,
     planTier: effectiveTier,
     isVerified: effectiveTier !== "free",
     primaryLocation,
     intakeFormSettings: {
-      background_color: intakeFormSettings?.background_color || "#0866FF",
-      show_powered_by: intakeFormSettings?.show_powered_by ?? true,
+      background_color:
+        listing.profile.intakeFormSettings.background_color || "#0866FF",
+      show_powered_by:
+        listing.profile.intakeFormSettings.show_powered_by ?? true,
     },
   };
 }

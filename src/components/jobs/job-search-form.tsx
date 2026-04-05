@@ -117,6 +117,7 @@ export function JobSearchForm({
                 <button
                   type="button"
                   className="mt-2 flex h-12 w-full items-center gap-2 rounded-2xl border border-border bg-white px-3 text-left text-sm transition-all duration-300 ease-premium hover:border-emerald-500/40 focus:border-emerald-500/50 focus:outline-hidden"
+                  data-testid="jobs-position-trigger"
                 >
                   <Briefcase className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
                   <div className="min-w-0 flex-1 overflow-hidden">

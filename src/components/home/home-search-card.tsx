@@ -126,7 +126,10 @@ export function HomeSearchCard({
   };
 
   return (
-    <div className="relative z-10 w-full overflow-visible rounded-3xl border border-border bg-white p-4 shadow-lg lg:p-6">
+    <div
+      className="relative z-10 w-full overflow-visible rounded-3xl border border-border bg-white p-4 shadow-lg lg:p-6"
+      data-testid="search-card"
+    >
       {heading ? <h2 className="mb-4 text-3xl font-semibold text-foreground">{heading}</h2> : null}
       <div className="grid gap-4 md:grid-cols-[1.7fr_1.7fr_1.7fr_auto] md:items-end">
         <div className="relative text-sm font-medium text-muted-foreground">

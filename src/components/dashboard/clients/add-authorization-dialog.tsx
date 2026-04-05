@@ -38,7 +38,6 @@ import {
   AUTH_PAYOR_TYPE_OPTIONS,
   AUTH_STATUS_OPTIONS,
   SERVICE_BILLING_MAP,
-  UNITS_PER_HOUR,
   calculateAuthPeriod,
   calculateServiceUnits,
   type AuthPayorType,

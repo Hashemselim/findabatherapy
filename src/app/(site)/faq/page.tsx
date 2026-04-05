@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { HelpCircle, Search, ArrowRight, BookOpen } from "lucide-react";
-import type { ComponentType, SVGProps } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

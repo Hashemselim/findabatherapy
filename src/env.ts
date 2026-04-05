@@ -22,17 +22,30 @@ const productionSafeUrl = z
     }
   );
 
+/**
+ * When the runtime is Convex + Clerk, Supabase vars are not required.
+ * We detect this from env vars since platform/config.ts may not be
+ * importable here (server-only guard + import ordering).
+ */
+const isConvexRuntime = process.env.NEXT_PUBLIC_DATA_PROVIDER === "convex";
+
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   // In development, default to localhost. In production, this MUST be set explicitly
   // and CANNOT be localhost (enforced by productionSafeUrl validator)
   NEXT_PUBLIC_SITE_URL: productionSafeUrl.default("http://localhost:3000"),
-  NEXT_PUBLIC_SUPABASE_URL: z.string().url(),
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1),
+  // Supabase — required only in Supabase runtime mode
+  NEXT_PUBLIC_SUPABASE_URL: isConvexRuntime
+    ? z.string().url().optional().default("https://placeholder.supabase.co")
+    : z.string().url(),
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: isConvexRuntime
+    ? z.string().optional().default("placeholder")
+    : z.string().min(1),
+  SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
+  // Stripe — always required (Stripe is used in both modes)
   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: z.string().min(1),
   STRIPE_SECRET_KEY: z.string().min(1),
   STRIPE_WEBHOOK_SECRET: z.string().min(1),
-  SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
   // Cloudflare Turnstile for bot protection
   TURNSTILE_SECRET_KEY: z.string().min(1),
   // Google Maps API for geocoding and places autocomplete

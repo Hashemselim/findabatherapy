@@ -4,6 +4,7 @@ import {
   getCurrentMembership as getSupabaseCurrentMembership,
   getCurrentWorkspace as getSupabaseCurrentWorkspace,
   requireProfileRole,
+  type WorkspaceProfile as SupabaseWorkspaceProfile,
 } from "@/lib/supabase/server";
 import { queryConvex } from "@/lib/platform/convex/server";
 import { isConvexDataEnabled } from "@/lib/platform/config";
@@ -12,6 +13,8 @@ import type {
   PlatformMembership,
   WorkspaceRole,
 } from "@/lib/platform/contracts";
+
+export type { SupabaseWorkspaceProfile as WorkspaceProfile };
 
 function mapMembership(
   membership: Awaited<ReturnType<typeof getSupabaseCurrentMembership>>,
@@ -170,4 +173,46 @@ export async function getCurrentWorkspace(): Promise<PlatformCurrentWorkspace | 
       stripeSubscriptionId: workspace.profile.stripe_subscription_id ?? null,
     },
   };
+}
+
+/**
+ * Platform-abstracted equivalent of `getProfile()` from `@/lib/supabase/server`.
+ * Returns the workspace profile in the same shape that dashboard pages expect.
+ */
+export async function getProfile(): Promise<SupabaseWorkspaceProfile | null> {
+  if (isConvexDataEnabled()) {
+    const workspace = await getCurrentWorkspace();
+    if (!workspace) {
+      return null;
+    }
+
+    return {
+      id: workspace.workspace.id,
+      agency_name: workspace.workspace.agencyName,
+      contact_email: workspace.workspace.contactEmail,
+      plan_tier: workspace.workspace.planTier,
+      subscription_status: workspace.workspace.subscriptionStatus,
+      billing_interval: workspace.workspace.billingInterval,
+      onboarding_completed_at: workspace.workspace.onboardingCompletedAt,
+      primary_intent: workspace.workspace.primaryIntent,
+      stripe_customer_id: workspace.workspace.stripeCustomerId,
+      stripe_subscription_id: workspace.workspace.stripeSubscriptionId,
+    };
+  }
+
+  const { getProfile: getSupabaseProfile } = await import("@/lib/supabase/server");
+  return getSupabaseProfile();
+}
+
+/**
+ * Platform-abstracted equivalent of `getCurrentProfileId()` from `@/lib/supabase/server`.
+ */
+export async function getCurrentProfileId(): Promise<string | null> {
+  if (isConvexDataEnabled()) {
+    const workspace = await getCurrentWorkspace();
+    return workspace?.workspace.id ?? null;
+  }
+
+  const { getCurrentProfileId: getSupabaseProfileId } = await import("@/lib/supabase/server");
+  return getSupabaseProfileId();
 }

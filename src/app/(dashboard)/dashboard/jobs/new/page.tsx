@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
 import { DashboardCallout } from "@/components/dashboard/ui";
 import { JobForm } from "@/components/jobs/job-form";
-import { getProfile } from "@/lib/supabase/server";
+import { getProfile } from "@/lib/platform/workspace/server";
 import { getJobCountAndLimit } from "@/lib/actions/jobs";
 import { getLocations } from "@/lib/actions/locations";
 

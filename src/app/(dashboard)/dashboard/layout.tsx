@@ -6,7 +6,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { type CompanyProfile } from "@/components/dashboard/dashboard-sidebar";
 import { getListing } from "@/lib/actions/listings";
 import { createGoodABALayoutMetadata } from "@/lib/seo/goodaba-metadata";
-import { getProfile } from "@/lib/supabase/server";
+import { getProfile } from "@/lib/platform/workspace/server";
 
 export const metadata: Metadata = createGoodABALayoutMetadata({
   defaultTitle: "Dashboard | GoodABA",

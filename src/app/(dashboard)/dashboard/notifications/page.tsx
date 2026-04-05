@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-import { getUser } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/platform/auth/server";
 import { getNotifications, getUnreadCountsByType } from "@/lib/actions/notifications";
 import { NotificationList } from "@/components/dashboard/notifications/notification-list";
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
@@ -13,7 +13,7 @@ export const metadata = {
 };
 
 export default async function NotificationsPage() {
-  const user = await getUser();
+  const user = await getCurrentUser();
   if (!user) {
     redirect("/auth/sign-in");
   }

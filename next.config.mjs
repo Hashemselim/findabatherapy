@@ -3,6 +3,35 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+const clerkIssuerDomain = process.env.CLERK_JWT_ISSUER_DOMAIN?.replace(
+  /^https?:\/\//,
+  "",
+);
+const clerkOrigin = clerkIssuerDomain ? `https://${clerkIssuerDomain}` : null;
+const clerkScriptSources = [
+  "https://*.clerk.accounts.dev",
+  "https://*.clerk.dev",
+  clerkOrigin,
+].filter(Boolean);
+const clerkConnectSources = [
+  "https://*.clerk.accounts.dev",
+  "https://*.clerk.dev",
+  "https://api.clerk.com",
+  clerkOrigin,
+].filter(Boolean);
+const clerkImageSources = [
+  "https://img.clerk.com",
+  "https://*.clerk.accounts.dev",
+  "https://*.clerk.dev",
+  clerkOrigin,
+].filter(Boolean);
+const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
+const convexHost = convexUrl
+  ? new URL(convexUrl).hostname
+  : "*.convex.cloud";
+const convexHttpOrigin = `https://${convexHost}`;
+const convexWsOrigin = `wss://${convexHost}`;
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Enable React strict mode for better development experience
@@ -36,6 +65,17 @@ const nextConfig = {
     ];
   },
 
+  async redirects() {
+    return [
+      {
+        source:
+          "/:position(bcba|bcaba|rbt|bt|clinical-director|regional-director|executive-director|admin)-jobs",
+        destination: "/jobs/role/:position",
+        permanent: true,
+      },
+    ];
+  },
+
   // Image optimization
   images: {
     remotePatterns: [
@@ -50,6 +90,11 @@ const nextConfig = {
       {
         protocol: "https",
         hostname: "placehold.co",
+      },
+      {
+        protocol: "https",
+        hostname: convexHost,
+        pathname: "/api/storage/**",
       },
     ],
     // Enable modern image formats for better performance
@@ -101,11 +146,41 @@ const nextConfig = {
             key: "Content-Security-Policy",
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://challenges.cloudflare.com https://www.googletagmanager.com https://maps.googleapis.com",
+              [
+                "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+                "https://challenges.cloudflare.com",
+                "https://www.googletagmanager.com",
+                "https://maps.googleapis.com",
+                ...clerkScriptSources,
+              ].join(" "),
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "font-src 'self' https://fonts.gstatic.com",
-              "img-src 'self' data: blob: https://*.supabase.co https://images.unsplash.com https://placehold.co https://maps.googleapis.com https://maps.gstatic.com https://www.googletagmanager.com",
-              "connect-src 'self' https://*.supabase.co https://api.stripe.com https://maps.googleapis.com https://places.googleapis.com https://www.google-analytics.com https://challenges.cloudflare.com https://us.i.posthog.com https://us-assets.i.posthog.com",
+              [
+                "img-src 'self' data: blob:",
+                "https://*.supabase.co",
+                "https://images.unsplash.com",
+                "https://placehold.co",
+                convexHttpOrigin,
+                "https://maps.googleapis.com",
+                "https://maps.gstatic.com",
+                "https://www.googletagmanager.com",
+                ...clerkImageSources,
+              ].join(" "),
+              [
+                "connect-src 'self'",
+                "https://*.supabase.co",
+                convexHttpOrigin,
+                convexWsOrigin,
+                "https://api.stripe.com",
+                "https://maps.googleapis.com",
+                "https://places.googleapis.com",
+                "https://www.google-analytics.com",
+                "https://challenges.cloudflare.com",
+                "https://us.i.posthog.com",
+                "https://us-assets.i.posthog.com",
+                ...clerkConnectSources,
+              ].join(" "),
+              "worker-src 'self' blob:",
               "frame-src 'self' https://challenges.cloudflare.com https://js.stripe.com https://www.youtube.com https://player.vimeo.com",
               "object-src 'none'",
               "base-uri 'self'",

@@ -1,0 +1,317 @@
+{
+  "integrationBranch": "codex/clerk-convex-cutover",
+  "baseline": {
+    "inventoryDoc": "/Users/hashemselim/Code/findabatherapy/docs/migrations/2026-03-29-supabase-clerk-convex-inventory.md",
+    "determinationDoc": "/Users/hashemselim/Code/findabatherapy/docs/migrations/2026-03-31-supabase-cutover-determination.md",
+    "runtimeFilesWithSupabaseReferences": 117
+  },
+  "launchOrder": [
+    "auth-workspace",
+    "provider-core",
+    "jobs",
+    "billing-stripe",
+    "search-public",
+    "crm-intake",
+    "agreements",
+    "admin-analytics-referrals",
+    "tooling-cleanup"
+  ],
+  "agents": [
+    {
+      "id": "auth-workspace",
+      "title": "Auth and Workspace Spine",
+      "branch": "codex/migrate-auth-workspace",
+      "promptFile": "/Users/hashemselim/Code/findabatherapy/docs/migrations/parallel-cutover/prompts/01-auth-workspace.md",
+      "taskFile": "/Users/hashemselim/Code/findabatherapy/docs/migrations/parallel-cutover/shards/01-auth-workspace-tasks.md",
+      "hardDependencies": [],
+      "softDependencies": [],
+      "ownedPaths": [
+        "src/middleware.ts",
+        "src/lib/auth/**",
+        "src/app/auth/**",
+        "src/app/api/auth/**",
+        "src/lib/platform/auth/**",
+        "src/lib/platform/workspace/**",
+        "src/lib/workspace/**",
+        "src/lib/actions/workspace-users.ts",
+        "src/app/(dashboard)/dashboard/settings/users/**",
+        "src/lib/supabase/middleware.ts"
+      ],
+      "avoidPaths": [
+        "src/lib/stripe/**",
+        "src/app/api/stripe/**",
+        "src/lib/actions/clients.ts",
+        "src/lib/actions/agreements.ts",
+        "src/lib/actions/jobs.ts"
+      ],
+      "validationCommands": [
+        "npx tsc --noEmit",
+        "node scripts/generate-cutover-inventory.mjs"
+      ]
+    },
+    {
+      "id": "provider-core",
+      "title": "Provider Core and Dashboard Settings",
+      "branch": "codex/migrate-provider-core",
+      "promptFile": "/Users/hashemselim/Code/findabatherapy/docs/migrations/parallel-cutover/prompts/02-provider-core.md",
+      "taskFile": "/Users/hashemselim/Code/findabatherapy/docs/migrations/parallel-cutover/shards/02-provider-core-tasks.md",
+      "hardDependencies": [],
+      "softDependencies": [
+        "auth-workspace"
+      ],
+      "ownedPaths": [
+        "src/lib/actions/onboarding.ts",
+        "src/lib/actions/attributes.ts",
+        "src/lib/actions/listings.ts",
+        "src/lib/actions/locations.ts",
+        "src/lib/actions/provider-website.ts",
+        "src/lib/actions/google-business.ts",
+        "src/lib/actions/google-places.ts",
+        "src/lib/actions/social.ts",
+        "src/lib/storage/actions.ts",
+        "src/lib/storage/config.ts",
+        "src/app/(dashboard)/dashboard/company/**",
+        "src/app/(dashboard)/dashboard/branding/**",
+        "src/app/(dashboard)/dashboard/forms/**",
+        "src/app/(dashboard)/dashboard/locations/**",
+        "convex/listings.ts",
+        "convex/locations.ts",
+        "convex/files.ts"
+      ],
+      "avoidPaths": [
+        "src/lib/queries/search.ts",
+        "src/lib/queries/jobs.ts",
+        "src/lib/stripe/**",
+        "src/app/api/stripe/**"
+      ],
+      "validationCommands": [
+        "npx tsc --noEmit",
+        "node scripts/generate-cutover-inventory.mjs"
+      ]
+    },
+    {
+      "id": "search-public",
+      "title": "Search, Public Read Models, and Sitemaps",
+      "branch": "codex/migrate-search-public",
+      "promptFile": "/Users/hashemselim/Code/findabatherapy/docs/migrations/parallel-cutover/prompts/03-search-public.md",
+      "taskFile": "/Users/hashemselim/Code/findabatherapy/docs/migrations/parallel-cutover/shards/03-search-public-tasks.md",
+      "hardDependencies": [],
+      "softDependencies": [
+        "provider-core",
+        "jobs"
+      ],
+      "ownedPaths": [
+        "src/lib/queries/search.ts",
+        "src/lib/actions/inquiries.ts",
+        "src/app/sitemap.ts",
+        "src/app/(jobs)/**/sitemap.ts",
+        "src/app/(website)/**",
+        "src/app/(careers)/**",
+        "src/app/provider/**",
+        "src/app/jobs/**",
+        "convex/publicReadModels.ts",
+        "convex/inquiries.ts"
+      ],
+      "avoidPaths": [
+        "src/lib/actions/onboarding.ts",
+        "src/lib/actions/clients.ts",
+        "src/lib/stripe/**"
+      ],
+      "validationCommands": [
+        "npx tsc --noEmit",
+        "node scripts/generate-cutover-inventory.mjs"
+      ]
+    },
+    {
+      "id": "jobs",
+      "title": "Jobs, Applications, and Resumes",
+      "branch": "codex/migrate-jobs",
+      "promptFile": "/Users/hashemselim/Code/findabatherapy/docs/migrations/parallel-cutover/prompts/04-jobs.md",
+      "taskFile": "/Users/hashemselim/Code/findabatherapy/docs/migrations/parallel-cutover/shards/04-jobs-tasks.md",
+      "hardDependencies": [],
+      "softDependencies": [
+        "auth-workspace"
+      ],
+      "ownedPaths": [
+        "src/lib/actions/jobs.ts",
+        "src/lib/actions/applications.ts",
+        "src/lib/queries/jobs.ts",
+        "src/app/(dashboard)/dashboard/jobs/**",
+        "src/app/(dashboard)/dashboard/team/applicants/**",
+        "src/app/(dashboard)/dashboard/employees/**",
+        "src/app/(jobs)/**",
+        "src/app/(careers)/**",
+        "convex/jobs.ts"
+      ],
+      "avoidPaths": [
+        "src/lib/actions/clients.ts",
+        "src/lib/stripe/actions.ts",
+        "src/app/api/stripe/**"
+      ],
+      "validationCommands": [
+        "npx tsc --noEmit",
+        "node scripts/generate-cutover-inventory.mjs"
+      ]
+    },
+    {
+      "id": "crm-intake",
+      "title": "CRM, Intake, Pipeline, Communications, and Private Documents",
+      "branch": "codex/migrate-crm-intake",
+      "promptFile": "/Users/hashemselim/Code/findabatherapy/docs/migrations/parallel-cutover/prompts/05-crm-intake.md",
+      "taskFile": "/Users/hashemselim/Code/findabatherapy/docs/migrations/parallel-cutover/shards/05-crm-intake-tasks.md",
+      "hardDependencies": [],
+      "softDependencies": [
+        "auth-workspace"
+      ],
+      "ownedPaths": [
+        "src/lib/actions/clients.ts",
+        "src/lib/actions/intake.ts",
+        "src/lib/actions/pipeline.ts",
+        "src/lib/actions/communications.ts",
+        "src/lib/actions/task-automation.ts",
+        "src/lib/actions/notifications.ts",
+        "src/app/(dashboard)/dashboard/clients/**",
+        "src/app/(dashboard)/dashboard/resources/clients/**",
+        "src/app/(dashboard)/dashboard/notifications/**",
+        "convex/crm.ts",
+        "convex/intake.ts",
+        "convex/communications.ts"
+      ],
+      "avoidPaths": [
+        "src/lib/actions/agreements.ts",
+        "src/lib/stripe/**",
+        "src/app/api/stripe/**"
+      ],
+      "validationCommands": [
+        "npx tsc --noEmit",
+        "node scripts/generate-cutover-inventory.mjs"
+      ]
+    },
+    {
+      "id": "agreements",
+      "title": "Agreements, Versions, Artifacts, and Authorized Delivery",
+      "branch": "codex/migrate-agreements",
+      "promptFile": "/Users/hashemselim/Code/findabatherapy/docs/migrations/parallel-cutover/prompts/06-agreements.md",
+      "taskFile": "/Users/hashemselim/Code/findabatherapy/docs/migrations/parallel-cutover/shards/06-agreements-tasks.md",
+      "hardDependencies": [],
+      "softDependencies": [
+        "auth-workspace"
+      ],
+      "ownedPaths": [
+        "src/lib/actions/agreements.ts",
+        "src/app/(dashboard)/dashboard/forms/agreements/**",
+        "src/app/api/agreements/**",
+        "convex/agreements.ts"
+      ],
+      "avoidPaths": [
+        "src/lib/actions/clients.ts",
+        "src/lib/stripe/**",
+        "src/app/api/stripe/**"
+      ],
+      "validationCommands": [
+        "npx tsc --noEmit",
+        "node scripts/generate-cutover-inventory.mjs"
+      ]
+    },
+    {
+      "id": "billing-stripe",
+      "title": "Billing, Add-ons, Featured Locations, and Stripe Webhooks",
+      "branch": "codex/migrate-billing-stripe",
+      "promptFile": "/Users/hashemselim/Code/findabatherapy/docs/migrations/parallel-cutover/prompts/07-billing-stripe.md",
+      "taskFile": "/Users/hashemselim/Code/findabatherapy/docs/migrations/parallel-cutover/shards/07-billing-stripe-tasks.md",
+      "hardDependencies": [],
+      "softDependencies": [
+        "auth-workspace"
+      ],
+      "ownedPaths": [
+        "src/lib/actions/billing.ts",
+        "src/lib/actions/addons.ts",
+        "src/lib/stripe/**",
+        "src/app/(dashboard)/dashboard/billing/**",
+        "src/app/api/stripe/**",
+        "convex/billing.ts"
+      ],
+      "avoidPaths": [
+        "src/lib/actions/clients.ts",
+        "src/lib/actions/onboarding.ts",
+        "src/lib/queries/search.ts"
+      ],
+      "validationCommands": [
+        "npx tsc --noEmit",
+        "node scripts/generate-cutover-inventory.mjs"
+      ]
+    },
+    {
+      "id": "admin-analytics-referrals",
+      "title": "Admin, Analytics, Feedback, Referrals, and Support",
+      "branch": "codex/migrate-admin-analytics-referrals",
+      "promptFile": "/Users/hashemselim/Code/findabatherapy/docs/migrations/parallel-cutover/prompts/08-admin-analytics-referrals.md",
+      "taskFile": "/Users/hashemselim/Code/findabatherapy/docs/migrations/parallel-cutover/shards/08-admin-analytics-referrals-tasks.md",
+      "hardDependencies": [],
+      "softDependencies": [
+        "auth-workspace"
+      ],
+      "ownedPaths": [
+        "src/lib/actions/admin.ts",
+        "src/lib/actions/analytics.ts",
+        "src/lib/actions/referrals.ts",
+        "src/lib/actions/referral-analytics.ts",
+        "src/lib/actions/feedback.ts",
+        "src/lib/analytics/**",
+        "src/app/(dashboard)/dashboard/analytics/**",
+        "src/app/(dashboard)/dashboard/admin/**",
+        "src/app/(dashboard)/dashboard/referrals/**",
+        "convex/admin.ts",
+        "convex/analytics.ts",
+        "convex/referrals.ts"
+      ],
+      "avoidPaths": [
+        "src/lib/stripe/**",
+        "src/app/api/stripe/**",
+        "src/lib/actions/clients.ts"
+      ],
+      "validationCommands": [
+        "npx tsc --noEmit",
+        "node scripts/generate-cutover-inventory.mjs"
+      ]
+    },
+    {
+      "id": "tooling-cleanup",
+      "title": "Tooling, Tests, Env, and Final Supabase Removal",
+      "branch": "codex/migrate-tooling-cleanup",
+      "promptFile": "/Users/hashemselim/Code/findabatherapy/docs/migrations/parallel-cutover/prompts/09-tooling-cleanup.md",
+      "taskFile": "/Users/hashemselim/Code/findabatherapy/docs/migrations/parallel-cutover/shards/09-tooling-cleanup-tasks.md",
+      "hardDependencies": [
+        "auth-workspace",
+        "provider-core",
+        "search-public",
+        "jobs",
+        "crm-intake",
+        "agreements",
+        "billing-stripe",
+        "admin-analytics-referrals"
+      ],
+      "softDependencies": [],
+      "ownedPaths": [
+        "e2e/**",
+        "scripts/**",
+        "package.json",
+        "package-lock.json",
+        "pnpm-lock.yaml",
+        ".env.example",
+        "src/env.ts",
+        "src/lib/supabase/**",
+        "supabase/**"
+      ],
+      "avoidPaths": [
+        "src/lib/actions/**",
+        "src/lib/stripe/**",
+        "convex/**"
+      ],
+      "validationCommands": [
+        "npx tsc --noEmit",
+        "node scripts/generate-cutover-inventory.mjs"
+      ]
+    }
+  ]
+}

@@ -2,9 +2,15 @@ import "server-only";
 
 import { auth as clerkAuth } from "@clerk/nextjs/server";
 import { fetchMutation, fetchQuery } from "convex/nextjs";
-import { makeFunctionReference } from "convex/server";
+import type { FunctionReference } from "convex/server";
+
+import { api } from "../../../../convex/_generated/api";
 
 import { platformConfig } from "@/lib/platform/config";
+
+type ConvexApiRoot = typeof api;
+type ConvexModuleName = Extract<keyof ConvexApiRoot, string>;
+type ConvexFunctionName = `${ConvexModuleName}:${string}`;
 
 function requireConvexUrl() {
   if (!platformConfig.convexUrl) {
@@ -16,25 +22,50 @@ function requireConvexUrl() {
 
 async function getConvexToken() {
   const authState = await clerkAuth();
-  const sessionClaims = (authState.sessionClaims ?? null) as { aud?: unknown } | null;
-
-  if (sessionClaims?.aud === "convex") {
-    return (await authState.getToken()) ?? undefined;
+  if (!authState.userId) {
+    return undefined;
   }
 
-  return (
-    (await authState.getToken({ template: "convex" })) ??
-    (await authState.getToken()) ??
-    undefined
-  );
+  const token = await authState.getToken({ template: "convex" });
+  if (!token) {
+    throw new Error(
+      "Clerk Convex JWT template 'convex' is missing or not issuing tokens. " +
+        "Activate Clerk's Convex integration or create a JWT template named 'convex' " +
+        'with {"aud":"convex"}.',
+    );
+  }
+
+  return token;
+}
+
+function resolveConvexFunction<Operation extends "query" | "mutation", T>(
+  functionName: ConvexFunctionName,
+) {
+  const [moduleName, exportName] = functionName.split(":") as [
+    ConvexModuleName,
+    string,
+  ];
+  const moduleApi = api[moduleName] as Record<string, unknown> | undefined;
+  const functionReference = moduleApi?.[exportName];
+
+  if (!functionReference) {
+    throw new Error(`Unknown Convex function: ${functionName}`);
+  }
+
+  return functionReference as FunctionReference<
+    Operation,
+    "public",
+    Record<string, unknown>,
+    T
+  >;
 }
 
 export async function queryConvex<T>(
-  functionName: string,
+  functionName: ConvexFunctionName,
   args: Record<string, unknown> = {},
 ): Promise<T> {
   return fetchQuery(
-    makeFunctionReference<"query", Record<string, unknown>, T>(functionName),
+    resolveConvexFunction<"query", T>(functionName),
     args,
     {
       token: await getConvexToken(),
@@ -44,11 +75,11 @@ export async function queryConvex<T>(
 }
 
 export async function mutateConvex<T>(
-  functionName: string,
+  functionName: ConvexFunctionName,
   args: Record<string, unknown> = {},
 ): Promise<T> {
   return fetchMutation(
-    makeFunctionReference<"mutation", Record<string, unknown>, T>(functionName),
+    resolveConvexFunction<"mutation", T>(functionName),
     args,
     {
       token: await getConvexToken(),
@@ -62,11 +93,11 @@ export async function mutateConvex<T>(
  * Used for public reads like invite previews where there is no Clerk session.
  */
 export async function queryConvexUnauthenticated<T>(
-  functionName: string,
+  functionName: ConvexFunctionName,
   args: Record<string, unknown> = {},
 ): Promise<T> {
   return fetchQuery(
-    makeFunctionReference<"query", Record<string, unknown>, T>(functionName),
+    resolveConvexFunction<"query", T>(functionName),
     args,
     {
       url: requireConvexUrl(),
@@ -79,11 +110,11 @@ export async function queryConvexUnauthenticated<T>(
  * Used by Stripe webhook handlers where there is no Clerk session.
  */
 export async function mutateConvexUnauthenticated<T>(
-  functionName: string,
+  functionName: ConvexFunctionName,
   args: Record<string, unknown> = {},
 ): Promise<T> {
   return fetchMutation(
-    makeFunctionReference<"mutation", Record<string, unknown>, T>(functionName),
+    resolveConvexFunction<"mutation", T>(functionName),
     args,
     {
       url: requireConvexUrl(),

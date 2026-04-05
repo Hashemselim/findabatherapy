@@ -14,7 +14,7 @@ import {
   GOODABA_NAME,
   GOODABA_OG_IMAGE,
 } from "@/lib/seo/goodaba-metadata";
-import { getUser } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/platform/auth/server";
 
 const BASE_URL = "https://www.goodaba.com/pricing";
 
@@ -54,7 +54,7 @@ export const metadata: Metadata = {
 };
 
 export async function GoodabaPricingPage() {
-  const user = await getUser();
+  const user = await getCurrentUser();
 
   return (
     <div className="goodaba-theme min-h-screen overflow-x-clip bg-[#FFFBF0] text-slate-900">

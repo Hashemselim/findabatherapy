@@ -214,7 +214,7 @@ export const createJobPostingSchema = z.object({
     .array(z.enum(EMPLOYMENT_TYPES.map((e) => e.value) as [string, ...string[]]))
     .min(1, "Please select at least one employment type"),
 
-  locationId: z.string().uuid().optional().nullable(),
+  locationId: z.string().min(1).optional().nullable(),
 
   // Custom location fields (alternative to locationId)
   customCity: z.string().max(100, "City must be less than 100 characters").optional().nullable(),
@@ -338,7 +338,7 @@ const baseJobPostingSchema = z.object({
     .array(z.enum(EMPLOYMENT_TYPES.map((e) => e.value) as [string, ...string[]]))
     .min(1, "Please select at least one employment type"),
 
-  locationId: z.string().uuid().optional().nullable(),
+  locationId: z.string().min(1).optional().nullable(),
 
   customCity: z.string().max(100, "City must be less than 100 characters").optional().nullable(),
   customState: z.string().length(2, "State must be a 2-letter code").optional().nullable(),

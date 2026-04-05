@@ -7,13 +7,18 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { env } from "@/env";
-import {
-  createAdminClient,
-  createClient as createSupabaseClient,
-  getCurrentProfileId,
-  getUser,
-} from "@/lib/supabase/server";
+import { isConvexDataEnabled } from "@/lib/platform/config";
 import { isPublicProfileVisible } from "@/lib/public-visibility";
+
+// Dynamic Supabase imports for the else (Supabase) path
+const createSupabaseClient = (...args: Parameters<typeof import("@/lib/supabase/server").createClient>) =>
+  import("@/lib/supabase/server").then((m) => m.createClient(...args));
+const createAdminClient = () =>
+  import("@/lib/supabase/server").then((m) => m.createAdminClient());
+const getUser = () =>
+  import("@/lib/supabase/server").then((m) => m.getUser());
+const getCurrentProfileId = () =>
+  import("@/lib/supabase/server").then((m) => m.getCurrentProfileId());
 import {
   AGREEMENT_PDF_MAX_SIZE,
   ALLOWED_AGREEMENT_DOCUMENT_TYPES,
@@ -424,6 +429,17 @@ async function cleanupAgreementSubmission(params: {
 }
 
 export async function getAgreementDashboardData(): Promise<ActionResult<AgreementDashboardData>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvex } = await import("@/lib/platform/convex/server");
+      const data = await queryConvex<AgreementDashboardData>("agreements:getAgreementPackets", {});
+      return { success: true, data };
+    } catch (err) {
+      console.error("[AGREEMENTS] Convex getAgreementDashboardData failed:", err);
+      return { success: false, error: "Failed to load agreement dashboard data" };
+    }
+  }
+
   const user = await getUser();
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {
@@ -614,6 +630,29 @@ export async function getAgreementDashboardData(): Promise<ActionResult<Agreemen
 }
 
 export async function getAgreementPacketOptions(): Promise<ActionResult<AgreementPacketOption[]>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvex } = await import("@/lib/platform/convex/server");
+      const packets = await queryConvex<Array<{
+        id: string;
+        title: string;
+        slug: string | null;
+        status: string;
+      }>>("agreements:getAgreementPackets", { status: "published" });
+      const options: AgreementPacketOption[] = packets.map((p) => ({
+        id: p.id,
+        title: p.title,
+        slug: p.slug || "",
+        latestVersionId: p.id,
+        latestVersionNumber: 1,
+      }));
+      return { success: true, data: options };
+    } catch (err) {
+      console.error("[AGREEMENTS] Convex getAgreementPacketOptions failed:", err);
+      return { success: false, error: "Failed to load agreement packet options" };
+    }
+  }
+
   const profileId = await getCurrentProfileId();
   const user = await getUser();
   if (!user || !profileId) {
@@ -647,6 +686,25 @@ export async function getAgreementPacketOptions(): Promise<ActionResult<Agreemen
 export async function createAgreementPacket(
   data: AgreementPacketInput
 ): Promise<ActionResult<{ id: string }>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const parsed = agreementPacketSchema.safeParse(data);
+      if (!parsed.success) {
+        return { success: false, error: parsed.error.issues[0]?.message || "Invalid packet" };
+      }
+      const { mutateConvex } = await import("@/lib/platform/convex/server");
+      const result = await mutateConvex<{ id: string }>("agreements:createAgreementPacket", {
+        title: parsed.data.title,
+        description: parsed.data.description || null,
+      });
+      revalidatePath("/dashboard/forms/agreements");
+      return { success: true, data: { id: result.id } };
+    } catch (err) {
+      console.error("[AGREEMENTS] Convex createAgreementPacket failed:", err);
+      return { success: false, error: "Failed to create agreement form" };
+    }
+  }
+
   const user = await getUser();
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {
@@ -702,6 +760,26 @@ export async function updateAgreementPacket(
   packetId: string,
   data: AgreementPacketInput
 ): Promise<ActionResult> {
+  if (isConvexDataEnabled()) {
+    try {
+      const parsed = agreementPacketSchema.safeParse(data);
+      if (!parsed.success) {
+        return { success: false, error: parsed.error.issues[0]?.message || "Invalid packet" };
+      }
+      const { mutateConvex } = await import("@/lib/platform/convex/server");
+      await mutateConvex("agreements:updateAgreementPacket", {
+        packetId,
+        title: parsed.data.title,
+        description: parsed.data.description || null,
+      });
+      revalidatePath("/dashboard/forms/agreements");
+      return { success: true };
+    } catch (err) {
+      console.error("[AGREEMENTS] Convex updateAgreementPacket failed:", err);
+      return { success: false, error: "Failed to update agreement form" };
+    }
+  }
+
   const user = await getUser();
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {
@@ -752,6 +830,52 @@ export async function uploadAgreementPacketDocument(
   packetId: string,
   formData: FormData
 ): Promise<ActionResult<{ id: string }>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const file = formData.get("file") as File | null;
+      if (!file) {
+        return { success: false, error: "Please choose a PDF file" };
+      }
+      if (!isValidAgreementDocumentType(file.type)) {
+        return { success: false, error: `Only PDF files are supported (${ALLOWED_AGREEMENT_DOCUMENT_TYPES.join(", ")})` };
+      }
+      if (!isValidAgreementDocumentSize(file.size)) {
+        return { success: false, error: `PDF files must be smaller than ${Math.round(AGREEMENT_PDF_MAX_SIZE / 1024 / 1024)}MB.` };
+      }
+      const arrayBuffer = await file.arrayBuffer();
+      if (!verifyDocumentMagicBytes(arrayBuffer, file.type)) {
+        return { success: false, error: "The uploaded PDF appears to be invalid." };
+      }
+      const metadata = agreementPacketDocumentMetadataSchema.safeParse({
+        label: (formData.get("label") as string | null) || "",
+        description: (formData.get("description") as string | null) || "",
+      });
+      if (!metadata.success) {
+        return { success: false, error: metadata.error.issues[0]?.message || "Invalid document details" };
+      }
+
+      const { uploadFileToConvexStorage, mutateConvex } = await import("@/lib/platform/convex/server");
+      const storageId = await uploadFileToConvexStorage(new Blob([arrayBuffer], { type: file.type }));
+      // Register the file in the files table
+      const fileRecord = await mutateConvex<{ fileId: string }>("files:createFileRecord", {
+        storageId,
+        fileName: file.name,
+        fileSize: file.size,
+        fileType: file.type,
+      });
+      const result = await mutateConvex<{ id: string }>("agreements:addAgreementDocument", {
+        packetId,
+        title: metadata.data.label || file.name,
+        fileId: fileRecord.fileId,
+      });
+      revalidatePath("/dashboard/forms/agreements");
+      return { success: true, data: { id: result.id } };
+    } catch (err) {
+      console.error("[AGREEMENTS] Convex uploadAgreementPacketDocument failed:", err);
+      return { success: false, error: "Failed to upload document" };
+    }
+  }
+
   const user = await getUser();
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {
@@ -862,6 +986,25 @@ export async function updateAgreementPacketDocument(
   documentId: string,
   data: AgreementPacketDocumentMetadataInput
 ): Promise<ActionResult> {
+  if (isConvexDataEnabled()) {
+    try {
+      const parsed = agreementPacketDocumentMetadataSchema.safeParse(data);
+      if (!parsed.success) {
+        return { success: false, error: parsed.error.issues[0]?.message || "Invalid document" };
+      }
+      const { mutateConvex } = await import("@/lib/platform/convex/server");
+      await mutateConvex("agreements:updateAgreementDocument", {
+        artifactId: documentId,
+        title: parsed.data.label,
+      });
+      revalidatePath("/dashboard/forms/agreements");
+      return { success: true };
+    } catch (err) {
+      console.error("[AGREEMENTS] Convex updateAgreementPacketDocument failed:", err);
+      return { success: false, error: "Failed to update document" };
+    }
+  }
+
   const user = await getUser();
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {
@@ -916,6 +1059,20 @@ export async function updateAgreementPacketDocument(
 }
 
 export async function deleteAgreementPacketDocument(documentId: string): Promise<ActionResult> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { mutateConvex } = await import("@/lib/platform/convex/server");
+      await mutateConvex("agreements:deleteAgreementDocument", {
+        artifactId: documentId,
+      });
+      revalidatePath("/dashboard/forms/agreements");
+      return { success: true };
+    } catch (err) {
+      console.error("[AGREEMENTS] Convex deleteAgreementPacketDocument failed:", err);
+      return { success: false, error: "Failed to remove document" };
+    }
+  }
+
   const user = await getUser();
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {
@@ -997,6 +1154,24 @@ export async function moveAgreementPacketDocument(
   documentId: string,
   direction: "up" | "down"
 ): Promise<ActionResult> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { mutateConvex } = await import("@/lib/platform/convex/server");
+      await mutateConvex("agreements:moveAgreementPacketDocument", {
+        documentId,
+        direction,
+      });
+      revalidatePath("/dashboard/forms/agreements");
+      return { success: true };
+    } catch (err) {
+      console.error("[AGREEMENTS] Convex moveAgreementPacketDocument failed:", err);
+      return {
+        success: false,
+        error: err instanceof Error ? err.message : "Failed to reorder document",
+      };
+    }
+  }
+
   const user = await getUser();
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {
@@ -1058,6 +1233,20 @@ export async function moveAgreementPacketDocument(
 }
 
 export async function publishAgreementPacket(packetId: string): Promise<ActionResult<{ versionId: string }>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { mutateConvex } = await import("@/lib/platform/convex/server");
+      await mutateConvex<{ success: boolean; slug?: string }>("agreements:publishAgreementPacket", {
+        packetId,
+      });
+      revalidatePath("/dashboard/forms/agreements");
+      return { success: true, data: { versionId: packetId } };
+    } catch (err) {
+      console.error("[AGREEMENTS] Convex publishAgreementPacket failed:", err);
+      return { success: false, error: "Failed to publish agreement form" };
+    }
+  }
+
   const user = await getUser();
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {
@@ -1083,6 +1272,38 @@ export async function publishAgreementPacket(packetId: string): Promise<ActionRe
 export async function createAgreementLink(
   data: { packet_id: string; client_id?: string }
 ): Promise<ActionResult<{ url: string; token: string }>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { mutateConvex } = await import("@/lib/platform/convex/server");
+      const token = createAgreementToken();
+      const result = await mutateConvex<{
+        token: string;
+        packetSlug: string;
+        providerSlug: string;
+      }>("agreements:createAgreementLink", {
+        packetId: data.packet_id,
+        clientId: data.client_id ?? null,
+        token,
+      });
+      const requestHeaders = await headers();
+      const origin = getRequestOrigin(requestHeaders);
+      return {
+        success: true,
+        data: {
+          token: result.token,
+          url: `${origin}${buildPublicAgreementPath(result.providerSlug, result.packetSlug)}?token=${result.token}`,
+        },
+      };
+    } catch (err) {
+      console.error("[AGREEMENTS] Convex createAgreementLink failed:", err);
+      return {
+        success: false,
+        error:
+          err instanceof Error ? err.message : "Failed to create agreement link",
+      };
+    }
+  }
+
   const user = await getUser();
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {
@@ -1182,6 +1403,82 @@ export async function getAgreementPacketPublicPageData(
   packetSlug: string,
   token?: string
 ): Promise<ActionResult<AgreementPublicPageData>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvexUnauthenticated } = await import("@/lib/platform/convex/server");
+      const result = await queryConvexUnauthenticated<{
+        listing: {
+          slug: string;
+          logoUrl: string | null;
+          profileId: string;
+        };
+        profile: {
+          agencyName: string;
+          website: string | null;
+          intakeFormSettings: BrandingSettings;
+          planTier: string;
+          subscriptionStatus: string | null;
+        };
+        packet: {
+          id: string;
+          slug: string | null;
+          title: string;
+          description: string | null;
+          documents: Array<unknown>;
+          settings: Record<string, unknown>;
+        };
+        documents: Array<{
+          id: string;
+          payload: Record<string, unknown>;
+          fileId: string | null;
+        }>;
+        link: {
+          token: string | null;
+          type: "generic" | "assigned";
+          clientNamePrefill: string;
+        };
+      } | null>("agreements:getAgreementPublicPageData", {
+        providerSlug,
+        packetSlug,
+        token: token ?? null,
+      });
+      if (!result) {
+        return { success: false, error: "Agreement packet not found" };
+      }
+      return {
+        success: true,
+        data: {
+          listing: result.listing,
+          profile: result.profile,
+          packet: {
+            id: result.packet.id,
+            slug: result.packet.slug || packetSlug,
+            title: result.packet.title,
+            description: result.packet.description,
+            versionId: result.packet.id,
+            versionNumber: 1,
+            documents: result.documents.map((doc) => ({
+              id: doc.id,
+              label: (doc.payload?.title as string) || null,
+              description: null,
+              fileName: (doc.payload?.title as string) || "document.pdf",
+              previewUrl: `/api/agreements/document-preview?documentId=${doc.id}`,
+              sha256: "",
+            })),
+          },
+          link: result.link,
+        },
+      };
+    } catch (err) {
+      console.error("[AGREEMENTS] Convex getAgreementPacketPublicPageData failed:", err);
+      return {
+        success: false,
+        error:
+          err instanceof Error ? err.message : "Failed to load agreement page",
+      };
+    }
+  }
+
   const adminSupabase = await createAdminClient();
 
   const { data: listing } = await adminSupabase
@@ -1372,6 +1669,48 @@ export async function submitAgreementPacket(data: {
   const parsed = agreementSubmissionSchema.safeParse(data.payload);
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0]?.message || "Please complete every required field." };
+  }
+
+  if (isConvexDataEnabled()) {
+    try {
+      const { mutateConvexUnauthenticated } = await import("@/lib/platform/convex/server");
+      const headerList = await headers();
+      const forwardedFor = headerList.get("x-forwarded-for");
+      const ipAddress = forwardedFor?.split(",")[0]?.trim() || null;
+      const signerName = `${parsed.data.signer_first_name} ${parsed.data.signer_last_name}`.trim();
+      const signedAt = new Date().toISOString();
+
+      const result = await mutateConvexUnauthenticated<{ id: string; submissionId: string }>(
+        "agreements:submitAgreementPacket",
+        {
+          packetId: parsed.data.packet_id,
+          signerName,
+          signerEmail: "", // Not in current schema but required by Convex
+          signedAt,
+          ipAddress,
+          linkToken: parsed.data.link_token || null,
+          formData: {
+            clientName: parsed.data.client_name,
+            signerFirstName: parsed.data.signer_first_name,
+            signerLastName: parsed.data.signer_last_name,
+            electronicConsent: parsed.data.consent_to_electronic_records,
+            authorityConfirmed: parsed.data.signer_authority_confirmed,
+            intentToSign: parsed.data.consent_to_sign_electronically,
+          },
+        },
+      );
+      revalidatePath("/dashboard/forms/agreements");
+      return { success: true, data: { submissionId: result.submissionId } };
+    } catch (err) {
+      console.error("[AGREEMENTS] Convex submitAgreementPacket failed:", err);
+      return {
+        success: false,
+        error:
+          err instanceof Error
+            ? err.message
+            : "Failed to save agreement submission.",
+      };
+    }
   }
 
   const adminSupabase = await createAdminClient();
@@ -1661,6 +2000,22 @@ export async function submitAgreementPacket(data: {
 export async function linkAgreementSubmissionToClient(
   data: { submission_id: string; client_id: string }
 ): Promise<ActionResult> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { mutateConvex } = await import("@/lib/platform/convex/server");
+      await mutateConvex("agreements:linkSubmissionToClient", {
+        artifactId: data.submission_id,
+        clientId: data.client_id,
+      });
+      revalidatePath("/dashboard/forms/agreements");
+      revalidatePath(`/dashboard/clients/${data.client_id}`);
+      return { success: true };
+    } catch (err) {
+      console.error("[AGREEMENTS] Convex linkAgreementSubmissionToClient failed:", err);
+      return { success: false, error: "Failed to link agreement to client" };
+    }
+  }
+
   const user = await getUser();
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {
@@ -1737,6 +2092,31 @@ export async function linkAgreementSubmissionToClient(
 export async function getAgreementSubmissionSignedUrl(
   submissionId: string
 ): Promise<ActionResult<{ url: string }>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvex } = await import("@/lib/platform/convex/server");
+      // In Convex mode, the submission artifact may have a fileId pointing to storage
+      const submission = await queryConvex<{
+        id: string;
+        fileId: string | null;
+        payload: Record<string, unknown>;
+      } | null>("agreements:getAgreementSubmissionById", { submissionId });
+      if (!submission || !submission.fileId) {
+        return { success: false, error: "Agreement submission not found" };
+      }
+      const url = await queryConvex<string | null>("agreements:getArtifactUrl", {
+        fileId: submission.fileId,
+      });
+      if (!url) {
+        return { success: false, error: "Failed to generate download URL" };
+      }
+      return { success: true, data: { url } };
+    } catch (err) {
+      console.error("[AGREEMENTS] Convex getAgreementSubmissionSignedUrl failed:", err);
+      return { success: false, error: "Failed to generate download URL" };
+    }
+  }
+
   const user = await getUser();
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {

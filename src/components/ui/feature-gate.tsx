@@ -63,7 +63,7 @@ export function FeatureGate({
 
   // Show default locked state
   const metadata = FEATURE_METADATA[feature];
-  const requiredPlan = minimumPlan || getRequiredPlan(feature);
+  const requiredPlan = minimumPlan || getRequiredPlan();
 
   return (
     <LockedFeatureCard
@@ -133,7 +133,7 @@ function LockedFeatureCard({
 /**
  * Get the required plan for a feature
  */
-function getRequiredPlan(_feature: keyof PlanFeatures): PlanTier {
+function getRequiredPlan(): PlanTier {
   return "pro";
 }
 

@@ -8,7 +8,8 @@ import { ClientSharePageActions } from "@/components/dashboard/forms/client-shar
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { getClientsList } from "@/lib/actions/clients";
-import { getProfile, createClient } from "@/lib/supabase/server";
+import { getListingSlug } from "@/lib/actions/listings";
+import { getProfile } from "@/lib/platform/workspace/server";
 import { getProviderDocumentUploadPath } from "@/lib/utils/public-paths";
 
 export default async function DocumentUploadFormPage() {
@@ -18,14 +19,7 @@ export default async function DocumentUploadFormPage() {
     return <OnboardingGate />;
   }
 
-  const supabase = await createClient();
-  const { data: listing } = await supabase
-    .from("listings")
-    .select("slug")
-    .eq("profile_id", profile.id)
-    .single();
-
-  const listingSlug = listing?.slug ?? null;
+  const listingSlug = await getListingSlug();
 
   if (!listingSlug) {
     return <NoListingState />;

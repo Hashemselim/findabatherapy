@@ -188,7 +188,7 @@ export function JobFilters({ className }: JobFiltersProps) {
   const filterContent = (
     <>
       {/* Position Type */}
-      <div className="space-y-2">
+      <div className="space-y-2" data-testid="job-filter-position-type">
         <Label className="text-sm font-medium">Position Type</Label>
         <FilterSelect
           options={SEARCH_POSITION_OPTIONS}
@@ -200,7 +200,7 @@ export function JobFilters({ className }: JobFiltersProps) {
       </div>
 
       {/* Employment Type */}
-      <div className="space-y-2">
+      <div className="space-y-2" data-testid="job-filter-employment-type">
         <Label className="text-sm font-medium">Employment Type</Label>
         <FilterSelect
           options={EMPLOYMENT_TYPES}
@@ -221,7 +221,7 @@ export function JobFilters({ className }: JobFiltersProps) {
       />
 
       {/* Posted Within */}
-      <div className="space-y-2">
+      <div className="space-y-2" data-testid="job-filter-posted-within">
         <div className="flex items-center gap-2">
           <Clock className="h-4 w-4 text-muted-foreground" />
           <Label className="text-sm font-medium">Posted Within</Label>
@@ -236,31 +236,37 @@ export function JobFilters({ className }: JobFiltersProps) {
       </div>
 
       {/* Work Setting */}
-      <FilterSection title="Work Setting" defaultOpen accentColor="emerald">
+      <div data-testid="job-filter-work-setting">
+        <FilterSection title="Work Setting" defaultOpen accentColor="emerald">
         <FilterCheckboxGroup
           options={JOB_THERAPY_SETTINGS}
           selected={therapySettings}
           onChange={(value) => handleArrayToggle(therapySettings, setTherapySettings, value as JobTherapySetting)}
         />
-      </FilterSection>
+        </FilterSection>
+      </div>
 
       {/* Schedule */}
-      <FilterSection title="Schedule" defaultOpen accentColor="emerald">
+      <div data-testid="job-filter-schedule">
+        <FilterSection title="Schedule" defaultOpen accentColor="emerald">
         <FilterCheckboxGroup
           options={JOB_SCHEDULE_TYPES}
           selected={scheduleTypes}
           onChange={(value) => handleArrayToggle(scheduleTypes, setScheduleTypes, value as JobScheduleType)}
         />
-      </FilterSection>
+        </FilterSection>
+      </div>
 
       {/* Age Groups */}
-      <FilterSection title="Age Groups Served" accentColor="emerald">
+      <div data-testid="job-filter-age-groups">
+        <FilterSection title="Age Groups Served" accentColor="emerald">
         <FilterCheckboxGroup
           options={JOB_AGE_GROUPS}
           selected={ageGroups}
           onChange={(value) => handleArrayToggle(ageGroups, setAgeGroups, value as JobAgeGroup)}
         />
-      </FilterSection>
+        </FilterSection>
+      </div>
     </>
   );
 
@@ -452,6 +458,7 @@ export function ActiveJobFilters({ className }: ActiveFiltersProps) {
 
       {hasProximitySearch && (
         <Badge
+          data-testid="job-active-filter-badge"
           variant="secondary"
           className="cursor-pointer bg-teal-100 text-teal-700 hover:bg-teal-200"
           onClick={() => handleRemoveFilter("lat")}
@@ -464,6 +471,7 @@ export function ActiveJobFilters({ className }: ActiveFiltersProps) {
 
       {hasStateFilter && (
         <Badge
+          data-testid="job-active-filter-badge"
           variant="secondary"
           className="cursor-pointer bg-teal-100 text-teal-700 hover:bg-teal-200"
           onClick={() => handleRemoveFilter("state")}
@@ -476,6 +484,7 @@ export function ActiveJobFilters({ className }: ActiveFiltersProps) {
 
       {hasCityFilter && (
         <Badge
+          data-testid="job-active-filter-badge"
           variant="secondary"
           className="cursor-pointer bg-teal-100 text-teal-700 hover:bg-teal-200"
           onClick={() => handleRemoveFilter("city")}
@@ -487,6 +496,7 @@ export function ActiveJobFilters({ className }: ActiveFiltersProps) {
 
       {filters.position && (
         <Badge
+          data-testid="job-active-filter-badge"
           variant="secondary"
           className="cursor-pointer bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
           onClick={() => handleRemoveFilter("position")}
@@ -498,6 +508,7 @@ export function ActiveJobFilters({ className }: ActiveFiltersProps) {
 
       {filters.employment && (
         <Badge
+          data-testid="job-active-filter-badge"
           variant="secondary"
           className="cursor-pointer bg-blue-100 text-blue-700 hover:bg-blue-200"
           onClick={() => handleRemoveFilter("employment")}
@@ -509,6 +520,7 @@ export function ActiveJobFilters({ className }: ActiveFiltersProps) {
 
       {filters.remote && (
         <Badge
+          data-testid="job-active-filter-badge"
           variant="secondary"
           className="cursor-pointer bg-purple-100 text-purple-700 hover:bg-purple-200"
           onClick={() => handleRemoveFilter("remote")}

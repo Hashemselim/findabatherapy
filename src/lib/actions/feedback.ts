@@ -2,10 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 
-import { createClient, createAdminClient, getCurrentProfileId, getUser, getProfile } from "@/lib/supabase/server";
+import { isConvexDataEnabled } from "@/lib/platform/config";
 import { type FeedbackStatus, type FeedbackCategory } from "@/lib/validations/feedback";
 import { sendFeedbackNotification } from "@/lib/email/notifications";
-import { isCurrentUserAdmin } from "@/lib/actions/admin";
 
 type ActionResult<T = void> =
   | { success: true; data?: T }
@@ -43,6 +42,43 @@ export async function submitFeedbackAuthenticated(
   data: AuthenticatedFeedbackInput,
   pageUrl?: string
 ): Promise<ActionResult> {
+  // Validate message
+  if (!data.message || data.message.length < 10) {
+    return { success: false, error: "Message must be at least 10 characters" };
+  }
+  if (data.message.length > 5000) {
+    return { success: false, error: "Message must be less than 5000 characters" };
+  }
+
+  if (isConvexDataEnabled()) {
+    try {
+      const { mutateConvex } = await import("@/lib/platform/convex/server");
+      await mutateConvex("inquiries:submitFeedback", {
+        category: data.category,
+        rating: data.rating || null,
+        message: data.message,
+        pageUrl: pageUrl || null,
+      });
+
+      // Send email notification to support
+      await sendFeedbackNotification({
+        name: "Authenticated User",
+        email: "",
+        category: data.category,
+        rating: data.rating,
+        message: data.message,
+        pageUrl: pageUrl,
+      });
+
+      return { success: true };
+    } catch (error) {
+      console.error("[FEEDBACK] Convex submitFeedback error:", error);
+      return { success: false, error: "Failed to submit feedback. Please try again." };
+    }
+  }
+
+  const { createAdminClient, getCurrentProfileId, getUser, getProfile } = await import("@/lib/supabase/server");
+
   // Get authenticated user
   const user = await getUser();
   const profileId = await getCurrentProfileId();
@@ -54,14 +90,6 @@ export async function submitFeedbackAuthenticated(
   const profile = await getProfile();
   if (!profile) {
     return { success: false, error: "Profile not found" };
-  }
-
-  // Validate message
-  if (!data.message || data.message.length < 10) {
-    return { success: false, error: "Message must be at least 10 characters" };
-  }
-  if (data.message.length > 5000) {
-    return { success: false, error: "Message must be less than 5000 characters" };
   }
 
   const supabase = await createAdminClient();
@@ -107,11 +135,30 @@ export async function submitFeedbackAuthenticated(
 export async function getFeedback(
   filter?: { status?: FeedbackStatus; category?: FeedbackCategory }
 ): Promise<ActionResult<{ feedback: Feedback[]; unreadCount: number }>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvex } = await import("@/lib/platform/convex/server");
+      const result = await queryConvex<{ feedback: Feedback[]; unreadCount: number }>(
+        "inquiries:getFeedback",
+        {
+          status: filter?.status,
+          category: filter?.category,
+        },
+      );
+      return { success: true, data: result };
+    } catch (error) {
+      console.error("[FEEDBACK] Convex getFeedback error:", error);
+      return { success: false, error: "Failed to fetch feedback" };
+    }
+  }
+
+  const { isCurrentUserAdmin } = await import("@/lib/actions/admin");
   const isAdmin = await isCurrentUserAdmin();
   if (!isAdmin) {
     return { success: false, error: "Not authorized" };
   }
 
+  const { createClient } = await import("@/lib/supabase/server");
   const supabase = await createClient();
 
   // Build query
@@ -173,11 +220,26 @@ export async function getFeedback(
 export async function getFeedbackById(
   feedbackId: string
 ): Promise<ActionResult<Feedback>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvex } = await import("@/lib/platform/convex/server");
+      const result = await queryConvex<Feedback>("inquiries:getFeedbackById", {
+        feedbackId,
+      });
+      return { success: true, data: result };
+    } catch (error) {
+      console.error("[FEEDBACK] Convex getFeedbackById error:", error);
+      return { success: false, error: "Feedback not found" };
+    }
+  }
+
+  const { isCurrentUserAdmin } = await import("@/lib/actions/admin");
   const isAdmin = await isCurrentUserAdmin();
   if (!isAdmin) {
     return { success: false, error: "Not authorized" };
   }
 
+  const { createClient } = await import("@/lib/supabase/server");
   const supabase = await createClient();
 
   const { data: f, error } = await supabase
@@ -218,11 +280,25 @@ export async function getFeedbackById(
 export async function markFeedbackAsRead(
   feedbackId: string
 ): Promise<ActionResult> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { mutateConvex } = await import("@/lib/platform/convex/server");
+      await mutateConvex("inquiries:markFeedbackAsRead", { feedbackId });
+      revalidatePath("/admin/feedback");
+      return { success: true };
+    } catch (error) {
+      console.error("[FEEDBACK] Convex markFeedbackAsRead error:", error);
+      return { success: false, error: "Failed to update feedback" };
+    }
+  }
+
+  const { isCurrentUserAdmin } = await import("@/lib/actions/admin");
   const isAdmin = await isCurrentUserAdmin();
   if (!isAdmin) {
     return { success: false, error: "Not authorized" };
   }
 
+  const { createClient } = await import("@/lib/supabase/server");
   const supabase = await createClient();
 
   const { error } = await supabase
@@ -248,11 +324,25 @@ export async function markFeedbackAsRead(
 export async function markFeedbackAsReplied(
   feedbackId: string
 ): Promise<ActionResult> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { mutateConvex } = await import("@/lib/platform/convex/server");
+      await mutateConvex("inquiries:markFeedbackAsReplied", { feedbackId });
+      revalidatePath("/admin/feedback");
+      return { success: true };
+    } catch (error) {
+      console.error("[FEEDBACK] Convex markFeedbackAsReplied error:", error);
+      return { success: false, error: "Failed to update feedback" };
+    }
+  }
+
+  const { isCurrentUserAdmin } = await import("@/lib/actions/admin");
   const isAdmin = await isCurrentUserAdmin();
   if (!isAdmin) {
     return { success: false, error: "Not authorized" };
   }
 
+  const { createClient } = await import("@/lib/supabase/server");
   const supabase = await createClient();
 
   const { error } = await supabase
@@ -277,11 +367,25 @@ export async function markFeedbackAsReplied(
 export async function archiveFeedback(
   feedbackId: string
 ): Promise<ActionResult> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { mutateConvex } = await import("@/lib/platform/convex/server");
+      await mutateConvex("inquiries:archiveFeedback", { feedbackId });
+      revalidatePath("/admin/feedback");
+      return { success: true };
+    } catch (error) {
+      console.error("[FEEDBACK] Convex archiveFeedback error:", error);
+      return { success: false, error: "Failed to archive feedback" };
+    }
+  }
+
+  const { isCurrentUserAdmin } = await import("@/lib/actions/admin");
   const isAdmin = await isCurrentUserAdmin();
   if (!isAdmin) {
     return { success: false, error: "Not authorized" };
   }
 
+  const { createClient } = await import("@/lib/supabase/server");
   const supabase = await createClient();
 
   const { error } = await supabase
@@ -301,11 +405,23 @@ export async function archiveFeedback(
  * Get unread feedback count (admin only, for sidebar badge)
  */
 export async function getUnreadFeedbackCount(): Promise<ActionResult<number>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvex } = await import("@/lib/platform/convex/server");
+      const count = await queryConvex<number>("inquiries:getUnreadFeedbackCount");
+      return { success: true, data: count };
+    } catch {
+      return { success: true, data: 0 };
+    }
+  }
+
+  const { isCurrentUserAdmin } = await import("@/lib/actions/admin");
   const isAdmin = await isCurrentUserAdmin();
   if (!isAdmin) {
     return { success: true, data: 0 };
   }
 
+  const { createClient } = await import("@/lib/supabase/server");
   const supabase = await createClient();
 
   const { count } = await supabase

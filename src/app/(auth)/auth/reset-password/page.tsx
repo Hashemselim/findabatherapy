@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Loader2, ShieldCheck, ArrowLeft, Mail } from "lucide-react";
 import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
 
+import { platformConfig } from "@/lib/platform/config";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,7 +18,37 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { resetPassword } from "@/lib/auth/actions";
 
-export default function ResetPasswordPage() {
+function ClerkResetPasswordPage() {
+  return (
+    <div className="mx-auto flex min-h-[70vh] max-w-md flex-col justify-center px-4 py-10">
+      <Card>
+        <CardHeader className="space-y-4 text-center">
+          <Badge className="mx-auto rounded-full border border-[#0866FF]/20 bg-[#0866FF]/8 px-4 py-1.5 text-sm font-semibold text-[#0866FF] shadow-xs">
+            Account Recovery
+          </Badge>
+          <CardTitle className="text-3xl">Reset your password</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Password resets are managed through your Clerk account settings.
+            Click below to manage your account.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Button className="w-full rounded-full" asChild>
+            <Link href="/dashboard/account">Manage account</Link>
+          </Button>
+          <Button variant="ghost" className="w-full" asChild>
+            <Link href="/auth/sign-in">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to sign in
+            </Link>
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function SupabaseResetPasswordPage() {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -155,4 +186,12 @@ export default function ResetPasswordPage() {
       </Card>
     </div>
   );
+}
+
+export default function ResetPasswordPage() {
+  if (platformConfig.authProvider === "clerk") {
+    return <ClerkResetPasswordPage />;
+  }
+
+  return <SupabaseResetPasswordPage />;
 }

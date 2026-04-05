@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient, createAdminClient, getCurrentProfileId } from "@/lib/supabase/server";
+import { isConvexDataEnabled } from "@/lib/platform/config";
 import {
   EVENT_TYPES,
   type DashboardMetrics,
@@ -28,6 +28,22 @@ export async function getListingAnalytics(
   period: TimePeriod = "month",
   locationIds?: string[]
 ): Promise<ActionResult<DashboardMetrics>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvex } = await import("@/lib/platform/convex/server");
+      const result = await queryConvex<DashboardMetrics>("analytics:getListingAnalytics", {
+        period,
+        locationIds: locationIds || null,
+      });
+      return { success: true, data: result };
+    } catch (error) {
+      console.error("[ANALYTICS] Convex getListingAnalytics error:", error);
+      return { success: false, error: "Failed to fetch analytics" };
+    }
+  }
+
+  const { createClient, createAdminClient, getCurrentProfileId } = await import("@/lib/supabase/server");
+
   const profileId = await getCurrentProfileId();
   if (!profileId) {
     return { success: false, error: "Not authenticated" };
@@ -100,7 +116,7 @@ export async function getListingAnalytics(
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-type SupabaseClient = Awaited<ReturnType<typeof createClient>> | Awaited<ReturnType<typeof createAdminClient>>;
+type SupabaseClient = any;
 
 async function getMetricsForPeriod(
   supabase: SupabaseClient,
@@ -134,16 +150,16 @@ async function getMetricsForPeriod(
       .gte("created_at", startStr)
       .lte("created_at", endStr);
 
-    viewCount = viewData?.filter((e) => {
+    viewCount = viewData?.filter((e: { metadata: unknown }) => {
       const locId = (e.metadata as Record<string, unknown>)?.locationId as string;
       return locationIds.includes(locId);
     }).length || 0;
 
     uniqueSessions = new Set(
-      viewData?.filter((e) => {
+      viewData?.filter((e: { metadata: unknown }) => {
         const locId = (e.metadata as Record<string, unknown>)?.locationId as string;
         return locationIds.includes(locId);
-      }).map((e) => (e.metadata as Record<string, unknown>)?.sessionId).filter(Boolean)
+      }).map((e: { metadata: unknown }) => (e.metadata as Record<string, unknown>)?.sessionId).filter(Boolean)
     );
   } else {
     const { count } = await supabase
@@ -164,7 +180,7 @@ async function getMetricsForPeriod(
       .lte("created_at", endStr);
 
     uniqueSessions = new Set(
-      uniqueViewData?.map((e) => (e.metadata as Record<string, unknown>)?.sessionId).filter(Boolean)
+      uniqueViewData?.map((e: { metadata: unknown }) => (e.metadata as Record<string, unknown>)?.sessionId).filter(Boolean)
     );
   }
 
@@ -178,23 +194,23 @@ async function getMetricsForPeriod(
     .lte("created_at", endStr);
 
   if (filterByLocation) {
-    const filteredImpressions = impressionData?.filter((e) => {
+    const filteredImpressions = impressionData?.filter((e: { metadata: unknown }) => {
       const locId = (e.metadata as Record<string, unknown>)?.locationId as string;
       return locationIds.includes(locId);
     }) || [];
     impressionCount = filteredImpressions.length;
-    aiImpressionCount = filteredImpressions.filter((e) =>
+    aiImpressionCount = filteredImpressions.filter((e: { metadata: unknown }) =>
       (e.metadata as Record<string, unknown>)?.source === "ai"
     ).length;
-    botImpressionCount = filteredImpressions.filter((e) =>
+    botImpressionCount = filteredImpressions.filter((e: { metadata: unknown }) =>
       (e.metadata as Record<string, unknown>)?.source === "bot"
     ).length;
   } else {
     impressionCount = impressionData?.length || 0;
-    aiImpressionCount = impressionData?.filter((e) =>
+    aiImpressionCount = impressionData?.filter((e: { metadata: unknown }) =>
       (e.metadata as Record<string, unknown>)?.source === "ai"
     ).length || 0;
-    botImpressionCount = impressionData?.filter((e) =>
+    botImpressionCount = impressionData?.filter((e: { metadata: unknown }) =>
       (e.metadata as Record<string, unknown>)?.source === "bot"
     ).length || 0;
   }
@@ -209,7 +225,7 @@ async function getMetricsForPeriod(
       .gte("created_at", startStr)
       .lte("created_at", endStr);
 
-    clickCount = clickData?.filter((e) => {
+    clickCount = clickData?.filter((e: { metadata: unknown }) => {
       const locId = (e.metadata as Record<string, unknown>)?.locationId as string;
       return locationIds.includes(locId);
     }).length || 0;
@@ -402,6 +418,19 @@ export interface AnalyticsSummary {
 }
 
 export async function getAnalyticsSummary(): Promise<ActionResult<AnalyticsSummary>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvex } = await import("@/lib/platform/convex/server");
+      const result = await queryConvex<AnalyticsSummary>("analytics:getAnalyticsSummary");
+      return { success: true, data: result };
+    } catch (error) {
+      console.error("[ANALYTICS] Convex getAnalyticsSummary error:", error);
+      return { success: false, error: "Failed to fetch analytics summary" };
+    }
+  }
+
+  const { createClient, createAdminClient, getCurrentProfileId } = await import("@/lib/supabase/server");
+
   const profileId = await getCurrentProfileId();
   if (!profileId) {
     return { success: false, error: "Not authenticated" };
@@ -470,6 +499,21 @@ export async function getAnalyticsSummary(): Promise<ActionResult<AnalyticsSumma
 export async function getLocationAnalytics(
   period: TimePeriod = "month"
 ): Promise<ActionResult<LocationAnalytics[]>> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvex } = await import("@/lib/platform/convex/server");
+      const result = await queryConvex<LocationAnalytics[]>("analytics:getLocationAnalytics", {
+        period,
+      });
+      return { success: true, data: result };
+    } catch (error) {
+      console.error("[ANALYTICS] Convex getLocationAnalytics error:", error);
+      return { success: false, error: "Failed to fetch location analytics" };
+    }
+  }
+
+  const { createClient, createAdminClient, getCurrentProfileId } = await import("@/lib/supabase/server");
+
   const profileId = await getCurrentProfileId();
   if (!profileId) {
     return { success: false, error: "Not authenticated" };

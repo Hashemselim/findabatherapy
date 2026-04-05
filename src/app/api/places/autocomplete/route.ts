@@ -39,6 +39,20 @@ function isRateLimited(ip: string): boolean {
   return false;
 }
 
+async function readJsonBody(request: NextRequest): Promise<unknown> {
+  const rawBody = await request.text();
+
+  if (!rawBody.trim()) {
+    throw new Error("EMPTY_BODY");
+  }
+
+  try {
+    return JSON.parse(rawBody) as unknown;
+  } catch {
+    throw new Error("INVALID_JSON");
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     // Rate limiting for public endpoint
@@ -58,8 +72,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const body = await request.json();
-    const { input, sessionToken } = body;
+    const body = await readJsonBody(request);
+    const { input, sessionToken } =
+      body && typeof body === "object"
+        ? (body as { input?: unknown; sessionToken?: unknown })
+        : {};
 
     if (!input || typeof input !== "string") {
       return NextResponse.json(
@@ -82,7 +99,9 @@ export async function POST(request: NextRequest) {
         // Restrict to US
         includedRegionCodes: ["us"],
         // Session token for billing optimization
-        ...(sessionToken && { sessionToken }),
+        ...(typeof sessionToken === "string" && sessionToken
+          ? { sessionToken }
+          : {}),
       }),
     });
 
@@ -118,6 +137,20 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ suggestions });
   } catch (error) {
+    if (error instanceof Error && error.message === "EMPTY_BODY") {
+      return NextResponse.json(
+        { error: "Request body is required" },
+        { status: 400 }
+      );
+    }
+
+    if (error instanceof Error && error.message === "INVALID_JSON") {
+      return NextResponse.json(
+        { error: "Invalid JSON body" },
+        { status: 400 }
+      );
+    }
+
     console.error("Places autocomplete error:", error);
     return NextResponse.json(
       { error: "Internal server error" },

@@ -1,11 +1,13 @@
-import { mutationGeneric, queryGeneric } from "convex/server";
+import { mutation, query } from "./_generated/server";
 import { ConvexError, v } from "convex/values";
+import type { MutationCtx, QueryCtx } from "./_generated/server";
 
 type Identity = {
   subject: string;
 };
 
 type ConvexDoc = Record<string, unknown> & { _id: string };
+type ConvexCtx = QueryCtx | MutationCtx;
 
 const LOCATION_LIMITS: Record<string, number> = {
   free: 3,
@@ -42,7 +44,7 @@ function asId<TableName extends string>(value: unknown) {
   return value as string & { __tableName: TableName };
 }
 
-async function requireIdentity(ctx: { auth: { getUserIdentity(): Promise<Identity | null> } }) {
+async function requireIdentity(ctx: ConvexCtx) {
   const identity = await ctx.auth.getUserIdentity();
   if (!identity) {
     throw new ConvexError("Not authenticated");
@@ -51,7 +53,7 @@ async function requireIdentity(ctx: { auth: { getUserIdentity(): Promise<Identit
   return identity;
 }
 
-async function findUserByClerkUserId(ctx: { db: { query(table: "users"): { withIndex(index: "by_clerk_user_id", cb: (q: { eq(field: "clerkUserId", value: string): unknown }) => unknown): { collect(): Promise<ConvexDoc[]> } } } }, clerkUserId: string) {
+async function findUserByClerkUserId(ctx: ConvexCtx, clerkUserId: string) {
   const users = await ctx.db
     .query("users")
     .withIndex("by_clerk_user_id", (q) => q.eq("clerkUserId", clerkUserId))
@@ -59,26 +61,9 @@ async function findUserByClerkUserId(ctx: { db: { query(table: "users"): { withI
   return users[0] ?? null;
 }
 
-async function requireCurrentListingContext(ctx: {
-  auth: { getUserIdentity(): Promise<Identity | null> };
-  db: {
-    get(id: string): Promise<ConvexDoc | null>;
-    query(table: "users"): {
-      withIndex(index: "by_clerk_user_id", cb: (q: { eq(field: "clerkUserId", value: string): unknown }) => unknown): { collect(): Promise<ConvexDoc[]> };
-    };
-    query(table: "workspaceMemberships"): {
-      withIndex(index: "by_user", cb: (q: { eq(field: "userId", value: string): unknown }) => unknown): { collect(): Promise<ConvexDoc[]> };
-    };
-    query(table: "listings"): {
-      withIndex(index: "by_workspace", cb: (q: { eq(field: "workspaceId", value: string): unknown }) => unknown): { collect(): Promise<ConvexDoc[]> };
-    };
-    query(table: "locations"): {
-      withIndex(index: "by_listing", cb: (q: { eq(field: "listingId", value: string): unknown }) => unknown): { collect(): Promise<ConvexDoc[]> };
-    };
-  };
-}) {
+async function requireCurrentListingContext(ctx: ConvexCtx) {
   const identity = await requireIdentity(ctx);
-  const user = await findUserByClerkUserId(ctx as never, identity.subject);
+  const user = await findUserByClerkUserId(ctx, identity.subject);
   if (!user) {
     throw new ConvexError("Not authenticated");
   }
@@ -157,17 +142,17 @@ function mapLocation(location: ConvexDoc) {
   };
 }
 
-export const getDashboardLocations = queryGeneric({
+export const getDashboardLocations = query({
   args: {},
   handler: async (ctx) => {
-    const { locations } = await requireCurrentListingContext(ctx as never);
+    const { locations } = await requireCurrentListingContext(ctx);
     return locations
       .map(mapLocation)
       .sort((a, b) => Number(b.isPrimary) - Number(a.isPrimary));
   },
 });
 
-export const addLocation = mutationGeneric({
+export const addLocation = mutation({
   args: {
     label: v.optional(v.union(v.string(), v.null())),
     street: v.optional(v.union(v.string(), v.null())),
@@ -187,7 +172,7 @@ export const addLocation = mutationGeneric({
     geocoded: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    const { workspace, listing, locations } = await requireCurrentListingContext(ctx as never);
+    const { workspace, listing, locations } = await requireCurrentListingContext(ctx);
     const currentCount = locations.length;
     const limit = LOCATION_LIMITS[String(workspace.planTier ?? "free")] ?? 1;
 
@@ -201,8 +186,8 @@ export const addLocation = mutationGeneric({
 
     const timestamp = new Date().toISOString();
     const locationId = await ctx.db.insert("locations", {
-      workspaceId: workspace._id,
-      listingId: listing._id,
+      workspaceId: asId<"workspaces">(workspace._id),
+      listingId: asId<"listings">(listing._id),
       metadata: {
         label: args.label ?? null,
         street: args.street ?? null,
@@ -243,7 +228,7 @@ export const addLocation = mutationGeneric({
   },
 });
 
-export const updateLocation = mutationGeneric({
+export const updateLocation = mutation({
   args: {
     locationId: v.string(),
     label: v.optional(v.union(v.string(), v.null())),
@@ -264,7 +249,7 @@ export const updateLocation = mutationGeneric({
     geocoded: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    const { listing, locations } = await requireCurrentListingContext(ctx as never);
+    const { listing, locations } = await requireCurrentListingContext(ctx);
     const location = locations.find((entry) => entry._id === args.locationId);
     if (!location || location.listingId !== listing._id) {
       throw new ConvexError("Location not found");
@@ -316,12 +301,12 @@ export const updateLocation = mutationGeneric({
   },
 });
 
-export const deleteLocation = mutationGeneric({
+export const deleteLocation = mutation({
   args: {
     locationId: v.string(),
   },
   handler: async (ctx, args) => {
-    const { listing, locations } = await requireCurrentListingContext(ctx as never);
+    const { listing, locations } = await requireCurrentListingContext(ctx);
     const location = locations.find((entry) => entry._id === args.locationId);
     if (!location || location.listingId !== listing._id) {
       throw new ConvexError("Location not found");
@@ -352,12 +337,12 @@ export const deleteLocation = mutationGeneric({
   },
 });
 
-export const setPrimaryLocation = mutationGeneric({
+export const setPrimaryLocation = mutation({
   args: {
     locationId: v.string(),
   },
   handler: async (ctx, args) => {
-    const { listing, locations } = await requireCurrentListingContext(ctx as never);
+    const { listing, locations } = await requireCurrentListingContext(ctx);
     const targetLocation = locations.find((entry) => entry._id === args.locationId);
     if (!targetLocation || targetLocation.listingId !== listing._id) {
       throw new ConvexError("Location not found");
@@ -382,10 +367,10 @@ export const setPrimaryLocation = mutationGeneric({
   },
 });
 
-export const getLocationLimit = queryGeneric({
+export const getLocationLimit = query({
   args: {},
   handler: async (ctx) => {
-    const { workspace, locations } = await requireCurrentListingContext(ctx as never);
+    const { workspace, locations } = await requireCurrentListingContext(ctx);
     const planTier = String(workspace.planTier ?? "free");
     return {
       limit: LOCATION_LIMITS[planTier] ?? 1,
@@ -416,7 +401,7 @@ function mapGoogleReview(record: ConvexDoc, locationId: string) {
 }
 
 async function queryGoogleReviewRecordsForListing(
-  ctx: { db: { query(table: "googleReviewRecords"): { collect(): Promise<ConvexDoc[]> } } },
+  ctx: ConvexCtx,
   listingId: string,
   locationId: string,
 ) {
@@ -431,19 +416,19 @@ async function queryGoogleReviewRecordsForListing(
   });
 }
 
-export const getGoogleReviews = queryGeneric({
+export const getGoogleReviews = query({
   args: {
     locationId: v.string(),
   },
   handler: async (ctx, args) => {
-    const { listing, locations } = await requireCurrentListingContext(ctx as never);
+    const { listing, locations } = await requireCurrentListingContext(ctx);
     const location = locations.find((entry) => entry._id === args.locationId);
     if (!location || location.listingId !== listing._id) {
       throw new ConvexError("Location not found");
     }
 
     const records = await queryGoogleReviewRecordsForListing(
-      ctx as never,
+      ctx,
       listing._id,
       args.locationId,
     );
@@ -454,7 +439,7 @@ export const getGoogleReviews = queryGeneric({
   },
 });
 
-export const upsertGoogleReviews = mutationGeneric({
+export const upsertGoogleReviews = mutation({
   args: {
     locationId: v.string(),
     reviews: v.array(
@@ -470,7 +455,7 @@ export const upsertGoogleReviews = mutationGeneric({
     ),
   },
   handler: async (ctx, args) => {
-    const { listing, locations } = await requireCurrentListingContext(ctx as never);
+    const { listing, locations } = await requireCurrentListingContext(ctx);
     const location = locations.find((entry) => entry._id === args.locationId);
     if (!location || location.listingId !== listing._id) {
       throw new ConvexError("Location not found");
@@ -478,7 +463,7 @@ export const upsertGoogleReviews = mutationGeneric({
 
     // Get existing reviews to preserve isSelected state
     const existingRecords = await queryGoogleReviewRecordsForListing(
-      ctx as never,
+      ctx,
       listing._id,
       args.locationId,
     );
@@ -523,7 +508,7 @@ export const upsertGoogleReviews = mutationGeneric({
   },
 });
 
-export const updateSelectedGoogleReviews = mutationGeneric({
+export const updateSelectedGoogleReviews = mutation({
   args: {
     locationId: v.string(),
     selectedReviewIds: v.array(v.string()),
@@ -533,14 +518,14 @@ export const updateSelectedGoogleReviews = mutationGeneric({
       throw new ConvexError("Maximum of 4 reviews can be selected");
     }
 
-    const { listing, locations } = await requireCurrentListingContext(ctx as never);
+    const { listing, locations } = await requireCurrentListingContext(ctx);
     const location = locations.find((entry) => entry._id === args.locationId);
     if (!location || location.listingId !== listing._id) {
       throw new ConvexError("Location not found");
     }
 
     const records = await queryGoogleReviewRecordsForListing(
-      ctx as never,
+      ctx,
       listing._id,
       args.locationId,
     );
@@ -566,7 +551,7 @@ export const updateSelectedGoogleReviews = mutationGeneric({
   },
 });
 
-export const getSelectedGoogleReviewsPublic = queryGeneric({
+export const getSelectedGoogleReviewsPublic = query({
   args: {
     locationId: v.string(),
   },
@@ -588,7 +573,7 @@ export const getSelectedGoogleReviewsPublic = queryGeneric({
     }
 
     const records = await queryGoogleReviewRecordsForListing(
-      ctx as never,
+      ctx,
       listingId,
       args.locationId,
     );

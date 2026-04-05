@@ -35,6 +35,7 @@ import {
   COMMON_INSURANCES,
   COMMON_LANGUAGES,
   DISTANCE_RADIUS_OPTIONS,
+  buildSearchUrl,
   parseFiltersFromParams,
   filtersToSearchParams,
 } from "@/lib/search/filters";
@@ -72,8 +73,7 @@ export function SearchFilters({ className }: SearchFiltersProps) {
 
   // Debounced auto-apply for desktop sidebar
   const debouncedApply = useDebouncedCallback(() => {
-    const params = filtersToSearchParams(filters);
-    router.push(`/search?${params.toString()}`);
+    router.push(buildSearchUrl(filters));
   }, 300);
 
   // Auto-apply filters on desktop when filters change (not on mobile sheet)
@@ -119,16 +119,14 @@ export function SearchFilters({ className }: SearchFiltersProps) {
   };
 
   const applyFilters = () => {
-    const params = filtersToSearchParams(filters);
-    router.push(`/search?${params.toString()}`);
+    router.push(buildSearchUrl(filters));
     setIsOpen(false);
   };
 
   const clearFilters = () => {
     const newFilters: SearchFilters = { query: currentFilters.query };
     setFilters(newFilters);
-    const params = filtersToSearchParams(newFilters);
-    router.push(`/search?${params.toString()}`);
+    router.push(buildSearchUrl(newFilters));
   };
 
   return (
@@ -494,7 +492,8 @@ export function ActiveFilters({ className }: ActiveFiltersProps) {
     }
 
     const params = filtersToSearchParams(newFilters);
-    router.push(`/search?${params.toString()}`);
+    const queryString = params.toString();
+    router.push(queryString ? `/search?${queryString}` : "/search");
   };
 
   const chips: Array<{ key: string; value?: string; label: string }> = [];

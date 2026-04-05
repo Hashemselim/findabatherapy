@@ -7,7 +7,8 @@ import { AgreementPacketsManager } from "@/components/dashboard/forms/agreement-
 import { DashboardEmptyState } from "@/components/dashboard/ui";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { getProfile, createClient } from "@/lib/supabase/server";
+import { getListingSlug } from "@/lib/actions/listings";
+import { getProfile } from "@/lib/platform/workspace/server";
 import { getAgreementDashboardData } from "@/lib/actions/agreements";
 
 export default async function AgreementsPage() {
@@ -17,14 +18,9 @@ export default async function AgreementsPage() {
     return <OnboardingGate />;
   }
 
-  const supabase = await createClient();
-  const { data: listing } = await supabase
-    .from("listings")
-    .select("slug")
-    .eq("profile_id", profile.id)
-    .single();
+  const listingSlug = await getListingSlug();
 
-  if (!listing?.slug) {
+  if (!listingSlug) {
     return <NoListingState />;
   }
 
@@ -47,7 +43,7 @@ export default async function AgreementsPage() {
 
   const firstPublishedPacket = result.data.packets.find((packet) => packet.latest_version_id);
   const previewPath = firstPublishedPacket
-    ? `/agreements/${listing.slug}/${firstPublishedPacket.slug}`
+    ? `/agreements/${listingSlug}/${firstPublishedPacket.slug}`
     : "/";
 
   return (

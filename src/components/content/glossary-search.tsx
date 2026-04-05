@@ -176,7 +176,11 @@ export function GlossarySearch({ terms }: GlossarySearchProps) {
 
               <div className="space-y-4">
                 {currentTermsByLetter[letter]?.map((item) => (
-                  <Card key={item.term} className="overflow-hidden">
+                  <Card
+                    key={item.term}
+                    className="overflow-hidden"
+                    data-testid="glossary-term"
+                  >
                     <CardContent className="p-4">
                       <div className="flex flex-wrap items-start justify-between gap-2">
                         <h3 className="text-lg font-semibold text-foreground">

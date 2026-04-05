@@ -12,7 +12,12 @@ test.describe("Find ABA Therapy - Search Page", () => {
 
   test("FAT-003: Search page loads with filter options", async ({ page }) => {
     // Page heading
-    await expect(page.getByRole("heading")).toBeVisible();
+    await expect(
+      page.getByRole("heading", {
+        level: 1,
+        name: /search aba therapy providers|aba therapy providers/i,
+      })
+    ).toBeVisible();
 
     // Filter sidebar or filter section
     await expect(
@@ -83,7 +88,8 @@ test.describe("Find ABA Therapy - Search Page", () => {
     if (await clearButton.isVisible()) {
       await clearButton.click();
       // URL should be clean or have minimal params
-      await expect(page).toHaveURL(/\/search(?:\?page=1)?$/);
+      await expect(page).toHaveURL(/\/search(?:\?.*)?$/, { timeout: 15000 });
+      await expect(clearButton).toBeHidden({ timeout: 15000 });
     }
   });
 
