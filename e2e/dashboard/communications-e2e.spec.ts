@@ -195,12 +195,15 @@ test.describe("communications end-to-end", () => {
       await page.screenshot({ path: testInfo.outputPath("05-send-dialog-before-send.png"), fullPage: true });
       await page.getByRole("button", { name: "Send Email" }).click();
 
-      await expect(page.getByText(/Email sent successfully!/)).toBeVisible({ timeout: 30000 });
-      await page.waitForTimeout(2000);
+      await expect.poll(async () => {
+        const counts = await getDynamicLinkCounts(user, seededClient.clientId);
+        return counts.intakeTokens;
+      }, { timeout: 15000 }).toBe(beforeCounts.intakeTokens + 1);
 
-      const afterSendCounts = await getDynamicLinkCounts(user, seededClient.clientId);
-      expect(afterSendCounts.intakeTokens).toBe(beforeCounts.intakeTokens + 1);
-      expect(afterSendCounts.agreementLinks).toBe(beforeCounts.agreementLinks + 1);
+      await expect.poll(async () => {
+        const counts = await getDynamicLinkCounts(user, seededClient.clientId);
+        return counts.agreementLinks;
+      }, { timeout: 15000 }).toBe(beforeCounts.agreementLinks + 1);
 
       await expect.poll(async () => {
         const state = await inspectCommunicationState(user, {
@@ -208,6 +211,8 @@ test.describe("communications end-to-end", () => {
         });
         return state.latestCommunication?.status ?? null;
       }, { timeout: 15000 }).toBe("sent");
+
+      await page.waitForTimeout(1000);
 
       const state = await inspectCommunicationState(user, {
         clientId: seededClient.clientId,
@@ -218,8 +223,39 @@ test.describe("communications end-to-end", () => {
       expect(communication?.subject).toContain("Token Check");
       expect(communication?.subject).not.toContain("{client_name}");
       expect(communication?.body).toContain("?token=");
+      expect(communication?.body).toContain("/access?token=");
       expect(communication?.body).not.toContain("{intake_link}");
       expect(communication?.body).not.toContain("{agreement_link}");
+
+      const { intakeUrl, agreementUrl } = extractCommunicationLinks(communication?.body || "");
+
+      await assertPublicLinkExchange(browser, intakeUrl, {
+        heading: "Client Intake Form",
+        visibleText: "Parent / Guardian",
+        expectedField: {
+          name: "parent_first_name",
+          value: "Hashem",
+        },
+      });
+
+      await assertPublicLinkExchange(browser, agreementUrl, {
+        heading: "Codex Agreement Packet",
+      });
+
+      await page.context().grantPermissions(["clipboard-read", "clipboard-write"], {
+        origin: BASE_URL,
+      });
+      await page.goto(`${BASE_URL}/dashboard/clients/${seededClient.clientId}`);
+      await expect(page.getByRole("button", { name: /Upload Link|Copied!/ })).toBeVisible();
+      await page.getByRole("button", { name: /Upload Link|Copied!/ }).click();
+      await expect(page.getByRole("button", { name: "Copied!" })).toBeVisible({ timeout: 15000 });
+      const documentUrl = await page.evaluate(() => navigator.clipboard.readText());
+      expect(documentUrl).toContain("/documents/access?token=");
+
+      await assertPublicLinkExchange(browser, documentUrl, {
+        heading: "Secure Document Upload",
+        visibleText: "Upload supporting documents for",
+      });
 
       await page.waitForTimeout(2000);
       await page.screenshot({ path: testInfo.outputPath("06-send-history-after-send.png"), fullPage: true });
@@ -344,6 +380,64 @@ async function inspectCommunicationState(
     templateName: params.templateName,
     templateSubject: params.templateSubject,
   });
+}
+
+function extractCommunicationLinks(body: string) {
+  const urls = Array.from(body.matchAll(/href="(https?:\/\/[^"]+)"/g), (match) => match[1]);
+  const intakeUrl = urls.find((url) => url.includes("/intake/") && url.includes("/access?token="));
+  const agreementUrl = urls.find((url) => url.includes("/agreements/") && url.includes("/access?token="));
+
+  if (!intakeUrl || !agreementUrl) {
+    throw new Error(`Failed to extract public links from body: ${body}`);
+  }
+
+  return { intakeUrl, agreementUrl };
+}
+
+async function assertPublicLinkExchange(
+  browser: Browser,
+  initialUrl: string,
+  expectations: {
+    heading: string;
+    visibleText?: string;
+    expectedPath?: string;
+    expectedField?: {
+      name: string;
+      value: string;
+    };
+  },
+) {
+  const expectedPath =
+    expectations.expectedPath ??
+    new URL(initialUrl).pathname.replace(/\/access$/, "");
+  const context = await browser.newContext();
+  const page = await context.newPage();
+
+  try {
+    const response = await page.goto(initialUrl, {
+      waitUntil: "domcontentloaded",
+    });
+    expect(response?.ok()).toBeTruthy();
+    expect(page.url()).not.toContain("token=");
+    expect(new URL(page.url()).pathname).toBe(expectedPath);
+
+    await expect(page.getByRole("heading", { name: expectations.heading, exact: true })).toBeVisible();
+    if (expectations.visibleText) {
+      await expect(page.getByText(expectations.visibleText, { exact: false })).toBeVisible();
+    }
+    if (expectations.expectedField) {
+      await expect(page.locator(`[name="${expectations.expectedField.name}"]`)).toHaveValue(
+        expectations.expectedField.value,
+      );
+    }
+
+    const reloadResponse = await page.reload({ waitUntil: "domcontentloaded" });
+    expect(reloadResponse?.ok()).toBeTruthy();
+    expect(page.url()).not.toContain("token=");
+    expect(new URL(page.url()).pathname).toBe(expectedPath);
+  } finally {
+    await context.close();
+  }
 }
 
 function getConvexSeedClient() {

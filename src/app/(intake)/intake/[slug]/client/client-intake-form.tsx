@@ -44,8 +44,8 @@ interface ClientIntakeFormProps {
   initialReferralSource?: string;
   /** Pre-populated data from an intake token link */
   prefillData?: PrefillData;
-  /** The intake token (passed to mark as used on submit) */
-  intakeToken?: string;
+  /** Slug for resolving the secure prefill token from an HttpOnly cookie */
+  intakeSlug?: string;
 }
 
 export function ClientIntakeForm({
@@ -57,7 +57,7 @@ export function ClientIntakeForm({
   agencyLocations,
   initialReferralSource,
   prefillData,
-  intakeToken,
+  intakeSlug,
 }: ClientIntakeFormProps) {
   const [isPending, startTransition] = useTransition();
   const [isSuccess, setIsSuccess] = useState(false);
@@ -159,8 +159,8 @@ export function ClientIntakeForm({
       if (result.success) {
         setDocumentUploadUrl(result.data?.documentUploadUrl || null);
         // Mark the token as used if this was a pre-fill submission
-        if (intakeToken) {
-          await markIntakeTokenUsed(intakeToken);
+        if (intakeSlug && prefillData) {
+          await markIntakeTokenUsed(undefined, intakeSlug);
         }
         setIsSuccess(true);
       } else {

@@ -40,6 +40,7 @@ import {
   filtersToSearchParams,
 } from "@/lib/search/filters";
 import type { SearchFilters } from "@/lib/queries/search";
+import { getStateName } from "@/lib/utils/location-utils";
 import { cn } from "@/lib/utils";
 import { useLocationState, type LocationState } from "@/hooks/use-location-state";
 
@@ -285,10 +286,24 @@ function FilterContent({
   // Handle place selection
   const handlePlaceSelect = useCallback(
     (place: PlaceDetails) => {
+      const normalizedState =
+        place.stateName ??
+        (place.state ? getStateName(place.state) ?? place.state : undefined);
+
+      if (!place.city && normalizedState) {
+        onLocationUpdate(undefined, undefined);
+        onFilterChange("radiusMiles", undefined);
+        onFilterChange("city", undefined);
+        onFilterChange("state", normalizedState);
+        setAddressInput(normalizedState);
+        onUnvalidatedLocationChange?.(false);
+        return;
+      }
+
       setLocationFromPlace(place);
       setAddressInput("");
     },
-    [setLocationFromPlace]
+    [onFilterChange, onLocationUpdate, onUnvalidatedLocationChange, setLocationFromPlace]
   );
 
   // Handle clear

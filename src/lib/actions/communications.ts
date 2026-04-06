@@ -7,6 +7,7 @@ import { headers } from "next/headers";
 import { isConvexDataEnabled } from "@/lib/platform/config";
 import { guardCommunications } from "@/lib/plans/guards";
 import type { AgencyBrandingData } from "@/lib/email/email-helpers";
+import { buildAgreementAccessPath } from "@/lib/public-access";
 import { getFromEmail, getRequestOrigin } from "@/lib/utils/domains";
 import {
   getProviderBrochurePath,
@@ -595,7 +596,7 @@ async function createAssignedAgreementLink(params: {
 
     return {
       success: true,
-      data: `${await getSiteOrigin()}/agreements/${context.listingSlug}/${context.packet.packetSlug}?token=${token}`,
+      data: `${await getSiteOrigin()}${buildAgreementAccessPath(context.listingSlug, context.packet.packetSlug)}?token=${token}`,
     };
   } catch (error) {
     console.warn("[COMMUNICATIONS] Agreement link generation unavailable:", error);

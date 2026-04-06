@@ -29,6 +29,13 @@ type ActionResult<T = void> =
   | { success: true; data?: T }
   | { success: false; error: string };
 
+function toStripePeriodEndIso(subscription: unknown): string | undefined {
+  const value = Reflect.get(subscription as object, "current_period_end");
+  return typeof value === "number" && Number.isFinite(value)
+    ? new Date(value * 1000).toISOString()
+    : undefined;
+}
+
 /** Resolve plan tier for the current user (avoids circular import with guards.ts) */
 async function resolveCurrentPlanTier(profileId?: string | null): Promise<PlanTier> {
   if (isConvexDataEnabled()) {
@@ -201,7 +208,7 @@ export async function createAddonSubscription(
         }
 
         const newQuantity = existing.quantity + quantity;
-        await stripe.subscriptions.update(existing.stripeSubscriptionId, {
+        const updatedSubscription = await stripe.subscriptions.update(existing.stripeSubscriptionId, {
           items: [{ id: subscriptionItem.id, quantity: newQuantity }],
           cancel_at_period_end: false,
           proration_behavior: "create_prorations",
@@ -211,6 +218,14 @@ export async function createAddonSubscription(
             profile_id: profileId,
             quantity: String(newQuantity),
           },
+        });
+
+        await mutateConvex("billing:webhookAddonUpdated", {
+          stripeSubscriptionId: existing.stripeSubscriptionId,
+          status: updatedSubscription.status,
+          quantity: newQuantity,
+          currentPeriodEnd: toStripePeriodEndIso(updatedSubscription),
+          cancelAtPeriodEnd: Boolean(updatedSubscription.cancel_at_period_end),
         });
 
         revalidatePath("/dashboard/billing");
@@ -365,6 +380,16 @@ export async function createAddonSubscription(
         description: `${info.label} (x${quantity})`,
       });
 
+      if (isConvexDataEnabled()) {
+        await mutateConvex("billing:webhookAddonCreated", {
+          stripeCustomerId: customerId,
+          stripeSubscriptionId: subscription.id,
+          addonType,
+          quantity,
+          currentPeriodEnd: toStripePeriodEndIso(subscription),
+        });
+      }
+
       revalidatePath("/dashboard/billing");
       return {
         success: true,
@@ -495,11 +520,19 @@ export async function cancelAddon(
   }
 
   try {
-    await stripe.subscriptions.update(addon.stripeSubscriptionId, {
+    const updatedSubscription = await stripe.subscriptions.update(addon.stripeSubscriptionId, {
       cancel_at_period_end: true,
     });
 
-    if (!isConvexDataEnabled()) {
+    if (isConvexDataEnabled()) {
+      await mutateConvex("billing:webhookAddonUpdated", {
+        stripeSubscriptionId: addon.stripeSubscriptionId,
+        status: updatedSubscription.status,
+        quantity: updatedSubscription.items.data[0]?.quantity ?? addon.quantity,
+        currentPeriodEnd: toStripePeriodEndIso(updatedSubscription),
+        cancelAtPeriodEnd: Boolean(updatedSubscription.cancel_at_period_end),
+      });
+    } else {
       const adminClient = await createAdminClient();
       await adminClient
         .from("profile_addons")
@@ -581,11 +614,19 @@ export async function reactivateAddon(
   }
 
   try {
-    await stripe.subscriptions.update(addon.stripeSubscriptionId, {
+    const updatedSubscription = await stripe.subscriptions.update(addon.stripeSubscriptionId, {
       cancel_at_period_end: false,
     });
 
-    if (!isConvexDataEnabled()) {
+    if (isConvexDataEnabled()) {
+      await mutateConvex("billing:webhookAddonUpdated", {
+        stripeSubscriptionId: addon.stripeSubscriptionId,
+        status: updatedSubscription.status,
+        quantity: updatedSubscription.items.data[0]?.quantity ?? 1,
+        currentPeriodEnd: toStripePeriodEndIso(updatedSubscription),
+        cancelAtPeriodEnd: Boolean(updatedSubscription.cancel_at_period_end),
+      });
+    } else {
       const adminClient = await createAdminClient();
       await adminClient
         .from("profile_addons")

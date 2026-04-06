@@ -1,14 +1,15 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import {
   getClientIntakePageData,
-  getIntakeFieldsConfig,
   getPublicAgencyLocations,
   getIntakeTokenData,
   type PrefillData,
 } from "@/lib/actions/intake";
 import { ClientIntakeForm } from "@/app/(intake)/intake/[slug]/client/client-intake-form";
+import { mergeWithDefaults } from "@/lib/intake/field-registry";
+import { buildIntakeAccessPath, getIntakeAccessToken } from "@/lib/public-access";
 
 type IntakePageProps = {
   params: Promise<{ slug: string }>;
@@ -40,6 +41,14 @@ export default async function WebsiteIntakePage({
 }: IntakePageProps) {
   const { slug } = await params;
   const { ref, token } = await searchParams;
+  if (token) {
+    const accessPath = new URL(buildIntakeAccessPath(slug), "http://localhost");
+    accessPath.searchParams.set("token", token);
+    if (ref) {
+      accessPath.searchParams.set("ref", ref);
+    }
+    redirect(`${accessPath.pathname}${accessPath.search}`);
+  }
   const result = await getClientIntakePageData(slug);
 
   if (!result.success || !result.data) {
@@ -49,14 +58,15 @@ export default async function WebsiteIntakePage({
   const { listing, profile } = result.data;
   const { background_color } = profile.intakeFormSettings;
 
-  const [fieldsConfig, agencyLocations] = await Promise.all([
-    getIntakeFieldsConfig(listing.profileId),
-    getPublicAgencyLocations(listing.id),
+  const [agencyLocations] = await Promise.all([
+    getPublicAgencyLocations({ listingId: listing.id, slug: listing.slug }),
   ]);
+  const fieldsConfig = mergeWithDefaults(profile.intakeFormSettings.fields);
 
   let prefillData: PrefillData | undefined;
-  if (token) {
-    const tokenResult = await getIntakeTokenData(token);
+  const accessToken = await getIntakeAccessToken(slug);
+  if (accessToken) {
+    const tokenResult = await getIntakeTokenData(accessToken);
     if (tokenResult.success && tokenResult.data) {
       prefillData = tokenResult.data;
     }
@@ -87,7 +97,7 @@ export default async function WebsiteIntakePage({
               ref === "findabatherapy" ? "findabatherapy" : undefined
             }
             prefillData={prefillData}
-            intakeToken={token}
+            intakeSlug={slug}
           />
         </div>
       </div>

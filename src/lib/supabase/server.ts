@@ -7,6 +7,7 @@ import { cookies } from "next/headers";
 import { env } from "@/env";
 
 export const WORKSPACE_INVITE_COOKIE = "workspace_invite_token";
+const isProduction = process.env.NODE_ENV === "production";
 
 export type ProfileRole = "owner" | "admin" | "member";
 
@@ -61,11 +62,24 @@ const ROLE_ORDER: Record<ProfileRole, number> = {
   owner: 3,
 };
 
+function assertSupabaseRuntimeAllowed() {
+  if (
+    isProduction &&
+    (process.env.NEXT_PUBLIC_AUTH_PROVIDER !== "supabase" ||
+      process.env.NEXT_PUBLIC_DATA_PROVIDER !== "supabase")
+  ) {
+    throw new Error(
+      "Supabase runtime access is disabled in production after the Clerk + Convex cutover.",
+    );
+  }
+}
+
 /**
  * Creates a Supabase client for use in Server Components, Server Actions, and Route Handlers.
  * This client uses cookie-based auth and handles the async cookie store properly for Next.js 14+.
  */
 export async function createClient() {
+  assertSupabaseRuntimeAllowed();
   const cookieStore = await cookies();
 
   return createServerClient(
@@ -106,6 +120,7 @@ export function hasAdminClientEnv() {
  * The SSR variant's createServerClient does not bypass RLS even with service role key.
  */
 export async function createAdminClient() {
+  assertSupabaseRuntimeAllowed();
   if (!hasAdminClientEnv()) {
     throw new Error("SUPABASE_SERVICE_ROLE_KEY is required for admin operations");
   }

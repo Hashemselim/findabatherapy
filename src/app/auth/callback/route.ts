@@ -21,8 +21,8 @@ function buildInviteErrorRedirect(params: {
   email: string | null | undefined;
   message: string;
 }) {
-  const redirectUrl = new URL("/auth/sign-in", params.origin);
-  redirectUrl.searchParams.set("invite", params.token);
+  const redirectUrl = new URL("/auth/accept-invite", params.origin);
+  redirectUrl.searchParams.set("token", params.token);
   redirectUrl.searchParams.set("error", params.message);
 
   if (params.email) {
@@ -52,11 +52,18 @@ async function handleClerkCallback(request: Request) {
       ? "year"
       : "month";
 
-  const { getCurrentUser } = await import("@/lib/platform/auth/server");
-  const user = await getCurrentUser();
-  if (!user) {
+  const { auth: clerkAuth, currentUser } = await import("@clerk/nextjs/server");
+  const authState = await clerkAuth();
+  if (!authState.userId) {
     return NextResponse.redirect(`${origin}/auth/sign-in`);
   }
+  const clerkUser = await currentUser();
+  const user = {
+    id: authState.userId,
+    email: clerkUser?.primaryEmailAddress?.emailAddress ?? null,
+    firstName: clerkUser?.firstName ?? null,
+    lastName: clerkUser?.lastName ?? null,
+  };
 
   // Handle invite acceptance
   const { getWorkspaceInviteCookie, clearWorkspaceInviteCookie } = await import(
@@ -76,7 +83,10 @@ async function handleClerkCallback(request: Request) {
       const result = await mutateConvex<{
         membership: { id: string };
         profile: { onboarding_completed_at: string | null };
-      }>("workspaces:acceptWorkspaceInvitation", { tokenHash });
+      }>("workspaces:acceptWorkspaceInvitation", {
+        tokenHash,
+        invitedEmail: user.email ?? undefined,
+      });
 
       await clearWorkspaceInviteCookie();
 
@@ -85,6 +95,7 @@ async function handleClerkCallback(request: Request) {
       }
       return NextResponse.redirect(`${origin}${next}`);
     } catch (error) {
+      console.error("Failed to accept Clerk workspace invitation", error);
       return NextResponse.redirect(
         buildInviteErrorRedirect({
           origin,

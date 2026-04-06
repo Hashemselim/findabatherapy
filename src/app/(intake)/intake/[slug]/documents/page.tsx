@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { Globe, ShieldCheck } from "lucide-react";
 
 import { BrandedLogo } from "@/components/branded/branded-logo";
@@ -8,6 +8,7 @@ import { PublicDocumentUploadForm } from "@/components/intake/public-document-up
 import { Button } from "@/components/ui/button";
 import { getClientDocumentUploadTokenData } from "@/lib/actions/clients";
 import { getClientIntakePageData } from "@/lib/actions/intake";
+import { buildDocumentAccessPath, getDocumentAccessToken } from "@/lib/public-access";
 import { getContrastingTextColor } from "@/lib/utils/brand-color";
 
 type DocumentUploadPageProps = {
@@ -47,14 +48,20 @@ export default async function ClientDocumentUploadPage({
 }: DocumentUploadPageProps) {
   const { slug } = await params;
   const { token } = await searchParams;
+  if (token) {
+    const accessPath = new URL(buildDocumentAccessPath(slug), "http://localhost");
+    accessPath.searchParams.set("token", token);
+    redirect(`${accessPath.pathname}${accessPath.search}`);
+  }
+  const accessToken = await getDocumentAccessToken(slug);
 
-  if (!token) {
+  if (!accessToken) {
     notFound();
   }
 
   const [pageResult, tokenResult] = await Promise.all([
     getClientIntakePageData(slug),
-    getClientDocumentUploadTokenData(token),
+    getClientDocumentUploadTokenData(accessToken),
   ]);
 
   if (
@@ -144,7 +151,7 @@ export default async function ClientDocumentUploadPage({
 
           <div className="px-6 py-8 sm:px-8 sm:py-10">
             <PublicDocumentUploadForm
-              token={token}
+              accessSlug={slug}
               clientName={tokenResult.data.clientName}
               providerName={profile.agencyName}
               brandColor={background_color}

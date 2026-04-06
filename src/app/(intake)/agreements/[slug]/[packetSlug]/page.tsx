@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { Globe } from "lucide-react";
 
 import { BrandedLogo } from "@/components/branded/branded-logo";
 import { Button } from "@/components/ui/button";
 import { PreviewBanner } from "@/components/ui/preview-banner";
 import { getAgreementPacketPublicPageData } from "@/lib/actions/agreements";
+import { buildAgreementAccessPath, getAgreementAccessToken } from "@/lib/public-access";
 import { getContrastingTextColor } from "@/lib/utils/brand-color";
 
 import { AgreementSigningForm } from "./agreement-signing-form";
@@ -48,7 +49,14 @@ export default async function AgreementPacketPage({
 }: AgreementPageProps) {
   const { slug, packetSlug } = await params;
   const { token } = await searchParams;
-  const result = await getAgreementPacketPublicPageData(slug, packetSlug, token);
+  if (token) {
+    const accessPath = new URL(buildAgreementAccessPath(slug, packetSlug), "http://localhost");
+    accessPath.searchParams.set("token", token);
+    redirect(`${accessPath.pathname}${accessPath.search}`);
+  }
+
+  const accessToken = await getAgreementAccessToken(slug, packetSlug);
+  const result = await getAgreementPacketPublicPageData(slug, packetSlug, accessToken ?? undefined);
 
   if (!result.success || !result.data) {
     notFound();
@@ -128,6 +136,8 @@ export default async function AgreementPacketPage({
               link={link}
               providerName={profile.agencyName}
               brandColor={background_color}
+              providerSlug={slug}
+              packetSlug={packetSlug}
               disabled={isPreview}
             />
           </div>

@@ -8,6 +8,11 @@ import { z } from "zod";
 
 import { env } from "@/env";
 import { isConvexDataEnabled } from "@/lib/platform/config";
+import {
+  buildAgreementAccessPath,
+  clearAgreementAccessToken,
+  getAgreementAccessToken,
+} from "@/lib/public-access";
 import { isPublicProfileVisible } from "@/lib/public-visibility";
 
 // Dynamic Supabase imports for the else (Supabase) path
@@ -166,14 +171,9 @@ export interface AgreementPublicPageData {
     }>;
   };
   link: {
-    token: string | null;
     type: "generic" | "assigned";
     clientNamePrefill: string;
   };
-}
-
-function buildPublicAgreementPath(providerSlug: string, packetSlug: string) {
-  return `/agreements/${providerSlug}/${packetSlug}`;
 }
 
 function slugify(value: string) {
@@ -432,7 +432,7 @@ export async function getAgreementDashboardData(): Promise<ActionResult<Agreemen
   if (isConvexDataEnabled()) {
     try {
       const { queryConvex } = await import("@/lib/platform/convex/server");
-      const data = await queryConvex<AgreementDashboardData>("agreements:getAgreementPackets", {});
+      const data = await queryConvex<AgreementDashboardData>("agreements:getAgreementDashboardData", {});
       return { success: true, data };
     } catch (err) {
       console.error("[AGREEMENTS] Convex getAgreementDashboardData failed:", err);
@@ -857,15 +857,22 @@ export async function uploadAgreementPacketDocument(
       const { uploadFileToConvexStorage, mutateConvex } = await import("@/lib/platform/convex/server");
       const storageId = await uploadFileToConvexStorage(new Blob([arrayBuffer], { type: file.type }));
       // Register the file in the files table
-      const fileRecord = await mutateConvex<{ fileId: string }>("files:createFileRecord", {
+      const fileRecord = await mutateConvex<{ fileId: string }>("files:registerFileRecord", {
         storageId,
         fileName: file.name,
         fileSize: file.size,
         fileType: file.type,
+        bucket: "agreement-documents",
+        storageKey: `agreements/${packetId}/${file.name}`,
+        visibility: "private",
+        relatedTable: "agreementPackets",
+        relatedId: packetId,
+        metadata: { kind: "agreement-document" },
       });
       const result = await mutateConvex<{ id: string }>("agreements:addAgreementDocument", {
         packetId,
         title: metadata.data.label || file.name,
+        description: metadata.data.description || null,
         fileId: fileRecord.fileId,
       });
       revalidatePath("/dashboard/forms/agreements");
@@ -996,6 +1003,7 @@ export async function updateAgreementPacketDocument(
       await mutateConvex("agreements:updateAgreementDocument", {
         artifactId: documentId,
         title: parsed.data.label,
+        description: parsed.data.description || null,
       });
       revalidatePath("/dashboard/forms/agreements");
       return { success: true };
@@ -1291,7 +1299,7 @@ export async function createAgreementLink(
         success: true,
         data: {
           token: result.token,
-          url: `${origin}${buildPublicAgreementPath(result.providerSlug, result.packetSlug)}?token=${result.token}`,
+          url: `${origin}${buildAgreementAccessPath(result.providerSlug, result.packetSlug)}?token=${result.token}`,
         },
       };
     } catch (err) {
@@ -1394,7 +1402,7 @@ export async function createAgreementLink(
 
   const requestHeaders = await headers();
   const origin = getRequestOrigin(requestHeaders);
-  const url = `${origin}${buildPublicAgreementPath(listing.slug, packet.slug)}?token=${token}`;
+  const url = `${origin}${buildAgreementAccessPath(listing.slug, packet.slug)}?token=${token}`;
   return { success: true, data: { url, token } };
 }
 
@@ -1546,7 +1554,6 @@ export async function getAgreementPacketPublicPageData(
   let versionId: string | null = null;
   let linkType: "generic" | "assigned" = "generic";
   let clientNamePrefill = "";
-  const linkToken: string | null = token || null;
 
   if (token) {
     const { data: link } = await adminSupabase
@@ -1650,7 +1657,6 @@ export async function getAgreementPacketPublicPageData(
         documents: documentsWithUrls,
       },
       link: {
-        token: linkToken,
         type: linkType,
         clientNamePrefill,
       },
@@ -1660,6 +1666,8 @@ export async function getAgreementPacketPublicPageData(
 
 export async function submitAgreementPacket(data: {
   turnstileToken: string;
+  providerSlug?: string;
+  packetSlug?: string;
   payload: unknown;
 }): Promise<ActionResult<{ submissionId: string }>> {
   if (!data.turnstileToken || !(await verifyTurnstileToken(data.turnstileToken))) {
@@ -1670,6 +1678,15 @@ export async function submitAgreementPacket(data: {
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0]?.message || "Please complete every required field." };
   }
+
+  const resolvedLinkToken =
+    parsed.data.link_token ||
+    (
+      data.providerSlug && data.packetSlug
+        ? await getAgreementAccessToken(data.providerSlug, data.packetSlug)
+        : null
+    ) ||
+    null;
 
   if (isConvexDataEnabled()) {
     try {
@@ -1688,7 +1705,7 @@ export async function submitAgreementPacket(data: {
           signerEmail: "", // Not in current schema but required by Convex
           signedAt,
           ipAddress,
-          linkToken: parsed.data.link_token || null,
+          linkToken: resolvedLinkToken,
           formData: {
             clientName: parsed.data.client_name,
             signerFirstName: parsed.data.signer_first_name,
@@ -1700,6 +1717,9 @@ export async function submitAgreementPacket(data: {
         },
       );
       revalidatePath("/dashboard/forms/agreements");
+      if (data.providerSlug && data.packetSlug) {
+        await clearAgreementAccessToken(data.providerSlug, data.packetSlug);
+      }
       return { success: true, data: { submissionId: result.submissionId } };
     } catch (err) {
       console.error("[AGREEMENTS] Convex submitAgreementPacket failed:", err);
@@ -1748,11 +1768,11 @@ export async function submitAgreementPacket(data: {
 
   let linkRow: AgreementLinkRow | null = null;
 
-  if (parsed.data.link_token) {
+  if (resolvedLinkToken) {
     const { data: link } = await adminSupabase
       .from("agreement_links")
       .select("id, client_id, link_type, packet_version_id, reusable, used_at, expires_at")
-      .eq("token", parsed.data.link_token)
+      .eq("token", resolvedLinkToken)
       .single();
 
     if (!link || link.packet_version_id !== parsed.data.packet_version_id) {
@@ -1992,6 +2012,9 @@ export async function submitAgreementPacket(data: {
   revalidatePath("/dashboard/forms/agreements");
   if (linkRow?.client_id) {
     revalidatePath(`/dashboard/clients/${linkRow.client_id}`);
+  }
+  if (data.providerSlug && data.packetSlug) {
+    await clearAgreementAccessToken(data.providerSlug, data.packetSlug);
   }
 
   return { success: true, data: { submissionId: submission.id } };

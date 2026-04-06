@@ -850,7 +850,7 @@ async function searchGooglePlacesListingsInternal(
 
   if (args.state) {
     filtered = filtered.filter((doc: ConvexDoc) =>
-      matchesStateOrCity(readString(doc.state), args.state),
+      matchesState(readString(doc.state), args.state),
     );
   }
 
@@ -1089,6 +1089,81 @@ function normalizeSearchText(value: unknown) {
   return typeof value === "string" ? value.trim().toLowerCase() : "";
 }
 
+const STATE_CODE_TO_NAME: Record<string, string> = {
+  AL: "Alabama",
+  AK: "Alaska",
+  AZ: "Arizona",
+  AR: "Arkansas",
+  CA: "California",
+  CO: "Colorado",
+  CT: "Connecticut",
+  DE: "Delaware",
+  DC: "District of Columbia",
+  FL: "Florida",
+  GA: "Georgia",
+  HI: "Hawaii",
+  ID: "Idaho",
+  IL: "Illinois",
+  IN: "Indiana",
+  IA: "Iowa",
+  KS: "Kansas",
+  KY: "Kentucky",
+  LA: "Louisiana",
+  ME: "Maine",
+  MD: "Maryland",
+  MA: "Massachusetts",
+  MI: "Michigan",
+  MN: "Minnesota",
+  MS: "Mississippi",
+  MO: "Missouri",
+  MT: "Montana",
+  NE: "Nebraska",
+  NV: "Nevada",
+  NH: "New Hampshire",
+  NJ: "New Jersey",
+  NM: "New Mexico",
+  NY: "New York",
+  NC: "North Carolina",
+  ND: "North Dakota",
+  OH: "Ohio",
+  OK: "Oklahoma",
+  OR: "Oregon",
+  PA: "Pennsylvania",
+  RI: "Rhode Island",
+  SC: "South Carolina",
+  SD: "South Dakota",
+  TN: "Tennessee",
+  TX: "Texas",
+  UT: "Utah",
+  VT: "Vermont",
+  VA: "Virginia",
+  WA: "Washington",
+  WV: "West Virginia",
+  WI: "Wisconsin",
+  WY: "Wyoming",
+};
+
+function expandStateSearchTerms(value: unknown) {
+  const normalized = normalizeSearchText(value);
+  if (!normalized) {
+    return [];
+  }
+
+  const upper = normalized.toUpperCase();
+  if (upper.length === 2 && STATE_CODE_TO_NAME[upper]) {
+    return [normalized, normalizeSearchText(STATE_CODE_TO_NAME[upper])];
+  }
+
+  const fromName = Object.entries(STATE_CODE_TO_NAME).find(
+    ([, name]) => normalizeSearchText(name) === normalized,
+  );
+  if (fromName) {
+    return [normalized, normalizeSearchText(fromName[0])];
+  }
+
+  return [normalized];
+}
+
 function hasAnyOverlap(values: string[], selected?: string[]) {
   if (!selected || selected.length === 0) {
     return true;
@@ -1109,6 +1184,17 @@ function matchesStateOrCity(
   }
 
   return normalizedValue.includes(normalizedFilter);
+}
+
+function matchesState(value: string | null, filterValue: unknown) {
+  const normalizedValue = normalizeSearchText(value);
+  const searchTerms = expandStateSearchTerms(filterValue);
+
+  if (searchTerms.length === 0) {
+    return true;
+  }
+
+  return searchTerms.includes(normalizedValue);
 }
 
 function calculateDistanceMiles(
@@ -1468,6 +1554,11 @@ async function buildLocationSearchResults(
   const userLat = typeof filters?.userLat === "number" ? filters.userLat : null;
   const userLng = typeof filters?.userLng === "number" ? filters.userLng : null;
   const hasProximitySearch = userLat !== null && userLng !== null;
+  const isBroadStateSearch =
+    hasProximitySearch &&
+    !normalizeSearchText(filters?.city) &&
+    expandStateSearchTerms(filters?.state).length > 0;
+  const shouldApplyProximity = hasProximitySearch && !isBroadStateSearch;
   const radiusMiles =
     typeof filters?.radiusMiles === "number" && filters.radiusMiles > 0
       ? filters.radiusMiles
@@ -1489,7 +1580,7 @@ async function buildLocationSearchResults(
 
   const prelimFiltered = allLocations.filter((loc: ConvexDoc) => {
     const meta = asRecord(loc.metadata);
-    if (!matchesStateOrCity(readString(meta.state), filters?.state)) {
+    if (!matchesState(readString(meta.state), filters?.state)) {
       return false;
     }
     if (!matchesStateOrCity(readString(meta.city), filters?.city)) {
@@ -1552,7 +1643,7 @@ async function buildLocationSearchResults(
     const latitude = typeof meta.latitude === "number" ? meta.latitude : null;
     const longitude = typeof meta.longitude === "number" ? meta.longitude : null;
     const distanceMiles =
-      hasProximitySearch && latitude !== null && longitude !== null
+      shouldApplyProximity && latitude !== null && longitude !== null
         ? calculateDistanceMiles(userLat, userLng, latitude, longitude)
         : undefined;
     const locationServiceTypes = readStringArray(meta.serviceTypes);
@@ -1589,7 +1680,7 @@ async function buildLocationSearchResults(
     }
 
     if (
-      hasProximitySearch &&
+      shouldApplyProximity &&
       typeof filters?.radiusMiles === "number" &&
       (typeof distanceMiles !== "number" || distanceMiles > radiusMiles)
     ) {
@@ -1712,6 +1803,11 @@ export const searchProviderLocationsWithGooglePlaces = query({
     const queryLower = normalizeSearchText(filters?.query);
     const hasProximitySearch =
       typeof filters?.userLat === "number" && typeof filters?.userLng === "number";
+    const isBroadStateSearch =
+      hasProximitySearch &&
+      !normalizeSearchText(filters?.city) &&
+      expandStateSearchTerms(filters?.state).length > 0;
+    const shouldApplyProximity = hasProximitySearch && !isBroadStateSearch;
 
     const realResults = raw.locations.map((loc) => ({
       ...loc,
@@ -1728,7 +1824,7 @@ export const searchProviderLocationsWithGooglePlaces = query({
     const googleResults = googlePlaces.listings
       .map((listing: ReturnType<typeof mapGooglePlacesPayload>) => {
         const distanceMiles =
-          hasProximitySearch &&
+          shouldApplyProximity &&
           typeof listing.latitude === "number" &&
           typeof listing.longitude === "number" &&
           typeof filters?.userLat === "number" &&
@@ -1758,7 +1854,7 @@ export const searchProviderLocationsWithGooglePlaces = query({
           distanceMiles,
           isPrePopulated: true as const,
           section: (
-            !hasProximitySearch ||
+            !shouldApplyProximity ||
             typeof distanceMiles !== "number" ||
             distanceMiles <= radiusMiles
               ? "nearby"
@@ -1777,7 +1873,7 @@ export const searchProviderLocationsWithGooglePlaces = query({
         return haystack.includes(queryLower);
       })
       .filter((listing: GooglePlacesSearchResultEntry) =>
-        !hasProximitySearch || typeof filters?.radiusMiles !== "number"
+        !shouldApplyProximity || typeof filters?.radiusMiles !== "number"
           ? true
           : typeof listing.distanceMiles === "number" &&
             listing.distanceMiles <= radiusMiles,

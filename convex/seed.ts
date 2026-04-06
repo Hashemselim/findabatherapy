@@ -276,6 +276,20 @@ function normalizeSeedEmail(value: string) {
   return value.trim().toLowerCase();
 }
 
+function buildPublicSeedEmail(seed: string) {
+  return `public+${generateSeedSlug(seed) || "seed"}@example.com`;
+}
+
+async function hashSeedToken(value: string) {
+  const digest = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(value),
+  );
+  return Array.from(new Uint8Array(digest))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+}
+
 function generateSeedSlug(value: string) {
   return value
     .toLowerCase()
@@ -1249,7 +1263,7 @@ export const provisionE2ECommunicationFixtures = mutation({
   args: {
     secret: v.string(),
     workspaceId: v.string(),
-    listingId: v.string(),
+    listingId: v.optional(v.string()),
     childFirstName: v.string(),
     childLastName: v.string(),
     parentFirstName: v.string(),
@@ -1265,7 +1279,17 @@ export const provisionE2ECommunicationFixtures = mutation({
     requireSeedSecret(args.secret);
 
     const workspaceId = asId<"workspaces">(args.workspaceId);
-    const listing = await ctx.db.get(asId<"listings">(args.listingId));
+    const listing =
+      (args.listingId
+        ? await ctx.db.get(asId<"listings">(args.listingId))
+        : null) ||
+      (await ctx.db
+        .query("listings")
+        .withIndex("by_workspace", (q) =>
+          q.eq("workspaceId", asId<"workspaces">(args.workspaceId)),
+        )
+        .first());
+
     if (!listing || String(listing.workspaceId) !== args.workspaceId) {
       throw new ConvexError("Listing not found for E2E communications fixture");
     }
@@ -1281,7 +1305,7 @@ export const provisionE2ECommunicationFixtures = mutation({
         stage: "inquiry",
       },
       relatedIds: {
-        listingId: args.listingId,
+        listingId: String(listing._id),
       },
       createdAt: timestamp,
       updatedAt: timestamp,
@@ -1356,6 +1380,7 @@ export const resetE2EOnboardingWorkspace = mutation({
 
     const timestamp = now();
     const email = normalizeSeedEmail(args.email);
+    const publicWorkspaceEmail = buildPublicSeedEmail(args.clerkUserId);
     const displayName = [args.firstName, args.lastName].filter(Boolean).join(" ").trim();
     const slugSeed = email.split("@")[0] || args.clerkUserId;
     const workspaceSlug = generateSeedSlug(`${slugSeed}-onboarding`) || "e2e-onboarding";
@@ -1399,7 +1424,7 @@ export const resetE2EOnboardingWorkspace = mutation({
         await ctx.db.insert("workspaces", {
           slug: workspaceSlug,
           agencyName: "E2E Onboarding User",
-          contactEmail: email,
+          contactEmail: publicWorkspaceEmail,
           planTier: "free",
           subscriptionStatus: "inactive",
           billingInterval: "month",
@@ -1416,6 +1441,19 @@ export const resetE2EOnboardingWorkspace = mutation({
 
     await clearWorkspaceRowsByWorkspaceId(ctx, workspaceId);
 
+    const workspaceMemberships = await ctx.db
+      .query("workspaceMemberships")
+      .withIndex("by_workspace", (q) =>
+        q.eq("workspaceId", asId<"workspaces">(workspaceId)),
+      )
+      .collect();
+    for (const membership of workspaceMemberships) {
+      if (String(membership.userId) === String(userId)) {
+        continue;
+      }
+      await ctx.db.delete(membership._id);
+    }
+
     const existingWorkspace = await ctx.db.get(asId<"workspaces">(workspaceId));
     if (!existingWorkspace) {
       throw new ConvexError("Failed to load onboarding workspace");
@@ -1424,7 +1462,7 @@ export const resetE2EOnboardingWorkspace = mutation({
     await ctx.db.replace(asId<"workspaces">(workspaceId), {
       slug: workspaceSlug,
       agencyName: "E2E Onboarding User",
-      contactEmail: email,
+      contactEmail: publicWorkspaceEmail,
       planTier: "free",
       subscriptionStatus: "inactive",
       billingInterval: "month",
@@ -1498,6 +1536,38 @@ export const resetE2EOnboardingWorkspace = mutation({
       workspaceId,
       listingId: String(listingId),
       slug: workspaceSlug,
+    };
+  },
+});
+
+export const completeE2EOnboardingWorkspace = mutation({
+  args: {
+    secret: v.string(),
+    workspaceId: v.string(),
+  },
+  returns: v.object({
+    workspaceId: v.string(),
+    onboardingCompletedAt: v.string(),
+  }),
+  handler: async (ctx, args) => {
+    requireSeedSecret(args.secret);
+
+    const timestamp = now();
+    const workspaceId = asId<"workspaces">(args.workspaceId);
+    const workspace = await ctx.db.get(workspaceId);
+
+    if (!workspace) {
+      throw new ConvexError("Workspace not found");
+    }
+
+    await ctx.db.patch(workspaceId, {
+      onboardingCompletedAt: timestamp,
+      updatedAt: timestamp,
+    });
+
+    return {
+      workspaceId: args.workspaceId,
+      onboardingCompletedAt: timestamp,
     };
   },
 });
@@ -1710,6 +1780,48 @@ export const inspectE2ECommunicationState = query({
   },
 });
 
+export const inspectE2EBillingState = query({
+  args: {
+    secret: v.string(),
+    workspaceId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    requireSeedSecret(args.secret);
+
+    const workspace = await ctx.db.get(asId<"workspaces">(args.workspaceId));
+    if (!workspace) {
+      throw new ConvexError("Workspace not found");
+    }
+
+    const settings = asRecord(workspace.settings);
+    const records = await ctx.db
+      .query("billingRecords")
+      .withIndex("by_workspace", (q) =>
+        q.eq("workspaceId", asId<"workspaces">(args.workspaceId)),
+      )
+      .collect();
+
+    return {
+      workspaceId: workspace._id,
+      planTier: readString(workspace.planTier),
+      billingInterval: readString(workspace.billingInterval),
+      subscriptionStatus: readString(workspace.subscriptionStatus),
+      onboardingCompletedAt: readString(workspace.onboardingCompletedAt),
+      stripeCustomerId: readString(settings.stripeCustomerId),
+      stripeSubscriptionId: readString(settings.stripeSubscriptionId),
+      billingRecordCount: records.length,
+      billingRecords: records.map((record) => ({
+        id: record._id,
+        recordType: readString(record.recordType),
+        status: readString(record.status),
+        stripeCustomerId: readString(record.stripeCustomerId),
+        stripeSubscriptionId: readString(record.stripeSubscriptionId),
+        payload: record.payload ?? null,
+      })),
+    };
+  },
+});
+
 export const attachE2EWorkspaceMember = mutation({
   args: {
     secret: v.string(),
@@ -1875,6 +1987,179 @@ export const attachE2EWorkspaceMember = mutation({
       memberUserId: String(memberUserId),
       membershipId: String(existingMembership?._id ?? membershipId),
     };
+  },
+});
+
+export const createE2EWorkspaceInvitation = mutation({
+  args: {
+    secret: v.string(),
+    ownerClerkUserId: v.string(),
+    email: v.string(),
+    role: v.union(v.literal("admin"), v.literal("member")),
+    token: v.string(),
+    expiresAt: v.optional(v.string()),
+  },
+  returns: v.object({
+    invitationId: v.string(),
+    workspaceId: v.string(),
+    workspaceName: v.string(),
+    invitedEmail: v.string(),
+    role: v.union(v.literal("admin"), v.literal("member")),
+    token: v.string(),
+    expiresAt: v.string(),
+  }),
+  handler: async (ctx, args) => {
+    requireSeedSecret(args.secret);
+
+    const ownerUsers = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_user_id", (q) => q.eq("clerkUserId", args.ownerClerkUserId))
+      .collect();
+    const ownerUser = ownerUsers[0] ?? null;
+    if (!ownerUser) {
+      throw new ConvexError("Owner user not found");
+    }
+
+    const ownerMemberships = await ctx.db
+      .query("workspaceMemberships")
+      .withIndex("by_user", (q) => q.eq("userId", ownerUser._id))
+      .collect();
+    const ownerMembership =
+      ownerMemberships.find(
+        (membership) =>
+          membership.status === "active" &&
+          membership.workspaceId === ownerUser.activeWorkspaceId,
+      ) ?? ownerMemberships.find((membership) => membership.status === "active");
+    if (!ownerMembership) {
+      throw new ConvexError("Owner workspace not found");
+    }
+
+    const workspaceId = String(ownerMembership.workspaceId);
+    const workspace = await ctx.db.get(asId<"workspaces">(workspaceId));
+    if (!workspace) {
+      throw new ConvexError("Workspace not found");
+    }
+
+    const invitedEmail = normalizeSeedEmail(args.email);
+    const tokenHash = await hashSeedToken(args.token);
+    const nowIso = new Date().toISOString();
+    const expiresAt =
+      args.expiresAt ?? new Date(Date.now() + 1000 * 60 * 60 * 24 * 7).toISOString();
+
+    const existingInvitations = await ctx.db
+      .query("workspaceInvitations")
+      .withIndex("by_workspace", (q) => q.eq("workspaceId", asId<"workspaces">(workspaceId)))
+      .collect();
+    const matchingInvitation = existingInvitations.find(
+      (invitation) =>
+        normalizeSeedEmail(String(invitation.email ?? "")) === invitedEmail &&
+        invitation.status === "pending",
+    );
+
+    const invitationId = matchingInvitation
+      ? matchingInvitation._id
+      : await ctx.db.insert("workspaceInvitations", {
+          workspaceId: asId<"workspaces">(workspaceId),
+          email: invitedEmail,
+          role: args.role,
+          status: "pending",
+          tokenHash,
+          expiresAt,
+          createdAt: nowIso,
+          updatedAt: nowIso,
+          legacyTable: "seed_fixtures",
+          legacySourceId: `invite-${workspaceId}-${invitedEmail}`,
+        });
+
+    if (matchingInvitation) {
+      await ctx.db.patch(asId<"workspaceInvitations">(matchingInvitation._id), {
+        email: invitedEmail,
+        role: args.role,
+        status: "pending",
+        tokenHash,
+        expiresAt,
+        updatedAt: nowIso,
+      });
+    }
+
+    return {
+      invitationId: String(invitationId),
+      workspaceId,
+      workspaceName: readString(workspace.agencyName) ?? "GoodABA",
+      invitedEmail,
+      role: args.role,
+      token: args.token,
+      expiresAt,
+    };
+  },
+});
+
+export const inspectE2EClientDocuments = query({
+  args: {
+    secret: v.string(),
+    workspaceId: v.string(),
+    clientId: v.string(),
+  },
+  returns: v.array(
+    v.object({
+      recordId: v.string(),
+      fileId: v.optional(v.union(v.string(), v.null())),
+      storageId: v.optional(v.union(v.string(), v.null())),
+      fileName: v.string(),
+      label: v.optional(v.union(v.string(), v.null())),
+      url: v.optional(v.union(v.string(), v.null())),
+    }),
+  ),
+  handler: async (ctx, args) => {
+    requireSeedSecret(args.secret);
+
+    const workspaceId = args.workspaceId;
+    const records = await ctx.db
+      .query("crmRecords")
+      .withIndex("by_workspace", (q) => q.eq("workspaceId", asId<"workspaces">(workspaceId)))
+      .collect();
+
+    const documentRows = records.filter((record) => {
+      if (record.recordType !== "client_document" || record.deletedAt) {
+        return false;
+      }
+      const relatedIds = asRecord(record.relatedIds);
+      return readString(relatedIds.clientId) === args.clientId;
+    });
+
+    const result = [];
+    for (const record of documentRows) {
+      const payload = asRecord(record.payload);
+      const fileId = readString(payload.fileId);
+      let storageId: string | null = null;
+      let fileName =
+        readString(payload.filename) ??
+        readString(payload.label) ??
+        "document";
+      let url: string | null = null;
+
+      if (fileId) {
+        const file = await ctx.db.get(asId<"files">(fileId));
+        if (file && String(file.workspaceId) === workspaceId && !file.deletedAt) {
+          storageId = readString(file.storageId);
+          fileName = readString(file.filename) ?? fileName;
+          if (storageId) {
+            url = await ctx.storage.getUrl(asId<"_storage">(storageId));
+          }
+        }
+      }
+
+      result.push({
+        recordId: String(record._id),
+        fileId,
+        storageId,
+        fileName,
+        label: readString(payload.label),
+        url,
+      });
+    }
+
+    return result;
   },
 });
 

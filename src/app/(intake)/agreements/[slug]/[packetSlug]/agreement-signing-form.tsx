@@ -26,6 +26,8 @@ interface AgreementSigningFormProps {
   link: AgreementPublicPageData["link"];
   providerName: string;
   brandColor: string;
+  providerSlug: string;
+  packetSlug: string;
   disabled?: boolean;
 }
 
@@ -164,6 +166,8 @@ export function AgreementSigningForm({
   link,
   providerName,
   brandColor,
+  providerSlug,
+  packetSlug,
   disabled = false,
 }: AgreementSigningFormProps) {
   const validationTimerRef = useRef<number | null>(null);
@@ -252,10 +256,11 @@ export function AgreementSigningForm({
       setIsValidatingSubmit(false);
       const result = await submitAgreementPacket({
         turnstileToken,
+        providerSlug,
+        packetSlug,
         payload: {
           packet_id: packet.id,
           packet_version_id: packet.versionId,
-          link_token: link.token || "",
           client_name: clientName,
           signer_first_name: signerFirstName,
           signer_last_name: signerLastName,

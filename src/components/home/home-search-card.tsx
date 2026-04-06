@@ -12,6 +12,7 @@ import { PlacesAutocomplete } from "@/components/ui/places-autocomplete";
 import { cn } from "@/lib/utils";
 import { buildSearchUrl } from "@/lib/search/filters";
 import { COMMON_INSURANCES, SERVICE_MODES } from "@/lib/search/filters";
+import { getStateName } from "@/lib/utils/location-utils";
 import type { PlaceDetails } from "@/hooks/use-places-autocomplete";
 
 type HomeSearchCardProps = {
@@ -92,16 +93,20 @@ export function HomeSearchCard({
 
     // Build filters
     const filters: Record<string, string | string[] | number | undefined> = {};
+    const normalizedState =
+      selectedPlace?.stateName ??
+      (selectedPlace?.state ? getStateName(selectedPlace.state) ?? selectedPlace.state : undefined);
 
-    // If we have a selected place with coordinates, use proximity search
     if (selectedPlace && selectedPlace.latitude && selectedPlace.longitude) {
-      filters.userLat = selectedPlace.latitude;
-      filters.userLng = selectedPlace.longitude;
-      filters.radiusMiles = 25; // Default radius
-
-      // Also set city/state for display purposes
-      if (selectedPlace.city) filters.city = selectedPlace.city;
-      if (selectedPlace.state) filters.state = selectedPlace.state;
+      if (selectedPlace.city) {
+        filters.userLat = selectedPlace.latitude;
+        filters.userLng = selectedPlace.longitude;
+        filters.radiusMiles = 25; // Default radius
+        filters.city = selectedPlace.city;
+        if (normalizedState) filters.state = normalizedState;
+      } else if (normalizedState) {
+        filters.state = normalizedState;
+      }
     } else if (location.trim()) {
       // Fallback: parse location string
       const locationParts = location.split(",").map((s) => s.trim());

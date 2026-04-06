@@ -7,6 +7,7 @@ import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PlacesAutocomplete } from "@/components/ui/places-autocomplete";
 import { buildSearchUrl } from "@/lib/search/filters";
+import { getStateName } from "@/lib/utils/location-utils";
 import type { PlaceDetails } from "@/hooks/use-places-autocomplete";
 
 export function StateSearchInput() {
@@ -25,13 +26,20 @@ export function StateSearchInput() {
     if (!location.trim() && !selectedPlace) return;
 
     const filters: Record<string, string | string[] | number | undefined> = {};
+    const normalizedState =
+      selectedPlace?.stateName ??
+      (selectedPlace?.state ? getStateName(selectedPlace.state) ?? selectedPlace.state : undefined);
 
     if (selectedPlace && selectedPlace.latitude && selectedPlace.longitude) {
-      filters.userLat = selectedPlace.latitude;
-      filters.userLng = selectedPlace.longitude;
-      filters.radiusMiles = 25;
-      if (selectedPlace.city) filters.city = selectedPlace.city;
-      if (selectedPlace.state) filters.state = selectedPlace.state;
+      if (selectedPlace.city) {
+        filters.userLat = selectedPlace.latitude;
+        filters.userLng = selectedPlace.longitude;
+        filters.radiusMiles = 25;
+        filters.city = selectedPlace.city;
+        if (normalizedState) filters.state = normalizedState;
+      } else if (normalizedState) {
+        filters.state = normalizedState;
+      }
     } else if (location.trim()) {
       const locationParts = location.split(",").map((s) => s.trim());
       if (locationParts.length >= 2) {

@@ -20,6 +20,28 @@ const matchesClerkAuthRoute = createRouteMatcher([
   "/auth/sign-up(.*)",
 ]);
 
+function getAuthCallbackNextTarget(request: NextRequest): string {
+  return (
+    request.nextUrl.searchParams.get("redirect") ||
+    request.nextUrl.searchParams.get("next") ||
+    "/dashboard/clients/pipeline"
+  );
+}
+
+function buildClerkAuthCallbackUrl(request: NextRequest): URL {
+  const redirectUrl = new URL("/auth/callback", request.url);
+  redirectUrl.searchParams.set("next", getAuthCallbackNextTarget(request));
+
+  for (const key of ["invite", "plan", "interval", "intent", "email"]) {
+    const value = request.nextUrl.searchParams.get(key);
+    if (value) {
+      redirectUrl.searchParams.set(key, value);
+    }
+  }
+
+  return redirectUrl;
+}
+
 function normalizeHost(host: string): string {
   return host.toLowerCase().replace(/:\d+$/, "");
 }
@@ -565,9 +587,7 @@ const handleClerkMiddleware = clerkMiddleware(async (auth, request) => {
   }
 
   if (isAuthRoute && authState.userId) {
-    const redirectUrl = new URL("/auth/callback", request.url);
-    redirectUrl.searchParams.set("next", "/dashboard/clients/pipeline");
-    return NextResponse.redirect(redirectUrl);
+    return NextResponse.redirect(buildClerkAuthCallbackUrl(request));
   }
 
   return NextResponse.next();

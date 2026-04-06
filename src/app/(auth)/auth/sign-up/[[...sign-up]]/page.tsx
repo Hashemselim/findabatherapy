@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, Suspense, useRef } from "react";
+import { Suspense, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2, Check, ShieldCheck } from "lucide-react";
@@ -24,6 +24,24 @@ import { signUpWithEmail, signInWithOAuth } from "@/lib/auth/actions";
 import { SignupPageTracker, useSignupTracking } from "@/components/analytics/signup-tracker";
 
 type SignupIntent = "therapy" | "jobs" | "both";
+
+function buildClerkAuthCallbackPath(searchParams: URLSearchParams) {
+  const callbackParams = new URLSearchParams();
+  const nextTarget =
+    searchParams.get("redirect") ||
+    searchParams.get("next") ||
+    "/dashboard/clients/pipeline";
+  callbackParams.set("next", nextTarget);
+
+  for (const key of ["invite", "plan", "interval", "intent", "email"]) {
+    const value = searchParams.get(key);
+    if (value) {
+      callbackParams.set(key, value);
+    }
+  }
+
+  return `/auth/callback?${callbackParams.toString()}`;
+}
 
 function normalizeIntent(value: string | null): SignupIntent {
   if (value === "therapy" || value === "jobs" || value === "both") return value;
@@ -412,13 +430,20 @@ function SignUpSkeleton() {
 }
 
 export default function SignUpPage() {
+  const searchParams = useSearchParams();
+
   if (platformConfig.authProvider === "clerk") {
+    const callbackUrl = buildClerkAuthCallbackPath(searchParams);
+    const signInParams = new URLSearchParams(searchParams.toString());
+    const signInUrl = `/auth/sign-in${signInParams.toString() ? `?${signInParams.toString()}` : ""}`;
+
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
         <SignUp
-          routing="hash"
-          forceRedirectUrl="/auth/callback"
-          signInUrl="/auth/sign-in"
+          routing="path"
+          path="/auth/sign-up"
+          forceRedirectUrl={callbackUrl}
+          signInUrl={signInUrl}
         />
       </div>
     );

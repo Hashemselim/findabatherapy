@@ -806,11 +806,6 @@ export async function verifyAndSyncCheckoutSession(
       }
     }
 
-    revalidatePath("/dashboard", "layout");
-    revalidatePath("/dashboard/company");
-    revalidatePath("/dashboard/locations");
-    revalidatePath("/dashboard/billing");
-
     return {
       success: true,
       data: {
