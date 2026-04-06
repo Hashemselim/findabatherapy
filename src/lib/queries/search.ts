@@ -763,22 +763,12 @@ export async function searchLocations(
     };
   });
 
-  // Filter by radius if proximity search with radius is active
-  // This filters results to only those within the specified distance
-  let filteredByRadius = locations;
-  if (hasProximitySearch && filters.radiusMiles) {
-    filteredByRadius = locations.filter((loc) => {
-      if (loc.distanceMiles === undefined) return false;
-      return loc.distanceMiles <= filters.radiusMiles!;
-    });
-  }
-
   // Sort results by: Featured → Paid (Pro) → Free → Distance
   // Uses shared utility for consistent sorting across therapy and job search
-  sortSearchResultsByRelevance(filteredByRadius);
+  sortSearchResultsByRelevance(locations);
 
   // Apply text filter client-side
-  let filteredLocations = filteredByRadius;
+  let filteredLocations = locations;
 
   if (filters.query) {
     const queryLower = filters.query.toLowerCase();
@@ -940,17 +930,8 @@ export async function searchGooglePlacesLocations(
     };
   });
 
-  // Filter by radius if proximity search with radius is active
-  let filteredByRadius = listings;
-  if (hasProximitySearch && filters.radiusMiles) {
-    filteredByRadius = listings.filter((loc) => {
-      if (loc.distanceMiles === undefined) return false;
-      return loc.distanceMiles <= filters.radiusMiles!;
-    });
-  }
-
   // Apply text filter client-side
-  let filteredListings = filteredByRadius;
+  let filteredListings = listings;
   if (filters.query) {
     const queryLower = filters.query.toLowerCase();
     filteredListings = filteredListings.filter(
@@ -970,14 +951,9 @@ export async function searchGooglePlacesLocations(
     });
   }
 
-  // Use filtered count when radius filtering is applied
-  const actualTotal = hasProximitySearch && filters.radiusMiles
-    ? filteredListings.length
-    : (count || filteredListings.length);
-
   return {
     listings: filteredListings,
-    total: actualTotal,
+    total: count || filteredListings.length,
   };
 }
 

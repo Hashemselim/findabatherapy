@@ -1559,6 +1559,7 @@ async function buildLocationSearchResults(
     !normalizeSearchText(filters?.city) &&
     expandStateSearchTerms(filters?.state).length > 0;
   const shouldApplyProximity = hasProximitySearch && !isBroadStateSearch;
+  const shouldIgnoreCityFilter = hasProximitySearch;
   const radiusMiles =
     typeof filters?.radiusMiles === "number" && filters.radiusMiles > 0
       ? filters.radiusMiles
@@ -1583,7 +1584,7 @@ async function buildLocationSearchResults(
     if (!matchesState(readString(meta.state), filters?.state)) {
       return false;
     }
-    if (!matchesStateOrCity(readString(meta.city), filters?.city)) {
+    if (!shouldIgnoreCityFilter && !matchesStateOrCity(readString(meta.city), filters?.city)) {
       return false;
     }
     if (!hasAnyOverlap(readStringArray(meta.serviceTypes), serviceTypeFilters)) {
@@ -1677,14 +1678,6 @@ async function buildLocationSearchResults(
       if (!haystack.includes(queryLower)) {
         continue;
       }
-    }
-
-    if (
-      shouldApplyProximity &&
-      typeof filters?.radiusMiles === "number" &&
-      (typeof distanceMiles !== "number" || distanceMiles > radiusMiles)
-    ) {
-      continue;
     }
 
     locations.push({
@@ -1793,16 +1786,16 @@ export const searchProviderLocationsWithGooglePlaces = query({
     const offset =
       ((typeof args.options?.page === "number" ? args.options.page : 1) - 1) *
       (typeof args.options?.limit === "number" ? args.options.limit : 20);
+    const hasProximitySearch =
+      typeof filters?.userLat === "number" && typeof filters?.userLng === "number";
     const googlePlaces = await searchGooglePlacesListingsInternal(ctx, {
       state: filters?.state,
-      city: filters?.city,
+      city: hasProximitySearch ? undefined : filters?.city,
       limit: typeof args.options?.limit === "number" ? args.options.limit : 20,
       offset,
     });
 
     const queryLower = normalizeSearchText(filters?.query);
-    const hasProximitySearch =
-      typeof filters?.userLat === "number" && typeof filters?.userLng === "number";
     const isBroadStateSearch =
       hasProximitySearch &&
       !normalizeSearchText(filters?.city) &&
@@ -1872,12 +1865,7 @@ export const searchProviderLocationsWithGooglePlaces = query({
           .join(" ");
         return haystack.includes(queryLower);
       })
-      .filter((listing: GooglePlacesSearchResultEntry) =>
-        !shouldApplyProximity || typeof filters?.radiusMiles !== "number"
-          ? true
-          : typeof listing.distanceMiles === "number" &&
-            listing.distanceMiles <= radiusMiles,
-      );
+      .filter((listing: GooglePlacesSearchResultEntry) => Boolean(listing));
 
     const results = [...realResults, ...googleResults].sort(sortCombinedSearchResults);
     const featuredCount = results.filter((r) => r.section === "featured").length;
