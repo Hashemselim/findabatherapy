@@ -635,10 +635,13 @@ export const createWorkspaceForCurrentUser = mutation({
 export const acceptWorkspaceInvitation = mutation({
   args: {
     tokenHash: v.string(),
+    invitedEmail: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const identity = await requireIdentity(ctx);
-    const normalizedEmail = normalizeEmail(identity.email ?? "");
+    const normalizedEmail = normalizeEmail(
+      identity.email ?? args.invitedEmail ?? "",
+    );
     if (!normalizedEmail) {
       throw new ConvexError("This invitation must be accepted with the invited email address");
     }
@@ -665,18 +668,45 @@ export const acceptWorkspaceInvitation = mutation({
       throw new ConvexError("This invitation has expired");
     }
 
-    if (invitation.status === "accepted") {
-      throw new ConvexError("This invitation has already been accepted");
-    }
-
     if (normalizeEmail(String(invitation.email)) !== normalizedEmail) {
       throw new ConvexError("This invitation must be accepted with the invited email address");
     }
 
-    const userId = await ensureUserRecord(ctx, identity);
+    const userId = await ensureUserRecord(ctx, {
+      ...identity,
+      email: identity.email ?? args.invitedEmail,
+    });
     const activeMemberships = (await findMembershipsByUserId(ctx, userId)).filter(
       (membership) => membership.status === "active",
     );
+
+    if (invitation.status === "accepted") {
+      const acceptedByUserId = readString(invitation.acceptedByUserId);
+      const existingMembership = activeMemberships.find(
+        (membership) => membership.workspaceId === invitation.workspaceId,
+      );
+      if (
+        existingMembership &&
+        (!acceptedByUserId || acceptedByUserId === userId)
+      ) {
+        await ctx.db.patch(asId<"users">(userId), {
+          activeWorkspaceId: asId<"workspaces">(invitation.workspaceId),
+          updatedAt: new Date().toISOString(),
+        });
+
+        const workspace = await ctx.db.get(
+          asId<"workspaces">(invitation.workspaceId),
+        );
+        if (!workspace) {
+          throw new ConvexError("Workspace not found");
+        }
+
+        return buildWorkspacePayload(workspace, existingMembership);
+      }
+
+      throw new ConvexError("This invitation has already been accepted");
+    }
+
     const conflictingMembership = activeMemberships.find(
       (membership) => membership.workspaceId !== invitation.workspaceId,
     );

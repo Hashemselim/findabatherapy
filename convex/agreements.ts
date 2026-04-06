@@ -284,9 +284,181 @@ function mapArtifact(row: ConvexDoc) {
   };
 }
 
+function formatClientName(payload: Record<string, unknown>) {
+  return [readString(payload.firstName), readString(payload.lastName)]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+}
+
 // ---------------------------------------------------------------------------
 // Queries
 // ---------------------------------------------------------------------------
+
+export const getAgreementDashboardData = query({
+  args: {},
+  handler: async (ctx) => {
+    const { workspaceId } = await requireCurrentWorkspace(ctx);
+    const workspace = await ctx.db.get(asId<"workspaces">(workspaceId));
+    if (!workspace) {
+      throw new ConvexError("Workspace not found");
+    }
+
+    const listingRows = await ctx.db
+      .query("listings")
+      .withIndex("by_workspace", (q) =>
+        q.eq("workspaceId", asId<"workspaces">(workspaceId)),
+      )
+      .collect();
+    const listing =
+      listingRows.find((row) => row.status === "published" && !row.deletedAt) ??
+      listingRows.find((row) => !row.deletedAt) ??
+      null;
+
+    const clientRows = await ctx.db
+      .query("crmRecords")
+      .withIndex("by_workspace_and_type", (q) =>
+        q.eq("workspaceId", asId<"workspaces">(workspaceId)).eq("recordType", "client"),
+      )
+      .collect();
+    const clients = clientRows
+      .filter((row) => !row.deletedAt)
+      .map((row) => {
+        const payload = asRecord(row.payload);
+        return {
+          id: String(row._id),
+          name: formatClientName(payload) || "Unnamed Client",
+        };
+      })
+      .sort((a, b) => a.name.localeCompare(b.name));
+    const clientNameById = new Map(clients.map((client) => [client.id, client.name]));
+
+    const packetRows = await getWorkspacePacketRows(ctx, workspaceId);
+    const activePackets = packetRows
+      .filter((row) => !row.deletedAt)
+      .sort(
+        (a, b) =>
+          new Date(readString(b.updatedAt) ?? 0).getTime() -
+          new Date(readString(a.updatedAt) ?? 0).getTime(),
+      );
+
+    const packets = [];
+    const submissions = [];
+
+    for (const row of activePackets) {
+      const packet = mapPacket(row as unknown as ConvexDoc);
+      const artifactRows = await getPacketArtifactRows(ctx, row._id);
+      const documentArtifacts = artifactRows
+        .filter((artifact) => artifact.artifactType === "document" && !artifact.deletedAt)
+        .sort((a, b) => {
+          const aPayload = asRecord(a.payload);
+          const bPayload = asRecord(b.payload);
+          const aOrder =
+            typeof aPayload.sortOrder === "number" ? aPayload.sortOrder : 0;
+          const bOrder =
+            typeof bPayload.sortOrder === "number" ? bPayload.sortOrder : 0;
+          return aOrder - bOrder;
+        });
+
+      const documents = [];
+      for (const [index, artifact] of documentArtifacts.entries()) {
+        const payload = asRecord(artifact.payload);
+        const file = artifact.fileId
+          ? await ctx.db.get(asId<"files">(String(artifact.fileId)))
+          : null;
+        documents.push({
+          id: String(artifact._id),
+          packet_id: String(row._id),
+          packet_version_id: row.status === "published" ? String(row._id) : undefined,
+          label: readString(payload.title),
+          description: readString(payload.description),
+          file_name: readString(file?.filename) ?? "document.pdf",
+          file_path: readString(file?.storageKey) ?? "",
+          file_size: typeof file?.byteSize === "number" ? file.byteSize : 0,
+          file_type: readString(file?.mimeType) ?? "application/pdf",
+          sha256: readString(asRecord(file?.metadata).sha256) ?? "",
+          sort_order:
+            typeof payload.sortOrder === "number" ? payload.sortOrder : index + 1,
+          created_at: readString(artifact.createdAt) ?? undefined,
+          deleted_at: readString(artifact.deletedAt),
+        });
+      }
+
+      packets.push({
+        id: String(row._id),
+        title: packet.title,
+        description: packet.description,
+        slug: packet.slug ?? "",
+        created_at: packet.createdAt,
+        updated_at: packet.updatedAt,
+        latest_version_id: row.status === "published" ? String(row._id) : null,
+        latest_version_number: row.status === "published" ? 1 : null,
+        latest_published_at:
+          row.status === "published" ? readString(row.updatedAt) ?? readString(row.createdAt) : null,
+        documents,
+        versions:
+          row.status === "published"
+            ? [{
+                id: String(row._id),
+                version_number: 1,
+                published_at: readString(row.updatedAt) ?? readString(row.createdAt) ?? new Date().toISOString(),
+              }]
+            : [],
+      });
+
+      const submissionArtifacts = artifactRows
+        .filter((artifact) => artifact.artifactType === "submission" && !artifact.deletedAt)
+        .sort(
+          (a, b) =>
+            new Date(readString(b.createdAt) ?? 0).getTime() -
+            new Date(readString(a.createdAt) ?? 0).getTime(),
+        );
+
+      for (const artifact of submissionArtifacts) {
+        const payload = asRecord(artifact.payload);
+        const clientId = readString(payload.clientId);
+        const file = artifact.fileId
+          ? await ctx.db.get(asId<"files">(String(artifact.fileId)))
+          : null;
+        submissions.push({
+          id: String(artifact._id),
+          packet_id: String(row._id),
+          packet_title: packet.title,
+          packet_version_number: 1,
+          client_id: clientId,
+          client_name:
+            (clientId ? clientNameById.get(clientId) : null) ??
+            readString(payload.clientName) ??
+            "Unlinked Client",
+          signer_name: readString(payload.signerName) ?? "",
+          submitted_at: readString(payload.signedAt) ?? readString(artifact.createdAt) ?? new Date().toISOString(),
+          link_type: readString(payload.linkType) === "assigned" ? "assigned" : "generic",
+          status: clientId ? "linked" : "unlinked",
+          signed_pdf_path: readString(file?.storageKey) ?? "",
+          linked_client_label: clientId ? clientNameById.get(clientId) ?? null : null,
+        });
+      }
+    }
+
+    return {
+      listing: {
+        slug: readString(listing?.slug),
+        logoUrl: readString(asRecord(listing?.metadata).logoUrl),
+        profileId: workspaceId,
+      },
+      profile: {
+        agencyName: readString(workspace.agencyName) ?? "Your Agency",
+        website: readString(asRecord(workspace.settings).website),
+        planTier: readString(workspace.planTier) ?? "free",
+        subscriptionStatus: readString(workspace.subscriptionStatus),
+        intakeFormSettings: buildPublicBrandingSettings(workspace as ConvexDoc),
+      },
+      packets,
+      submissions,
+      clients,
+    };
+  },
+});
 
 export const getAgreementPackets = query({
   args: {
@@ -772,6 +944,7 @@ export const addAgreementDocument = mutation({
   args: {
     packetId: v.string(),
     title: v.string(),
+    description: v.optional(v.union(v.string(), v.null())),
     fileId: v.optional(v.union(v.string(), v.null())),
     templateContent: v.optional(v.union(v.string(), v.null())),
   },
@@ -800,6 +973,7 @@ export const addAgreementDocument = mutation({
       fileId: args.fileId ? asId<"files">(args.fileId) : undefined,
       payload: {
         title: args.title,
+        description: args.description ?? null,
         sortOrder: maxSort + 1,
         templateContent: args.templateContent ?? null,
       },
@@ -811,6 +985,7 @@ export const addAgreementDocument = mutation({
     const newDoc = {
       id: artifactId,
       title: args.title,
+      description: args.description ?? null,
       sortOrder: maxSort + 1,
       fileId: args.fileId ?? null,
       templateContent: args.templateContent ?? null,
@@ -831,6 +1006,7 @@ export const updateAgreementDocument = mutation({
   args: {
     artifactId: v.string(),
     title: v.optional(v.string()),
+    description: v.optional(v.union(v.string(), v.null())),
     fileId: v.optional(v.union(v.string(), v.null())),
     templateContent: v.optional(v.union(v.string(), v.null())),
   },
@@ -851,6 +1027,7 @@ export const updateAgreementDocument = mutation({
     const updatedArtifactPayload = {
       ...artifactPayload,
       ...(args.title !== undefined ? { title: args.title } : {}),
+      ...(args.description !== undefined ? { description: args.description } : {}),
       ...(args.templateContent !== undefined
         ? { templateContent: args.templateContent }
         : {}),
@@ -880,6 +1057,9 @@ export const updateAgreementDocument = mutation({
             return {
               ...doc,
               ...(args.title !== undefined ? { title: args.title } : {}),
+              ...(args.description !== undefined
+                ? { description: args.description }
+                : {}),
               ...(args.fileId !== undefined ? { fileId: args.fileId } : {}),
               ...(args.templateContent !== undefined
                 ? { templateContent: args.templateContent }

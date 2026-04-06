@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, Suspense, useRef } from "react";
+import { Suspense, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2, ShieldCheck } from "lucide-react";
@@ -20,6 +20,24 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { signInWithEmail, signInWithOAuth } from "@/lib/auth/actions";
+
+function buildClerkAuthCallbackPath(searchParams: URLSearchParams) {
+  const callbackParams = new URLSearchParams();
+  const nextTarget =
+    searchParams.get("redirect") ||
+    searchParams.get("next") ||
+    "/dashboard/clients/pipeline";
+  callbackParams.set("next", nextTarget);
+
+  for (const key of ["invite", "plan", "interval", "intent", "email"]) {
+    const value = searchParams.get(key);
+    if (value) {
+      callbackParams.set(key, value);
+    }
+  }
+
+  return `/auth/callback?${callbackParams.toString()}`;
+}
 
 function SignInForm() {
   const router = useRouter();
@@ -322,13 +340,20 @@ function SignInSkeleton() {
 }
 
 export default function SignInPage() {
+  const searchParams = useSearchParams();
+
   if (platformConfig.authProvider === "clerk") {
+    const callbackUrl = buildClerkAuthCallbackPath(searchParams);
+    const signUpParams = new URLSearchParams(searchParams.toString());
+    const signUpUrl = `/auth/sign-up${signUpParams.toString() ? `?${signUpParams.toString()}` : ""}`;
+
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
         <SignIn
-          routing="hash"
-          forceRedirectUrl="/auth/callback"
-          signUpUrl="/auth/sign-up"
+          routing="path"
+          path="/auth/sign-in"
+          forceRedirectUrl={callbackUrl}
+          signUpUrl={signUpUrl}
         />
       </div>
     );

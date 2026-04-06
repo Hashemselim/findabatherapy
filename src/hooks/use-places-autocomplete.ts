@@ -15,6 +15,7 @@ export interface PlaceDetails {
   streetAddress?: string;
   city?: string;
   state?: string;
+  stateName?: string;
   postalCode?: string;
   latitude: number;
   longitude: number;

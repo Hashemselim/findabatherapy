@@ -179,6 +179,45 @@ export const generateUploadUrl = mutation({
   },
 });
 
+export const registerFileRecord = mutation({
+  args: {
+    storageId: v.string(),
+    fileName: v.string(),
+    fileSize: v.number(),
+    fileType: v.string(),
+    bucket: v.optional(v.string()),
+    storageKey: v.optional(v.string()),
+    visibility: v.optional(v.union(v.literal("public"), v.literal("private"))),
+    relatedTable: v.optional(v.string()),
+    relatedId: v.optional(v.string()),
+    metadata: v.optional(v.record(v.string(), v.union(v.string(), v.number(), v.boolean(), v.null()))),
+  },
+  handler: async (ctx, args) => {
+    const { workspace } = await requireCurrentWorkspaceContext(ctx);
+    const now = new Date().toISOString();
+    const storageDoc = await ctx.db.system.get("_storage", asId<"_storage">(args.storageId));
+
+    const fileId = await ctx.db.insert("files", {
+      workspaceId: asId<"workspaces">(workspace._id),
+      storageId: asId<"_storage">(args.storageId),
+      bucket: args.bucket ?? "uploads",
+      storageKey: args.storageKey ?? args.storageId,
+      filename: args.fileName,
+      mimeType: readString(storageDoc?.contentType) ?? args.fileType,
+      byteSize:
+        typeof storageDoc?.size === "number" ? storageDoc.size : args.fileSize,
+      visibility: args.visibility ?? "private",
+      relatedTable: args.relatedTable,
+      relatedId: args.relatedId,
+      metadata: args.metadata,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    return { fileId };
+  },
+});
+
 export const discardUpload = mutation({
   args: {
     storageId: v.string(),

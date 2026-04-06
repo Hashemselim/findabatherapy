@@ -66,7 +66,7 @@ function FileTypeIcon({ mimeType }: { mimeType: string | null }) {
 }
 
 interface PublicDocumentUploadFormProps {
-  token: string;
+  accessSlug: string;
   clientName: string;
   providerName: string;
   brandColor: string;
@@ -85,7 +85,7 @@ const RECOMMENDED_DOCUMENTS: Array<{
 ];
 
 export function PublicDocumentUploadForm({
-  token,
+  accessSlug,
   clientName,
   providerName,
   brandColor,
@@ -165,7 +165,7 @@ export function PublicDocumentUploadForm({
       if (data.file_description) uploadFormData.append("file_description", data.file_description);
       if (data.notes) uploadFormData.append("notes", data.notes);
 
-      const result = await submitPublicClientDocumentUpload(token, uploadFormData);
+      const result = await submitPublicClientDocumentUpload(uploadFormData, accessSlug);
       if (!result.success) {
         form.setError("root", { message: result.error });
         return;

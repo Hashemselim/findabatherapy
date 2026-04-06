@@ -10,7 +10,7 @@ import type {
   SeedDirectoryMediaAsset,
 } from "./seed-directory-types";
 
-config({ path: ".env.local", override: true });
+config({ path: ".env.local" });
 
 const DEFAULT_INPUT_PATH = path.resolve(
   process.cwd(),

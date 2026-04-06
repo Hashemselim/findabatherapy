@@ -1,12 +1,19 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { Globe } from "lucide-react";
 
 import { BrandedLogo } from "@/components/branded/branded-logo";
 import { Button } from "@/components/ui/button";
 import { PreviewBanner } from "@/components/ui/preview-banner";
-import { getClientIntakePageData, getIntakeFieldsConfig, getIntakeTokenData, getPublicAgencyLocations, type PrefillData } from "@/lib/actions/intake";
+import {
+  getClientIntakePageData,
+  getIntakeTokenData,
+  getPublicAgencyLocations,
+  type PrefillData,
+} from "@/lib/actions/intake";
+import { mergeWithDefaults } from "@/lib/intake/field-registry";
+import { buildIntakeAccessPath, getIntakeAccessToken } from "@/lib/public-access";
 import { getContrastingTextColor } from "@/lib/utils/brand-color";
 
 import { ClientIntakeForm } from "./client-intake-form";
@@ -51,6 +58,16 @@ function getLighterShade(hexColor: string, opacity: number = 0.1) {
 export default async function ClientIntakePage({ params, searchParams }: ClientIntakePageProps) {
   const { slug } = await params;
   const { ref, token } = await searchParams;
+
+  if (token) {
+    const accessPath = new URL(buildIntakeAccessPath(slug), "http://localhost");
+    accessPath.searchParams.set("token", token);
+    if (ref) {
+      accessPath.searchParams.set("ref", ref);
+    }
+    redirect(`${accessPath.pathname}${accessPath.search}`);
+  }
+
   const result = await getClientIntakePageData(slug);
 
   if (!result.success || !result.data) {
@@ -63,15 +80,16 @@ export default async function ClientIntakePage({ params, searchParams }: ClientI
   const contrastColor = getContrastingTextColor(background_color);
 
   // Load dynamic field configuration and agency locations in parallel
-  const [fieldsConfig, agencyLocations] = await Promise.all([
-    getIntakeFieldsConfig(listing.profileId),
-    getPublicAgencyLocations(listing.id),
+  const [agencyLocations] = await Promise.all([
+    getPublicAgencyLocations({ listingId: listing.id, slug: listing.slug }),
   ]);
+  const fieldsConfig = mergeWithDefaults(profile.intakeFormSettings.fields);
 
   // If a pre-fill token is provided, load existing client data
   let prefillData: PrefillData | undefined;
-  if (token) {
-    const tokenResult = await getIntakeTokenData(token);
+  const accessToken = await getIntakeAccessToken(slug);
+  if (accessToken) {
+    const tokenResult = await getIntakeTokenData(accessToken);
     if (tokenResult.success && tokenResult.data) {
       prefillData = tokenResult.data;
     }
@@ -166,7 +184,7 @@ export default async function ClientIntakePage({ params, searchParams }: ClientI
               agencyLocations={agencyLocations}
               initialReferralSource={ref === "findabatherapy" ? "findabatherapy" : undefined}
               prefillData={prefillData}
-              intakeToken={token}
+              intakeSlug={slug}
             />
           </div>
 

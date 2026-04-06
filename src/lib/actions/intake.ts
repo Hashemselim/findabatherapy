@@ -8,6 +8,11 @@ import {
   mergeWithDefaults,
 } from "@/lib/intake/field-registry";
 import { isPublicProfileVisible } from "@/lib/public-visibility";
+import {
+  buildIntakeAccessPath,
+  clearIntakeAccessToken,
+  getIntakeAccessToken,
+} from "@/lib/public-access";
 import { getRequestOrigin } from "@/lib/utils/domains";
 
 export interface IntakeFormSettings {
@@ -524,8 +529,10 @@ export async function getIntakeFieldsConfig(
   if (isConvexDataEnabled()) {
     try {
       const { queryConvex } = await import("@/lib/platform/convex/server");
-      const result = await queryConvex<IntakeFieldsConfig>("intake:getIntakeFieldsConfig", { profileId });
-      return result;
+      const result = await queryConvex<{
+        fields?: IntakeFieldsConfig | null;
+      }>("intake:getIntakeFieldsConfig", {});
+      return mergeWithDefaults(result.fields ?? undefined);
     } catch (error) {
       console.error("Convex error:", error);
       return mergeWithDefaults(undefined);
@@ -572,7 +579,19 @@ export async function createIntakeToken(
     try {
       const { mutateConvex } = await import("@/lib/platform/convex/server");
       const result = await mutateConvex<{ url: string; token: string }>("intake:createIntakeToken", { clientId });
-      return { success: true, data: result };
+      const headersList = await headers();
+      const siteUrl = getRequestOrigin(headersList);
+      const rawUrl = new URL(result.url);
+      const slug = rawUrl.pathname.split("/")[2];
+      return {
+        success: true,
+        data: {
+          token: result.token,
+          url: slug
+            ? `${siteUrl}${buildIntakeAccessPath(slug)}?token=${result.token}`
+            : result.url,
+        },
+      };
     } catch (error) {
       console.error("Convex error:", error);
       return { success: false, error: "Failed to create intake token" };
@@ -634,7 +653,7 @@ export async function createIntakeToken(
   } catch {
     // Fall back to env-based origin when there is no active request context.
   }
-  const url = `${siteUrl}/intake/${listing.slug}/client?token=${token}`;
+  const url = `${siteUrl}${buildIntakeAccessPath(listing.slug)}?token=${token}`;
 
   return { success: true, data: { url, token } };
 }
@@ -650,7 +669,10 @@ export async function getIntakeTokenData(
   if (isConvexDataEnabled()) {
     try {
       const { queryConvexUnauthenticated } = await import("@/lib/platform/convex/server");
-      const result = await queryConvexUnauthenticated<PrefillData>("intake:getIntakeTokenData", { token });
+      const result = await queryConvexUnauthenticated<PrefillData>(
+        "intake:getIntakeTokenData",
+        { token },
+      );
       return { success: true, data: result };
     } catch (error) {
       console.error("Convex error:", error);
@@ -779,11 +801,21 @@ export async function getIntakeTokenData(
 /**
  * Mark an intake token as used (called after successful form submission).
  */
-export async function markIntakeTokenUsed(token: string): Promise<void> {
+export async function markIntakeTokenUsed(token?: string, slug?: string): Promise<void> {
+  const resolvedToken = token ?? (slug ? await getIntakeAccessToken(slug) : null);
+  if (!resolvedToken) {
+    return;
+  }
+
   if (isConvexDataEnabled()) {
     try {
       const { mutateConvexUnauthenticated } = await import("@/lib/platform/convex/server");
-      await mutateConvexUnauthenticated("intake:markIntakeTokenUsed", { token });
+      await mutateConvexUnauthenticated("intake:markIntakeTokenUsed", {
+        token: resolvedToken,
+      });
+      if (slug) {
+        await clearIntakeAccessToken(slug);
+      }
       return;
     } catch (error) {
       console.error("Convex error:", error);
@@ -796,28 +828,44 @@ export async function markIntakeTokenUsed(token: string): Promise<void> {
   await supabase
     .from("intake_tokens")
     .update({ used_at: new Date().toISOString() })
-    .eq("token", token);
+    .eq("token", resolvedToken);
+
+  if (slug) {
+    await clearIntakeAccessToken(slug);
+  }
 }
 
 /**
  * Fetches public-facing agency locations for the intake form.
  * Used by the Service Location section to let parents pick a Center/Clinic.
  */
-export async function getPublicAgencyLocations(listingId: string) {
+export async function getPublicAgencyLocations(params: {
+  listingId: string;
+  slug: string;
+}) {
   if (isConvexDataEnabled()) {
     try {
       const { queryConvexUnauthenticated } = await import("@/lib/platform/convex/server");
       const result = await queryConvexUnauthenticated<Array<{
         id: string;
-        label: string;
-        street: string | null;
+        name: string;
+        address: string | null;
         city: string | null;
         state: string | null;
-        postal_code: string | null;
-        latitude: number | null;
-        longitude: number | null;
-      }>>("intake:getPublicAgencyLocations", { listingId });
-      return result;
+        zip: string | null;
+        lat: number | null;
+        lng: number | null;
+      }>>("intake:getPublicAgencyLocations", { slug: params.slug });
+      return result.map((location) => ({
+        id: location.id,
+        label: location.name,
+        street: location.address,
+        city: location.city,
+        state: location.state,
+        postal_code: location.zip,
+        latitude: location.lat,
+        longitude: location.lng,
+      }));
     } catch (error) {
       console.error("Convex error:", error);
       return [];
@@ -829,7 +877,7 @@ export async function getPublicAgencyLocations(listingId: string) {
   const { data, error } = await supabase
     .from("locations")
     .select("id, label, street, city, state, postal_code, latitude, longitude")
-    .eq("listing_id", listingId)
+    .eq("listing_id", params.listingId)
     .order("is_primary", { ascending: false });
 
   if (error) {

@@ -31,9 +31,17 @@ const isConvexRuntime = process.env.NEXT_PUBLIC_DATA_PROVIDER === "convex";
 
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
+  NEXT_PUBLIC_AUTH_PROVIDER: z
+    .enum(["clerk", "supabase"])
+    .default("clerk"),
+  NEXT_PUBLIC_DATA_PROVIDER: z
+    .enum(["convex", "supabase"])
+    .default("convex"),
   // In development, default to localhost. In production, this MUST be set explicitly
   // and CANNOT be localhost (enforced by productionSafeUrl validator)
   NEXT_PUBLIC_SITE_URL: productionSafeUrl.default("http://localhost:3000"),
+  NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: z.string().optional(),
+  NEXT_PUBLIC_CONVEX_URL: z.string().url().optional(),
   // Supabase — required only in Supabase runtime mode
   NEXT_PUBLIC_SUPABASE_URL: isConvexRuntime
     ? z.string().url().optional().default("https://placeholder.supabase.co")
@@ -64,7 +72,11 @@ const envSchema = z.object({
 
 const parsed = envSchema.safeParse({
   NODE_ENV: process.env.NODE_ENV,
+  NEXT_PUBLIC_AUTH_PROVIDER: process.env.NEXT_PUBLIC_AUTH_PROVIDER,
+  NEXT_PUBLIC_DATA_PROVIDER: process.env.NEXT_PUBLIC_DATA_PROVIDER,
   NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
+  NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
+  NEXT_PUBLIC_CONVEX_URL: process.env.NEXT_PUBLIC_CONVEX_URL,
   NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
   NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
@@ -85,6 +97,30 @@ const parsed = envSchema.safeParse({
 if (!parsed.success) {
   console.error("❌ Invalid environment variables:", parsed.error.flatten().fieldErrors);
   throw new Error("Invalid environment variables");
+}
+
+if (parsed.data.NODE_ENV === "production") {
+  if (parsed.data.NEXT_PUBLIC_AUTH_PROVIDER !== "clerk") {
+    throw new Error(
+      "Production requires NEXT_PUBLIC_AUTH_PROVIDER=clerk",
+    );
+  }
+
+  if (parsed.data.NEXT_PUBLIC_DATA_PROVIDER !== "convex") {
+    throw new Error(
+      "Production requires NEXT_PUBLIC_DATA_PROVIDER=convex",
+    );
+  }
+
+  if (!parsed.data.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) {
+    throw new Error(
+      "Production requires NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
+    );
+  }
+
+  if (!parsed.data.NEXT_PUBLIC_CONVEX_URL) {
+    throw new Error("Production requires NEXT_PUBLIC_CONVEX_URL");
+  }
 }
 
 export const env = parsed.data;

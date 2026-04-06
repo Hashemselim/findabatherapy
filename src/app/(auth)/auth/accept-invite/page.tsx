@@ -13,10 +13,11 @@ function roleLabel(role: string) {
 export default async function AcceptInvitePage({
   searchParams,
 }: {
-  searchParams: Promise<{ token?: string }>;
+  searchParams: Promise<{ token?: string; error?: string; email?: string }>;
 }) {
   const params = await searchParams;
   const token = params.token;
+  const inviteError = params.error;
   const invite = token ? await getWorkspaceInviteDetails(token) : null;
 
   const nextHref = token && invite
@@ -39,6 +40,16 @@ export default async function AcceptInvitePage({
           <CardTitle className="text-3xl">Join a shared GoodABA workspace</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
+          {inviteError && (
+            <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-4 text-sm text-destructive">
+              <div className="mb-2 flex items-center gap-2 font-medium">
+                <AlertCircle className="h-4 w-4" />
+                Invitation could not be accepted
+              </div>
+              {inviteError}
+            </div>
+          )}
+
           {!invite && (
             <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-4 text-sm text-destructive">
               <div className="mb-2 flex items-center gap-2 font-medium">

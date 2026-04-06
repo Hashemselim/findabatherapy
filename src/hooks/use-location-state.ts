@@ -136,8 +136,10 @@ export function useLocationState(
   const setLocationFromPlace = useCallback(
     (place: PlaceDetails) => {
       const label =
-        place.city && place.state
-          ? formatLocationLabel(place.city, place.state)
+        place.city && (place.stateName || place.state)
+          ? formatLocationLabel(place.city, place.stateName || place.state)
+          : place.stateName
+            ? place.stateName
           : place.formattedAddress || "Location set";
 
       const newLocation: LocationState = {

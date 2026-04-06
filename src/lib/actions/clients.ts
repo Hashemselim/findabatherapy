@@ -7,6 +7,10 @@ import { revalidatePath } from "next/cache";
 
 import { createClient as createSupabaseClient, getCurrentProfileId, getUser } from "@/lib/supabase/server";
 import { isConvexDataEnabled } from "@/lib/platform/config";
+import {
+  buildDocumentAccessPath,
+  getDocumentAccessToken,
+} from "@/lib/public-access";
 import { z } from "zod";
 import {
   clientSchema,
@@ -42,7 +46,6 @@ import {
   DOCUMENT_MAX_SIZE,
 } from "@/lib/storage/config";
 import { getCurrentPlanTier } from "@/lib/plans/guards";
-import { getProviderDocumentUploadPath } from "@/lib/utils/public-paths";
 import { getRequestOrigin } from "@/lib/utils/domains";
 
 // =============================================================================
@@ -200,7 +203,7 @@ async function createClientDocumentUploadLinkForProfile(params: {
     success: true,
     data: {
       token,
-      url: `${siteUrl}${getProviderDocumentUploadPath(listingSlug)}?token=${token}`,
+      url: `${siteUrl}${buildDocumentAccessPath(listingSlug)}?token=${token}`,
     },
   };
 }
@@ -2531,7 +2534,7 @@ export async function createClientDocumentUploadToken(
         success: true,
         data: {
           token,
-          url: `${siteUrl}${getProviderDocumentUploadPath(listingSlug)}?token=${token}`,
+          url: `${siteUrl}${buildDocumentAccessPath(listingSlug)}?token=${token}`,
         },
       };
     } catch (err) {
@@ -2621,9 +2624,15 @@ export async function getClientDocumentUploadTokenData(
 }
 
 export async function submitPublicClientDocumentUpload(
-  token: string,
-  formData: FormData
+  formData: FormData,
+  slug?: string,
+  token?: string,
 ): Promise<ActionResult<{ id: string }>> {
+  const resolvedToken = token ?? (slug ? await getDocumentAccessToken(slug) : null);
+  if (!resolvedToken) {
+    return { success: false, error: "Invalid or expired document upload link" };
+  }
+
   if (isConvexDataEnabled()) {
     try {
       const file = formData.get("file") as File | null;
@@ -2675,11 +2684,11 @@ export async function submitPublicClientDocumentUpload(
       const tokenData = await queryConvexUnauthenticated<{
         clientId: string;
         profileId: string;
-      }>("intake:getClientDocumentUploadTokenData", { token });
+      }>("intake:getClientDocumentUploadTokenData", { token: resolvedToken });
 
       const uploadUrl = await mutateConvexUnauthenticated<string>(
         "intake:generateClientDocumentUploadUrl",
-        { token },
+        { token: resolvedToken },
       );
 
       const uploadResponse = await fetch(uploadUrl, {
@@ -2700,7 +2709,7 @@ export async function submitPublicClientDocumentUpload(
       const result = await mutateConvexUnauthenticated<{ id: string }>(
         "intake:submitPublicClientDocumentUpload",
         {
-          token,
+          token: resolvedToken,
           storageId: uploadPayload.storageId,
           filename: file.name,
           mimeType: file.type,
@@ -2722,7 +2731,7 @@ export async function submitPublicClientDocumentUpload(
     }
   }
 
-  const validated = await validateClientDocumentUploadToken(token);
+  const validated = await validateClientDocumentUploadToken(resolvedToken);
   if (!validated.success) {
     return { success: false, error: validated.error };
   }
@@ -3687,7 +3696,7 @@ export async function submitPublicClientIntake(data: {
       const siteUrl = await getCurrentSiteOrigin();
       const documentUploadUrl =
         result.listingSlug && result.documentUploadToken
-          ? `${siteUrl}${getProviderDocumentUploadPath(result.listingSlug)}?token=${result.documentUploadToken}`
+          ? `${siteUrl}${buildDocumentAccessPath(result.listingSlug)}?token=${result.documentUploadToken}`
           : undefined;
 
       return {

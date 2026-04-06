@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { ShieldCheck } from "lucide-react";
 
 import { PublicDocumentUploadForm } from "@/components/intake/public-document-upload-form";
 import { getClientDocumentUploadTokenData } from "@/lib/actions/clients";
 import { getClientIntakePageData } from "@/lib/actions/intake";
+import { buildDocumentAccessPath, getDocumentAccessToken } from "@/lib/public-access";
 
 type WebsiteDocumentUploadPageProps = {
   params: Promise<{ slug: string }>;
@@ -39,14 +40,20 @@ export default async function WebsiteDocumentUploadPage({
 }: WebsiteDocumentUploadPageProps) {
   const { slug } = await params;
   const { token } = await searchParams;
+  if (token) {
+    const accessPath = new URL(buildDocumentAccessPath(slug), "http://localhost");
+    accessPath.searchParams.set("token", token);
+    redirect(`${accessPath.pathname}${accessPath.search}`);
+  }
+  const accessToken = await getDocumentAccessToken(slug);
 
-  if (!token) {
+  if (!accessToken) {
     notFound();
   }
 
   const [pageResult, tokenResult] = await Promise.all([
     getClientIntakePageData(slug),
-    getClientDocumentUploadTokenData(token),
+    getClientDocumentUploadTokenData(accessToken),
   ]);
 
   if (
@@ -89,7 +96,7 @@ export default async function WebsiteDocumentUploadPage({
           style={{ borderColor: `${brandColor}20` }}
         >
           <PublicDocumentUploadForm
-            token={token}
+            accessSlug={slug}
             clientName={tokenResult.data.clientName}
             providerName={profile.agencyName}
             brandColor={brandColor}

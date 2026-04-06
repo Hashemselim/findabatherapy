@@ -51,6 +51,7 @@ export async function POST(request: NextRequest) {
     let route: string | undefined;
     let city: string | undefined;
     let state: string | undefined;
+    let stateName: string | undefined;
     let postalCode: string | undefined;
 
     if (data.addressComponents) {
@@ -67,6 +68,7 @@ export async function POST(request: NextRequest) {
         }
         if (types.includes("administrative_area_level_1")) {
           state = component.shortText;
+          stateName = component.longText;
         }
         if (types.includes("postal_code")) {
           postalCode = component.longText;
@@ -83,6 +85,7 @@ export async function POST(request: NextRequest) {
       streetAddress,
       city,
       state,
+      stateName,
       postalCode,
       latitude: data.location?.latitude || 0,
       longitude: data.location?.longitude || 0,

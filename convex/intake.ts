@@ -2,10 +2,6 @@ import { mutation, query } from "./_generated/server";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { ConvexError, v } from "convex/values";
 
-type Identity = {
-  subject: string;
-};
-
 type ConvexDoc = Record<string, unknown> & { _id: string };
 type ConvexCtx = QueryCtx | MutationCtx;
 
@@ -250,6 +246,209 @@ function mapPublicClientDocument(row: ConvexDoc) {
   };
 }
 
+async function getClientSubRecords(
+  ctx: ConvexCtx,
+  workspaceId: string,
+  clientId: string,
+  recordType: string,
+) {
+  const rows = await ctx.db
+    .query("crmRecords")
+    .withIndex("by_workspace_and_type", (q) =>
+      q
+        .eq("workspaceId", asId<"workspaces">(workspaceId))
+        .eq("recordType", recordType),
+    )
+    .collect();
+
+  return rows.filter((row) => {
+    if (row.deletedAt) {
+      return false;
+    }
+
+    const relatedIds = asRecord(row.relatedIds);
+    return readString(relatedIds.clientId) === clientId;
+  });
+}
+
+function copyPrefillFields(
+  target: Record<string, unknown>,
+  payload: Record<string, unknown>,
+) {
+  for (const [key, value] of Object.entries(payload)) {
+    if (
+      value === null ||
+      typeof value === "string" ||
+      typeof value === "number" ||
+      typeof value === "boolean" ||
+      (Array.isArray(value) && value.every((entry) => typeof entry === "string"))
+    ) {
+      target[key] = value;
+    }
+  }
+}
+
+function setPrefillField(
+  target: Record<string, unknown>,
+  key: string,
+  value: unknown,
+) {
+  if (value === null || value === undefined) {
+    return;
+  }
+
+  if (typeof value === "string" && value.length === 0) {
+    return;
+  }
+
+  target[key] = value;
+}
+
+function buildIntakePrefillData(
+  client: ConvexDoc,
+  parents: ConvexDoc[],
+  insurances: ConvexDoc[],
+  locations: ConvexDoc[],
+) {
+  const fields: Record<string, unknown> = {};
+
+  const clientPayload = asRecord(client.payload);
+  copyPrefillFields(fields, clientPayload);
+  setPrefillField(
+    fields,
+    "child_first_name",
+    clientPayload.child_first_name ?? clientPayload.firstName,
+  );
+  setPrefillField(
+    fields,
+    "child_last_name",
+    clientPayload.child_last_name ?? clientPayload.lastName,
+  );
+  setPrefillField(
+    fields,
+    "child_date_of_birth",
+    clientPayload.child_date_of_birth ?? clientPayload.dateOfBirth,
+  );
+  setPrefillField(
+    fields,
+    "referral_source",
+    clientPayload.referral_source ?? clientPayload.referralSource,
+  );
+  setPrefillField(
+    fields,
+    "referral_source_other",
+    clientPayload.referral_source_other ?? clientPayload.referralSourceDetail,
+  );
+
+  const primaryParent =
+    parents.find((row) => asRecord(row.payload).isPrimary === true) ?? parents[0];
+  if (primaryParent) {
+    const payload = asRecord(primaryParent.payload);
+    copyPrefillFields(fields, payload);
+    setPrefillField(
+      fields,
+      "parent_first_name",
+      payload.parent_first_name ?? payload.first_name ?? payload.firstName,
+    );
+    setPrefillField(
+      fields,
+      "parent_last_name",
+      payload.parent_last_name ?? payload.last_name ?? payload.lastName,
+    );
+    setPrefillField(
+      fields,
+      "parent_email",
+      payload.parent_email ?? payload.email,
+    );
+    setPrefillField(
+      fields,
+      "parent_phone",
+      payload.parent_phone ?? payload.phone,
+    );
+    setPrefillField(
+      fields,
+      "parent_relationship",
+      payload.parent_relationship ?? payload.relationship,
+    );
+  }
+
+  const primaryInsurance =
+    insurances.find((row) => asRecord(row.payload).isPrimary === true) ?? insurances[0];
+  if (primaryInsurance) {
+    const payload = asRecord(primaryInsurance.payload);
+    copyPrefillFields(fields, payload);
+    setPrefillField(
+      fields,
+      "insurance_name",
+      payload.insurance_name ?? payload.providerName,
+    );
+    setPrefillField(
+      fields,
+      "insurance_member_id",
+      payload.insurance_member_id ?? payload.member_id ?? payload.memberId,
+    );
+    setPrefillField(
+      fields,
+      "insurance_group_number",
+      payload.insurance_group_number ?? payload.group_number ?? payload.groupNumber,
+    );
+  }
+
+  const homeLocation =
+    locations.find((row) => asRecord(row.payload).isPrimary === true) ?? null;
+  if (homeLocation) {
+    const payload = asRecord(homeLocation.payload);
+    copyPrefillFields(fields, payload);
+    setPrefillField(fields, "home_address", {
+      street_address:
+        payload.street_address ?? payload.streetAddress ?? "",
+      city: payload.city ?? "",
+      state: payload.state ?? "",
+      postal_code:
+        payload.postal_code ?? payload.postalCode ?? "",
+      formatted_address:
+        payload.formatted_address ?? payload.formattedAddress ?? "",
+      place_id: payload.place_id ?? payload.placeId ?? "",
+    });
+  }
+
+  const serviceLocation = locations.find(
+    (row) => asRecord(row.payload).isPrimary !== true,
+  );
+  if (serviceLocation) {
+    const payload = asRecord(serviceLocation.payload);
+    copyPrefillFields(fields, payload);
+    setPrefillField(fields, "service_location", {
+      location_type:
+        payload.location_type ?? payload.locationType ?? "",
+      same_as_home:
+        payload.same_as_home ?? payload.sameAsHome ?? false,
+      agency_location_id:
+        payload.agency_location_id ?? payload.agencyLocationId ?? "",
+      street_address:
+        payload.street_address ?? payload.streetAddress ?? "",
+      city: payload.city ?? "",
+      state: payload.state ?? "",
+      postal_code:
+        payload.postal_code ?? payload.postalCode ?? "",
+      formatted_address:
+        payload.formatted_address ?? payload.formattedAddress ?? "",
+      place_id: payload.place_id ?? payload.placeId ?? "",
+      notes: payload.notes ?? "",
+    });
+  }
+
+  const clientName =
+    [
+      readString(clientPayload.child_first_name) ?? readString(clientPayload.firstName),
+      readString(clientPayload.child_last_name) ?? readString(clientPayload.lastName),
+    ]
+      .filter(Boolean)
+      .join(" ") || "Client";
+
+  return { clientName, fields };
+}
+
 /* ------------------------------------------------------------------ */
 /*  getContactPageData - public (no auth): listing data by slug       */
 /* ------------------------------------------------------------------ */
@@ -328,6 +527,38 @@ export const getClientIntakePageData = query({
         intakeFormSettings: buildPublicIntakeSettings(workspace),
       },
     };
+  },
+});
+
+export const validateIntakeAccessForSlug = query({
+  args: {
+    slug: v.string(),
+    token: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const row = await getPublishedListingBySlug(ctx, args.slug);
+    if (!row) {
+      return false;
+    }
+
+    const tokenRow = await getTokenRowByToken(ctx, args.token);
+    if (!tokenRow) {
+      return false;
+    }
+
+    const tokenPayload = asRecord(tokenRow.payload);
+    const isExpired =
+      tokenRow.expiresAt && new Date(String(tokenRow.expiresAt)) < new Date();
+    const isUsed = !!tokenPayload.usedAt;
+    const clientId = readString(tokenRow.subjectId);
+
+    return Boolean(
+      !isExpired &&
+        !isUsed &&
+        readString(tokenRow.subjectType) === CLIENT_INTAKE_TOKEN_TYPE &&
+        clientId &&
+        String(tokenRow.workspaceId) === String(row.listing.workspaceId),
+    );
   },
 });
 
@@ -480,32 +711,62 @@ export const getIntakeTokenData = query({
     token: v.string(),
   },
   handler: async (ctx, args) => {
-    const tokens = await ctx.db
-      .query("intakeTokens")
-      .withIndex("by_token", (q) => q.eq("token", args.token))
-      .collect();
-
-    const tokenRow = (tokens as ConvexDoc[])[0];
+    const tokenRow = await getTokenRowByToken(ctx, args.token);
     if (!tokenRow) {
-      return null;
+      throw new ConvexError("Invalid or expired link");
     }
 
     const tokenPayload = asRecord(tokenRow.payload);
     const isExpired =
       tokenRow.expiresAt && new Date(String(tokenRow.expiresAt)) < new Date();
     const isUsed = !!tokenPayload.usedAt;
+    const clientId = readString(tokenRow.subjectId);
+    const isValid =
+      !isExpired &&
+      !isUsed &&
+      readString(tokenRow.subjectType) === CLIENT_INTAKE_TOKEN_TYPE &&
+      !!clientId;
+    if (!isValid || !clientId) {
+      throw new ConvexError("Invalid or expired link");
+    }
 
-    return {
-      id: tokenRow._id,
-      workspaceId: String(tokenRow.workspaceId),
-      subjectType: readString(tokenRow.subjectType) ?? "",
-      subjectId: readString(tokenRow.subjectId),
-      isValid: !isExpired && !isUsed,
-      isExpired: !!isExpired,
-      isUsed,
-      payload: tokenPayload,
-      createdAt: readString(tokenRow.createdAt),
-    };
+    const client = await ctx.db.get(asId<"crmRecords">(clientId));
+    if (
+      !client ||
+      client.recordType !== "client" ||
+      client.deletedAt ||
+      String(client.workspaceId) !== String(tokenRow.workspaceId)
+    ) {
+      throw new ConvexError("Client not found");
+    }
+
+    const [parents, insurances, locations] = await Promise.all([
+      getClientSubRecords(
+        ctx,
+        String(tokenRow.workspaceId),
+        clientId,
+        "client_parent",
+      ),
+      getClientSubRecords(
+        ctx,
+        String(tokenRow.workspaceId),
+        clientId,
+        "client_insurance",
+      ),
+      getClientSubRecords(
+        ctx,
+        String(tokenRow.workspaceId),
+        clientId,
+        "client_location",
+      ),
+    ]);
+
+    return buildIntakePrefillData(
+      client as ConvexDoc,
+      parents as ConvexDoc[],
+      insurances as ConvexDoc[],
+      locations as ConvexDoc[],
+    );
   },
 });
 
@@ -514,10 +775,10 @@ export const getIntakeTokenData = query({
 /* ------------------------------------------------------------------ */
 export const markIntakeTokenUsed = mutation({
   args: {
-    tokenId: v.string(),
+    token: v.string(),
   },
   handler: async (ctx, args) => {
-    const row = await ctx.db.get(asId<"intakeTokens">(args.tokenId));
+    const row = await getTokenRowByToken(ctx, args.token);
     if (!row) {
       throw new ConvexError("Token not found");
     }
@@ -562,6 +823,29 @@ export const getClientDocumentUploadTokenData = query({
           .join(" ") || "your child",
       uploadedDocuments: documents.map(mapPublicClientDocument),
     };
+  },
+});
+
+export const validateClientDocumentUploadAccessForSlug = query({
+  args: {
+    slug: v.string(),
+    token: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const row = await getPublishedListingBySlug(ctx, args.slug);
+    if (!row) {
+      return false;
+    }
+
+    try {
+      const { workspaceId } = await requireValidClientDocumentUploadToken(
+        ctx,
+        args.token,
+      );
+      return workspaceId === String(row.listing.workspaceId);
+    } catch {
+      return false;
+    }
   },
 });
 
