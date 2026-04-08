@@ -19,6 +19,7 @@ import type * as files from "../files.js";
 import type * as inquiries from "../inquiries.js";
 import type * as intake from "../intake.js";
 import type * as jobs from "../jobs.js";
+import type * as lib_public_branding from "../lib/public_branding.js";
 import type * as listings from "../listings.js";
 import type * as locations from "../locations.js";
 import type * as notifications from "../notifications.js";
@@ -45,6 +46,7 @@ declare const fullApi: ApiFromModules<{
   inquiries: typeof inquiries;
   intake: typeof intake;
   jobs: typeof jobs;
+  "lib/public_branding": typeof lib_public_branding;
   listings: typeof listings;
   locations: typeof locations;
   notifications: typeof notifications;
