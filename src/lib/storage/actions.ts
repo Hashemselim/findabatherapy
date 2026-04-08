@@ -35,6 +35,11 @@ function revalidateLogoSurfaces(params: {
   listingSlug: string | null;
   agreementPacketSlugs?: string[];
 }) {
+  revalidatePath("/");
+  revalidatePath("/search");
+  revalidatePath("/jobs");
+  revalidatePath("/jobs/employers");
+  revalidatePath("/employers");
   revalidatePath("/dashboard/company");
   revalidatePath("/dashboard/branding");
   revalidatePath("/dashboard/onboarding/details");
@@ -47,10 +52,20 @@ function revalidateLogoSurfaces(params: {
   const slug = params.listingSlug;
   revalidatePath(`/p/${slug}`);
   revalidatePath(`/provider/${slug}`);
+  revalidatePath(`/provider/${slug}/contact`);
+  revalidatePath(`/provider/${slug}/intake`);
+  revalidatePath(`/provider/${slug}/documents`);
+  revalidatePath(`/provider/${slug}/resources`);
+  revalidatePath(`/provider/${slug}/careers`);
+  revalidatePath(`/provider/${slug}/website`);
+  revalidatePath(`/provider/${slug}/website/contact`);
+  revalidatePath(`/provider/${slug}/website/intake`);
+  revalidatePath(`/provider/${slug}/website/documents`);
+  revalidatePath(`/provider/${slug}/website/resources`);
+  revalidatePath(`/provider/${slug}/website/careers`);
   revalidatePath(`/contact/${slug}`);
   revalidatePath(`/intake/${slug}/client`);
   revalidatePath(`/intake/${slug}/documents`);
-  revalidatePath(`/provider/${slug}/documents`);
   revalidatePath(`/resources/${slug}`);
   revalidatePath(`/careers/${slug}`);
   revalidatePath(`/site/${slug}`);
@@ -83,12 +98,19 @@ export async function uploadLogo(
 
   if (isConvexDataEnabled()) {
     const storageId = await uploadFileToConvexStorage(file);
-    const result = await mutateConvex<{ url: string }>(
-      "files:saveListingLogo",
-      { storageId, filename: file.name, mimeType: file.type, byteSize: file.size }
-    );
-    revalidatePath("/dashboard/company");
-    revalidatePath("/dashboard/branding");
+    const [result, agreementPackets] = await Promise.all([
+      mutateConvex<{ url: string; listingSlug: string | null }>(
+        "files:saveListingLogo",
+        { storageId, filename: file.name, mimeType: file.type, byteSize: file.size }
+      ),
+      queryConvex<Array<{ slug: string }>>("agreements:getAgreementPackets", {
+        status: "published",
+      }).catch(() => []),
+    ]);
+    revalidateLogoSurfaces({
+      listingSlug: result.listingSlug,
+      agreementPacketSlugs: agreementPackets.map((packet) => packet.slug),
+    });
     return { success: true, data: { url: result.url } };
   }
 
@@ -175,9 +197,16 @@ export async function uploadLogo(
  */
 export async function deleteLogo(): Promise<ActionResult> {
   if (isConvexDataEnabled()) {
-    await mutateConvex("files:deleteListingLogo", {});
-    revalidatePath("/dashboard/company");
-    revalidatePath("/dashboard/branding");
+    const [result, agreementPackets] = await Promise.all([
+      mutateConvex<{ listingSlug: string | null }>("files:deleteListingLogo", {}),
+      queryConvex<Array<{ slug: string }>>("agreements:getAgreementPackets", {
+        status: "published",
+      }).catch(() => []),
+    ]);
+    revalidateLogoSurfaces({
+      listingSlug: result.listingSlug,
+      agreementPacketSlugs: agreementPackets.map((packet) => packet.slug),
+    });
     return { success: true };
   }
 

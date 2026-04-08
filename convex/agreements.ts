@@ -1,6 +1,7 @@
 import { mutation, query } from "./_generated/server";
 import { ConvexError, v } from "convex/values";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
+import { getPublicListingLogoUrl } from "./lib/public-branding";
 
 type ConvexDoc = Record<string, unknown> & { _id: string };
 type ConvexCtx = QueryCtx | MutationCtx;
@@ -440,10 +441,16 @@ export const getAgreementDashboardData = query({
       }
     }
 
+    const logoUrl = await getPublicListingLogoUrl(
+      ctx,
+      listing as ConvexDoc | null,
+      workspace as ConvexDoc,
+    );
+
     return {
       listing: {
         slug: readString(listing?.slug),
-        logoUrl: readString(asRecord(listing?.metadata).logoUrl),
+        logoUrl,
         profileId: workspaceId,
       },
       profile: {
@@ -593,10 +600,12 @@ export const getAgreementPublicPageData = query({
       };
     }
 
+    const logoUrl = await getPublicListingLogoUrl(ctx, listing, workspace as ConvexDoc);
+
     return {
       listing: {
         slug: readString(listing.slug) ?? args.providerSlug,
-        logoUrl: readString(asRecord(listing.metadata).logoUrl),
+        logoUrl,
         profileId: String(listing.workspaceId),
       },
       profile: {

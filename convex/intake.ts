@@ -1,6 +1,7 @@
 import { mutation, query } from "./_generated/server";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { ConvexError, v } from "convex/values";
+import { getPublicListingLogoUrl } from "./lib/public-branding";
 
 type ConvexDoc = Record<string, unknown> & { _id: string };
 type ConvexCtx = QueryCtx | MutationCtx;
@@ -457,35 +458,38 @@ export const getContactPageData = query({
     slug: v.string(),
   },
   handler: async (ctx, args) => {
-    const listings = await ctx.db
-      .query("listings")
-      .withIndex("by_slug", (q) => q.eq("slug", args.slug))
-      .collect();
-
-    const listing = (listings as ConvexDoc[])[0];
-    if (!listing) {
+    const row = await getPublishedListingBySlug(ctx, args.slug);
+    if (!row) {
       return null;
     }
 
-    const workspace = await ctx.db.get(asId<"workspaces">(String(listing.workspaceId)));
-    if (!workspace) {
-      return null;
-    }
-
+    const { listing, workspace } = row;
     const metadata = asRecord(listing.metadata);
-    const settings = asRecord((workspace as unknown as ConvexDoc).settings);
-    const branding = asRecord(settings.branding);
+    const settings = asRecord(workspace.settings);
+    const isPremium = isPremiumWorkspace(workspace);
+    const contactFormEnabled = isPremium
+      ? readBoolean(metadata.contactFormEnabled, false)
+      : false;
+    const logoUrl = await getPublicListingLogoUrl(ctx, listing, workspace);
+
+    if (isPremium && !contactFormEnabled) {
+      return null;
+    }
 
     return {
-      listingId: listing._id,
-      workspaceId: String(listing.workspaceId),
-      slug: readString(listing.slug) ?? "",
-      agencyName: readString((workspace as unknown as ConvexDoc).agencyName) ?? "",
-      contactEmail: readString((workspace as unknown as ConvexDoc).contactEmail),
-      phone: readString(metadata.phone),
-      address: readString(metadata.address),
-      logoUrl: readString(branding.logoUrl),
-      description: readString(metadata.description),
+      listing: {
+        id: listing._id,
+        slug: readString(listing.slug) ?? "",
+        logoUrl,
+        contactFormEnabled,
+      },
+      profile: {
+        agencyName: readString(workspace.agencyName) ?? "",
+        website: readString(settings.website),
+        planTier: readString(workspace.planTier) ?? "free",
+        subscriptionStatus: readString(workspace.subscriptionStatus),
+        intakeFormSettings: buildPublicIntakeSettings(workspace),
+      },
     };
   },
 });
@@ -506,16 +510,16 @@ export const getClientIntakePageData = query({
     const { listing, workspace } = row;
     const metadata = asRecord(listing.metadata);
     const settings = asRecord(workspace.settings);
-    const branding = asRecord(settings.branding);
     const clientIntakeEnabled = isPremiumWorkspace(workspace)
       ? readBoolean(metadata.clientIntakeEnabled, false)
       : false;
+    const logoUrl = await getPublicListingLogoUrl(ctx, listing, workspace);
 
     return {
       listing: {
         id: listing._id,
         slug: readString(listing.slug) ?? "",
-        logoUrl: readString(branding.logoUrl) ?? readString(metadata.logoUrl),
+        logoUrl,
         clientIntakeEnabled,
         profileId: String(listing.workspaceId),
       },
@@ -577,14 +581,13 @@ export const getClientResourcesPageData = query({
 
     const { listing, workspace } = row;
     const settings = asRecord(workspace.settings);
-    const branding = asRecord(settings.branding);
+    const logoUrl = await getPublicListingLogoUrl(ctx, listing, workspace);
 
     return {
       listing: {
         id: listing._id,
         slug: readString(listing.slug) ?? "",
-        logoUrl:
-          readString(branding.logoUrl) ?? readString(asRecord(listing.metadata).logoUrl),
+        logoUrl,
       },
       profile: {
         agencyName: readString(workspace.agencyName) ?? "",

@@ -1,6 +1,7 @@
 import { mutation, query } from "./_generated/server";
 import { ConvexError, v } from "convex/values";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
+import { getPublicListingLogoUrl } from "./lib/public-branding";
 
 type ConvexDoc = Record<string, unknown> & { _id: string };
 type ConvexCtx = QueryCtx | MutationCtx;
@@ -270,7 +271,10 @@ async function buildListingResponse(
     serviceModes: readStringArray(listingMetadata.serviceModes),
     status: (readString(listing.status) ?? "draft") as "draft" | "published" | "suspended",
     isAcceptingClients: readBoolean(listingMetadata.isAcceptingClients, true),
-    logoUrl: media.logoUrl ?? readString(listingMetadata.logoUrl),
+    logoUrl:
+      media.logoUrl ??
+      readString(asRecord(workspaceSettings.branding).logoUrl) ??
+      readString(listingMetadata.logoUrl),
     videoUrl: readString(listingMetadata.videoUrl),
     websitePublished: readBoolean(listingMetadata.websitePublished, listing.status === "published"),
     websiteSettings: {
@@ -1336,28 +1340,33 @@ async function searchProvidersInternal(
     ),
   );
 
-  const results: ProviderSearchResult[] = [];
-  for (const listing of pageItems) {
-    const workspace = workspaceMap.get(listing.workspaceId);
-    if (!workspace) continue;
-    const metadata = asRecord(listing.metadata);
-    results.push({
-      id: listing._id,
-      slug: readString(listing.slug) ?? "",
-      agencyName: readString(workspace.agencyName) ?? "",
-      headline: readString(metadata.headline),
-      description: readString(metadata.description),
-      logoUrl: readString(metadata.logoUrl),
-      status: readString(listing.status) ?? "draft",
-      planTier: readString(workspace.planTier) ?? "free",
-      isAcceptingClients:
-        typeof metadata.isAcceptingClients === "boolean"
-          ? metadata.isAcceptingClients
-          : true,
-      createdAt: readString(listing.createdAt) ?? new Date().toISOString(),
-      updatedAt: readString(listing.updatedAt) ?? new Date().toISOString(),
-    });
-  }
+  const results = (
+    await Promise.all(
+      pageItems.map(async (listing) => {
+        const workspace = workspaceMap.get(listing.workspaceId);
+        if (!workspace) return null;
+        const metadata = asRecord(listing.metadata);
+        const logoUrl = await getPublicListingLogoUrl(ctx, listing, workspace);
+
+        return {
+          id: listing._id,
+          slug: readString(listing.slug) ?? "",
+          agencyName: readString(workspace.agencyName) ?? "",
+          headline: readString(metadata.headline),
+          description: readString(metadata.description),
+          logoUrl,
+          status: readString(listing.status) ?? "draft",
+          planTier: readString(workspace.planTier) ?? "free",
+          isAcceptingClients:
+            typeof metadata.isAcceptingClients === "boolean"
+              ? metadata.isAcceptingClients
+              : true,
+          createdAt: readString(listing.createdAt) ?? new Date().toISOString(),
+          updatedAt: readString(listing.updatedAt) ?? new Date().toISOString(),
+        };
+      }),
+    )
+  ).filter((listing): listing is ProviderSearchResult => Boolean(listing));
 
   return { listings: results, total, page, limit };
 }
@@ -1485,7 +1494,10 @@ export const getHomepageFeaturedProviders = query({
         summary: readString(metadata.summary),
         serviceModes: readStringArray(metadata.serviceModes),
         isAcceptingClients: readBoolean(metadata.isAcceptingClients, true),
-        logoUrl: media.logoUrl ?? readString(metadata.logoUrl),
+        logoUrl:
+          media.logoUrl ??
+          readString(asRecord(asRecord(workspace.settings).branding).logoUrl) ??
+          readString(metadata.logoUrl),
         profile: {
           agencyName: readString(workspace.agencyName) ?? "",
           planTier: readHomepagePlanTier(workspace),
@@ -1743,7 +1755,21 @@ async function buildLocationSearchResults(
 
   const total = locations.length;
   const totalPages = Math.ceil(total / limit);
-  const pageItems = locations.slice(offset, offset + limit);
+  const pageItems = await Promise.all(
+    locations.slice(offset, offset + limit).map(async (location) => {
+      const listing = listingMap.get(asId<"listings">(location.listingId));
+      const workspace = listing ? wsMap.get(listing.workspaceId) ?? null : null;
+      const logoUrl =
+        listing && workspace
+          ? await getPublicListingLogoUrl(ctx, listing, workspace)
+          : location.logoUrl;
+
+      return {
+        ...location,
+        logoUrl,
+      };
+    }),
+  );
 
   return {
     locations: pageItems,
