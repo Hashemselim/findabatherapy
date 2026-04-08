@@ -1348,8 +1348,8 @@ async function searchProvidersInternal(
         const metadata = asRecord(listing.metadata);
         const logoUrl = await getPublicListingLogoUrl(ctx, listing, workspace);
 
-        return {
-          id: listing._id,
+        const result: ProviderSearchResult = {
+          id: String(listing._id),
           slug: readString(listing.slug) ?? "",
           agencyName: readString(workspace.agencyName) ?? "",
           headline: readString(metadata.headline),
@@ -1364,9 +1364,11 @@ async function searchProvidersInternal(
           createdAt: readString(listing.createdAt) ?? new Date().toISOString(),
           updatedAt: readString(listing.updatedAt) ?? new Date().toISOString(),
         };
+
+        return result;
       }),
     )
-  ).filter((listing): listing is ProviderSearchResult => Boolean(listing));
+  ).filter((listing): listing is NonNullable<typeof listing> => listing !== null);
 
   return { listings: results, total, page, limit };
 }
