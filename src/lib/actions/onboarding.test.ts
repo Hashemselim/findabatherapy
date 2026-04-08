@@ -6,12 +6,18 @@ const {
   getUser,
   createClient,
   createWorkspaceForUser,
+  isConvexDataEnabled,
+  queryConvex,
+  mutateConvex,
 } = vi.hoisted(() => ({
   revalidatePath: vi.fn(),
   getCurrentProfileId: vi.fn(),
   getUser: vi.fn(),
   createClient: vi.fn(),
   createWorkspaceForUser: vi.fn(),
+  isConvexDataEnabled: vi.fn(() => false),
+  queryConvex: vi.fn(),
+  mutateConvex: vi.fn(),
 }));
 
 vi.mock("next/cache", () => ({
@@ -23,7 +29,7 @@ vi.mock("@/lib/onboarding-preview", () => ({
 }));
 
 vi.mock("@/lib/platform/config", () => ({
-  isConvexDataEnabled: vi.fn(() => false),
+  isConvexDataEnabled,
 }));
 
 vi.mock("@/lib/supabase/server", () => ({
@@ -36,7 +42,12 @@ vi.mock("@/lib/workspace/memberships", () => ({
   createWorkspaceForUser,
 }));
 
-import { updateProfileBasics } from "@/lib/actions/onboarding";
+vi.mock("@/lib/platform/convex/server", () => ({
+  queryConvex,
+  mutateConvex,
+}));
+
+import { completeOnboarding, updateProfileBasics } from "@/lib/actions/onboarding";
 
 function createProfilesClient(results: Array<{ data: Array<{ id: string }>; error: { message: string } | null }>) {
   const select = vi.fn();
@@ -60,6 +71,7 @@ function createProfilesClient(results: Array<{ data: Array<{ id: string }>; erro
 describe("updateProfileBasics", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    isConvexDataEnabled.mockReturnValue(false);
   });
 
   it("updates the existing profile without attempting an upsert", async () => {
@@ -128,5 +140,51 @@ describe("updateProfileBasics", () => {
     expect(mocks.eq).toHaveBeenNthCalledWith(1, "id", "user-1");
     expect(mocks.eq).toHaveBeenNthCalledWith(2, "id", "user-1");
     expect(revalidatePath).toHaveBeenCalledWith("/dashboard");
+  });
+});
+
+describe("completeOnboarding", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    isConvexDataEnabled.mockReturnValue(false);
+  });
+
+  it("marks Convex workspaces complete and redirects free users to the dashboard", async () => {
+    isConvexDataEnabled.mockReturnValue(true);
+    mutateConvex.mockResolvedValue({
+      success: true,
+      planTier: "free",
+      billingInterval: "month",
+    });
+
+    await expect(completeOnboarding(true)).resolves.toEqual({
+      success: true,
+      data: { redirectTo: "/dashboard/clients/pipeline" },
+    });
+
+    expect(mutateConvex).toHaveBeenCalledWith(
+      "workspaces:completeCurrentWorkspaceOnboarding",
+      { publish: true },
+    );
+    expect(revalidatePath).toHaveBeenCalledWith("/dashboard");
+  });
+
+  it("sends Convex pro users to checkout after completing onboarding", async () => {
+    isConvexDataEnabled.mockReturnValue(true);
+    mutateConvex.mockResolvedValue({
+      success: true,
+      planTier: "pro",
+      billingInterval: "year",
+    });
+
+    await expect(completeOnboarding(true)).resolves.toEqual({
+      success: true,
+      data: { redirectTo: "/dashboard/billing/checkout?plan=pro&interval=year" },
+    });
+
+    expect(mutateConvex).toHaveBeenCalledWith(
+      "workspaces:completeCurrentWorkspaceOnboarding",
+      { publish: true },
+    );
   });
 });

@@ -464,20 +464,28 @@ export const updateListingStatus = mutation({
     status: v.union(v.literal("draft"), v.literal("published"), v.literal("suspended")),
   },
   handler: async (ctx, args) => {
-    const { listing } = await requireCurrentWorkspaceContext(ctx);
+    const { workspace, listing } = await requireCurrentWorkspaceContext(ctx);
     if (!listing) {
       throw new ConvexError("Listing not found");
     }
 
+    const timestamp = new Date().toISOString();
     const metadata = asRecord(listing.metadata);
     await ctx.db.patch(asId<"listings">(listing._id), {
       status: args.status,
       metadata: {
         ...metadata,
-        publishedAt: args.status === "published" ? new Date().toISOString() : null,
+        publishedAt: args.status === "published" ? timestamp : null,
       },
-      updatedAt: new Date().toISOString(),
+      updatedAt: timestamp,
     });
+
+    if (args.status === "published" && !readString(workspace.onboardingCompletedAt)) {
+      await ctx.db.patch(asId<"workspaces">(workspace._id), {
+        onboardingCompletedAt: timestamp,
+        updatedAt: timestamp,
+      });
+    }
 
     return { success: true };
   },

@@ -979,6 +979,51 @@ export const setCurrentWorkspacePrimaryIntentIfMissing = mutation({
   },
 });
 
+export const completeCurrentWorkspaceOnboarding = mutation({
+  args: {
+    publish: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    const { workspace } = await getCurrentWorkspaceContext(ctx);
+    const timestamp = new Date().toISOString();
+    const existingCompletedAt = readString(workspace.onboardingCompletedAt);
+
+    const listings = await ctx.db
+      .query("listings")
+      .withIndex("by_workspace", (q) => q.eq("workspaceId", workspace._id))
+      .take(1);
+    const listing = listings[0] ?? null;
+
+    if (args.publish && !listing) {
+      throw new ConvexError("Listing not found");
+    }
+
+    await ctx.db.patch(asId<"workspaces">(workspace._id), {
+      onboardingCompletedAt: existingCompletedAt ?? timestamp,
+      updatedAt: timestamp,
+    });
+
+    if (args.publish && listing) {
+      const metadata = asRecord(listing.metadata);
+      await ctx.db.patch(asId<"listings">(listing._id), {
+        status: "published",
+        metadata: {
+          ...metadata,
+          publishedAt: readString(metadata.publishedAt) ?? timestamp,
+        },
+        updatedAt: timestamp,
+      });
+    }
+
+    return {
+      success: true,
+      onboardingCompletedAt: existingCompletedAt ?? timestamp,
+      planTier: readString(workspace.planTier),
+      billingInterval: readString(workspace.billingInterval),
+    };
+  },
+});
+
 export const getOnboardingFlowState = query({
   args: {},
   handler: async (ctx) => {

@@ -843,13 +843,14 @@ export async function completeOnboarding(
 ): Promise<ActionResult<{ redirectTo: string }>> {
   if (isConvexDataEnabled()) {
     try {
-      if (publish) {
-        await mutateConvex("listings:updateListingStatus", { status: "published" });
-      }
-      const ws = await queryConvex<{ workspace: { planTier: string | null; billingInterval: string | null } } | null>("workspaces:getCurrentWorkspace");
+      const ws = await mutateConvex<{
+        success: boolean;
+        planTier: string | null;
+        billingInterval: string | null;
+      }>("workspaces:completeCurrentWorkspaceOnboarding", { publish });
       let redirectTo = "/dashboard/clients/pipeline";
-      if (ws?.workspace?.planTier === "pro") {
-        const interval = ws.workspace.billingInterval === "annual" || ws.workspace.billingInterval === "year" ? "year" : "month";
+      if (ws.planTier === "pro") {
+        const interval = ws.billingInterval === "annual" || ws.billingInterval === "year" ? "year" : "month";
         redirectTo = `/dashboard/billing/checkout?plan=pro&interval=${interval}`;
       }
       revalidatePath("/dashboard");

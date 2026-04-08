@@ -1822,6 +1822,98 @@ export const inspectE2EBillingState = query({
   },
 });
 
+export const repairWorkspaceOnboardingCompletion = mutation({
+  args: {
+    secret: v.string(),
+    workspaceId: v.string(),
+  },
+  returns: v.object({
+    workspaceId: v.string(),
+    listingId: v.union(v.string(), v.null()),
+    repaired: v.boolean(),
+    eligible: v.boolean(),
+    onboardingCompletedAt: v.union(v.string(), v.null()),
+    listingStatus: v.union(v.string(), v.null()),
+    locationCount: v.number(),
+    hasServices: v.boolean(),
+  }),
+  handler: async (ctx, args) => {
+    requireSeedSecret(args.secret);
+
+    const workspace = await ctx.db.get(asId<"workspaces">(args.workspaceId));
+    if (!workspace) {
+      throw new ConvexError("Workspace not found");
+    }
+
+    const listings = await ctx.db
+      .query("listings")
+      .withIndex("by_workspace", (q) =>
+        q.eq("workspaceId", asId<"workspaces">(args.workspaceId)),
+      )
+      .take(1);
+    const listing = listings[0] ?? null;
+
+    const [locations, attributes] = await Promise.all([
+      listing
+        ? ctx.db
+            .query("locations")
+            .withIndex("by_listing", (q) =>
+              q.eq("listingId", asId<"listings">(listing._id)),
+            )
+            .collect()
+        : Promise.resolve([]),
+      listing
+        ? ctx.db
+            .query("listingAttributes")
+            .withIndex("by_listing", (q) =>
+              q.eq("listingId", asId<"listings">(listing._id)),
+            )
+            .collect()
+        : Promise.resolve([]),
+    ]);
+
+    const hasServices = attributes.some((attribute) => {
+      if (attribute.attributeKey !== "services_offered") {
+        return false;
+      }
+
+      return Array.isArray(attribute.value) && attribute.value.length > 0;
+    });
+    const listingStatus = listing ? readString(listing.status) : null;
+    const eligible =
+      Boolean(readString(workspace.agencyName)) &&
+      Boolean(readString(workspace.contactEmail)) &&
+      listingStatus === "published" &&
+      locations.length > 0 &&
+      hasServices;
+    const existingCompletedAt = readString(workspace.onboardingCompletedAt);
+    const repaired = eligible && !existingCompletedAt;
+    const onboardingCompletedAt =
+      existingCompletedAt ??
+      (eligible
+        ? readString(asRecord(listing?.metadata).publishedAt) ?? now()
+        : null);
+
+    if (repaired && onboardingCompletedAt) {
+      await ctx.db.patch(asId<"workspaces">(workspace._id), {
+        onboardingCompletedAt,
+        updatedAt: now(),
+      });
+    }
+
+    return {
+      workspaceId: workspace._id,
+      listingId: listing?._id ?? null,
+      repaired,
+      eligible,
+      onboardingCompletedAt,
+      listingStatus,
+      locationCount: locations.length,
+      hasServices,
+    };
+  },
+});
+
 export const attachE2EWorkspaceMember = mutation({
   args: {
     secret: v.string(),
