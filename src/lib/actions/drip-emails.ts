@@ -17,12 +17,11 @@ type ActionResult<T = void> =
 
 let resend: import("resend").Resend | null = null;
 
-function getResendClient(): import("resend").Resend | null {
+async function getResendClient(): Promise<import("resend").Resend | null> {
   if (resend) return resend;
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) return null;
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { Resend } = require("resend") as typeof import("resend");
+  const { Resend } = await import("resend");
   resend = new Resend(apiKey);
   return resend;
 }
@@ -46,7 +45,7 @@ export async function processDripEmails(): Promise<ActionResult<{ sent: number; 
     return { success: true, data: { sent: 0, errors: 0 } };
   }
 
-  const client = getResendClient();
+  const client = await getResendClient();
   if (!client) {
     console.log("[drip] Resend not configured, skipping drip emails");
     return { success: true, data: { sent: 0, errors: 0 } };

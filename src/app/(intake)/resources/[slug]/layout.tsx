@@ -5,6 +5,7 @@ import { Globe } from "lucide-react";
 
 import { BrandedLogo } from "@/components/branded/branded-logo";
 import { Button } from "@/components/ui/button";
+import { PreviewBanner } from "@/components/ui/preview-banner";
 import { getClientResourcesPageData } from "@/lib/actions/intake";
 import { getContrastingTextColor } from "@/lib/utils/brand-color";
 
@@ -52,6 +53,10 @@ export default async function ResourcesLayout({ children, params }: ResourcesLay
   }
 
   const { listing, profile } = result.data;
+  const isPreview =
+    profile.planTier === "free" ||
+    (profile.subscriptionStatus !== "active" &&
+      profile.subscriptionStatus !== "trialing");
   const { background_color, show_powered_by } = profile.intakeFormSettings;
   const contrastColor = getContrastingTextColor(background_color);
   const brandTextColor = contrastColor === "#000000" ? "#1f2937" : "#FFFFFF";
@@ -63,6 +68,13 @@ export default async function ResourcesLayout({ children, params }: ResourcesLay
         background: `linear-gradient(135deg, ${background_color} 0%, ${background_color}dd 50%, ${background_color}bb 100%)`,
       }}
     >
+      {isPreview && (
+        <PreviewBanner
+          variant="public"
+          message="This parent resources page is in preview mode. Activate your account to go live."
+          triggerFeature="client_resources"
+        />
+      )}
       <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
         <div className="overflow-hidden rounded-2xl bg-white shadow-2xl sm:rounded-3xl">
           <div

@@ -268,4 +268,11 @@ test("free onboarding unlocks preview dashboard and mobile navigation", async ({
   await expect(
     page.getByText(/this page is in preview mode\. activate your account to go live\./i),
   ).toBeVisible({ timeout: 30000 });
+
+  await page.goto(`/provider/${slug}/resources`, { waitUntil: "domcontentloaded" });
+  await expect(
+    page.getByText(
+      /this parent resources page is in preview mode\. activate your account to go live\./i,
+    ),
+  ).toBeVisible({ timeout: 30000 });
 });
