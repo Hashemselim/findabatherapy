@@ -41,7 +41,10 @@ next-env.d.ts
 
 # local tool/IDE configs
 .codex/
+.windsurf/
 .claude/worktrees/
 .obsidian/
 .playwright-cli/
+.playwright-mcp/
+tmp/
 output/

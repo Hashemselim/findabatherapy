@@ -1259,6 +1259,270 @@ export const provisionE2EDashboardWorkspace = mutation({
   },
 });
 
+export const provisionE2EOnboardingPreviewWorkspace = mutation({
+  args: {
+    secret: v.string(),
+    clerkUserId: v.string(),
+    email: v.string(),
+    firstName: v.optional(v.string()),
+    lastName: v.optional(v.string()),
+  },
+  returns: v.object({
+    userId: v.string(),
+    workspaceId: v.string(),
+    listingId: v.string(),
+    locationId: v.string(),
+    slug: v.string(),
+  }),
+  handler: async (ctx, args) => {
+    requireSeedSecret(args.secret);
+
+    const timestamp = now();
+    const email = normalizeSeedEmail(args.email);
+    const publicWorkspaceEmail = `public+${args.clerkUserId}@example.com`;
+    const displayName = [args.firstName, args.lastName].filter(Boolean).join(" ").trim();
+    const slugSeed = email.split("@")[0] || args.clerkUserId;
+    const workspaceSlug = generateSeedSlug(`${slugSeed}-preview`) || "e2e-preview";
+
+    const existingUsers = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_user_id", (q) => q.eq("clerkUserId", args.clerkUserId))
+      .collect();
+
+    const userId = existingUsers[0]
+      ? existingUsers[0]._id
+      : await ctx.db.insert("users", {
+          clerkUserId: args.clerkUserId,
+          primaryEmail: email,
+          firstName: args.firstName,
+          lastName: args.lastName,
+          displayName: displayName || undefined,
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        });
+
+    await ctx.db.patch(asId<"users">(userId), {
+      primaryEmail: email,
+      firstName: args.firstName,
+      lastName: args.lastName,
+      displayName: displayName || undefined,
+      updatedAt: timestamp,
+    });
+
+    const existingMemberships = await ctx.db
+      .query("workspaceMemberships")
+      .withIndex("by_user", (q) => q.eq("userId", asId<"users">(userId)))
+      .collect();
+
+    let workspaceId = existingMemberships[0]?.workspaceId
+      ? String(existingMemberships[0].workspaceId)
+      : null;
+
+    if (!workspaceId) {
+      workspaceId = String(
+        await ctx.db.insert("workspaces", {
+          slug: workspaceSlug,
+          agencyName: "Preview Regression",
+          contactEmail: publicWorkspaceEmail,
+          planTier: "free",
+          subscriptionStatus: "inactive",
+          billingInterval: "month",
+          onboardingCompletedAt: undefined,
+          primaryIntent: "both",
+          settings: {
+            contactPhone: "(555) 010-2400",
+            website: "https://www.goodaba.com",
+            intakeFormSettings: {
+              background_color: "#0866FF",
+              show_powered_by: true,
+              enabled: true,
+            },
+          },
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        }),
+      );
+    } else {
+      await clearWorkspaceRowsByWorkspaceId(ctx, workspaceId);
+      await ctx.db.patch(asId<"workspaces">(workspaceId), {
+        slug: workspaceSlug,
+        agencyName: "Preview Regression",
+        contactEmail: publicWorkspaceEmail,
+        planTier: "free",
+        subscriptionStatus: "inactive",
+        billingInterval: "month",
+        onboardingCompletedAt: undefined,
+        primaryIntent: "both",
+        settings: {
+          contactPhone: "(555) 010-2400",
+          website: "https://www.goodaba.com",
+          intakeFormSettings: {
+            background_color: "#0866FF",
+            show_powered_by: true,
+            enabled: true,
+          },
+        },
+        updatedAt: timestamp,
+      });
+    }
+
+    if (existingMemberships[0]) {
+      await ctx.db.patch(asId<"workspaceMemberships">(existingMemberships[0]._id), {
+        workspaceId: asId<"workspaces">(workspaceId),
+        userId: asId<"users">(userId),
+        email,
+        role: "owner",
+        status: "active",
+        joinedAt: existingMemberships[0].joinedAt ?? timestamp,
+        updatedAt: timestamp,
+      });
+    } else {
+      await ctx.db.insert("workspaceMemberships", {
+        workspaceId: asId<"workspaces">(workspaceId),
+        userId: asId<"users">(userId),
+        email,
+        role: "owner",
+        status: "active",
+        joinedAt: timestamp,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      });
+    }
+
+    await ctx.db.patch(asId<"users">(userId), {
+      activeWorkspaceId: asId<"workspaces">(workspaceId),
+      updatedAt: timestamp,
+    });
+
+    const listingMetadata = {
+      headline: "Compassionate ABA therapy for your family",
+      description:
+        "Preview Regression is a seeded Free workspace used to verify branded-page previews during onboarding.",
+      summary: "Seeded Free workspace for onboarding branded preview verification.",
+      serviceModes: ["in_home", "in_center"],
+      isAcceptingClients: true,
+      videoUrl: null,
+      logoUrl: null,
+      careersBrandColor: "#0866FF",
+      careersHeadline: "Join a growing ABA team",
+      careersCtaText: "Apply Now",
+      careersHideBadge: false,
+      clientIntakeEnabled: true,
+      websitePublished: false,
+      websiteSettings: {
+        template: "modern",
+        show_gallery: true,
+        show_reviews: true,
+        show_careers: true,
+        show_resources: true,
+        hero_cta_text: "Get Started",
+        sections_order: [
+          "hero",
+          "about",
+          "services",
+          "insurance",
+          "locations",
+          "gallery",
+          "reviews",
+        ],
+      },
+      publishedAt: null,
+    };
+
+    const listingId = String(
+      await ctx.db.insert("listings", {
+        workspaceId: asId<"workspaces">(workspaceId),
+        slug: workspaceSlug,
+        status: "draft",
+        metadata: buildListingMetadata(listingMetadata, "draft"),
+        searchDocument: {
+          text: buildSearchText([
+            "Preview Regression",
+            "Seeded Free workspace for onboarding branded preview verification.",
+            "Clark",
+            "NJ",
+          ]),
+        },
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      }),
+    );
+
+    await ctx.db.insert("publicReadModels", {
+      workspaceId: asId<"workspaces">(workspaceId),
+      listingId: asId<"listings">(listingId),
+      modelType: "listing",
+      slug: workspaceSlug,
+      routePath: `/provider/${workspaceSlug}`,
+      state: "NJ",
+      city: "Clark",
+      searchText: buildSearchText([
+        "Preview Regression",
+        "Seeded Free workspace for onboarding branded preview verification.",
+        "Clark",
+        "NJ",
+      ]),
+      payload: {
+        slug: workspaceSlug,
+        headline: "Compassionate ABA therapy for your family",
+        status: "draft",
+      },
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    });
+
+    const locationId = String(
+      await ctx.db.insert("locations", {
+        workspaceId: asId<"workspaces">(workspaceId),
+        listingId: asId<"listings">(listingId),
+        status: "active",
+        metadata: {
+          label: "Clark HQ",
+          street: "100 Walnut Ave",
+          city: "Clark",
+          state: "NJ",
+          postalCode: "07066",
+          latitude: 40.629911,
+          longitude: -74.3033502,
+          isPrimary: true,
+          isFeatured: true,
+          serviceRadiusMiles: 25,
+          serviceMode: "both",
+          serviceTypes: ["in_home", "in_center"],
+          insurances: ["Aetna"],
+          googlePlaceId: null,
+          googleRating: null,
+          googleRatingCount: null,
+          showGoogleReviews: false,
+          contactPhone: "(555) 010-2400",
+          contactEmail: email,
+          contactWebsite: "https://www.goodaba.com",
+          useCompanyContact: true,
+          formattedAddress: "100 Walnut Ave, Clark, NJ 07066",
+        },
+        searchDocument: {
+          text: buildSearchText([
+            "Clark HQ",
+            "100 Walnut Ave",
+            "Clark",
+            "NJ",
+          ]),
+        },
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      }),
+    );
+
+    return {
+      userId: String(userId),
+      workspaceId,
+      listingId,
+      locationId,
+      slug: workspaceSlug,
+    };
+  },
+});
+
 export const provisionE2ECommunicationFixtures = mutation({
   args: {
     secret: v.string(),

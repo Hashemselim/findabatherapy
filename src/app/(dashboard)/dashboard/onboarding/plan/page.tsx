@@ -19,6 +19,7 @@ import {
   getOnboardingData,
   updateProfilePlan,
 } from "@/lib/actions/onboarding";
+import { clearOnboardingPreviewDraft } from "@/lib/onboarding/preview-session";
 import { createCheckoutSession } from "@/lib/stripe/actions";
 
 type BillingInterval = "month" | "year";
@@ -101,6 +102,7 @@ export default function OnboardingPlanPage() {
         return;
       }
 
+      clearOnboardingPreviewDraft();
       router.replace("/dashboard/clients/pipeline?welcome=1");
     });
   }, [paymentSuccess, router]);
@@ -116,6 +118,7 @@ export default function OnboardingPlanPage() {
         return;
       }
 
+      clearOnboardingPreviewDraft();
       router.push("/dashboard/clients/pipeline?welcome=1");
     });
   }

@@ -6,7 +6,11 @@ import { Globe, ShieldCheck } from "lucide-react";
 import { BrandedLogo } from "@/components/branded/branded-logo";
 import { PublicDocumentUploadForm } from "@/components/intake/public-document-upload-form";
 import { Button } from "@/components/ui/button";
-import { getClientDocumentUploadTokenData } from "@/lib/actions/clients";
+import { PreviewBanner } from "@/components/ui/preview-banner";
+import {
+  getClientDocumentUploadTokenData,
+  type ClientDocumentUploadAccessData,
+} from "@/lib/actions/clients";
 import { getClientIntakePageData } from "@/lib/actions/intake";
 import { buildDocumentAccessPath, getDocumentAccessToken } from "@/lib/public-access";
 import { getContrastingTextColor } from "@/lib/utils/brand-color";
@@ -54,29 +58,38 @@ export default async function ClientDocumentUploadPage({
     redirect(`${accessPath.pathname}${accessPath.search}`);
   }
   const accessToken = await getDocumentAccessToken(slug);
-
-  if (!accessToken) {
-    notFound();
-  }
-
-  const [pageResult, tokenResult] = await Promise.all([
-    getClientIntakePageData(slug),
-    getClientDocumentUploadTokenData(accessToken),
-  ]);
-
-  if (
-    !pageResult.success ||
-    !pageResult.data ||
-    !tokenResult.success ||
-    !tokenResult.data ||
-    tokenResult.data.profileId !== pageResult.data.listing.profileId
-  ) {
+  const pageResult = await getClientIntakePageData(slug);
+  if (!pageResult.success || !pageResult.data) {
     notFound();
   }
 
   const { listing, profile } = pageResult.data;
   const { background_color, show_powered_by } = profile.intakeFormSettings;
   const contrastColor = getContrastingTextColor(background_color);
+  const isPreview =
+    profile.planTier === "free" ||
+    (profile.subscriptionStatus !== "active" &&
+      profile.subscriptionStatus !== "trialing");
+
+  let clientName = "Sample Family";
+  let existingDocuments: ClientDocumentUploadAccessData["uploadedDocuments"] = [];
+
+  if (accessToken) {
+    const tokenResult = await getClientDocumentUploadTokenData(accessToken);
+
+    if (
+      !tokenResult.success ||
+      !tokenResult.data ||
+      tokenResult.data.profileId !== listing.profileId
+    ) {
+      notFound();
+    }
+
+    clientName = tokenResult.data.clientName;
+    existingDocuments = tokenResult.data.uploadedDocuments;
+  } else if (!isPreview) {
+    notFound();
+  }
 
   return (
     <div
@@ -85,6 +98,13 @@ export default async function ClientDocumentUploadPage({
         background: `linear-gradient(135deg, ${background_color} 0%, ${background_color}dd 50%, ${background_color}bb 100%)`,
       }}
     >
+      {isPreview && (
+        <PreviewBanner
+          variant="public"
+          message="This agreement page is in preview mode. Activate your account to collect uploaded documents."
+          triggerFeature="client_intake"
+        />
+      )}
       <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 sm:py-12">
         <div className="overflow-hidden rounded-2xl bg-white shadow-2xl sm:rounded-3xl">
           <div
@@ -112,7 +132,7 @@ export default async function ClientDocumentUploadPage({
 
               <p className="mx-auto max-w-2xl text-base text-muted-foreground sm:text-lg">
                 Upload supporting documents for{" "}
-                <span className="font-semibold text-foreground">{tokenResult.data.clientName}</span>.
+                <span className="font-semibold text-foreground">{clientName}</span>.
                 Diagnosis reports, referrals, and medical history are all appropriate here.
               </p>
 
@@ -149,14 +169,16 @@ export default async function ClientDocumentUploadPage({
             </div>
           </div>
 
-          <div className="px-6 py-8 sm:px-8 sm:py-10">
-            <PublicDocumentUploadForm
-              accessSlug={slug}
-              clientName={tokenResult.data.clientName}
-              providerName={profile.agencyName}
-              brandColor={background_color}
-              existingDocuments={tokenResult.data.uploadedDocuments}
-            />
+          <div className={isPreview ? "pointer-events-none select-none opacity-60" : ""}>
+            <div className="px-6 py-8 sm:px-8 sm:py-10">
+              <PublicDocumentUploadForm
+                accessSlug={slug}
+                clientName={clientName}
+                providerName={profile.agencyName}
+                brandColor={background_color}
+                existingDocuments={existingDocuments}
+              />
+            </div>
           </div>
 
           <div

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { MapPin, Briefcase, BadgeCheck, Building2, Globe } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { PreviewBanner } from "@/components/ui/preview-banner";
 import { BrandedLogo } from "@/components/branded/branded-logo";
 import { JsonLd } from "@/components/seo/json-ld";
 import { CareersJobFilter } from "@/components/jobs/careers-job-filter";
@@ -156,6 +157,7 @@ export default async function BrandedCareersPage({ params }: CareersPageProps) {
 
   const brandColor = provider.intakeFormSettings.background_color;
   const contrastColor = getContrastingTextColor(brandColor);
+  const isPreview = provider.planTier === "free";
 
   const effectiveHeadline = provider.headline;
   const effectiveCtaText = "Apply Now";
@@ -177,6 +179,13 @@ export default async function BrandedCareersPage({ params }: CareersPageProps) {
         background: `linear-gradient(135deg, ${brandColor} 0%, ${brandColor}dd 50%, ${brandColor}bb 100%)`,
       }}
     >
+      {isPreview && (
+        <PreviewBanner
+          variant="public"
+          message="This careers page is in preview mode. Activate your account to publish it."
+          triggerFeature="jobs"
+        />
+      )}
       <JsonLd data={employerSchema} />
 
       {/* Main Content Container */}

@@ -43,6 +43,7 @@ import {
   type LocationData,
   type ServiceType,
 } from "@/lib/actions/locations";
+import { mergeOnboardingPreviewDraft } from "@/lib/onboarding/preview-session";
 import {
   locationWithServicesSchema,
   type LocationWithServicesData,
@@ -389,6 +390,15 @@ export default function OnboardingLocationPage() {
     if (locations.length === 0) {
       setError("Add at least one location before continuing.");
       return;
+    }
+
+    const primaryLocation =
+      locations.find((location) => location.isPrimary) || locations[0] || null;
+    if (primaryLocation) {
+      mergeOnboardingPreviewDraft({
+        city: primaryLocation.city,
+        state: primaryLocation.state,
+      });
     }
 
     router.push("/dashboard/onboarding/services");

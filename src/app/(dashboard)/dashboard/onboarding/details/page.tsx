@@ -22,6 +22,7 @@ import {
   updateListingDetails,
   updateProfileBasics,
 } from "@/lib/actions/onboarding";
+import { mergeOnboardingPreviewDraft } from "@/lib/onboarding/preview-session";
 
 const detailsSchema = z.object({
   agencyName: z.string().min(2, "Agency name must be at least 2 characters"),
@@ -145,6 +146,18 @@ export default function OnboardingDetailsPage() {
         setError(listingResult.error);
         return;
       }
+
+      mergeOnboardingPreviewDraft({
+        agencyName: data.agencyName,
+        headline: data.headline || null,
+        description: data.description,
+        logoUrl,
+        brandColor,
+        contactEmail: data.contactEmail,
+        contactPhone: data.contactPhone || null,
+        website: data.website || null,
+        slug: profileResult.data?.slug || null,
+      });
 
       router.push("/dashboard/onboarding/location");
     });

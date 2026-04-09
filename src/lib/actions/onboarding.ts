@@ -108,7 +108,7 @@ function generateSlug(agencyName: string): string {
  */
 export async function updateProfileBasics(
   data: CompanyBasics
-): Promise<ActionResult> {
+): Promise<ActionResult<{ slug: string | null }>> {
   if (isConvexDataEnabled()) {
     try {
       await mutateConvex("listings:updateCompanyContact", {
@@ -116,11 +116,11 @@ export async function updateProfileBasics(
         contactPhone: data.contactPhone || null,
         website: data.website || null,
       });
-      await mutateConvex("listings:updateAgencyName", {
+      const agencyResult = await mutateConvex<{ newSlug: string }>("listings:updateAgencyName", {
         agencyName: data.agencyName,
       });
       revalidatePath("/dashboard");
-      return { success: true };
+      return { success: true, data: { slug: agencyResult.newSlug } };
     } catch (err) {
       return { success: false, error: err instanceof Error ? err.message : "Failed to update profile basics" };
     }
@@ -204,7 +204,7 @@ export async function updateProfileBasics(
   }
 
   revalidatePath("/dashboard");
-  return { success: true };
+  return { success: true, data: { slug: generateSlug(data.agencyName) } };
 }
 
 /**

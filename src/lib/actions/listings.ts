@@ -1142,6 +1142,10 @@ export async function getListingBySlug(
     try {
       const result = await queryConvex<ListingWithRelations | null>("listings:getPublicListingBySlug", { slug });
       if (!result) {
+        const previewResult = await getListing();
+        if (previewResult.success && previewResult.data?.slug === slug) {
+          return { success: true, data: previewResult.data };
+        }
         return { success: false, error: "Listing not found" };
       }
       return { success: true, data: result };
@@ -1186,6 +1190,10 @@ export async function getListingBySlug(
 
   if (listingError) {
     if (listingError.code === "PGRST116") {
+      const previewResult = await getListing();
+      if (previewResult.success && previewResult.data?.slug === slug) {
+        return { success: true, data: previewResult.data };
+      }
       return { success: false, error: "Listing not found" };
     }
     return {

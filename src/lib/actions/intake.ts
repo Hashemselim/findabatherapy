@@ -3,6 +3,7 @@
 import { headers } from "next/headers";
 
 import { isConvexDataEnabled } from "@/lib/platform/config";
+import { getCurrentProfileId as getPlatformProfileId } from "@/lib/platform/workspace/server";
 import {
   type IntakeFieldsConfig,
   mergeWithDefaults,
@@ -14,6 +15,7 @@ import {
   getIntakeAccessToken,
 } from "@/lib/public-access";
 import { getRequestOrigin } from "@/lib/utils/domains";
+import type { ListingWithRelations } from "@/lib/actions/listings";
 
 export interface IntakeFormSettings {
   background_color: string;
@@ -45,6 +47,101 @@ type ActionResult<T = void> =
   | { success: true; data?: T }
   | { success: false; error: string };
 
+function isActiveSubscription(status: string | null | undefined): boolean {
+  return status === "active" || status === "trialing";
+}
+
+function buildIntakeSettings(
+  settings: Partial<IntakeFormSettings> | null | undefined,
+): IntakeFormSettings {
+  return {
+    background_color: settings?.background_color || "#0866FF",
+    show_powered_by: settings?.show_powered_by ?? true,
+    ...(settings?.fields ? { fields: settings.fields } : {}),
+  };
+}
+
+async function getOwnerPreviewListing(
+  slug: string,
+): Promise<ListingWithRelations | null> {
+  const { getListing } = await import("@/lib/actions/listings");
+  const result = await getListing();
+  if (!result.success || !result.data || result.data.slug !== slug) {
+    return null;
+  }
+  return result.data;
+}
+
+function mapListingToContactPageData(
+  listing: ListingWithRelations,
+): ContactPageData {
+  const premium =
+    listing.profile.planTier !== "free" &&
+    isActiveSubscription(listing.profile.subscriptionStatus);
+
+  return {
+    listing: {
+      id: listing.id,
+      slug: listing.slug,
+      logoUrl: listing.logoUrl,
+      contactFormEnabled:
+        premium && listing.attributes.contact_form_enabled !== false,
+    },
+    profile: {
+      agencyName: listing.profile.agencyName,
+      website: listing.profile.website,
+      planTier: listing.profile.planTier,
+      subscriptionStatus: listing.profile.subscriptionStatus,
+      intakeFormSettings: buildIntakeSettings(listing.profile.intakeFormSettings),
+    },
+  };
+}
+
+async function mapListingToClientIntakePageData(
+  listing: ListingWithRelations,
+): Promise<ClientIntakePageData> {
+  const premium =
+    listing.profile.planTier !== "free" &&
+    isActiveSubscription(listing.profile.subscriptionStatus);
+
+  return {
+    listing: {
+      id: listing.id,
+      slug: listing.slug,
+      logoUrl: listing.logoUrl,
+      clientIntakeEnabled:
+        premium && listing.attributes.client_intake_enabled !== false,
+      profileId: (await getPlatformProfileId()) ?? "preview",
+    },
+    profile: {
+      agencyName: listing.profile.agencyName,
+      website: listing.profile.website,
+      planTier: listing.profile.planTier,
+      subscriptionStatus: listing.profile.subscriptionStatus,
+      intakeFormSettings: buildIntakeSettings(listing.profile.intakeFormSettings),
+    },
+  };
+}
+
+function mapListingToClientResourcesPageData(
+  listing: ListingWithRelations,
+): ClientResourcesPageData {
+  return {
+    listing: {
+      id: listing.id,
+      slug: listing.slug,
+      logoUrl: listing.logoUrl,
+    },
+    profile: {
+      agencyName: listing.profile.agencyName,
+      website: listing.profile.website,
+      planTier: listing.profile.planTier,
+      subscriptionStatus: listing.profile.subscriptionStatus,
+      intakeFormSettings: buildIntakeSettings(listing.profile.intakeFormSettings),
+    },
+  };
+}
+
 /**
  * Get data for the standalone contact form page
  * Returns listing and profile info needed to render the contact page
@@ -55,12 +152,23 @@ export async function getContactPageData(
   if (isConvexDataEnabled()) {
     try {
       const { queryConvexUnauthenticated } = await import("@/lib/platform/convex/server");
-      const result = await queryConvexUnauthenticated<ContactPageData>("intake:getContactPageData", { slug });
-      return { success: true, data: result };
+      const result = await queryConvexUnauthenticated<ListingWithRelations | null>(
+        "listings:getPublicListingBySlug",
+        { slug },
+      );
+      if (result) {
+        return { success: true, data: mapListingToContactPageData(result) };
+      }
     } catch (error) {
       console.error("Convex error:", error);
-      return { success: false, error: "Provider not found" };
     }
+
+    const previewListing = await getOwnerPreviewListing(slug);
+    if (previewListing) {
+      return { success: true, data: mapListingToContactPageData(previewListing) };
+    }
+
+    return { success: false, error: "Provider not found" };
   }
 
   const { createAdminClient } = await import("@/lib/supabase/server");
@@ -93,6 +201,10 @@ export async function getContactPageData(
     .single();
 
   if (listingError || !listing) {
+    const previewListing = await getOwnerPreviewListing(slug);
+    if (previewListing) {
+      return { success: true, data: mapListingToContactPageData(previewListing) };
+    }
     return { success: false, error: "Provider not found" };
   }
 
@@ -209,12 +321,26 @@ export async function getClientIntakePageData(
   if (isConvexDataEnabled()) {
     try {
       const { queryConvexUnauthenticated } = await import("@/lib/platform/convex/server");
-      const result = await queryConvexUnauthenticated<ClientIntakePageData>("intake:getClientIntakePageData", { slug });
-      return { success: true, data: result };
+      const result = await queryConvexUnauthenticated<ClientIntakePageData | null>(
+        "intake:getClientIntakePageData",
+        { slug },
+      );
+      if (result) {
+        return { success: true, data: result };
+      }
     } catch (error) {
       console.error("Convex error:", error);
-      return { success: false, error: "Provider not found" };
     }
+
+    const previewListing = await getOwnerPreviewListing(slug);
+    if (previewListing) {
+      return {
+        success: true,
+        data: await mapListingToClientIntakePageData(previewListing),
+      };
+    }
+
+    return { success: false, error: "Provider not found" };
   }
 
   const { createAdminClient } = await import("@/lib/supabase/server");
@@ -245,6 +371,13 @@ export async function getClientIntakePageData(
     .single();
 
   if (listingError || !listing) {
+    const previewListing = await getOwnerPreviewListing(slug);
+    if (previewListing) {
+      return {
+        success: true,
+        data: await mapListingToClientIntakePageData(previewListing),
+      };
+    }
     return { success: false, error: "Provider not found" };
   }
 
@@ -320,12 +453,26 @@ export async function getClientResourcesPageData(
   if (isConvexDataEnabled()) {
     try {
       const { queryConvexUnauthenticated } = await import("@/lib/platform/convex/server");
-      const result = await queryConvexUnauthenticated<ClientResourcesPageData>("intake:getClientResourcesPageData", { slug });
-      return { success: true, data: result };
+      const result = await queryConvexUnauthenticated<ClientResourcesPageData | null>(
+        "intake:getClientResourcesPageData",
+        { slug },
+      );
+      if (result) {
+        return { success: true, data: result };
+      }
     } catch (error) {
       console.error("Convex error:", error);
-      return { success: false, error: "Provider not found" };
     }
+
+    const previewListing = await getOwnerPreviewListing(slug);
+    if (previewListing) {
+      return {
+        success: true,
+        data: mapListingToClientResourcesPageData(previewListing),
+      };
+    }
+
+    return { success: false, error: "Provider not found" };
   }
 
   const { createAdminClient } = await import("@/lib/supabase/server");
@@ -353,6 +500,13 @@ export async function getClientResourcesPageData(
     .single();
 
   if (listingError || !listing) {
+    const previewListing = await getOwnerPreviewListing(slug);
+    if (previewListing) {
+      return {
+        success: true,
+        data: mapListingToClientResourcesPageData(previewListing),
+      };
+    }
     return { success: false, error: "Provider not found" };
   }
 
