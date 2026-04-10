@@ -30,6 +30,19 @@ const intakeFormSettingsUpdateValidator = v.object({
   fields: v.optional(intakeFieldsConfigValidator),
 });
 
+const publicIntakeValueValidator = v.union(
+  v.string(),
+  v.number(),
+  v.boolean(),
+  v.null(),
+  v.array(v.string()),
+);
+
+const publicIntakeRecordDataValidator = v.record(
+  v.string(),
+  publicIntakeValueValidator,
+);
+
 function asRecord(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return {};
@@ -52,6 +65,16 @@ function now() {
 
 function createTokenValue() {
   return crypto.randomUUID().replace(/-/g, "");
+}
+
+function hasMeaningfulValues(payload: Record<string, unknown>) {
+  return Object.values(payload).some(
+    (value) =>
+      value !== null &&
+      value !== undefined &&
+      value !== "" &&
+      (!Array.isArray(value) || value.length > 0),
+  );
 }
 
 function isInternalTestEmail(email: string | null) {
@@ -205,6 +228,84 @@ async function requireValidClientDocumentUploadToken(ctx: ConvexCtx, token: stri
     workspaceId: String(tokenRow.workspaceId),
     clientId: client._id,
   };
+}
+
+async function requireValidClientIntakeToken(ctx: ConvexCtx, token: string) {
+  const tokenRow = await getTokenRowByToken(ctx, token);
+  if (
+    !tokenRow ||
+    readString(tokenRow.subjectType) !== CLIENT_INTAKE_TOKEN_TYPE ||
+    !readString(tokenRow.subjectId)
+  ) {
+    throw new ConvexError("Invalid or expired intake link");
+  }
+
+  if (tokenRow.expiresAt && new Date(String(tokenRow.expiresAt)) < new Date()) {
+    throw new ConvexError("This intake link has expired");
+  }
+
+  const tokenPayload = asRecord(tokenRow.payload);
+  if (tokenPayload.usedAt) {
+    throw new ConvexError("This intake link has already been used");
+  }
+
+  const clientId = readString(tokenRow.subjectId);
+  const client = clientId
+    ? await ctx.db.get(asId<"crmRecords">(clientId))
+    : null;
+  if (
+    !client ||
+    client.recordType !== "client" ||
+    client.deletedAt ||
+    String(client.workspaceId) !== String(tokenRow.workspaceId)
+  ) {
+    throw new ConvexError("Invalid or expired intake link");
+  }
+
+  return {
+    tokenRow,
+    tokenPayload,
+    client,
+    workspaceId: String(tokenRow.workspaceId),
+    clientId: client._id,
+  };
+}
+
+async function upsertClientSubRecord(
+  ctx: MutationCtx,
+  workspaceId: string,
+  clientId: string,
+  recordType: string,
+  match: (row: ConvexDoc) => boolean,
+  payload: Record<string, unknown>,
+) {
+  if (!hasMeaningfulValues(payload)) {
+    return null;
+  }
+
+  const existing = (await getClientSubRecords(ctx, workspaceId, clientId, recordType)).find(match) ?? null;
+  const ts = now();
+
+  if (existing) {
+    const nextPayload = {
+      ...asRecord(existing.payload),
+      ...payload,
+    };
+    await ctx.db.patch(asId<"crmRecords">(existing._id), {
+      payload: nextPayload,
+      updatedAt: ts,
+    });
+    return existing._id;
+  }
+
+  return ctx.db.insert("crmRecords", {
+    workspaceId: asId<"workspaces">(workspaceId),
+    recordType,
+    payload,
+    relatedIds: { clientId },
+    createdAt: ts,
+    updatedAt: ts,
+  });
 }
 
 async function getPublicClientDocuments(
@@ -471,10 +572,6 @@ export const getContactPageData = query({
       ? readBoolean(metadata.contactFormEnabled, false)
       : false;
     const logoUrl = await getPublicListingLogoUrl(ctx, listing, workspace);
-
-    if (isPremium && !contactFormEnabled) {
-      return null;
-    }
 
     return {
       listing: {
@@ -793,6 +890,167 @@ export const markIntakeTokenUsed = mutation({
     });
 
     return { success: true };
+  },
+});
+
+export const submitAssignedPortalIntake = mutation({
+  args: {
+    token: v.string(),
+    taskId: v.string(),
+    clientData: publicIntakeRecordDataValidator,
+    parentData: v.optional(publicIntakeRecordDataValidator),
+    insuranceData: v.optional(publicIntakeRecordDataValidator),
+    homeLocationData: v.optional(publicIntakeRecordDataValidator),
+    serviceLocationData: v.optional(publicIntakeRecordDataValidator),
+  },
+  handler: async (ctx, args) => {
+    const { client, workspaceId, clientId } = await requireValidClientIntakeToken(ctx, args.token);
+    const task = await ctx.db.get(asId<"crmRecords">(args.taskId));
+
+    if (
+      !task ||
+      task.deletedAt ||
+      task.recordType !== "client_task" ||
+      String(task.workspaceId) !== workspaceId
+    ) {
+      throw new ConvexError("Portal task not found");
+    }
+
+    const taskRelatedIds = asRecord(task.relatedIds);
+    if (readString(taskRelatedIds.clientId) !== clientId) {
+      throw new ConvexError("Portal task does not match this client");
+    }
+
+    const ts = now();
+    const clientPayload = asRecord(client.payload);
+    const rawClientData = asRecord(args.clientData);
+
+    await ctx.db.patch(asId<"crmRecords">(client._id), {
+      payload: {
+        ...clientPayload,
+        ...rawClientData,
+        firstName: readString(rawClientData.child_first_name) ?? readString(clientPayload.firstName),
+        lastName: readString(rawClientData.child_last_name) ?? readString(clientPayload.lastName),
+        dateOfBirth: readString(rawClientData.child_date_of_birth) ?? readString(clientPayload.dateOfBirth),
+        referralSource:
+          readString(rawClientData.referral_source) ??
+          readString(clientPayload.referralSource) ??
+          "portal_form",
+        referralSourceDetail:
+          readString(rawClientData.referral_source_other) ??
+          readString(rawClientData.referral_source_detail) ??
+          readString(clientPayload.referralSourceDetail),
+        notes: readString(rawClientData.notes) ?? readString(clientPayload.notes),
+      },
+      updatedAt: ts,
+    });
+
+    const parentData = asRecord(args.parentData);
+    if (hasMeaningfulValues(parentData)) {
+      await upsertClientSubRecord(ctx, workspaceId, clientId, "client_parent", () => true, {
+        ...parentData,
+        firstName: readString(parentData.first_name),
+        lastName: readString(parentData.last_name),
+        isPrimary: true,
+        sortOrder: 0,
+      });
+    }
+
+    const insuranceData = asRecord(args.insuranceData);
+    if (hasMeaningfulValues(insuranceData)) {
+      await upsertClientSubRecord(ctx, workspaceId, clientId, "client_insurance", () => true, {
+        ...insuranceData,
+        providerName: readString(insuranceData.insurance_name),
+        memberId: readString(insuranceData.member_id),
+        groupNumber: readString(insuranceData.group_number),
+        isPrimary: true,
+        sortOrder: 0,
+      });
+    }
+
+    const homeLocationData = asRecord(args.homeLocationData);
+    if (hasMeaningfulValues(homeLocationData)) {
+      await upsertClientSubRecord(
+        ctx,
+        workspaceId,
+        clientId,
+        "client_location",
+        (row) => readBoolean(asRecord(row.payload).isPrimary) || readString(asRecord(row.payload).label) === "Home",
+        {
+          ...homeLocationData,
+          label: "Home",
+          streetAddress: readString(homeLocationData.street_address),
+          postalCode: readString(homeLocationData.postal_code),
+          isPrimary: true,
+          sortOrder: 0,
+        },
+      );
+    }
+
+    const serviceLocationData = asRecord(args.serviceLocationData);
+    if (hasMeaningfulValues(serviceLocationData)) {
+      await upsertClientSubRecord(
+        ctx,
+        workspaceId,
+        clientId,
+        "client_location",
+        (row) => !readBoolean(asRecord(row.payload).isPrimary) && readString(asRecord(row.payload).label) !== "Home",
+        {
+          ...serviceLocationData,
+          label: readString(serviceLocationData.location_type) ?? "Service location",
+          streetAddress: readString(serviceLocationData.street_address),
+          postalCode: readString(serviceLocationData.postal_code),
+          isPrimary: false,
+          sortOrder: 1,
+        },
+      );
+    }
+
+    const taskPayload = asRecord(task.payload);
+    await ctx.db.patch(asId<"crmRecords">(task._id), {
+      status: "submitted",
+      payload: {
+        ...taskPayload,
+        completionNote: "Intake form submitted",
+        submittedAt: ts,
+        completedAt: null,
+      },
+      updatedAt: ts,
+    });
+
+    await ctx.db.insert("crmRecords", {
+      workspaceId: asId<"workspaces">(workspaceId),
+      recordType: "client_portal_activity",
+      status: "logged",
+      payload: {
+        title: "Intake form submitted",
+        description: "The family submitted the assigned intake form from the portal.",
+        actorType: "guardian",
+        entityType: "task",
+        entityId: task._id,
+      },
+      relatedIds: { clientId },
+      createdAt: ts,
+      updatedAt: ts,
+    });
+
+    await ctx.db.insert("notificationRecords", {
+      workspaceId: asId<"workspaces">(workspaceId),
+      notificationType: "system",
+      status: "unread",
+      payload: {
+        title: "Portal form submitted",
+        body: "A family completed the intake form from the client portal.",
+        link: `/dashboard/clients/${clientId}/portal`,
+        entityId: task._id,
+        entityType: "task",
+        readAt: null,
+      },
+      createdAt: ts,
+      updatedAt: ts,
+    });
+
+    return { success: true, clientId };
   },
 });
 

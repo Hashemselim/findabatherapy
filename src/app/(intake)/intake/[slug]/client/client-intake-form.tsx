@@ -20,6 +20,7 @@ import {
 import { cn } from "@/lib/utils";
 import { getContrastingTextColor, getSolidBrandButtonStyles } from "@/lib/utils/brand-color";
 import { submitPublicClientIntake } from "@/lib/actions/clients";
+import { submitAssignedPortalIntakeForm } from "@/lib/actions/client-portal";
 import { markIntakeTokenUsed, type PrefillData } from "@/lib/actions/intake";
 import {
   type IntakeFieldsConfig,
@@ -46,6 +47,7 @@ interface ClientIntakeFormProps {
   prefillData?: PrefillData;
   /** Slug for resolving the secure prefill token from an HttpOnly cookie */
   intakeSlug?: string;
+  portalTaskId?: string;
 }
 
 export function ClientIntakeForm({
@@ -58,11 +60,15 @@ export function ClientIntakeForm({
   initialReferralSource,
   prefillData,
   intakeSlug,
+  portalTaskId,
 }: ClientIntakeFormProps) {
   const [isPending, startTransition] = useTransition();
   const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const portalAssignedForm = Boolean(portalTaskId);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(
+    portalAssignedForm ? "portal-assigned" : null,
+  );
   const [documentUploadUrl, setDocumentUploadUrl] = useState<string | null>(null);
   const [uploadLinkCopied, setUploadLinkCopied] = useState(false);
 
@@ -71,7 +77,9 @@ export function ClientIntakeForm({
 
   // Build default values for react-hook-form (with prefill when available)
   const { defaults: defaultValues, initialMultiSelect } = useMemo(() => {
-    const defaults: Record<string, unknown> = { turnstileToken: "" };
+    const defaults: Record<string, unknown> = {
+      turnstileToken: portalAssignedForm ? "portal-assigned" : "",
+    };
     const multiSelects: Record<string, string[]> = {};
     const sections = getEnabledSections(fieldsConfig);
     for (const section of sections) {
@@ -118,7 +126,7 @@ export function ClientIntakeForm({
       }
     }
     return { defaults, initialMultiSelect: multiSelects };
-  }, [fieldsConfig, initialReferralSource, prefillData]);
+  }, [fieldsConfig, initialReferralSource, portalAssignedForm, prefillData]);
 
   // Track multi-select values separately (not easily handled by react-hook-form register)
   const [multiSelectValues, setMultiSelectValues] = useState<Record<string, string[]>>(initialMultiSelect);
@@ -143,23 +151,28 @@ export function ClientIntakeForm({
   const onSubmit = async (values: Record<string, unknown>) => {
     setError(null);
 
-    if (!turnstileToken) {
+    if (!portalAssignedForm && !turnstileToken) {
       setError("Please complete the security verification");
       return;
     }
 
     startTransition(async () => {
-      const result = await submitPublicClientIntake({
-        profileId,
-        listingId,
-        turnstileToken,
-        fields: values as Record<string, unknown>,
-      });
+      const result = portalTaskId && intakeSlug
+        ? await submitAssignedPortalIntakeForm({
+            slug: intakeSlug,
+            taskId: portalTaskId,
+            fields: values as Record<string, unknown>,
+          })
+        : await submitPublicClientIntake({
+            profileId,
+            listingId,
+            turnstileToken: turnstileToken ?? "",
+            fields: values as Record<string, unknown>,
+          });
 
       if (result.success) {
-        setDocumentUploadUrl(result.data?.documentUploadUrl || null);
-        // Mark the token as used if this was a pre-fill submission
-        if (intakeSlug && prefillData) {
+        setDocumentUploadUrl("data" in result ? result.data?.documentUploadUrl || null : null);
+        if (!portalTaskId && intakeSlug && prefillData) {
           await markIntakeTokenUsed(undefined, intakeSlug);
         }
         setIsSuccess(true);
@@ -175,8 +188,9 @@ export function ClientIntakeForm({
         <CheckCircle2 className="mx-auto h-16 w-16 text-green-500" />
         <h3 className="mt-4 text-xl font-semibold">Thank You!</h3>
         <p className="mt-2 text-muted-foreground">
-          Your intake form has been submitted successfully. {providerName} will
-          review your information and be in touch shortly.
+          {portalTaskId
+            ? `Your form has been submitted successfully. ${providerName} will review your information in the portal.`
+            : `Your intake form has been submitted successfully. ${providerName} will review your information and be in touch shortly.`}
         </p>
         {documentUploadUrl ? (
           <div className="mt-6 space-y-3">
@@ -316,28 +330,29 @@ export function ClientIntakeForm({
         );
       })}
 
-      {/* Turnstile */}
-      <div className="flex justify-center">
-        <Turnstile
-          sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || ""}
-          onVerify={(token) => {
-            setTurnstileToken(token);
-            form.setValue("turnstileToken", token);
-          }}
-          onExpire={() => {
-            setTurnstileToken(null);
-            form.setValue("turnstileToken", "");
-          }}
-          theme="light"
-        />
-      </div>
+      {!portalAssignedForm ? (
+        <div className="flex justify-center">
+          <Turnstile
+            sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || ""}
+            onVerify={(token) => {
+              setTurnstileToken(token);
+              form.setValue("turnstileToken", token);
+            }}
+            onExpire={() => {
+              setTurnstileToken(null);
+              form.setValue("turnstileToken", "");
+            }}
+            theme="light"
+          />
+        </div>
+      ) : null}
 
       {/* Submit */}
       <Button
         type="submit"
         size="lg"
         className="w-full"
-        disabled={isPending || !turnstileToken}
+        disabled={isPending || (!portalAssignedForm && !turnstileToken)}
         style={getSolidBrandButtonStyles(brandColor)}
       >
         {isPending ? (

@@ -124,10 +124,13 @@ import { CommunicationHistory } from "@/components/dashboard/clients/communicati
 import { DocumentEditDialog } from "@/components/dashboard/clients/edit/document-edit-dialog";
 import { AgreementLinkDialog } from "@/components/dashboard/forms/agreement-link-dialog";
 import type { AgreementPacketOption } from "@/lib/actions/agreements";
+import { ClientPortalManager } from "@/components/client-portal/client-portal-manager";
+import type { ClientPortalData } from "@/lib/actions/client-portal";
 
 interface ClientFullDetailProps {
   client: ClientDetail;
   agreementPackets: AgreementPacketOption[];
+  portalData: ClientPortalData | null;
 }
 
 const EMAIL_PROVIDER_OPTIONS = [
@@ -281,7 +284,7 @@ function EmptyState({ message }: { message: string }) {
 
 type TaskStatus = "pending" | "in_progress" | "completed";
 
-export function ClientFullDetail({ client, agreementPackets }: ClientFullDetailProps) {
+export function ClientFullDetail({ client, agreementPackets, portalData }: ClientFullDetailProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [isStatusPending, startStatusTransition] = useTransition();
@@ -315,6 +318,7 @@ export function ClientFullDetail({ client, agreementPackets }: ClientFullDetailP
   const [documentLinkCopied, setDocumentLinkCopied] = useState(false);
   const [documentLinkLoading, setDocumentLinkLoading] = useState(false);
   const [agreementLinkDialogOpen, setAgreementLinkDialogOpen] = useState(false);
+  const [activeSection, setActiveSection] = useState<"details" | "portal">("details");
 
   // Document management state
   const [documentDialogOpen, setDocumentDialogOpen] = useState(false);
@@ -504,8 +508,7 @@ export function ClientFullDetail({ client, agreementPackets }: ClientFullDetailP
   };
 
   return (
-    <>
-      <div className="space-y-3">
+    <div className="space-y-3">
         <Button variant="ghost" size="sm" asChild className="w-fit px-2">
           <Link href="/dashboard/clients">
             <ArrowLeft className="h-4 w-4" />
@@ -563,6 +566,16 @@ export function ClientFullDetail({ client, agreementPackets }: ClientFullDetailP
             Call
           </Button>
 
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+            onClick={() => setActiveSection("portal")}
+          >
+            <Eye className="h-4 w-4" />
+            Client Portal
+          </Button>
+
           <Button size="sm" className="gap-1.5" onClick={handleAddTask}>
             <Plus className="h-4 w-4" />
             Add Task
@@ -589,6 +602,39 @@ export function ClientFullDetail({ client, agreementPackets }: ClientFullDetailP
         </DashboardPageHeader>
 
         <div className="space-y-6">
+          <div className="inline-flex rounded-full border border-border bg-background p-1">
+            <Button
+              variant={activeSection === "details" ? "default" : "ghost"}
+              className="rounded-full"
+              onClick={() => setActiveSection("details")}
+            >
+              Client Details
+            </Button>
+            <Button
+              variant={activeSection === "portal" ? "default" : "ghost"}
+              className="rounded-full"
+              onClick={() => setActiveSection("portal")}
+            >
+              Client Portal
+            </Button>
+          </div>
+
+          {activeSection === "portal" ? (
+            portalData ? (
+              <ClientPortalManager data={portalData} />
+            ) : (
+              <Card>
+                <CardContent className="pt-6">
+                  <p className="text-sm text-muted-foreground">
+                    The client portal could not be loaded right now.
+                  </p>
+                </CardContent>
+              </Card>
+            )
+          ) : null}
+
+          {activeSection === "details" ? (
+          <>
           {/* SECTION 1: Client Information */}
           <Card>
             <CardContent className="pt-6">
@@ -1373,9 +1419,19 @@ export function ClientFullDetail({ client, agreementPackets }: ClientFullDetailP
                   const fileSize = docRecord.file_size as number | null;
                   const fileName = docRecord.file_name as string | null;
                   const fileDescription = docRecord.file_description as string | null;
+                  const uploadSource =
+                    (docRecord.upload_source as string | null) ??
+                    (docRecord.uploadSource as string | null) ??
+                    "dashboard";
                   const docTypeLabel = DOCUMENT_TYPE_OPTIONS.find(
                     (o) => o.value === doc.document_type
                   )?.label;
+                  const sourceLabel =
+                    uploadSource === "portal_family"
+                      ? "Family upload"
+                      : uploadSource === "intake_form"
+                        ? "Intake upload"
+                        : "Provider upload";
                   const iconType = getDocumentIconName(fileType);
 
                   return (
@@ -1410,6 +1466,9 @@ export function ClientFullDetail({ client, agreementPackets }: ClientFullDetailP
                                   {docTypeLabel}
                                 </Badge>
                               )}
+                              <Badge variant="outline" className="text-xs shrink-0">
+                                {sourceLabel}
+                              </Badge>
                             </div>
                             {/* Description */}
                             {fileDescription && (
@@ -1605,9 +1664,9 @@ export function ClientFullDetail({ client, agreementPackets }: ClientFullDetailP
             )}
           </CardContent>
         </Card>
-        </div>
+          </>
+          ) : null}
       </div>
-
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
@@ -1735,6 +1794,6 @@ export function ClientFullDetail({ client, agreementPackets }: ClientFullDetailP
         fixedClientId={client.id}
         fixedClientName={childName}
       />
-    </>
+    </div>
   );
 }

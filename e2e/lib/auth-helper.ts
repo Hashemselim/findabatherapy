@@ -1,6 +1,7 @@
 import dotenv from "dotenv";
 import path from "path";
 import type { Page } from "@playwright/test";
+import { createClient } from "@supabase/supabase-js";
 
 // Load .env.local for credentials
 dotenv.config({ path: path.resolve(__dirname, "../../.env.local") });
@@ -18,7 +19,6 @@ export interface TestUser {
 // ---------------------------------------------------------------------------
 
 function getSupabaseAdminClient() {
-  const { createClient } = require("@supabase/supabase-js") as typeof import("@supabase/supabase-js");
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY!;
   if (!key) {
@@ -131,7 +131,10 @@ function getBaseUrl() {
   return process.env.PLAYWRIGHT_BASE_URL || "http://localhost:3000";
 }
 
-async function getClerkSignInTokenUrl(email: string): Promise<string | null> {
+async function getClerkSignInTokenUrl(
+  email: string,
+  pathOrUrl = "/auth/sign-in",
+): Promise<string | null> {
   if (!process.env.CLERK_SECRET_KEY) {
     return null;
   }
@@ -154,9 +157,14 @@ async function getClerkSignInTokenUrl(email: string): Promise<string | null> {
     expiresInSeconds: 600,
   });
 
-  return `${getBaseUrl()}/auth/sign-in?__clerk_ticket=${encodeURIComponent(
-    signInToken.token,
-  )}`;
+  const targetUrl = /^https?:\/\//.test(pathOrUrl)
+    ? new URL(pathOrUrl)
+    : new URL(
+        pathOrUrl.startsWith("/") ? pathOrUrl : `/${pathOrUrl}`,
+        getBaseUrl(),
+      );
+  targetUrl.searchParams.set("__clerk_ticket", signInToken.token);
+  return targetUrl.toString();
 }
 
 async function fillFirstVisible(
@@ -187,6 +195,22 @@ async function clickFirstVisible(page: Page, selectors: string[]) {
   return false;
 }
 
+async function clickAuthSubmitButton(page: Page) {
+  const exactButtonNames = [/^Continue$/i, /^Sign in$/i];
+  for (const name of exactButtonNames) {
+    const button = page.getByRole("button", { name }).first();
+    if ((await button.count()) > 0 && await button.isVisible().catch(() => false)) {
+      await button.click();
+      return true;
+    }
+  }
+
+  return clickFirstVisible(page, [
+    'button[type="submit"]',
+    'button[data-localization-key*="formButtonPrimary"]',
+  ]);
+}
+
 export async function signInViaClerkUI(
   page: Page,
   email: string,
@@ -196,7 +220,7 @@ export async function signInViaClerkUI(
     throw new Error("signInViaClerkUI() is only available when AUTH_PROVIDER=clerk");
   }
 
-  const signInTokenUrl = await getClerkSignInTokenUrl(email);
+  const signInTokenUrl = await getClerkSignInTokenUrl(email, "/auth/sign-in");
   if (signInTokenUrl) {
     await page.goto(signInTokenUrl, { waitUntil: "domcontentloaded" });
     await page.waitForURL(/\/(dashboard|auth\/callback)(\/|$)/, {
@@ -251,21 +275,13 @@ export async function signInViaClerkUI(
     .first();
 
   if (!(await passwordLocator.isVisible().catch(() => false))) {
-    await clickFirstVisible(page, [
-      'button:has-text("Continue")',
-      'button:has-text("Sign in")',
-      'button[type="submit"]',
-    ]);
+    await clickAuthSubmitButton(page);
   }
 
   await passwordLocator.waitFor({ state: "visible", timeout: 15000 });
   await passwordLocator.fill(password);
 
-  const submitted = await clickFirstVisible(page, [
-    'button:has-text("Continue")',
-    'button:has-text("Sign in")',
-    'button[type="submit"]',
-  ]);
+  const submitted = await clickAuthSubmitButton(page);
   if (!submitted) {
     throw new Error("[E2E] Clerk sign-in submit button not found");
   }
@@ -312,10 +328,7 @@ export async function signInViaClerkUI(
       .catch(() => false);
 
     if (!redirectedAfterCodeEntry) {
-      const factorSubmitted = await clickFirstVisible(page, [
-        'button:has-text("Continue")',
-        'button[type="submit"]',
-      ]);
+      const factorSubmitted = await clickAuthSubmitButton(page);
       if (!factorSubmitted) {
         throw new Error("[E2E] Clerk factor-two submit button not found");
       }
@@ -333,6 +346,86 @@ export async function signInViaClerkUI(
       waitUntil: "domcontentloaded",
     });
   }
+}
+
+export async function signInViaClerkPath(
+  page: Page,
+  pathOrUrl: string,
+  email: string,
+  password: string,
+  destinationPattern?: RegExp,
+): Promise<void> {
+  if (AUTH_PROVIDER !== "clerk") {
+    throw new Error("signInViaClerkPath() is only available when AUTH_PROVIDER=clerk");
+  }
+
+  const url = /^https?:\/\//.test(pathOrUrl)
+    ? pathOrUrl
+    : `${getBaseUrl()}${pathOrUrl.startsWith("/") ? pathOrUrl : `/${pathOrUrl}`}`;
+  const signInTokenUrl = await getClerkSignInTokenUrl(email, url);
+  if (signInTokenUrl) {
+    await page.goto(signInTokenUrl, { waitUntil: "domcontentloaded" });
+    await page.waitForURL(destinationPattern ?? /\/(portal|auth\/callback)(\/|$)/, {
+      timeout: 30000,
+      waitUntil: "domcontentloaded",
+    });
+    return;
+  }
+
+  await page.goto(url, { waitUntil: "domcontentloaded" });
+  await page
+    .locator(
+      [
+        'input[name="identifier"]',
+        'input[name="email"]',
+        'input[type="email"]',
+        'input[autocomplete="username"]',
+      ].join(", "),
+    )
+    .first()
+    .waitFor({ state: "visible", timeout: 15000 });
+
+  const emailFilled = await fillFirstVisible(
+    page,
+    [
+      'input[name="identifier"]',
+      'input[name="email"]',
+      'input[type="email"]',
+      'input[autocomplete="username"]',
+    ],
+    email,
+  );
+
+  if (!emailFilled) {
+    throw new Error("[E2E] Clerk custom-path sign-in email field not found");
+  }
+
+  const passwordLocator = page
+    .locator(
+      [
+        'input[name="password"]',
+        'input[type="password"]',
+        'input[autocomplete="current-password"]',
+      ].join(", "),
+    )
+    .first();
+
+  if (!(await passwordLocator.isVisible().catch(() => false))) {
+    await clickAuthSubmitButton(page);
+  }
+
+  if ((await passwordLocator.count()) > 0 && await passwordLocator.isVisible().catch(() => false)) {
+    await passwordLocator.fill(password);
+    const clicked = await clickAuthSubmitButton(page);
+    if (!clicked) {
+      throw new Error("[E2E] Clerk custom-path sign-in submit button not found");
+    }
+  }
+
+  await page.waitForURL(destinationPattern ?? /\/(portal|auth\/callback)(\/|$)/, {
+    timeout: 30000,
+    waitUntil: "domcontentloaded",
+  });
 }
 
 export async function createClerkTestUser(

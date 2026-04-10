@@ -32,7 +32,7 @@ function buildClerkAuthCallbackUrl(request: NextRequest): URL {
   const redirectUrl = new URL("/auth/callback", request.url);
   redirectUrl.searchParams.set("next", getAuthCallbackNextTarget(request));
 
-  for (const key of ["invite", "plan", "interval", "intent", "email"]) {
+  for (const key of ["invite", "plan", "interval", "intent", "email", "auth_mode", "portal_slug", "portal_token"]) {
     const value = request.nextUrl.searchParams.get(key);
     if (value) {
       redirectUrl.searchParams.set(key, value);
@@ -320,6 +320,7 @@ async function handlePlatformRouting(request: NextRequest) {
 
   if (
     production &&
+    !onLocalhost &&
     !onGoodabaHost &&
     CANONICAL_GOODABA_PREFIXES.some((prefix) => pathname.startsWith(prefix))
   ) {
@@ -433,7 +434,7 @@ async function handlePlatformRouting(request: NextRequest) {
     });
   }
 
-  if (!onGoodabaHost && isLegacyProviderPath(pathname) && production) {
+  if (!onGoodabaHost && !onLocalhost && isLegacyProviderPath(pathname) && production) {
     const canonicalPath = mapLegacyProviderPath(pathname);
     if (canonicalPath) {
       return redirectToGoodaba(request, canonicalPath);
@@ -453,7 +454,7 @@ async function handlePlatformRouting(request: NextRequest) {
     return redirectToGoodaba(request, mapLegacyJobsPath(pathname));
   }
 
-  if (!onGoodabaHost && isProviderControlledGoodabaPath(pathname) && production) {
+  if (!onGoodabaHost && !onLocalhost && isProviderControlledGoodabaPath(pathname) && production) {
     return redirectToGoodaba(request, pathname);
   }
 

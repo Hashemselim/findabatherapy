@@ -13,6 +13,7 @@ import type * as admin from "../admin.js";
 import type * as agreements from "../agreements.js";
 import type * as analytics from "../analytics.js";
 import type * as billing from "../billing.js";
+import type * as clientPortal from "../clientPortal.js";
 import type * as communications from "../communications.js";
 import type * as crm from "../crm.js";
 import type * as files from "../files.js";
@@ -40,6 +41,7 @@ declare const fullApi: ApiFromModules<{
   agreements: typeof agreements;
   analytics: typeof analytics;
   billing: typeof billing;
+  clientPortal: typeof clientPortal;
   communications: typeof communications;
   crm: typeof crm;
   files: typeof files;

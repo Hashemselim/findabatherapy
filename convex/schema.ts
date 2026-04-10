@@ -217,6 +217,7 @@ export default defineSchema({
     ...legacySync,
   })
     .index("by_workspace", ["workspaceId"])
+    .index("by_type", ["recordType"])
     .index("by_workspace_and_type", ["workspaceId", "recordType"]),
 
   inquiryRecords: defineTable({

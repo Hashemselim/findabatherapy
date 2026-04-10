@@ -29,7 +29,7 @@ function buildClerkAuthCallbackPath(searchParams: URLSearchParams) {
     "/dashboard/clients/pipeline";
   callbackParams.set("next", nextTarget);
 
-  for (const key of ["invite", "plan", "interval", "intent", "email"]) {
+  for (const key of ["invite", "plan", "interval", "intent", "email", "auth_mode", "portal_slug", "portal_token"]) {
     const value = searchParams.get(key);
     if (value) {
       callbackParams.set(key, value);

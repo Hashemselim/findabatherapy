@@ -46,18 +46,6 @@ async function getCrmRecordsByWorkspaceAndType(
     .collect();
 }
 
-async function getCrmRecordsByWorkspace(
-  ctx: ConvexCtx,
-  workspaceId: string,
-) {
-  return ctx.db
-    .query("crmRecords")
-    .withIndex("by_workspace", (q) =>
-      q.eq("workspaceId", asId<"workspaces">(workspaceId)),
-    )
-    .collect();
-}
-
 /**
  * Query sub-records for a specific client by record type.
  *
@@ -136,10 +124,26 @@ function mapTask(row: ConvexDoc) {
     priority: readString(payload.priority),
     assignedTo: readString(payload.assignedTo),
     taskType: readString(payload.taskType),
+    taskSource: readString(payload.taskSource) ?? "provider_internal",
     status: readString(row.status) ?? "pending",
     createdAt: readString(row.createdAt) ?? new Date().toISOString(),
     updatedAt: readString(row.updatedAt) ?? new Date().toISOString(),
   };
+}
+
+function isPortalTaskRow(row: ConvexDoc) {
+  const payload = asRecord(row.payload);
+  const taskSource = readString(payload.taskSource);
+  if (taskSource === "client_portal") {
+    return true;
+  }
+
+  return (
+    readString(payload.completionMethod) !== null ||
+    readString(payload.visibility) !== null ||
+    readString(payload.linkedDocumentId) !== null ||
+    readString(payload.linkedToolId) !== null
+  );
 }
 
 function mapDocument(row: ConvexDoc) {
@@ -164,6 +168,8 @@ function mapDocument(row: ConvexDoc) {
     file_type: readString(payload.mimeType),
     byteSize,
     file_size: byteSize,
+    uploadSource: readString(payload.uploadSource) ?? "dashboard",
+    upload_source: readString(payload.uploadSource) ?? "dashboard",
     label: label ?? filename,
     documentType,
     document_type: documentType,
@@ -354,7 +360,7 @@ export const getClientById = query({
       return { ...mapped, services };
     });
     const contacts = contactRows.map(mapSubRecord);
-    const tasks = taskRows.map(mapTask);
+    const tasks = taskRows.filter((row) => !isPortalTaskRow(row)).map(mapTask);
     const documents = documentRows.map(mapDocument);
 
     return {
@@ -645,7 +651,9 @@ export const updateClient = mutation({
     }
 
     const existing = asRecord(record.payload);
-    const { clientId: _, ...updates } = args;
+    const updates = Object.fromEntries(
+      Object.entries(args).filter(([key]) => key !== "clientId"),
+    );
     const newPayload = { ...existing };
 
     for (const [key, value] of Object.entries(updates)) {
@@ -1485,6 +1493,7 @@ export const addClientTask = mutation({
         priority: rest.priority ?? "medium",
         assignedTo: rest.assignedTo ?? null,
         taskType: rest.taskType ?? null,
+        taskSource: "provider_internal",
       },
       relatedIds: { clientId },
       createdAt: ts,
@@ -1603,6 +1612,7 @@ export const getTasks = query({
 
     const filtered = rows
       .filter(isNotDeleted)
+      .filter((row) => !isPortalTaskRow(row))
       .filter((row) => {
         if (!args.status) return true;
         return row.status === args.status;
@@ -1653,6 +1663,7 @@ export const getActionableTaskCount = query({
 
     for (const row of rows) {
       if (row.deletedAt) continue;
+      if (isPortalTaskRow(row)) continue;
       if (row.status === "completed" || row.status === "cancelled") continue;
 
       pending++;

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Eye } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { PreviewBanner } from "@/components/ui/preview-banner";
@@ -8,6 +8,7 @@ import { ClientDetailPanel } from "@/components/dashboard/clients";
 import { getCurrentUser } from "@/lib/platform/auth/server";
 import { getClientById } from "@/lib/actions/clients";
 import { getAgreementPacketOptions } from "@/lib/actions/agreements";
+import { getClientPortalData } from "@/lib/actions/client-portal";
 import { getCurrentPlanTier } from "@/lib/plans/guards";
 import { getDemoClientDetailById, isDemoClientId } from "@/lib/demo/client-previews";
 
@@ -80,6 +81,12 @@ export default async function ClientDetailPage({ params }: ClientDetailPageProps
             Back to Clients
           </Link>
         </Button>
+        <Button asChild variant="outline" size="sm" className="w-fit gap-1.5">
+          <Link href={`/dashboard/clients/${resolvedParams.id}/portal/preview`}>
+            <Eye className="h-4 w-4" />
+            Preview Family Portal
+          </Link>
+        </Button>
         <div className="max-w-5xl">
           <ClientDetailPanel client={demoClient} previewMode />
         </div>
@@ -87,8 +94,11 @@ export default async function ClientDetailPage({ params }: ClientDetailPageProps
     );
   }
 
-  const result = await getClientById(resolvedParams.id);
-  const packetOptionsResult = await getAgreementPacketOptions();
+  const [result, packetOptionsResult, portalResult] = await Promise.all([
+    getClientById(resolvedParams.id),
+    getAgreementPacketOptions(),
+    getClientPortalData(resolvedParams.id),
+  ]);
 
   if (!result.success || !result.data) {
     notFound();
@@ -99,6 +109,7 @@ export default async function ClientDetailPage({ params }: ClientDetailPageProps
       <ClientFullDetail
         client={result.data}
         agreementPackets={packetOptionsResult.success && packetOptionsResult.data ? packetOptionsResult.data : []}
+        portalData={portalResult.success && portalResult.data ? portalResult.data : null}
       />
     </div>
   );

@@ -24,7 +24,7 @@ type ClientIntakePageParams = {
 
 type ClientIntakePageProps = {
   params: Promise<ClientIntakePageParams>;
-  searchParams: Promise<{ ref?: string; token?: string }>;
+  searchParams: Promise<{ ref?: string; token?: string; portalTaskId?: string }>;
 };
 
 // Revalidate every 5 minutes (ISR)
@@ -57,13 +57,16 @@ function getLighterShade(hexColor: string, opacity: number = 0.1) {
 
 export default async function ClientIntakePage({ params, searchParams }: ClientIntakePageProps) {
   const { slug } = await params;
-  const { ref, token } = await searchParams;
+  const { ref, token, portalTaskId } = await searchParams;
 
   if (token) {
     const accessPath = new URL(buildIntakeAccessPath(slug), "http://localhost");
     accessPath.searchParams.set("token", token);
     if (ref) {
       accessPath.searchParams.set("ref", ref);
+    }
+    if (portalTaskId) {
+      accessPath.searchParams.set("portalTaskId", portalTaskId);
     }
     redirect(`${accessPath.pathname}${accessPath.search}`);
   }
@@ -185,6 +188,7 @@ export default async function ClientIntakePage({ params, searchParams }: ClientI
               initialReferralSource={ref === "findabatherapy" ? "findabatherapy" : undefined}
               prefillData={prefillData}
               intakeSlug={slug}
+              portalTaskId={portalTaskId}
             />
           </div>
 

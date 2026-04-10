@@ -12,6 +12,7 @@ const COOKIE_NAMES = {
   intake: "public_intake_access",
   documents: "public_document_access",
   agreements: "public_agreement_access",
+  portal: "public_portal_access",
 } as const;
 
 type AccessKind = keyof typeof COOKIE_NAMES;
@@ -110,6 +111,10 @@ export function buildAgreementAccessRouteKey(providerSlug: string, packetSlug: s
   return `agreements:${providerSlug}:${packetSlug}`;
 }
 
+export function buildPortalAccessRouteKey(slug: string) {
+  return `portal:${slug}`;
+}
+
 export function buildIntakeAccessPath(slug: string) {
   return `/intake/${slug}/client/access`;
 }
@@ -120,6 +125,10 @@ export function buildDocumentAccessPath(slug: string) {
 
 export function buildAgreementAccessPath(providerSlug: string, packetSlug: string) {
   return `/agreements/${providerSlug}/${packetSlug}/access`;
+}
+
+export function buildPortalAccessPath(slug: string) {
+  return `/portal/${slug}/access`;
 }
 
 function writeResponseAccessMap(
@@ -265,6 +274,37 @@ export function clearAgreementAccessTokenOnResponse(
   );
 }
 
+export function setPortalAccessTokenOnResponse(
+  response: NextResponse,
+  existingCookieValue: string | undefined,
+  slug: string,
+  token: string,
+) {
+  updateResponseAccessToken(
+    response,
+    "portal",
+    buildPortalAccessRouteKey(slug),
+    existingCookieValue,
+    token,
+    60 * 60 * 24 * 30,
+  );
+}
+
+export function clearPortalAccessTokenOnResponse(
+  response: NextResponse,
+  existingCookieValue: string | undefined,
+  slug: string,
+) {
+  updateResponseAccessToken(
+    response,
+    "portal",
+    buildPortalAccessRouteKey(slug),
+    existingCookieValue,
+    null,
+    60 * 60 * 24 * 30,
+  );
+}
+
 export async function setIntakeAccessToken(slug: string, token: string) {
   await setAccessToken("intake", buildIntakeAccessRouteKey(slug), token, 60 * 60 * 24 * 7);
 }
@@ -307,6 +347,18 @@ export async function getAgreementAccessToken(
 
 export async function clearAgreementAccessToken(providerSlug: string, packetSlug: string) {
   await clearAccessToken("agreements", buildAgreementAccessRouteKey(providerSlug, packetSlug));
+}
+
+export async function setPortalAccessToken(slug: string, token: string) {
+  await setAccessToken("portal", buildPortalAccessRouteKey(slug), token, 60 * 60 * 24 * 30);
+}
+
+export async function getPortalAccessToken(slug: string): Promise<string | null> {
+  return getAccessToken("portal", buildPortalAccessRouteKey(slug));
+}
+
+export async function clearPortalAccessToken(slug: string) {
+  await clearAccessToken("portal", buildPortalAccessRouteKey(slug));
 }
 
 export async function validateIntakeAccessToken(slug: string, token: string): Promise<boolean> {
@@ -421,4 +473,20 @@ export async function validateAgreementAccessToken(
       (link.reusable || !link.used_at) &&
       (!link.expires_at || new Date(link.expires_at).getTime() >= Date.now()),
   );
+}
+
+export async function validatePortalAccessToken(slug: string, token: string): Promise<boolean> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvexUnauthenticated } = await import("@/lib/platform/convex/server");
+      return await queryConvexUnauthenticated<boolean>("clientPortal:validatePortalAccessForSlug", {
+        slug,
+        token,
+      });
+    } catch {
+      return false;
+    }
+  }
+
+  return false;
 }

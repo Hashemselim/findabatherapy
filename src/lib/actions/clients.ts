@@ -144,6 +144,50 @@ async function getCurrentSiteOrigin() {
   return siteUrl;
 }
 
+function buildConvexClientMutationArgs(
+  data: Partial<Client>,
+  options?: { requireNames?: boolean },
+): {
+  firstName?: string;
+  lastName?: string;
+  dateOfBirth?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  referralSource?: string | null;
+  referralSourceDetail?: string | null;
+  notes?: string | null;
+  stage?: string;
+  priority?: string | null;
+  assignedTo?: string | null;
+} {
+  const requireNames = options?.requireNames ?? false;
+  return {
+    firstName:
+      data.child_first_name !== undefined
+        ? data.child_first_name
+        : requireNames
+          ? ""
+          : undefined,
+    lastName:
+      data.child_last_name !== undefined
+        ? data.child_last_name
+        : requireNames
+          ? ""
+          : undefined,
+    dateOfBirth:
+      data.child_date_of_birth !== undefined ? data.child_date_of_birth ?? null : undefined,
+    email: undefined,
+    phone: undefined,
+    referralSource: data.referral_source !== undefined ? data.referral_source ?? null : undefined,
+    referralSourceDetail:
+      data.referral_source_other !== undefined ? data.referral_source_other ?? null : undefined,
+    notes: data.notes !== undefined ? data.notes ?? null : undefined,
+    stage: data.status ?? undefined,
+    priority: undefined,
+    assignedTo: undefined,
+  };
+}
+
 async function getPublishedListingSlugForProfile(
   profileId: string
 ): Promise<string | null> {
@@ -569,7 +613,10 @@ export async function createClient(
   if (isConvexDataEnabled()) {
     try {
       const { mutateConvex } = await import("@/lib/platform/convex/server");
-      const result = await mutateConvex<{ id: string }>("crm:createClient", { data });
+      const result = await mutateConvex<{ id: string }>(
+        "crm:createClient",
+        buildConvexClientMutationArgs(data, { requireNames: true }),
+      );
       revalidatePath("/dashboard/clients");
       return { success: true, data: result };
     } catch (err) {
@@ -668,7 +715,10 @@ export async function updateClient(
   if (isConvexDataEnabled()) {
     try {
       const { mutateConvex } = await import("@/lib/platform/convex/server");
-      await mutateConvex("crm:updateClient", { clientId, data });
+      await mutateConvex("crm:updateClient", {
+        clientId,
+        ...buildConvexClientMutationArgs(data),
+      });
       revalidatePath("/dashboard/clients");
       revalidatePath(`/dashboard/clients/${clientId}`);
       return { success: true };

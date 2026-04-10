@@ -15,10 +15,14 @@ export async function GET(request: Request, { params }: RouteParams) {
   const requestUrl = new URL(request.url);
   const token = requestUrl.searchParams.get("token");
   const ref = requestUrl.searchParams.get("ref");
+  const portalTaskId = requestUrl.searchParams.get("portalTaskId");
   const destination = new URL(`/intake/${slug}/client`, requestUrl.origin);
 
   if (ref) {
     destination.searchParams.set("ref", ref);
+  }
+  if (portalTaskId) {
+    destination.searchParams.set("portalTaskId", portalTaskId);
   }
 
   const response = NextResponse.redirect(destination);
