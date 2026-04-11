@@ -183,8 +183,9 @@ export async function updateProfileBasics(
 }
 
 export async function updateProfilePlan(
-  _plan: "free" | "pro",
+  plan: "free" | "pro",
 ): Promise<ActionResult> {
+  void plan;
   return { success: true };
 }
 

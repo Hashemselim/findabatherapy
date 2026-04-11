@@ -4,6 +4,8 @@ import { LayoutDashboard, FileX, ChevronLeft, Users, Eye, MessageSquare } from "
 
 import { isCurrentUserAdmin } from "@/lib/actions/admin";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminLayout({
   children,
 }: {
