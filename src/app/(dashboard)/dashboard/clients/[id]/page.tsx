@@ -9,6 +9,7 @@ import { getCurrentUser } from "@/lib/platform/auth/server";
 import { getClientById } from "@/lib/actions/clients";
 import { getAgreementPacketOptions } from "@/lib/actions/agreements";
 import { getClientPortalData } from "@/lib/actions/client-portal";
+import { getClientNotes } from "@/lib/actions/client-notes";
 import { getCurrentPlanTier } from "@/lib/plans/guards";
 import { getDemoClientDetailById, isDemoClientId } from "@/lib/demo/client-previews";
 
@@ -94,10 +95,11 @@ export default async function ClientDetailPage({ params }: ClientDetailPageProps
     );
   }
 
-  const [result, packetOptionsResult, portalResult] = await Promise.all([
+  const [result, packetOptionsResult, portalResult, notesResult] = await Promise.all([
     getClientById(resolvedParams.id),
     getAgreementPacketOptions(),
     getClientPortalData(resolvedParams.id),
+    getClientNotes(resolvedParams.id),
   ]);
 
   if (!result.success || !result.data) {
@@ -110,6 +112,7 @@ export default async function ClientDetailPage({ params }: ClientDetailPageProps
         client={result.data}
         agreementPackets={packetOptionsResult.success && packetOptionsResult.data ? packetOptionsResult.data : []}
         portalData={portalResult.success && portalResult.data ? portalResult.data : null}
+        notes={notesResult.success && notesResult.data ? notesResult.data : []}
       />
     </div>
   );

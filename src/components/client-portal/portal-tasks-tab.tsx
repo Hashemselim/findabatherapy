@@ -73,7 +73,7 @@ export function PortalTasksTab({ data }: { data: ClientPortalData }) {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <h2 className="text-lg font-semibold text-foreground">Tasks</h2>
+          <h2 className="text-lg font-semibold text-foreground">Family Tasks</h2>
           {data.tasks.length > 0 && (
             <DashboardStatusBadge tone="default">{data.tasks.length}</DashboardStatusBadge>
           )}
@@ -87,7 +87,7 @@ export function PortalTasksTab({ data }: { data: ClientPortalData }) {
       {data.tasks.length === 0 ? (
         <DashboardEmptyState
           icon={CheckSquare}
-          title="No tasks yet"
+          title="No family tasks yet"
           description="Create a task to assign work to this client's family."
           action={
             <Button size="sm" onClick={() => { setEditingTask(undefined); setDialogOpen(true); }}>
