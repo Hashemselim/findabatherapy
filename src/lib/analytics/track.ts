@@ -1,7 +1,7 @@
 "use server";
 
 import { headers } from "next/headers";
-import { isConvexDataEnabled } from "@/lib/platform/config";
+
 import {
   EVENT_TYPES,
   type EventType,
@@ -18,30 +18,23 @@ import {
   type ApplicationEventMetadata,
 } from "./events";
 
-/**
- * AI assistant user agent patterns - these are valuable as they represent
- * real users asking AI to find information (e.g., "find me a therapist in NYC")
- */
 const AI_ASSISTANT_PATTERNS = [
-  /gptbot/i,           // OpenAI's crawler
-  /chatgpt/i,          // ChatGPT browsing for users
-  /claudebot/i,        // Anthropic's crawler
-  /anthropic/i,        // Anthropic
-  /perplexity/i,       // Perplexity AI
-  /cohere/i,           // Cohere AI
-  /ai2bot/i,           // Allen Institute for AI
-  /google-extended/i,  // Google Gemini/Bard crawler
-  /gemini/i,           // Google Gemini
-  /meta-externalagent/i, // Meta AI
+  /gptbot/i,
+  /chatgpt/i,
+  /claudebot/i,
+  /anthropic/i,
+  /perplexity/i,
+  /cohere/i,
+  /ai2bot/i,
+  /google-extended/i,
+  /gemini/i,
+  /meta-externalagent/i,
 ];
 
-/**
- * SEO and other bot/crawler user agent patterns - these are not direct user traffic
- */
 const BOT_PATTERNS = [
   /googlebot/i,
   /bingbot/i,
-  /slurp/i, // Yahoo
+  /slurp/i,
   /duckduckbot/i,
   /baiduspider/i,
   /yandexbot/i,
@@ -57,7 +50,7 @@ const BOT_PATTERNS = [
   /dotbot/i,
   /petalbot/i,
   /bytespider/i,
-  /ccbot/i,            // Common Crawl (training data)
+  /ccbot/i,
   /crawler/i,
   /spider/i,
   /bot\b/i,
@@ -69,42 +62,24 @@ const BOT_PATTERNS = [
   /playwright/i,
 ];
 
-/**
- * Detect the source type from user agent
- * Returns: "ai" for AI assistants, "bot" for SEO/crawlers, or null for unknown
- */
 function detectBotType(userAgent: string | null | undefined): "ai" | "bot" | null {
-  // No user agent = likely automated traffic
   if (!userAgent) return "bot";
-
-  // Check AI assistants first (more specific)
   if (AI_ASSISTANT_PATTERNS.some((pattern) => pattern.test(userAgent))) {
     return "ai";
   }
-
-  // Check general bots
   if (BOT_PATTERNS.some((pattern) => pattern.test(userAgent))) {
     return "bot";
   }
-
   return null;
 }
 
-/**
- * Generate a simple session ID from request headers
- * Used for deduplication of events
- */
 function generateSessionId(headersList: Headers): string {
   const ip = headersList.get("x-forwarded-for") || headersList.get("x-real-ip") || "unknown";
   const userAgent = headersList.get("user-agent") || "unknown";
-  // Create a simple hash for the session
   const sessionString = `${ip}-${userAgent}-${new Date().toDateString()}`;
   return Buffer.from(sessionString).toString("base64").slice(0, 32);
 }
 
-/**
- * Get base metadata from request headers
- */
 async function getBaseMetadata(): Promise<Partial<EventMetadata>> {
   const headersList = await headers();
   return {
@@ -115,62 +90,54 @@ async function getBaseMetadata(): Promise<Partial<EventMetadata>> {
   };
 }
 
-/**
- * Track an analytics event
- */
+async function trackMany(
+  events: Array<{ eventType: EventType; metadata: EventMetadata; listingId?: string; profileId?: string }>,
+): Promise<{ success: boolean }> {
+  for (const event of events) {
+    const result = await trackEvent(
+      event.eventType,
+      event.metadata,
+      event.listingId,
+      event.profileId,
+    );
+    if (!result.success) {
+      return result;
+    }
+  }
+
+  return { success: true };
+}
+
 export async function trackEvent(
   eventType: EventType,
   metadata: EventMetadata,
   listingId?: string,
-  profileId?: string
+  profileId?: string,
 ): Promise<{ success: boolean }> {
   try {
-    if (isConvexDataEnabled()) {
-      const { mutateConvexUnauthenticated } = await import("@/lib/platform/convex/server");
-      const baseMetadata = await getBaseMetadata();
-      await mutateConvexUnauthenticated("analytics:trackEvent", {
-        eventType,
-        payload: {
-          ...baseMetadata,
-          ...metadata,
-          ...(listingId ? { listingId } : {}),
-          ...(profileId ? { profileId } : {}),
-        },
-      });
-      return { success: true };
-    }
-
-    const { createAdminClient } = await import("@/lib/supabase/server");
-    const supabase = await createAdminClient();
+    const { mutateConvexUnauthenticated } = await import("@/lib/platform/convex/server");
     const baseMetadata = await getBaseMetadata();
-
-    const { error } = await supabase.from("audit_events").insert({
-      event_type: eventType,
-      listing_id: listingId || null,
-      profile_id: profileId || null,
-      metadata: { ...baseMetadata, ...metadata },
+    await mutateConvexUnauthenticated("analytics:trackEvent", {
+      eventType,
+      payload: {
+        ...baseMetadata,
+        ...metadata,
+        ...(listingId ? { listingId } : {}),
+        ...(profileId ? { profileId } : {}),
+      },
     });
-
-    if (error) {
-      console.error(`[Analytics] Failed to track ${eventType}:`, error.message);
-      return { success: false };
-    }
-
     return { success: true };
-  } catch (e) {
-    console.error(`[Analytics] Exception tracking ${eventType}:`, e);
+  } catch (error) {
+    console.error(`[Analytics] Exception tracking ${eventType}:`, error);
     return { success: false };
   }
 }
 
-/**
- * Track a listing view
- */
 export async function trackListingView(
   listingId: string,
   listingSlug: string,
   source?: "search" | "direct" | "state_page" | "homepage",
-  locationId?: string
+  locationId?: string,
 ): Promise<{ success: boolean }> {
   const metadata: ListingViewMetadata = {
     listingId,
@@ -182,12 +149,9 @@ export async function trackListingView(
   return trackEvent(EVENT_TYPES.LISTING_VIEW, metadata, listingId);
 }
 
-/**
- * Track a listing contact click
- */
 export async function trackListingClick(
   listingId: string,
-  clickType: "contact" | "phone" | "email" | "website"
+  clickType: "contact" | "phone" | "email" | "website",
 ): Promise<{ success: boolean }> {
   const metadata: ListingClickMetadata = {
     listingId,
@@ -206,16 +170,12 @@ export async function trackListingClick(
   return trackEvent(eventType, metadata, listingId);
 }
 
-/**
- * Track a search performed
- * @param source - "user" for client-side tracking, "bot" for detected bots, "unknown" for server-side without detection
- */
 export async function trackSearch(
   query: string | undefined,
   filters: Record<string, unknown>,
   resultsCount: number,
   page?: number,
-  source?: "user" | "ai" | "bot" | "unknown"
+  source?: "user" | "ai" | "bot" | "unknown",
 ): Promise<{ success: boolean }> {
   const metadata: SearchEventMetadata = {
     query,
@@ -228,154 +188,58 @@ export async function trackSearch(
   return trackEvent(EVENT_TYPES.SEARCH_PERFORMED, metadata);
 }
 
-/**
- * Track a search performed with automatic bot detection (server-side)
- * Uses request headers to detect if the request is from a bot/crawler or AI assistant
- */
 export async function trackSearchWithBotDetection(
   query: string | undefined,
   filters: Record<string, unknown>,
   resultsCount: number,
-  page?: number
+  page?: number,
 ): Promise<{ success: boolean }> {
   const headersList = await headers();
   const userAgent = headersList.get("user-agent");
-  const botType = detectBotType(userAgent);
-  const source = botType || "unknown";
-
-  return trackSearch(query, filters, resultsCount, page, source);
+  return trackSearch(query, filters, resultsCount, page, detectBotType(userAgent) || "unknown");
 }
 
-/**
- * Track search impressions (listings shown in results)
- * @param source - "user" for client-side, "bot" for detected bots, "unknown" for server-side
- */
 export async function trackSearchImpressions(
   listings: Array<{ id: string; locationId?: string; position: number }>,
   searchQuery?: string,
-  source?: "user" | "ai" | "bot" | "unknown"
+  source?: "user" | "ai" | "bot" | "unknown",
 ): Promise<{ success: boolean }> {
-  if (isConvexDataEnabled()) {
-    // Track each impression individually via trackEvent
-    for (const listing of listings) {
-      await trackEvent(EVENT_TYPES.SEARCH_IMPRESSION, {
-        listingId: listing.id,
-        locationId: listing.locationId,
-        position: listing.position,
-        searchQuery,
-        source: source || "unknown",
-      } as SearchImpressionMetadata, listing.id);
-    }
-    return { success: true };
-  }
-
-  try {
-    const { createAdminClient } = await import("@/lib/supabase/server");
-    const supabase = await createAdminClient();
-    const baseMetadata = await getBaseMetadata();
-
-    const events = listings.map((listing) => ({
-      event_type: EVENT_TYPES.SEARCH_IMPRESSION,
-      listing_id: listing.id,
+  return trackMany(
+    listings.map((listing) => ({
+      eventType: EVENT_TYPES.SEARCH_IMPRESSION,
+      listingId: listing.id,
       metadata: {
-        ...baseMetadata,
         listingId: listing.id,
         locationId: listing.locationId,
         position: listing.position,
         searchQuery,
         source: source || "unknown",
       } as SearchImpressionMetadata,
-    }));
-
-    const { error } = await supabase.from("audit_events").insert(events);
-
-    if (error) {
-      console.error("[Analytics] Failed to track search impressions:", error.message);
-      return { success: false };
-    }
-
-    return { success: true };
-  } catch (e) {
-    console.error("[Analytics] Exception tracking search impressions:", e);
-    return { success: false };
-  }
+    })),
+  );
 }
 
-/**
- * Track search impressions with automatic bot detection (server-side)
- */
 export async function trackSearchImpressionsWithBotDetection(
   listings: Array<{ id: string; locationId?: string; position: number }>,
-  searchQuery?: string
+  searchQuery?: string,
 ): Promise<{ success: boolean }> {
   const headersList = await headers();
   const userAgent = headersList.get("user-agent");
-  const botType = detectBotType(userAgent);
-  const source = botType || "unknown";
-
-  return trackSearchImpressions(listings, searchQuery, source);
+  return trackSearchImpressions(listings, searchQuery, detectBotType(userAgent) || "unknown");
 }
 
-/**
- * Track search impressions from client-side API calls (source already confirmed as "user")
- * This bypasses the headers() call since it's called from an API route handler
- */
 export async function trackSearchImpressionsFromClient(
   listings: Array<{ id: string; locationId?: string; position: number }>,
-  searchQuery?: string
+  searchQuery?: string,
 ): Promise<{ success: boolean }> {
-  if (isConvexDataEnabled()) {
-    // Track each impression individually via the main trackEvent path
-    for (const listing of listings) {
-      await trackEvent(EVENT_TYPES.SEARCH_IMPRESSION, {
-        listingId: listing.id,
-        locationId: listing.locationId,
-        position: listing.position,
-        searchQuery,
-        source: "user",
-      } as SearchImpressionMetadata, listing.id);
-    }
-    return { success: true };
-  }
-
-  try {
-    const { createAdminClient: _createAdminClient } = await import("@/lib/supabase/server"); const supabase = await _createAdminClient();
-
-    const events = listings.map((listing) => ({
-      event_type: EVENT_TYPES.SEARCH_IMPRESSION,
-      listing_id: listing.id,
-      metadata: {
-        timestamp: new Date().toISOString(),
-        listingId: listing.id,
-        locationId: listing.locationId,
-        position: listing.position,
-        searchQuery,
-        source: "user",
-      } as SearchImpressionMetadata,
-    }));
-
-    const { error } = await supabase.from("audit_events").insert(events);
-
-    if (error) {
-      console.error("[Analytics] Failed to track client impressions:", error.message);
-      return { success: false };
-    }
-
-    return { success: true };
-  } catch (e) {
-    console.error("[Analytics] Exception tracking client impressions:", e);
-    return { success: false };
-  }
+  return trackSearchImpressions(listings, searchQuery, "user");
 }
 
-/**
- * Track a search result click
- */
 export async function trackSearchClick(
   listingId: string,
   position: number,
   searchQuery?: string,
-  locationId?: string
+  locationId?: string,
 ): Promise<{ success: boolean }> {
   const metadata: SearchImpressionMetadata = {
     listingId,
@@ -387,12 +251,9 @@ export async function trackSearchClick(
   return trackEvent(EVENT_TYPES.SEARCH_CLICK, metadata, listingId);
 }
 
-/**
- * Track an inquiry submission
- */
 export async function trackInquirySubmitted(
   listingId: string,
-  inquiryId: string
+  inquiryId: string,
 ): Promise<{ success: boolean }> {
   const metadata: InquiryEventMetadata = {
     listingId,
@@ -402,59 +263,21 @@ export async function trackInquirySubmitted(
   return trackEvent(EVENT_TYPES.INQUIRY_SUBMITTED, metadata, listingId);
 }
 
-/**
- * Check if an event was already tracked in this session
- * Used for deduplication
- */
 export async function wasEventTracked(
   eventType: EventType,
-  listingId: string
+  listingId: string,
 ): Promise<boolean> {
-  if (isConvexDataEnabled()) {
-    // In Convex mode, skip dedup check for now (Convex handles idempotency differently)
-    return false;
-  }
-
-  try {
-    const headersList = await headers();
-    const sessionId = generateSessionId(headersList);
-
-    const { createClient } = await import("@/lib/supabase/server");
-    const supabase = await createClient();
-    const today = new Date().toISOString().split("T")[0];
-
-    const { data, error } = await supabase
-      .from("audit_events")
-      .select("id")
-      .eq("event_type", eventType)
-      .eq("listing_id", listingId)
-      .gte("created_at", `${today}T00:00:00`)
-      .contains("metadata", { sessionId })
-      .limit(1);
-
-    if (error) {
-      return false;
-    }
-
-    return (data?.length || 0) > 0;
-  } catch {
-    return false;
-  }
+  void eventType;
+  void listingId;
+  return false;
 }
 
-// =============================================================================
-// JOB TRACKING FUNCTIONS
-// =============================================================================
-
-/**
- * Track a job view
- */
 export async function trackJobView(
   jobId: string,
   jobSlug: string,
   profileId: string,
   positionType: string,
-  source?: "search" | "direct" | "state_page" | "homepage"
+  source?: "search" | "direct" | "state_page" | "homepage",
 ): Promise<{ success: boolean }> {
   const metadata: JobViewMetadata = {
     jobId,
@@ -467,15 +290,12 @@ export async function trackJobView(
   return trackEvent(EVENT_TYPES.JOB_VIEW, metadata);
 }
 
-/**
- * Track a job search performed
- */
 export async function trackJobSearch(
   query: string | undefined,
   filters: Record<string, unknown>,
   resultsCount: number,
   page?: number,
-  source?: "user" | "ai" | "bot" | "unknown"
+  source?: "user" | "ai" | "bot" | "unknown",
 ): Promise<{ success: boolean }> {
   const metadata: JobSearchEventMetadata = {
     query,
@@ -488,109 +308,35 @@ export async function trackJobSearch(
   return trackEvent(EVENT_TYPES.JOB_SEARCH_PERFORMED, metadata);
 }
 
-/**
- * Track job search impressions (jobs shown in results)
- */
 export async function trackJobSearchImpressions(
   jobs: Array<{ id: string; position: number }>,
   searchQuery?: string,
-  source?: "user" | "ai" | "bot" | "unknown"
+  source?: "user" | "ai" | "bot" | "unknown",
 ): Promise<{ success: boolean }> {
-  if (isConvexDataEnabled()) {
-    for (const job of jobs) {
-      await trackEvent(EVENT_TYPES.JOB_SEARCH_IMPRESSION, {
-        jobId: job.id,
-        position: job.position,
-        searchQuery,
-        source: source || "unknown",
-      } as JobSearchImpressionMetadata);
-    }
-    return { success: true };
-  }
-
-  try {
-    const { createAdminClient: _createAdminClient } = await import("@/lib/supabase/server"); const supabase = await _createAdminClient();
-    const baseMetadata = await getBaseMetadata();
-
-    const events = jobs.map((job) => ({
-      event_type: EVENT_TYPES.JOB_SEARCH_IMPRESSION,
+  return trackMany(
+    jobs.map((job) => ({
+      eventType: EVENT_TYPES.JOB_SEARCH_IMPRESSION,
       metadata: {
-        ...baseMetadata,
         jobId: job.id,
         position: job.position,
         searchQuery,
         source: source || "unknown",
       } as JobSearchImpressionMetadata,
-    }));
-
-    const { error } = await supabase.from("audit_events").insert(events);
-
-    if (error) {
-      console.error("[Analytics] Failed to track job impressions:", error.message);
-      return { success: false };
-    }
-
-    return { success: true };
-  } catch (e) {
-    console.error("[Analytics] Exception tracking job impressions:", e);
-    return { success: false };
-  }
+    })),
+  );
 }
 
-/**
- * Track job search impressions from client-side (source confirmed as "user")
- */
 export async function trackJobSearchImpressionsFromClient(
   jobs: Array<{ id: string; position: number }>,
-  searchQuery?: string
+  searchQuery?: string,
 ): Promise<{ success: boolean }> {
-  if (isConvexDataEnabled()) {
-    for (const job of jobs) {
-      await trackEvent(EVENT_TYPES.JOB_SEARCH_IMPRESSION, {
-        jobId: job.id,
-        position: job.position,
-        searchQuery,
-        source: "user",
-      } as JobSearchImpressionMetadata);
-    }
-    return { success: true };
-  }
-
-  try {
-    const { createAdminClient: _createAdminClient } = await import("@/lib/supabase/server"); const supabase = await _createAdminClient();
-
-    const events = jobs.map((job) => ({
-      event_type: EVENT_TYPES.JOB_SEARCH_IMPRESSION,
-      metadata: {
-        timestamp: new Date().toISOString(),
-        jobId: job.id,
-        position: job.position,
-        searchQuery,
-        source: "user",
-      } as JobSearchImpressionMetadata,
-    }));
-
-    const { error } = await supabase.from("audit_events").insert(events);
-
-    if (error) {
-      console.error("[Analytics] Failed to track client job impressions:", error.message);
-      return { success: false };
-    }
-
-    return { success: true };
-  } catch (e) {
-    console.error("[Analytics] Exception tracking client job impressions:", e);
-    return { success: false };
-  }
+  return trackJobSearchImpressions(jobs, searchQuery, "user");
 }
 
-/**
- * Track a job search result click
- */
 export async function trackJobSearchClick(
   jobId: string,
   position: number,
-  searchQuery?: string
+  searchQuery?: string,
 ): Promise<{ success: boolean }> {
   const metadata: JobSearchImpressionMetadata = {
     jobId,
@@ -601,14 +347,11 @@ export async function trackJobSearchClick(
   return trackEvent(EVENT_TYPES.JOB_SEARCH_CLICK, metadata);
 }
 
-/**
- * Track an apply button click
- */
 export async function trackJobApplyClick(
   jobId: string,
   jobSlug: string,
   profileId: string,
-  positionType: string
+  positionType: string,
 ): Promise<{ success: boolean }> {
   const metadata: JobApplyClickMetadata = {
     jobId,
@@ -620,13 +363,10 @@ export async function trackJobApplyClick(
   return trackEvent(EVENT_TYPES.JOB_APPLY_CLICK, metadata);
 }
 
-/**
- * Track a job application submission
- */
 export async function trackApplicationSubmitted(
   jobId: string,
   applicationId: string,
-  profileId: string
+  profileId: string,
 ): Promise<{ success: boolean }> {
   const metadata: ApplicationEventMetadata = {
     jobId,
@@ -637,13 +377,10 @@ export async function trackApplicationSubmitted(
   return trackEvent(EVENT_TYPES.APPLICATION_SUBMITTED, metadata);
 }
 
-/**
- * Track an application viewed by employer
- */
 export async function trackApplicationViewed(
   jobId: string,
   applicationId: string,
-  profileId: string
+  profileId: string,
 ): Promise<{ success: boolean }> {
   const metadata: ApplicationEventMetadata = {
     jobId,

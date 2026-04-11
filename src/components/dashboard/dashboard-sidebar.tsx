@@ -35,7 +35,7 @@ import { SupportContactDialog } from "@/components/support-contact-dialog";
 import { getNewApplicationCount } from "@/lib/actions/applications";
 import { getActionableTaskCount } from "@/lib/actions/clients";
 import { getUnreadNotificationCount } from "@/lib/actions/notifications";
-import { signOut } from "@/lib/auth/actions";
+import { useSignOut } from "@/lib/auth/hooks";
 import { cn } from "@/lib/utils";
 import { DashboardStatusBadge } from "@/components/dashboard/ui";
 import type { NavItem } from "./nav-section";
@@ -178,6 +178,7 @@ export function DashboardSidebar({
   const [applicantCount, setApplicantCount] = useState(0);
   const [taskCount, setTaskCount] = useState(0);
   const [sectionOpen, setSectionOpen] = useState<Record<SectionId, boolean>>(getDefaultOpenState);
+  const { signOut, loading: isSigningOut } = useSignOut();
 
   // Hydrate from localStorage and keep the active route's section as the only open one.
   useEffect(() => {
@@ -448,7 +449,11 @@ export function DashboardSidebar({
             {!isDemo && (
               <>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">
+                <DropdownMenuItem
+                  onClick={handleLogout}
+                  disabled={isSigningOut}
+                  className="text-destructive focus:text-destructive"
+                >
                   <LogOut className="mr-2 h-4 w-4" />
                   Logout
                 </DropdownMenuItem>

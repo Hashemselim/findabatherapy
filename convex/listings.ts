@@ -523,8 +523,8 @@ export const updateListingAttributes = mutation({
   args: {
     insurances: v.optional(v.array(v.string())),
     servicesOffered: v.optional(v.array(v.string())),
-    agesServedMin: v.optional(v.number()),
-    agesServedMax: v.optional(v.number()),
+    agesServedMin: v.optional(v.union(v.number(), v.null())),
+    agesServedMax: v.optional(v.union(v.number(), v.null())),
     languages: v.optional(v.array(v.string())),
     diagnoses: v.optional(v.array(v.string())),
     clinicalSpecialties: v.optional(v.array(v.string())),
@@ -556,10 +556,12 @@ export const updateListingAttributes = mutation({
       [
         "ages_served",
         args.agesServedMin !== undefined || args.agesServedMax !== undefined
-          ? {
-              min: args.agesServedMin ?? 0,
-              max: args.agesServedMax ?? 21,
-            }
+          ? args.agesServedMin === null && args.agesServedMax === null
+            ? null
+            : {
+                min: args.agesServedMin ?? 0,
+                max: args.agesServedMax ?? 21,
+              }
           : undefined,
       ],
     ] as const;
@@ -580,6 +582,10 @@ export const updateListingAttributes = mutation({
 
       for (const entry of existing) {
         await ctx.db.delete(asId<"listingAttributes">(entry._id));
+      }
+
+      if (value === null) {
+        continue;
       }
 
       await ctx.db.insert("listingAttributes", {

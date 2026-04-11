@@ -2,32 +2,30 @@
 
 import { revalidatePath } from "next/cache";
 
-import { isConvexDataEnabled } from "@/lib/platform/config";
-import { verifyTurnstileToken } from "@/lib/turnstile";
-import { createNotification } from "@/lib/actions/notifications";
-import {
-  applicationFormSchema,
-  updateApplicationStatusSchema,
-  updateApplicationDetailsSchema,
-  type ApplicationFormData,
-  type ApplicationStatus,
-  type ApplicationSource,
-  generateResumePath,
-  isValidResumeType,
-  isValidResumeSize,
-} from "@/lib/validations/jobs";
 import {
   sendJobApplicationConfirmation,
   sendProviderNewApplicationNotification,
 } from "@/lib/email/notifications";
+import {
+  mutateConvex,
+  mutateConvexUnauthenticated,
+  queryConvex,
+} from "@/lib/platform/convex/server";
+import { verifyTurnstileToken } from "@/lib/turnstile";
+import {
+  applicationFormSchema,
+  updateApplicationDetailsSchema,
+  updateApplicationStatusSchema,
+  type ApplicationFormData,
+  type ApplicationSource,
+  type ApplicationStatus,
+  isValidResumeSize,
+  isValidResumeType,
+} from "@/lib/validations/jobs";
 
 type ActionResult<T = void> =
   | { success: true; data?: T }
   | { success: false; error: string };
-
-// =============================================================================
-// APPLICATION DATA TYPES
-// =============================================================================
 
 export interface ApplicationData {
   id: string;
@@ -68,10 +66,6 @@ export interface ApplicationSummary {
   };
 }
 
-// =============================================================================
-// PUBLIC APPLICATION SUBMISSION
-// =============================================================================
-
 /**
  * Submit a job application (public - no auth required)
  */
@@ -86,19 +80,15 @@ export async function submitApplication(
     arrayBuffer: ArrayBuffer;
   }
 ): Promise<ActionResult> {
-  // Validate input
   const parsed = applicationFormSchema.safeParse(data);
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0]?.message || "Invalid input" };
   }
 
-  // Check honeypot field (spam protection)
   if (parsed.data.website && parsed.data.website.length > 0) {
-    // Bot detected - silently succeed to not give feedback to spammer
     return { success: true };
   }
 
-  // Verify Turnstile token
   if (!turnstileToken) {
     return { success: false, error: "Security verification required" };
   }
@@ -108,249 +98,97 @@ export async function submitApplication(
     return { success: false, error: "Security verification failed. Please try again." };
   }
 
-  if (isConvexDataEnabled()) {
-    try {
-      const { mutateConvexUnauthenticated } = await import("@/lib/platform/convex/server");
+  try {
+    let resume: {
+      storageId: string;
+      filename: string;
+      mimeType: string;
+      byteSize: number;
+    } | undefined;
 
-      // If there's a resume, upload it first via Convex storage
-      let resume: {
-        storageId: string;
-        filename: string;
-        mimeType: string;
-        byteSize: number;
-      } | undefined;
-
-      if (resumeFile) {
-        if (!isValidResumeType(resumeFile.type)) {
-          return { success: false, error: "Resume must be a PDF, DOC, or DOCX file" };
-        }
-        if (!isValidResumeSize(resumeFile.size)) {
-          return { success: false, error: "Resume must be less than 10MB" };
-        }
-
-        // Generate upload URL and upload via Convex storage
-        const uploadUrl = await mutateConvexUnauthenticated<string>(
-          "jobs:generateResumeUploadUrl",
-          {},
-        );
-
-        const uploadResponse = await fetch(uploadUrl, {
-          method: "POST",
-          headers: { "Content-Type": resumeFile.type },
-          body: resumeFile.arrayBuffer,
-        });
-
-        if (!uploadResponse.ok) {
-          return { success: false, error: "Failed to upload resume. Please try again." };
-        }
-
-        const { storageId } = (await uploadResponse.json()) as { storageId: string };
-        resume = {
-          storageId,
-          filename: resumeFile.name,
-          mimeType: resumeFile.type,
-          byteSize: resumeFile.size,
-        };
+    if (resumeFile) {
+      if (!isValidResumeType(resumeFile.type)) {
+        return { success: false, error: "Resume must be a PDF, DOC, or DOCX file" };
+      }
+      if (!isValidResumeSize(resumeFile.size)) {
+        return { success: false, error: "Resume must be less than 10MB" };
       }
 
-      const result = await mutateConvexUnauthenticated<{
-        applicationId: string;
-        jobTitle: string;
-        jobSlug: string;
-        providerName: string;
-        providerEmail: string;
-        hasResume: boolean;
-      }>("jobs:submitApplication", {
-        jobPostingId,
-        applicantName: parsed.data.applicantName,
-        applicantEmail: parsed.data.applicantEmail.toLowerCase(),
-        applicantPhone: parsed.data.applicantPhone || null,
-        coverLetter: parsed.data.coverLetter || null,
-        linkedinUrl: parsed.data.linkedinUrl || null,
-        source: parsed.data.source || "direct",
-        resume,
+      const uploadUrl = await mutateConvexUnauthenticated<string>(
+        "jobs:generateResumeUploadUrl",
+        {},
+      );
+
+      const uploadResponse = await fetch(uploadUrl, {
+        method: "POST",
+        headers: { "Content-Type": resumeFile.type },
+        body: resumeFile.arrayBuffer,
       });
 
-      // Send email notifications (fire and forget)
-      const jobUrl = `https://www.goodaba.com/jobs/post/${result.jobSlug}`;
+      if (!uploadResponse.ok) {
+        return { success: false, error: "Failed to upload resume. Please try again." };
+      }
 
-      sendJobApplicationConfirmation({
-        to: parsed.data.applicantEmail,
-        applicantName: parsed.data.applicantName,
-        jobTitle: result.jobTitle,
-        providerName: result.providerName,
-        jobUrl,
-      }).catch((err) => {
-        console.error("[APPLICATION] Failed to send applicant confirmation email:", err);
-      });
-
-      sendProviderNewApplicationNotification({
-        to: result.providerEmail,
-        providerName: result.providerName,
-        jobTitle: result.jobTitle,
-        applicantName: parsed.data.applicantName,
-        applicantEmail: parsed.data.applicantEmail,
-        applicantPhone: parsed.data.applicantPhone || null,
-        linkedinUrl: parsed.data.linkedinUrl || null,
-        coverLetter: parsed.data.coverLetter || null,
-        hasResume: result.hasResume,
-        applicationId: result.applicationId,
-      }).catch((err) => {
-        console.error("[APPLICATION] Failed to send provider notification email:", err);
-      });
-
-      return { success: true };
-    } catch (error) {
-      console.error("[APPLICATION] Convex submitApplication error:", error);
-      // If resume was uploaded but submission failed, try to clean up
-      return { success: false, error: "Failed to submit application. Please try again." };
-    }
-  }
-
-  const { createAdminClient } = await import("@/lib/supabase/server");
-  const supabase = await createAdminClient();
-
-  // Verify job posting exists and is published
-  const { data: job, error: jobError } = await supabase
-    .from("job_postings")
-    .select("id, title, slug, profile_id, profiles!inner(contact_email, agency_name)")
-    .eq("id", jobPostingId)
-    .eq("status", "published")
-    .single();
-
-  if (jobError || !job) {
-    return { success: false, error: "Job posting not found or no longer accepting applications" };
-  }
-
-  // Type assertion for the joined profile
-  const profile = job.profiles as unknown as { contact_email: string; agency_name: string };
-
-  // Check for duplicate application
-  const { data: existingApp } = await supabase
-    .from("job_applications")
-    .select("id")
-    .eq("job_posting_id", jobPostingId)
-    .eq("applicant_email", parsed.data.applicantEmail.toLowerCase())
-    .single();
-
-  if (existingApp) {
-    return { success: false, error: "You have already applied to this position" };
-  }
-
-  // Handle resume upload if provided
-  let resumePath: string | null = null;
-
-  if (resumeFile) {
-    // Validate file
-    if (!isValidResumeType(resumeFile.type)) {
-      return { success: false, error: "Resume must be a PDF, DOC, or DOCX file" };
+      const { storageId } = (await uploadResponse.json()) as { storageId: string };
+      resume = {
+        storageId,
+        filename: resumeFile.name,
+        mimeType: resumeFile.type,
+        byteSize: resumeFile.size,
+      };
     }
 
-    if (!isValidResumeSize(resumeFile.size)) {
-      return { success: false, error: "Resume must be less than 10MB" };
-    }
-
-    // Generate storage path
-    resumePath = generateResumePath(
+    const result = await mutateConvexUnauthenticated<{
+      applicationId: string;
+      jobTitle: string;
+      jobSlug: string;
+      providerName: string;
+      providerEmail: string;
+      hasResume: boolean;
+    }>("jobs:submitApplication", {
       jobPostingId,
-      parsed.data.applicantEmail,
-      resumeFile.name
-    );
-
-    // Upload to storage
-    const { error: uploadError } = await supabase.storage
-      .from("job-resumes")
-      .upload(resumePath, resumeFile.arrayBuffer, {
-        contentType: resumeFile.type,
-        upsert: false,
-      });
-
-    if (uploadError) {
-      console.error("[APPLICATION] Resume upload failed:", uploadError);
-      return { success: false, error: "Failed to upload resume. Please try again." };
-    }
-  }
-
-  // Insert application
-  const { data: insertedApp, error: insertError } = await supabase
-    .from("job_applications")
-    .insert({
-      job_posting_id: jobPostingId,
-      applicant_name: parsed.data.applicantName,
-      applicant_email: parsed.data.applicantEmail.toLowerCase(),
-      applicant_phone: parsed.data.applicantPhone || null,
-      resume_path: resumePath,
-      cover_letter: parsed.data.coverLetter || null,
-      linkedin_url: parsed.data.linkedinUrl || null,
+      applicantName: parsed.data.applicantName,
+      applicantEmail: parsed.data.applicantEmail.toLowerCase(),
+      applicantPhone: parsed.data.applicantPhone || null,
+      coverLetter: parsed.data.coverLetter || null,
+      linkedinUrl: parsed.data.linkedinUrl || null,
       source: parsed.data.source || "direct",
-      status: "new",
-    })
-    .select("id")
-    .single();
+      resume,
+    });
 
-  if (insertError || !insertedApp) {
-    // If insert failed and we uploaded a resume, try to clean it up
-    if (resumePath) {
-      await supabase.storage.from("job-resumes").remove([resumePath]);
-    }
+    const jobUrl = `https://www.goodaba.com/jobs/post/${result.jobSlug}`;
 
-    // Check for duplicate constraint violation
-    if (insertError?.code === "23505") {
-      return { success: false, error: "You have already applied to this position" };
-    }
+    sendJobApplicationConfirmation({
+      to: parsed.data.applicantEmail,
+      applicantName: parsed.data.applicantName,
+      jobTitle: result.jobTitle,
+      providerName: result.providerName,
+      jobUrl,
+    }).catch((err) => {
+      console.error("[APPLICATION] Failed to send applicant confirmation email:", err);
+    });
 
+    sendProviderNewApplicationNotification({
+      to: result.providerEmail,
+      providerName: result.providerName,
+      jobTitle: result.jobTitle,
+      applicantName: parsed.data.applicantName,
+      applicantEmail: parsed.data.applicantEmail,
+      applicantPhone: parsed.data.applicantPhone || null,
+      linkedinUrl: parsed.data.linkedinUrl || null,
+      coverLetter: parsed.data.coverLetter || null,
+      hasResume: result.hasResume,
+      applicationId: result.applicationId,
+    }).catch((err) => {
+      console.error("[APPLICATION] Failed to send provider notification email:", err);
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error("[APPLICATION] submitApplication error:", error);
     return { success: false, error: "Failed to submit application. Please try again." };
   }
-
-  // Create in-app notification for the provider
-  createNotification({
-    profileId: job.profile_id,
-    type: "job_application",
-    title: `New application from ${parsed.data.applicantName}`,
-    body: `Applied for ${job.title}`,
-    link: "/dashboard/team/applicants",
-    entityId: insertedApp.id,
-    entityType: "job_application",
-  }).catch((err) => {
-    console.error("[APPLICATION] Failed to create notification:", err);
-  });
-
-  // Send email notifications (fire and forget - don't block on email delivery)
-  const jobUrl = `https://www.goodaba.com/jobs/post/${job.slug}`;
-
-  // Send confirmation email to applicant
-  sendJobApplicationConfirmation({
-    to: parsed.data.applicantEmail,
-    applicantName: parsed.data.applicantName,
-    jobTitle: job.title,
-    providerName: profile.agency_name,
-    jobUrl,
-  }).catch((err) => {
-    console.error("[APPLICATION] Failed to send applicant confirmation email:", err);
-  });
-
-  // Send notification email to provider
-  sendProviderNewApplicationNotification({
-    to: profile.contact_email,
-    providerName: profile.agency_name,
-    jobTitle: job.title,
-    applicantName: parsed.data.applicantName,
-    applicantEmail: parsed.data.applicantEmail,
-    applicantPhone: parsed.data.applicantPhone || null,
-    linkedinUrl: parsed.data.linkedinUrl || null,
-    coverLetter: parsed.data.coverLetter || null,
-    hasResume: !!resumePath,
-    applicationId: insertedApp.id,
-  }).catch((err) => {
-    console.error("[APPLICATION] Failed to send provider notification email:", err);
-  });
-
-  return { success: true };
 }
-
-// =============================================================================
-// PROVIDER APPLICATION MANAGEMENT
-// =============================================================================
 
 /**
  * Get all applications for the current user's jobs
@@ -359,192 +197,38 @@ export async function getApplications(filter?: {
   status?: ApplicationStatus;
   jobId?: string;
 }): Promise<ActionResult<{ applications: ApplicationSummary[]; newCount: number }>> {
-  if (isConvexDataEnabled()) {
-    try {
-      const { queryConvex } = await import("@/lib/platform/convex/server");
-      const result = await queryConvex<{
-        applications: ApplicationSummary[];
-        newCount: number;
-      }>("jobs:getWorkspaceApplications", {
-        status: filter?.status ?? undefined,
-        jobId: filter?.jobId ?? undefined,
-      });
-      return { success: true, data: result };
-    } catch (error) {
-      console.error("[APPLICATION] Convex getApplications error:", error);
-      return { success: false, error: "Failed to fetch applications" };
-    }
-  }
-
-  const { createClient, getCurrentProfileId } = await import("@/lib/supabase/server");
-  const profileId = await getCurrentProfileId();
-  if (!profileId) {
-    return { success: false, error: "Not authenticated" };
-  }
-
-  const supabase = await createClient();
-
-  // Get user's job IDs first
-  const { data: jobs } = await supabase
-    .from("job_postings")
-    .select("id")
-    .eq("profile_id", profileId);
-
-  const jobIds = jobs?.map((j) => j.id) || [];
-
-  if (jobIds.length === 0) {
-    return {
-      success: true,
-      data: { applications: [], newCount: 0 },
-    };
-  }
-
-  // Build query
-  let query = supabase
-    .from("job_applications")
-    .select(`
-      id,
-      applicant_name,
-      applicant_email,
-      status,
-      rating,
-      created_at,
-      job_posting_id,
-      job_postings!inner (
-        id,
-        title
-      )
-    `)
-    .in("job_posting_id", jobIds)
-    .order("created_at", { ascending: false });
-
-  if (filter?.status) {
-    query = query.eq("status", filter.status);
-  }
-
-  if (filter?.jobId) {
-    query = query.eq("job_posting_id", filter.jobId);
-  }
-
-  const { data: applications, error } = await query;
-
-  if (error) {
+  try {
+    const result = await queryConvex<{
+      applications: ApplicationSummary[];
+      newCount: number;
+    }>("jobs:getWorkspaceApplications", {
+      status: filter?.status ?? undefined,
+      jobId: filter?.jobId ?? undefined,
+    });
+    return { success: true, data: result };
+  } catch (error) {
+    console.error("[APPLICATION] getApplications error:", error);
     return { success: false, error: "Failed to fetch applications" };
   }
-
-  // Get new application count
-  const { count: newCount } = await supabase
-    .from("job_applications")
-    .select("id", { count: "exact", head: true })
-    .in("job_posting_id", jobIds)
-    .eq("status", "new");
-
-  return {
-    success: true,
-    data: {
-      applications: (applications || []).map((app) => {
-        const job = app.job_postings as unknown as { id: string; title: string };
-        return {
-          id: app.id,
-          applicantName: app.applicant_name,
-          applicantEmail: app.applicant_email,
-          status: app.status as ApplicationStatus,
-          rating: app.rating,
-          createdAt: app.created_at,
-          job: { id: job.id, title: job.title },
-        };
-      }),
-      newCount: newCount || 0,
-    },
-  };
 }
 
 /**
  * Get a single application by ID
  */
 export async function getApplication(id: string): Promise<ActionResult<ApplicationWithJob>> {
-  if (isConvexDataEnabled()) {
-    try {
-      const { queryConvex } = await import("@/lib/platform/convex/server");
-      const result = await queryConvex<ApplicationWithJob | null>(
-        "jobs:getWorkspaceApplication",
-        { id },
-      );
-      if (!result) {
-        return { success: false, error: "Application not found" };
-      }
-      return { success: true, data: result };
-    } catch (error) {
-      console.error("[APPLICATION] Convex getApplication error:", error);
+  try {
+    const result = await queryConvex<ApplicationWithJob | null>(
+      "jobs:getWorkspaceApplication",
+      { id },
+    );
+    if (!result) {
       return { success: false, error: "Application not found" };
     }
-  }
-
-  const { createClient, getCurrentProfileId } = await import("@/lib/supabase/server");
-  const profileId = await getCurrentProfileId();
-  if (!profileId) {
-    return { success: false, error: "Not authenticated" };
-  }
-
-  const supabase = await createClient();
-
-  const { data: application, error } = await supabase
-    .from("job_applications")
-    .select(`
-      *,
-      job_postings!inner (
-        id,
-        title,
-        slug,
-        position_type,
-        profile_id
-      )
-    `)
-    .eq("id", id)
-    .single();
-
-  if (error || !application) {
+    return { success: true, data: result };
+  } catch (error) {
+    console.error("[APPLICATION] getApplication error:", error);
     return { success: false, error: "Application not found" };
   }
-
-  // Verify ownership
-  const job = application.job_postings as unknown as {
-    id: string;
-    title: string;
-    slug: string;
-    position_type: string;
-    profile_id: string;
-  };
-
-  if (job.profile_id !== profileId) {
-    return { success: false, error: "Not authorized to view this application" };
-  }
-
-  return {
-    success: true,
-    data: {
-      id: application.id,
-      jobPostingId: application.job_posting_id,
-      applicantName: application.applicant_name,
-      applicantEmail: application.applicant_email,
-      applicantPhone: application.applicant_phone,
-      resumePath: application.resume_path,
-      coverLetter: application.cover_letter,
-      linkedinUrl: application.linkedin_url,
-      status: application.status as ApplicationStatus,
-      rating: application.rating,
-      notes: application.notes,
-      source: application.source as ApplicationSource | null,
-      reviewedAt: application.reviewed_at,
-      createdAt: application.created_at,
-      job: {
-        id: job.id,
-        title: job.title,
-        slug: job.slug,
-        positionType: job.position_type,
-      },
-    },
-  };
 }
 
 /**
@@ -554,79 +238,23 @@ export async function updateApplicationStatus(
   id: string,
   status: ApplicationStatus
 ): Promise<ActionResult> {
-  // Validate status
   const parsed = updateApplicationStatusSchema.safeParse({ status });
   if (!parsed.success) {
     return { success: false, error: "Invalid status" };
   }
 
-  if (isConvexDataEnabled()) {
-    try {
-      const { mutateConvex } = await import("@/lib/platform/convex/server");
-      await mutateConvex("jobs:updateWorkspaceApplicationStatus", {
-        id,
-        status: parsed.data.status,
-      });
-      revalidatePath("/dashboard/applications");
-      revalidatePath(`/dashboard/applications/${id}`);
-      return { success: true };
-    } catch (error) {
-      console.error("[APPLICATION] Convex updateApplicationStatus error:", error);
-      return { success: false, error: "Failed to update application status" };
-    }
-  }
-
-  const { createClient, getCurrentProfileId } = await import("@/lib/supabase/server");
-  const profileId = await getCurrentProfileId();
-  if (!profileId) {
-    return { success: false, error: "Not authenticated" };
-  }
-
-  const supabase = await createClient();
-
-  // Get application and verify ownership
-  const { data: application } = await supabase
-    .from("job_applications")
-    .select(`
+  try {
+    await mutateConvex("jobs:updateWorkspaceApplicationStatus", {
       id,
-      status,
-      job_postings!inner (
-        profile_id
-      )
-    `)
-    .eq("id", id)
-    .single();
-
-  if (!application) {
-    return { success: false, error: "Application not found" };
-  }
-
-  const job = application.job_postings as unknown as { profile_id: string };
-  if (job.profile_id !== profileId) {
-    return { success: false, error: "Not authorized to update this application" };
-  }
-
-  const updateData: Record<string, unknown> = {
-    status: parsed.data.status,
-  };
-
-  // Set reviewed_at if moving from "new" status
-  if (application.status === "new" && parsed.data.status !== "new") {
-    updateData.reviewed_at = new Date().toISOString();
-  }
-
-  const { error: updateError } = await supabase
-    .from("job_applications")
-    .update(updateData)
-    .eq("id", id);
-
-  if (updateError) {
+      status: parsed.data.status,
+    });
+    revalidatePath("/dashboard/applications");
+    revalidatePath(`/dashboard/applications/${id}`);
+    return { success: true };
+  } catch (error) {
+    console.error("[APPLICATION] updateApplicationStatus error:", error);
     return { success: false, error: "Failed to update application status" };
   }
-
-  revalidatePath("/dashboard/applications");
-  revalidatePath(`/dashboard/applications/${id}`);
-  return { success: true };
 }
 
 /**
@@ -636,188 +264,55 @@ export async function updateApplicationDetails(
   id: string,
   data: { notes?: string | null; rating?: number | null }
 ): Promise<ActionResult> {
-  // Validate input
   const parsed = updateApplicationDetailsSchema.safeParse(data);
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0]?.message || "Invalid input" };
   }
 
-  if (isConvexDataEnabled()) {
-    try {
-      const { mutateConvex } = await import("@/lib/platform/convex/server");
-      await mutateConvex("jobs:updateWorkspaceApplicationDetails", {
-        id,
-        notes: parsed.data.notes !== undefined ? parsed.data.notes : undefined,
-        rating: parsed.data.rating !== undefined ? parsed.data.rating : undefined,
-      });
-      revalidatePath("/dashboard/applications");
-      revalidatePath(`/dashboard/applications/${id}`);
-      return { success: true };
-    } catch (error) {
-      console.error("[APPLICATION] Convex updateApplicationDetails error:", error);
-      return { success: false, error: "Failed to update application" };
-    }
-  }
-
-  const { createClient, getCurrentProfileId } = await import("@/lib/supabase/server");
-  const profileId = await getCurrentProfileId();
-  if (!profileId) {
-    return { success: false, error: "Not authenticated" };
-  }
-
-  const supabase = await createClient();
-
-  // Get application and verify ownership
-  const { data: application } = await supabase
-    .from("job_applications")
-    .select(`
+  try {
+    await mutateConvex("jobs:updateWorkspaceApplicationDetails", {
       id,
-      job_postings!inner (
-        profile_id
-      )
-    `)
-    .eq("id", id)
-    .single();
-
-  if (!application) {
-    return { success: false, error: "Application not found" };
-  }
-
-  const job = application.job_postings as unknown as { profile_id: string };
-  if (job.profile_id !== profileId) {
-    return { success: false, error: "Not authorized to update this application" };
-  }
-
-  const updateData: Record<string, unknown> = {};
-  if (parsed.data.notes !== undefined) updateData.notes = parsed.data.notes;
-  if (parsed.data.rating !== undefined) updateData.rating = parsed.data.rating;
-
-  if (Object.keys(updateData).length === 0) {
-    return { success: true }; // Nothing to update
-  }
-
-  const { error: updateError } = await supabase
-    .from("job_applications")
-    .update(updateData)
-    .eq("id", id);
-
-  if (updateError) {
+      notes: parsed.data.notes !== undefined ? parsed.data.notes : undefined,
+      rating: parsed.data.rating !== undefined ? parsed.data.rating : undefined,
+    });
+    revalidatePath("/dashboard/applications");
+    revalidatePath(`/dashboard/applications/${id}`);
+    return { success: true };
+  } catch (error) {
+    console.error("[APPLICATION] updateApplicationDetails error:", error);
     return { success: false, error: "Failed to update application" };
   }
-
-  revalidatePath("/dashboard/applications");
-  revalidatePath(`/dashboard/applications/${id}`);
-  return { success: true };
 }
 
 /**
- * Get resume download URL (signed URL for private bucket)
+ * Get resume download URL
  */
 export async function getResumeDownloadUrl(
   applicationId: string
 ): Promise<ActionResult<{ url: string }>> {
-  if (isConvexDataEnabled()) {
-    try {
-      const { queryConvex } = await import("@/lib/platform/convex/server");
-      const result = await queryConvex<{ url: string }>(
-        "jobs:getWorkspaceApplicationResumeUrl",
-        { applicationId },
-      );
-      return { success: true, data: result };
-    } catch (error) {
-      console.error("[APPLICATION] Convex getResumeDownloadUrl error:", error);
-      return { success: false, error: "Failed to generate resume download link" };
-    }
-  }
-
-  const { createClient, getCurrentProfileId } = await import("@/lib/supabase/server");
-  const profileId = await getCurrentProfileId();
-  if (!profileId) {
-    return { success: false, error: "Not authenticated" };
-  }
-
-  const supabase = await createClient();
-
-  // Get application and verify ownership
-  const { data: application } = await supabase
-    .from("job_applications")
-    .select(`
-      resume_path,
-      job_postings!inner (
-        profile_id
-      )
-    `)
-    .eq("id", applicationId)
-    .single();
-
-  if (!application) {
-    return { success: false, error: "Application not found" };
-  }
-
-  const job = application.job_postings as unknown as { profile_id: string };
-  if (job.profile_id !== profileId) {
-    return { success: false, error: "Not authorized to access this resume" };
-  }
-
-  if (!application.resume_path) {
-    return { success: false, error: "No resume attached to this application" };
-  }
-
-  // Generate signed URL (valid for 1 hour)
-  const { data: urlData, error: urlError } = await supabase.storage
-    .from("job-resumes")
-    .createSignedUrl(application.resume_path, 3600);
-
-  if (urlError || !urlData?.signedUrl) {
+  try {
+    const result = await queryConvex<{ url: string }>(
+      "jobs:getWorkspaceApplicationResumeUrl",
+      { applicationId },
+    );
+    return { success: true, data: result };
+  } catch (error) {
+    console.error("[APPLICATION] getResumeDownloadUrl error:", error);
     return { success: false, error: "Failed to generate resume download link" };
   }
-
-  return { success: true, data: { url: urlData.signedUrl } };
 }
 
 /**
  * Get new application count (for sidebar badge)
  */
 export async function getNewApplicationCount(): Promise<ActionResult<number>> {
-  if (isConvexDataEnabled()) {
-    try {
-      const { queryConvex } = await import("@/lib/platform/convex/server");
-      const count = await queryConvex<number>("jobs:getNewWorkspaceApplicationCount", {});
-      return { success: true, data: count };
-    } catch (error) {
-      console.error("[APPLICATION] Convex getNewApplicationCount error:", error);
-      return { success: true, data: 0 };
-    }
-  }
-
-  const { createClient, getCurrentProfileId } = await import("@/lib/supabase/server");
-  const profileId = await getCurrentProfileId();
-  if (!profileId) {
+  try {
+    const count = await queryConvex<number>("jobs:getNewWorkspaceApplicationCount", {});
+    return { success: true, data: count };
+  } catch (error) {
+    console.error("[APPLICATION] getNewApplicationCount error:", error);
     return { success: true, data: 0 };
   }
-
-  const supabase = await createClient();
-
-  // Get user's job IDs
-  const { data: jobs } = await supabase
-    .from("job_postings")
-    .select("id")
-    .eq("profile_id", profileId);
-
-  const jobIds = jobs?.map((j) => j.id) || [];
-
-  if (jobIds.length === 0) {
-    return { success: true, data: 0 };
-  }
-
-  // Get new application count
-  const { count } = await supabase
-    .from("job_applications")
-    .select("id", { count: "exact", head: true })
-    .in("job_posting_id", jobIds)
-    .eq("status", "new");
-
-  return { success: true, data: count || 0 };
 }
 
 /**

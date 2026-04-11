@@ -569,6 +569,46 @@ export const getSocialAssetsStatus = query({
   },
 });
 
+export const getSocialAssetUrls = query({
+  args: {
+    brandHash: v.string(),
+  },
+  handler: async (ctx, args: { brandHash: string }) => {
+    const { listing } = await requireCurrentWorkspaceContext(ctx);
+    if (!listing) {
+      throw new ConvexError("Listing not found");
+    }
+
+    const files = filterSocialFiles(
+      await getListingFiles(ctx, listing._id),
+      "social-post",
+      args.brandHash,
+    );
+
+    const entries = await Promise.all(
+      files.map(async (file) => {
+        const templateId = readString(asRecord(file.metadata).templateId);
+        if (!templateId || typeof file.storageId !== "string") {
+          return null;
+        }
+
+        const url = await ctx.storage.getUrl(asId<"_storage">(file.storageId));
+        if (!url) {
+          return null;
+        }
+
+        return [templateId, url] as const;
+      }),
+    );
+
+    return Object.fromEntries(
+      entries.filter(
+        (entry): entry is readonly [string, string] => Array.isArray(entry),
+      ),
+    );
+  },
+});
+
 export const saveSocialAsset = mutation({
   args: {
     storageId: v.string(),

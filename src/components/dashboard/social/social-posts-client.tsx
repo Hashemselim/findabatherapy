@@ -22,7 +22,7 @@ import {
   CATEGORY_LABELS,
   CATEGORY_COLORS,
 } from "@/lib/social/types";
-import { generateSocialAssets } from "@/lib/actions/social";
+import { generateSocialAssets, getSocialAssetUrls } from "@/lib/actions/social";
 
 interface UpcomingTemplate extends SocialTemplate {
   daysUntil: number;
@@ -33,10 +33,9 @@ interface UpcomingTemplate extends SocialTemplate {
 interface SocialPostsClientProps {
   templates: SocialTemplate[];
   upcoming: UpcomingTemplate[];
-  profileId: string;
   assetsReady: boolean;
   alreadyGenerating?: boolean;
-  brandHash?: string;
+  assetUrls?: Record<string, string>;
   previewMode?: boolean;
   previewAgencyName?: string;
 }
@@ -115,10 +114,9 @@ function ImageWithLoader({
 export function SocialPostsClient({
   templates,
   upcoming,
-  profileId,
   assetsReady: initialAssetsReady,
   alreadyGenerating = false,
-  brandHash = "",
+  assetUrls = {},
   previewMode = false,
   previewAgencyName = "Acorn ABA Therapy",
 }: SocialPostsClientProps) {
@@ -126,9 +124,8 @@ export function SocialPostsClient({
   const [assetsReady, setAssetsReady] = useState(initialAssetsReady);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationProgress, setGenerationProgress] = useState("");
-  const [cacheBuster, setCacheBuster] = useState(brandHash);
+  const [resolvedAssetUrls, setResolvedAssetUrls] = useState(assetUrls);
 
-  // Build image URL helper (needed for probe check)
   const buildImageUrl = useCallback(
     (templateId: string) => {
       if (previewMode) {
@@ -136,17 +133,15 @@ export function SocialPostsClient({
         if (!template) return "";
         return buildPreviewImageUrl(template, previewAgencyName);
       }
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-      const hash = cacheBuster || brandHash;
-      return hash
-        ? `${supabaseUrl}/storage/v1/object/public/social-posts/${profileId}/${hash}/${templateId}.png`
-        : `${supabaseUrl}/storage/v1/object/public/social-posts/${profileId}/${templateId}.png`;
+      return resolvedAssetUrls[templateId] || "";
     },
-    [brandHash, cacheBuster, previewAgencyName, previewMode, profileId, templates]
+    [previewAgencyName, previewMode, resolvedAssetUrls, templates]
   );
 
-  // Trigger generation only if assets truly don't exist.
-  // Probe an actual image URL first to guard against intermittent manifest failures.
+  useEffect(() => {
+    setResolvedAssetUrls(assetUrls);
+  }, [assetUrls]);
+
   useEffect(() => {
     if (previewMode) return;
     if (assetsReady) return;
@@ -154,19 +149,10 @@ export function SocialPostsClient({
     let cancelled = false;
 
     async function checkAndGenerate() {
-      // Probe a real image to see if assets actually exist despite manifest failure
-      if (brandHash && templates.length > 0) {
-        try {
-          const probeUrl = buildImageUrl(templates[0].id);
-          const probeRes = await fetch(probeUrl, { method: "HEAD" });
-          if (probeRes.ok && !cancelled) {
-            // Images exist — manifest check was a false negative
-            setAssetsReady(true);
-            return;
-          }
-        } catch {
-          // Probe failed — assets likely don't exist, proceed to generation
-        }
+      const knownAssetCount = Object.keys(resolvedAssetUrls).length;
+      if (knownAssetCount > 0) {
+        setAssetsReady(true);
+        return;
       }
 
       if (cancelled) return;
@@ -181,8 +167,12 @@ export function SocialPostsClient({
             );
             const status = await checkSocialAssetsStatus();
             if (status.success && status.data.ready) {
+              const urlsResult = await getSocialAssetUrls(status.data.brandHash);
+              if (!urlsResult.success) {
+                throw new Error(urlsResult.error);
+              }
               setAssetsReady(true);
-              setCacheBuster(status.data.brandHash);
+              setResolvedAssetUrls(urlsResult.data || {});
               setIsGenerating(false);
               clearInterval(interval);
             }
@@ -200,8 +190,15 @@ export function SocialPostsClient({
         .then((result) => {
           if (cancelled) return;
           if (result.success) {
-            setAssetsReady(true);
-            setGenerationProgress("");
+            return getSocialAssetUrls(result.data.brandHash).then((urlsResult) => {
+              if (!urlsResult.success) {
+                setGenerationProgress(`Error: ${urlsResult.error}`);
+                return;
+              }
+              setResolvedAssetUrls(urlsResult.data || {});
+              setAssetsReady(true);
+              setGenerationProgress("");
+            });
           } else {
             setGenerationProgress(`Error: ${result.error}`);
           }
@@ -218,7 +215,7 @@ export function SocialPostsClient({
 
     checkAndGenerate();
     return () => { cancelled = true; };
-  }, [assetsReady, alreadyGenerating, brandHash, buildImageUrl, previewMode, templates]);
+  }, [alreadyGenerating, assetsReady, previewMode, resolvedAssetUrls, templates]);
 
   const filteredTemplates =
     filter === "all"

@@ -1,7 +1,5 @@
 import type { MetadataRoute } from "next";
 
-import { isConvexDataEnabled } from "@/lib/platform/config";
-import { filterPublicProfiles } from "@/lib/public-visibility";
 import { STATE_NAMES } from "@/lib/data/cities";
 import { getBaseUrl } from "@/lib/utils/domains";
 import { getJobsEmployersPath, getJobsPostPath, getJobsRolePath } from "@/lib/utils/public-paths";
@@ -25,74 +23,32 @@ async function getJobAndEmployerPages(): Promise<{
   jobPages: MetadataRoute.Sitemap;
   employerCareerPages: MetadataRoute.Sitemap;
 }> {
-  if (isConvexDataEnabled()) {
-    try {
-      const { queryConvexUnauthenticated } = await import("@/lib/platform/convex/server");
-      const jobSlugs = await queryConvexUnauthenticated<Array<{ slug: string; updatedAt: string }>>(
-        "jobs:getPublishedJobSlugs",
-      );
-      const jobPages: MetadataRoute.Sitemap = (jobSlugs || []).map((job) => ({
-        url: `${BASE_URL}${getJobsPostPath(job.slug)}`,
-        lastModified: new Date(job.updatedAt),
-        changeFrequency: "weekly" as const,
-        priority: 0.7,
-      }));
+  try {
+    const { queryConvexUnauthenticated } = await import("@/lib/platform/convex/server");
+    const jobSlugs = await queryConvexUnauthenticated<Array<{ slug: string; updatedAt: string }>>(
+      "jobs:getPublishedJobSlugs",
+    );
+    const jobPages: MetadataRoute.Sitemap = (jobSlugs || []).map((job) => ({
+      url: `${BASE_URL}${getJobsPostPath(job.slug)}`,
+      lastModified: new Date(job.updatedAt),
+      changeFrequency: "weekly" as const,
+      priority: 0.7,
+    }));
 
-      const employerSlugs = await queryConvexUnauthenticated<Array<{ slug: string; updatedAt: string }>>(
-        "listings:getPublishedListingSlugs",
-      );
-      const employerCareerPages: MetadataRoute.Sitemap = (employerSlugs || []).map((employer) => ({
-        url: `${BASE_URL}/provider/${employer.slug}/careers`,
-        lastModified: new Date(employer.updatedAt),
-        changeFrequency: "weekly" as const,
-        priority: 0.8,
-      }));
-
-      return { jobPages, employerCareerPages };
-    } catch {
-      return { jobPages: [], employerCareerPages: [] };
-    }
-  }
-
-  const { createClient } = await import("@/lib/supabase/server");
-  const supabase = await createClient();
-
-  const { data: jobs } = await supabase
-    .from("jobs")
-    .select("slug, updated_at")
-    .eq("status", "active")
-    .order("updated_at", { ascending: false });
-
-  const jobPages: MetadataRoute.Sitemap = (jobs || []).map((job) => ({
-    url: `${BASE_URL}${getJobsPostPath(job.slug)}`,
-    lastModified: new Date(job.updated_at),
-    changeFrequency: "weekly" as const,
-    priority: 0.7,
-  }));
-
-  const { data: employers } = await supabase
-    .from("listings")
-    .select("slug, updated_at, profiles!inner(contact_email, is_seeded)")
-    .eq("status", "published")
-    .eq("has_career_page", true);
-
-  const employerCareerPages: MetadataRoute.Sitemap = filterPublicProfiles(
-    employers || [],
-    (employer) =>
-      employer.profiles as {
-        contact_email?: string | null;
-        is_seeded?: boolean | null;
-      }
-  ).map(
-    (employer) => ({
+    const employerSlugs = await queryConvexUnauthenticated<Array<{ slug: string; updatedAt: string }>>(
+      "listings:getPublishedListingSlugs",
+    );
+    const employerCareerPages: MetadataRoute.Sitemap = (employerSlugs || []).map((employer) => ({
       url: `${BASE_URL}/provider/${employer.slug}/careers`,
-      lastModified: new Date(employer.updated_at),
+      lastModified: new Date(employer.updatedAt),
       changeFrequency: "weekly" as const,
       priority: 0.8,
-    })
-  );
+    }));
 
-  return { jobPages, employerCareerPages };
+    return { jobPages, employerCareerPages };
+  } catch {
+    return { jobPages: [], employerCareerPages: [] };
+  }
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {

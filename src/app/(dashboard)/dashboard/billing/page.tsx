@@ -50,74 +50,31 @@ import { getSubscription, getPendingDowngrade, getFeaturedAddonPrices, getFeatur
 import { getActiveAddons } from "@/lib/actions/addons";
 import { getWorkspaceSeatSummary } from "@/lib/actions/workspace-users";
 import { STRIPE_PLANS } from "@/lib/stripe/config";
-import { isConvexDataEnabled } from "@/lib/platform/config";
 import { getCurrentUser } from "@/lib/platform/auth/server";
 import { getCurrentWorkspace } from "@/lib/platform/workspace/server";
-import { createClient, getCurrentMembership, getCurrentProfileId, getUser } from "@/lib/supabase/server";
 
 export default async function DashboardBillingPage() {
-  let membershipRole: string = "member";
-  let profileId: string | null = null;
-  let planTier = "free";
-  let subscriptionStatus: string | null = null;
-  let stripeCustomerId: string | null = null;
-  let stripeSubscriptionId: string | null = null;
-  let onboardingCompletedAt: string | null = null;
-  let billingInterval: "month" | "year" = "month";
+  const user = await getCurrentUser();
+  const ws = await getCurrentWorkspace();
+  if (!user || !ws) return null;
 
-  if (isConvexDataEnabled()) {
-    const user = await getCurrentUser();
-    const ws = await getCurrentWorkspace();
-    if (!user || !ws) return null;
-
-    membershipRole = ws.membership.role;
-    profileId = ws.workspace.id;
-    planTier = ws.workspace.planTier || "free";
-    subscriptionStatus = ws.workspace.subscriptionStatus ?? null;
-    stripeCustomerId = ws.workspace.stripeCustomerId ?? null;
-    stripeSubscriptionId = ws.workspace.stripeSubscriptionId ?? null;
-    onboardingCompletedAt = ws.workspace.onboardingCompletedAt ?? null;
-    billingInterval = ws.workspace.billingInterval === "year" ? "year" : "month";
-  } else {
-    const user = await getUser();
-    const membership = await getCurrentMembership();
-    profileId = await getCurrentProfileId();
-
-    if (!user || !membership || !profileId) return null;
-    membershipRole = membership.role;
-
-    const supabase = await createClient();
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("plan_tier, stripe_customer_id, stripe_subscription_id, subscription_status, onboarding_completed_at")
-      .eq("id", profileId)
-      .single();
-
-    planTier = profile?.plan_tier || "free";
-    subscriptionStatus = profile?.subscription_status ?? null;
-    stripeCustomerId = profile?.stripe_customer_id ?? null;
-    stripeSubscriptionId = profile?.stripe_subscription_id ?? null;
-    onboardingCompletedAt = profile?.onboarding_completed_at ?? null;
-
-    if (profile) {
-      const { data: billingData } = await supabase
-        .from("profiles")
-        .select("billing_interval")
-        .eq("id", profileId)
-        .single();
-      if (billingData?.billing_interval === "year") {
-        billingInterval = "year";
-      }
-    }
-  }
+  const membershipRole = ws.membership.role;
+  const profileId = ws.workspace.id;
+  const planTier = ws.workspace.planTier || "free";
+  const subscriptionStatus = ws.workspace.subscriptionStatus ?? null;
+  const stripeCustomerId = ws.workspace.stripeCustomerId ?? null;
+  const stripeSubscriptionId = ws.workspace.stripeSubscriptionId ?? null;
+  const onboardingCompletedAt = ws.workspace.onboardingCompletedAt ?? null;
+  const billingInterval =
+    ws.workspace.billingInterval === "year" ? "year" : "month";
 
   const [subscriptionResult, pendingDowngradeResult, featuredPricingResult, featuredLocationsResult, addonsResult, seatSummaryResult] = await Promise.all([
     getSubscription(),
     getPendingDowngrade(),
     getFeaturedAddonPrices(),
     getFeaturedLocations(),
-    getActiveAddons(profileId!),
-    getWorkspaceSeatSummary(profileId!),
+    getActiveAddons(profileId),
+    getWorkspaceSeatSummary(profileId),
   ]);
 
   const subscription = subscriptionResult.success ? subscriptionResult.data : null;

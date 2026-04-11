@@ -1,6 +1,5 @@
 "use server";
 
-import { isConvexDataEnabled } from "@/lib/platform/config";
 import {
   type PlanTier,
   type PlanFeatures,
@@ -22,48 +21,15 @@ export type GuardResult<T = void> =
  * After onboarding: Returns "free" if subscription is not active, regardless of plan_tier
  */
 export async function getCurrentPlanTier(): Promise<PlanTier> {
-  if (isConvexDataEnabled()) {
-    try {
-      const { queryConvex } = await import("@/lib/platform/convex/server");
-      const result = await queryConvex<{ planTier: "free" | "pro" }>(
-        "billing:getCurrentPlanTierQuery",
-      );
-      return result?.planTier ?? "free";
-    } catch {
-      return "free";
-    }
-  }
-
-  const { getCurrentProfileId, createClient } = await import("@/lib/supabase/server");
-  const profileId = await getCurrentProfileId();
-  if (!profileId) {
+  try {
+    const { queryConvex } = await import("@/lib/platform/convex/server");
+    const result = await queryConvex<{ planTier: "free" | "pro" }>(
+      "billing:getCurrentPlanTierQuery",
+    );
+    return result?.planTier ?? "free";
+  } catch {
     return "free";
   }
-
-  const supabase = await createClient();
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("plan_tier, subscription_status, onboarding_completed_at")
-    .eq("id", profileId)
-    .single();
-
-  const planTier = (profile?.plan_tier as PlanTier) || "free";
-
-  // During onboarding: respect selected plan (allows Pro field access before payment)
-  if (!profile?.onboarding_completed_at) {
-    return planTier;
-  }
-
-  // After onboarding: require active subscription for paid plans
-  const isActiveSubscription =
-    profile?.subscription_status === "active" ||
-    profile?.subscription_status === "trialing";
-
-  if (planTier !== "free" && !isActiveSubscription) {
-    return "free";
-  }
-
-  return planTier;
 }
 
 /**

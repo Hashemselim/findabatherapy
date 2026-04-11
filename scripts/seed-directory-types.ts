@@ -145,7 +145,7 @@ export type SeedDirectoryCustomDomain = {
 export type SeedDirectoryExportPayload = {
   exportedAt: string;
   source: {
-    supabaseUrl: string;
+    dataSourceUrl: string;
     seededProfileCount: number;
   };
   profiles: SeedDirectoryProfile[];

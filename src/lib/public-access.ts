@@ -3,11 +3,6 @@ import "server-only";
 import { cookies } from "next/headers";
 import type { NextResponse } from "next/server";
 
-import { isConvexDataEnabled } from "@/lib/platform/config";
-
-const createAdminClient = () =>
-  import("@/lib/supabase/server").then((m) => m.createAdminClient());
-
 const COOKIE_NAMES = {
   intake: "public_intake_access",
   documents: "public_document_access",
@@ -362,57 +357,27 @@ export async function clearPortalAccessToken(slug: string) {
 }
 
 export async function validateIntakeAccessToken(slug: string, token: string): Promise<boolean> {
-  if (isConvexDataEnabled()) {
-    try {
-      const { queryConvexUnauthenticated } = await import("@/lib/platform/convex/server");
-      return await queryConvexUnauthenticated<boolean>("intake:validateIntakeAccessForSlug", {
-        slug,
-        token,
-      });
-    } catch {
-      return false;
-    }
+  try {
+    const { queryConvexUnauthenticated } = await import("@/lib/platform/convex/server");
+    return await queryConvexUnauthenticated<boolean>("intake:validateIntakeAccessForSlug", {
+      slug,
+      token,
+    });
+  } catch {
+    return false;
   }
-
-  const supabase = await createAdminClient();
-  const { data } = await supabase
-    .from("intake_tokens")
-    .select("id, expires_at, used_at")
-    .eq("token", token)
-    .single();
-
-  return Boolean(
-    data &&
-      !data.used_at &&
-      (!data.expires_at || new Date(data.expires_at).getTime() >= Date.now()),
-  );
 }
 
 export async function validateDocumentAccessToken(slug: string, token: string): Promise<boolean> {
-  if (isConvexDataEnabled()) {
-    try {
-      const { queryConvexUnauthenticated } = await import("@/lib/platform/convex/server");
-      return await queryConvexUnauthenticated<boolean>(
-        "intake:validateClientDocumentUploadAccessForSlug",
-        { slug, token },
-      );
-    } catch {
-      return false;
-    }
+  try {
+    const { queryConvexUnauthenticated } = await import("@/lib/platform/convex/server");
+    return await queryConvexUnauthenticated<boolean>(
+      "intake:validateClientDocumentUploadAccessForSlug",
+      { slug, token },
+    );
+  } catch {
+    return false;
   }
-
-  const supabase = await createAdminClient();
-  const { data } = await supabase
-    .from("client_document_upload_tokens")
-    .select("client_id, expires_at")
-    .eq("token", token)
-    .single();
-
-  return Boolean(
-    data &&
-      data.client_id &&
-      (!data.expires_at || new Date(data.expires_at).getTime() >= Date.now()),
-  );
 }
 
 export async function validateAgreementAccessToken(
@@ -420,73 +385,30 @@ export async function validateAgreementAccessToken(
   packetSlug: string,
   token: string,
 ): Promise<boolean> {
-  if (isConvexDataEnabled()) {
-    try {
-      const { queryConvexUnauthenticated } = await import("@/lib/platform/convex/server");
-      const result = await queryConvexUnauthenticated(
-        "agreements:getAgreementPublicPageData",
-        {
-          providerSlug,
-          packetSlug,
-          token,
-        },
-      );
-      return Boolean(result);
-    } catch {
-      return false;
-    }
-  }
-
-  const supabase = await createAdminClient();
-  const { data: listing } = await supabase
-    .from("listings")
-    .select("profile_id")
-    .eq("slug", providerSlug)
-    .eq("status", "published")
-    .single();
-
-  if (!listing?.profile_id) {
+  try {
+    const { queryConvexUnauthenticated } = await import("@/lib/platform/convex/server");
+    const result = await queryConvexUnauthenticated(
+      "agreements:getAgreementPublicPageData",
+      {
+        providerSlug,
+        packetSlug,
+        token,
+      },
+    );
+    return Boolean(result);
+  } catch {
     return false;
   }
-
-  const { data: packet } = await supabase
-    .from("agreement_packets")
-    .select("id")
-    .eq("profile_id", listing.profile_id)
-    .eq("slug", packetSlug)
-    .is("deleted_at", null)
-    .single();
-
-  if (!packet?.id) {
-    return false;
-  }
-
-  const { data: link } = await supabase
-    .from("agreement_links")
-    .select("packet_id, reusable, used_at, expires_at")
-    .eq("token", token)
-    .single();
-
-  return Boolean(
-    link &&
-      link.packet_id === packet.id &&
-      (link.reusable || !link.used_at) &&
-      (!link.expires_at || new Date(link.expires_at).getTime() >= Date.now()),
-  );
 }
 
 export async function validatePortalAccessToken(slug: string, token: string): Promise<boolean> {
-  if (isConvexDataEnabled()) {
-    try {
-      const { queryConvexUnauthenticated } = await import("@/lib/platform/convex/server");
-      return await queryConvexUnauthenticated<boolean>("clientPortal:validatePortalAccessForSlug", {
-        slug,
-        token,
-      });
-    } catch {
-      return false;
-    }
+  try {
+    const { queryConvexUnauthenticated } = await import("@/lib/platform/convex/server");
+    return await queryConvexUnauthenticated<boolean>("clientPortal:validatePortalAccessForSlug", {
+      slug,
+      token,
+    });
+  } catch {
+    return false;
   }
-
-  return false;
 }

@@ -6,7 +6,7 @@ export interface PlatformUser {
   firstName?: string | null;
   lastName?: string | null;
   imageUrl?: string | null;
-  provider: "supabase" | "clerk";
+  provider: "clerk";
 }
 
 export interface PlatformMembership {

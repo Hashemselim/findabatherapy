@@ -37,14 +37,7 @@
     "test:e2e:dashboard:media": "playwright test dashboard/media.spec.ts",
     "test:e2e:dashboard:additional": "playwright test dashboard/additional.spec.ts",
     "test:e2e:contact": "playwright test contact/",
-    "test:e2e:admin": "playwright test admin/",
-    "verify:user-writes": "node scripts/verify-user-write-contracts.mjs",
-    "seed:test-user": "npx tsx scripts/seed-test-user.ts",
-    "seed:test-user:free": "npx tsx scripts/seed-test-user.ts --free",
-    "seed:reset": "npx tsx scripts/seed-test-user.ts --reset",
-    "seed:reset:free": "npx tsx scripts/seed-test-user.ts --reset --free",
-    "seed:export:directory": "npx tsx scripts/export-seeded-directory-data.ts",
-    "seed:import:directory": "npx tsx scripts/import-seeded-directory-data.ts --confirm-reset"
+    "test:e2e:admin": "playwright test admin/"
   },
   "dependencies": {
     "@clerk/backend": "3.2.3",
@@ -70,8 +63,6 @@
     "@radix-ui/react-tooltip": "^1.2.8",
     "@state-icons/react": "^0.1.1",
     "@stripe/stripe-js": "^8.2.0",
-    "@supabase/ssr": "^0.7.0",
-    "@supabase/supabase-js": "^2.78.0",
     "@tailwindcss/typography": "^0.5.19",
     "@tanstack/react-query": "^5.90.6",
     "@tiptap/core": "^3.20.1",

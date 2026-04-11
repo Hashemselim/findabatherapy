@@ -85,10 +85,6 @@ const nextConfig = {
       },
       {
         protocol: "https",
-        hostname: "*.supabase.co",
-      },
-      {
-        protocol: "https",
         hostname: "placehold.co",
       },
       {
@@ -157,7 +153,6 @@ const nextConfig = {
               "font-src 'self' https://fonts.gstatic.com",
               [
                 "img-src 'self' data: blob:",
-                "https://*.supabase.co",
                 "https://images.unsplash.com",
                 "https://placehold.co",
                 convexHttpOrigin,
@@ -168,7 +163,6 @@ const nextConfig = {
               ].join(" "),
               [
                 "connect-src 'self'",
-                "https://*.supabase.co",
                 convexHttpOrigin,
                 convexWsOrigin,
                 "https://api.stripe.com",

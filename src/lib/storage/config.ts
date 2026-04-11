@@ -137,11 +137,11 @@ export function generateStoragePath(
  * Get public URL for a storage file
  */
 export function getPublicUrl(
-  supabaseUrl: string,
+  storageBaseUrl: string,
   bucket: BucketName,
   path: string
 ): string {
-  return `${supabaseUrl}/storage/v1/object/public/${bucket}/${path}`;
+  return `${storageBaseUrl}/storage/v1/object/public/${bucket}/${path}`;
 }
 
 // =============================================================================

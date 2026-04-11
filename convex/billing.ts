@@ -615,7 +615,11 @@ export const webhookCheckoutCompleted = mutation({
     listingId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const workspace = await findWorkspaceByStripeCustomerId(ctx, args.stripeCustomerId);
+    const workspace =
+      (await findWorkspaceByStripeCustomerId(ctx, args.stripeCustomerId)) ??
+      (args.profileId
+        ? await ctx.db.get(asId<"workspaces">(args.profileId))
+        : null);
     if (!workspace) {
       console.error("webhookCheckoutCompleted: no workspace found for customer", args.stripeCustomerId);
       return { success: false };
@@ -687,6 +691,61 @@ export const webhookCheckoutCompleted = mutation({
     }
 
     return { success: true };
+  },
+});
+
+export const getWebhookWorkspaceContext = query({
+  args: {
+    stripeCustomerId: v.optional(v.string()),
+    stripeSubscriptionId: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const workspace =
+      (args.stripeSubscriptionId
+        ? await findWorkspaceByStripeSubscriptionId(ctx, args.stripeSubscriptionId)
+        : null) ??
+      (args.stripeCustomerId
+        ? await findWorkspaceByStripeCustomerId(ctx, args.stripeCustomerId)
+        : null);
+
+    if (!workspace) {
+      return null;
+    }
+
+    const db = ctx.db as {
+      query(table: "locations"): {
+        withIndex(
+          index: "by_workspace",
+          cb: (q: { eq(field: "workspaceId", value: any): any }) => any,
+        ): { collect(): Promise<ConvexDoc[]> };
+      };
+    };
+
+    const locations = await db
+      .query("locations")
+      .withIndex("by_workspace", (q: { eq(field: "workspaceId", value: any): any }) =>
+        q.eq("workspaceId", workspace._id),
+      )
+      .collect();
+
+    const primaryLocation =
+      (locations as ConvexDoc[]).find(
+        (location) => asRecord(location.metadata).isPrimary === true,
+      ) ??
+      (locations as ConvexDoc[])[0] ??
+      null;
+
+    return {
+      workspaceId: workspace._id,
+      agencyName: readString(workspace.agencyName),
+      contactEmail: readString(workspace.contactEmail),
+      planTier: readString(workspace.planTier) ?? "free",
+      billingInterval: readString(workspace.billingInterval) ?? "month",
+      state: primaryLocation
+        ? readString(asRecord(primaryLocation.metadata).state)
+        : null,
+      slug: readString(workspace.slug),
+    };
   },
 });
 

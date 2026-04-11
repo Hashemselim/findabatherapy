@@ -2,9 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 
-import { isConvexDataEnabled } from "@/lib/platform/config";
-import { type FeedbackStatus, type FeedbackCategory } from "@/lib/validations/feedback";
 import { sendFeedbackNotification } from "@/lib/email/notifications";
+import { getCurrentUser } from "@/lib/platform/auth/server";
+import { mutateConvex, queryConvex } from "@/lib/platform/convex/server";
+import { getProfile } from "@/lib/platform/workspace/server";
+import { type FeedbackCategory, type FeedbackStatus } from "@/lib/validations/feedback";
 
 type ActionResult<T = void> =
   | { success: true; data?: T }
@@ -34,15 +36,24 @@ interface AuthenticatedFeedbackInput {
   message: string;
 }
 
+function buildFeedbackSubmitterName(params: {
+  firstName?: string | null;
+  lastName?: string | null;
+  agencyName?: string | null;
+  email?: string | null;
+}) {
+  const fullName = [params.firstName, params.lastName].filter(Boolean).join(" ").trim();
+  return fullName || params.agencyName || params.email || "Authenticated User";
+}
+
 /**
- * Submit feedback from an authenticated provider
- * User info is pulled from their profile
+ * Submit feedback from an authenticated provider.
+ * User info is derived from Clerk and the active Convex workspace.
  */
 export async function submitFeedbackAuthenticated(
   data: AuthenticatedFeedbackInput,
   pageUrl?: string
 ): Promise<ActionResult> {
-  // Validate message
   if (!data.message || data.message.length < 10) {
     return { success: false, error: "Message must be at least 10 characters" };
   }
@@ -50,83 +61,50 @@ export async function submitFeedbackAuthenticated(
     return { success: false, error: "Message must be less than 5000 characters" };
   }
 
-  if (isConvexDataEnabled()) {
-    try {
-      const { mutateConvex } = await import("@/lib/platform/convex/server");
-      await mutateConvex("inquiries:submitFeedback", {
-        category: data.category,
-        rating: data.rating || null,
-        message: data.message,
-        pageUrl: pageUrl || null,
-      });
-
-      // Send email notification to support
-      await sendFeedbackNotification({
-        name: "Authenticated User",
-        email: "",
-        category: data.category,
-        rating: data.rating,
-        message: data.message,
-        pageUrl: pageUrl,
-      });
-
-      return { success: true };
-    } catch (error) {
-      console.error("[FEEDBACK] Convex submitFeedback error:", error);
-      return { success: false, error: "Failed to submit feedback. Please try again." };
+  try {
+    const [user, profile] = await Promise.all([getCurrentUser(), getProfile()]);
+    if (!user || !profile) {
+      return { success: false, error: "You must be logged in to submit feedback" };
     }
-  }
 
-  const { createAdminClient, getCurrentProfileId, getUser, getProfile } = await import("@/lib/supabase/server");
+    const name = buildFeedbackSubmitterName({
+      firstName: user.firstName,
+      lastName: user.lastName,
+      agencyName: profile.agency_name,
+      email: user.email ?? profile.contact_email,
+    });
+    const email = user.email ?? profile.contact_email ?? "";
+    const company = profile.agency_name ?? null;
+    const phone = profile.contact_phone ?? null;
 
-  // Get authenticated user
-  const user = await getUser();
-  const profileId = await getCurrentProfileId();
-  if (!user || !profileId) {
-    return { success: false, error: "You must be logged in to submit feedback" };
-  }
+    await mutateConvex("inquiries:submitAuthenticatedFeedback", {
+      category: data.category,
+      rating: data.rating ?? null,
+      message: data.message,
+      pageUrl: pageUrl ?? null,
+      name,
+      email,
+      phone,
+      company,
+      userAgent: null,
+    });
 
-  // Get profile info
-  const profile = await getProfile();
-  if (!profile) {
-    return { success: false, error: "Profile not found" };
-  }
+    await sendFeedbackNotification({
+      name,
+      email,
+      phone,
+      company,
+      category: data.category,
+      rating: data.rating,
+      message: data.message,
+      pageUrl: pageUrl,
+    });
 
-  const supabase = await createAdminClient();
-
-  // Insert feedback with profile info
-  const { error: insertError } = await supabase.from("feedback").insert({
-    profile_id: profileId,
-    name: profile.contact_name || profile.agency_name || "Unknown",
-    email: profile.contact_email || user.email || "",
-    phone: profile.contact_phone || null,
-    company: profile.agency_name || null,
-    category: data.category,
-    rating: data.rating || null,
-    message: data.message,
-    status: "unread",
-    page_url: pageUrl || null,
-    user_agent: null, // We could pass this from client if needed
-  });
-
-  if (insertError) {
-    console.error("[FEEDBACK] Insert error:", insertError);
+    return { success: true };
+  } catch (error) {
+    console.error("[FEEDBACK] submitFeedbackAuthenticated error:", error);
     return { success: false, error: "Failed to submit feedback. Please try again." };
   }
-
-  // Send email notification to support
-  await sendFeedbackNotification({
-    name: profile.contact_name || profile.agency_name || "Unknown",
-    email: profile.contact_email || user.email || "",
-    phone: profile.contact_phone,
-    company: profile.agency_name,
-    category: data.category,
-    rating: data.rating,
-    message: data.message,
-    pageUrl: pageUrl,
-  });
-
-  return { success: true };
 }
 
 /**
@@ -135,83 +113,19 @@ export async function submitFeedbackAuthenticated(
 export async function getFeedback(
   filter?: { status?: FeedbackStatus; category?: FeedbackCategory }
 ): Promise<ActionResult<{ feedback: Feedback[]; unreadCount: number }>> {
-  if (isConvexDataEnabled()) {
-    try {
-      const { queryConvex } = await import("@/lib/platform/convex/server");
-      const result = await queryConvex<{ feedback: Feedback[]; unreadCount: number }>(
-        "inquiries:getFeedback",
-        {
-          status: filter?.status,
-          category: filter?.category,
-        },
-      );
-      return { success: true, data: result };
-    } catch (error) {
-      console.error("[FEEDBACK] Convex getFeedback error:", error);
-      return { success: false, error: "Failed to fetch feedback" };
-    }
-  }
-
-  const { isCurrentUserAdmin } = await import("@/lib/actions/admin");
-  const isAdmin = await isCurrentUserAdmin();
-  if (!isAdmin) {
-    return { success: false, error: "Not authorized" };
-  }
-
-  const { createClient } = await import("@/lib/supabase/server");
-  const supabase = await createClient();
-
-  // Build query
-  let query = supabase
-    .from("feedback")
-    .select("*")
-    .neq("status", "archived")
-    .order("created_at", { ascending: false });
-
-  if (filter?.status) {
-    query = query.eq("status", filter.status);
-  }
-
-  if (filter?.category) {
-    query = query.eq("category", filter.category);
-  }
-
-  const { data: feedbackData, error } = await query;
-
-  if (error) {
-    console.error("[FEEDBACK] Fetch error:", error);
+  try {
+    const result = await queryConvex<{ feedback: Feedback[]; unreadCount: number }>(
+      "admin:getFeedback",
+      {
+        status: filter?.status,
+        category: filter?.category,
+      },
+    );
+    return { success: true, data: result };
+  } catch (error) {
+    console.error("[FEEDBACK] getFeedback error:", error);
     return { success: false, error: "Failed to fetch feedback" };
   }
-
-  // Get unread count
-  const { count } = await supabase
-    .from("feedback")
-    .select("id", { count: "exact", head: true })
-    .eq("status", "unread");
-
-  return {
-    success: true,
-    data: {
-      feedback: feedbackData.map((f) => ({
-        id: f.id,
-        profileId: f.profile_id,
-        name: f.name,
-        email: f.email,
-        phone: f.phone,
-        company: f.company,
-        category: f.category as FeedbackCategory,
-        rating: f.rating,
-        message: f.message,
-        status: f.status as FeedbackStatus,
-        createdAt: f.created_at,
-        readAt: f.read_at,
-        repliedAt: f.replied_at,
-        pageUrl: f.page_url,
-        userAgent: f.user_agent,
-      })),
-      unreadCount: count || 0,
-    },
-  };
 }
 
 /**
@@ -220,58 +134,18 @@ export async function getFeedback(
 export async function getFeedbackById(
   feedbackId: string
 ): Promise<ActionResult<Feedback>> {
-  if (isConvexDataEnabled()) {
-    try {
-      const { queryConvex } = await import("@/lib/platform/convex/server");
-      const result = await queryConvex<Feedback>("inquiries:getFeedbackById", {
-        feedbackId,
-      });
-      return { success: true, data: result };
-    } catch (error) {
-      console.error("[FEEDBACK] Convex getFeedbackById error:", error);
+  try {
+    const result = await queryConvex<Feedback | null>("admin:getFeedbackById", {
+      feedbackId,
+    });
+    if (!result) {
       return { success: false, error: "Feedback not found" };
     }
-  }
-
-  const { isCurrentUserAdmin } = await import("@/lib/actions/admin");
-  const isAdmin = await isCurrentUserAdmin();
-  if (!isAdmin) {
-    return { success: false, error: "Not authorized" };
-  }
-
-  const { createClient } = await import("@/lib/supabase/server");
-  const supabase = await createClient();
-
-  const { data: f, error } = await supabase
-    .from("feedback")
-    .select("*")
-    .eq("id", feedbackId)
-    .single();
-
-  if (error || !f) {
+    return { success: true, data: result };
+  } catch (error) {
+    console.error("[FEEDBACK] getFeedbackById error:", error);
     return { success: false, error: "Feedback not found" };
   }
-
-  return {
-    success: true,
-    data: {
-      id: f.id,
-      profileId: f.profile_id,
-      name: f.name,
-      email: f.email,
-      phone: f.phone,
-      company: f.company,
-      category: f.category as FeedbackCategory,
-      rating: f.rating,
-      message: f.message,
-      status: f.status as FeedbackStatus,
-      createdAt: f.created_at,
-      readAt: f.read_at,
-      repliedAt: f.replied_at,
-      pageUrl: f.page_url,
-      userAgent: f.user_agent,
-    },
-  };
 }
 
 /**
@@ -280,42 +154,14 @@ export async function getFeedbackById(
 export async function markFeedbackAsRead(
   feedbackId: string
 ): Promise<ActionResult> {
-  if (isConvexDataEnabled()) {
-    try {
-      const { mutateConvex } = await import("@/lib/platform/convex/server");
-      await mutateConvex("inquiries:markFeedbackAsRead", { feedbackId });
-      revalidatePath("/admin/feedback");
-      return { success: true };
-    } catch (error) {
-      console.error("[FEEDBACK] Convex markFeedbackAsRead error:", error);
-      return { success: false, error: "Failed to update feedback" };
-    }
-  }
-
-  const { isCurrentUserAdmin } = await import("@/lib/actions/admin");
-  const isAdmin = await isCurrentUserAdmin();
-  if (!isAdmin) {
-    return { success: false, error: "Not authorized" };
-  }
-
-  const { createClient } = await import("@/lib/supabase/server");
-  const supabase = await createClient();
-
-  const { error } = await supabase
-    .from("feedback")
-    .update({
-      status: "read",
-      read_at: new Date().toISOString(),
-    })
-    .eq("id", feedbackId)
-    .eq("status", "unread");
-
-  if (error) {
+  try {
+    await mutateConvex("admin:markFeedbackAsRead", { feedbackId });
+    revalidatePath("/admin/feedback");
+    return { success: true };
+  } catch (error) {
+    console.error("[FEEDBACK] markFeedbackAsRead error:", error);
     return { success: false, error: "Failed to update feedback" };
   }
-
-  revalidatePath("/admin/feedback");
-  return { success: true };
 }
 
 /**
@@ -324,41 +170,14 @@ export async function markFeedbackAsRead(
 export async function markFeedbackAsReplied(
   feedbackId: string
 ): Promise<ActionResult> {
-  if (isConvexDataEnabled()) {
-    try {
-      const { mutateConvex } = await import("@/lib/platform/convex/server");
-      await mutateConvex("inquiries:markFeedbackAsReplied", { feedbackId });
-      revalidatePath("/admin/feedback");
-      return { success: true };
-    } catch (error) {
-      console.error("[FEEDBACK] Convex markFeedbackAsReplied error:", error);
-      return { success: false, error: "Failed to update feedback" };
-    }
-  }
-
-  const { isCurrentUserAdmin } = await import("@/lib/actions/admin");
-  const isAdmin = await isCurrentUserAdmin();
-  if (!isAdmin) {
-    return { success: false, error: "Not authorized" };
-  }
-
-  const { createClient } = await import("@/lib/supabase/server");
-  const supabase = await createClient();
-
-  const { error } = await supabase
-    .from("feedback")
-    .update({
-      status: "replied",
-      replied_at: new Date().toISOString(),
-    })
-    .eq("id", feedbackId);
-
-  if (error) {
+  try {
+    await mutateConvex("admin:markFeedbackAsReplied", { feedbackId });
+    revalidatePath("/admin/feedback");
+    return { success: true };
+  } catch (error) {
+    console.error("[FEEDBACK] markFeedbackAsReplied error:", error);
     return { success: false, error: "Failed to update feedback" };
   }
-
-  revalidatePath("/admin/feedback");
-  return { success: true };
 }
 
 /**
@@ -367,67 +186,24 @@ export async function markFeedbackAsReplied(
 export async function archiveFeedback(
   feedbackId: string
 ): Promise<ActionResult> {
-  if (isConvexDataEnabled()) {
-    try {
-      const { mutateConvex } = await import("@/lib/platform/convex/server");
-      await mutateConvex("inquiries:archiveFeedback", { feedbackId });
-      revalidatePath("/admin/feedback");
-      return { success: true };
-    } catch (error) {
-      console.error("[FEEDBACK] Convex archiveFeedback error:", error);
-      return { success: false, error: "Failed to archive feedback" };
-    }
-  }
-
-  const { isCurrentUserAdmin } = await import("@/lib/actions/admin");
-  const isAdmin = await isCurrentUserAdmin();
-  if (!isAdmin) {
-    return { success: false, error: "Not authorized" };
-  }
-
-  const { createClient } = await import("@/lib/supabase/server");
-  const supabase = await createClient();
-
-  const { error } = await supabase
-    .from("feedback")
-    .update({ status: "archived" })
-    .eq("id", feedbackId);
-
-  if (error) {
+  try {
+    await mutateConvex("admin:archiveFeedback", { feedbackId });
+    revalidatePath("/admin/feedback");
+    return { success: true };
+  } catch (error) {
+    console.error("[FEEDBACK] archiveFeedback error:", error);
     return { success: false, error: "Failed to archive feedback" };
   }
-
-  revalidatePath("/admin/feedback");
-  return { success: true };
 }
 
 /**
  * Get unread feedback count (admin only, for sidebar badge)
  */
 export async function getUnreadFeedbackCount(): Promise<ActionResult<number>> {
-  if (isConvexDataEnabled()) {
-    try {
-      const { queryConvex } = await import("@/lib/platform/convex/server");
-      const count = await queryConvex<number>("inquiries:getUnreadFeedbackCount");
-      return { success: true, data: count };
-    } catch {
-      return { success: true, data: 0 };
-    }
-  }
-
-  const { isCurrentUserAdmin } = await import("@/lib/actions/admin");
-  const isAdmin = await isCurrentUserAdmin();
-  if (!isAdmin) {
+  try {
+    const count = await queryConvex<number>("admin:getUnreadFeedbackCount");
+    return { success: true, data: count };
+  } catch {
     return { success: true, data: 0 };
   }
-
-  const { createClient } = await import("@/lib/supabase/server");
-  const supabase = await createClient();
-
-  const { count } = await supabase
-    .from("feedback")
-    .select("id", { count: "exact", head: true })
-    .eq("status", "unread");
-
-  return { success: true, data: count || 0 };
 }

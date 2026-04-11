@@ -22,34 +22,13 @@ const productionSafeUrl = z
     }
   );
 
-/**
- * When the runtime is Convex + Clerk, Supabase vars are not required.
- * We detect this from env vars since platform/config.ts may not be
- * importable here (server-only guard + import ordering).
- */
-const isConvexRuntime = process.env.NEXT_PUBLIC_DATA_PROVIDER === "convex";
-
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
-  NEXT_PUBLIC_AUTH_PROVIDER: z
-    .enum(["clerk", "supabase"])
-    .default("clerk"),
-  NEXT_PUBLIC_DATA_PROVIDER: z
-    .enum(["convex", "supabase"])
-    .default("convex"),
   // In development, default to localhost. In production, this MUST be set explicitly
   // and CANNOT be localhost (enforced by productionSafeUrl validator)
   NEXT_PUBLIC_SITE_URL: productionSafeUrl.default("http://localhost:3000"),
   NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: z.string().optional(),
   NEXT_PUBLIC_CONVEX_URL: z.string().url().optional(),
-  // Supabase — required only in Supabase runtime mode
-  NEXT_PUBLIC_SUPABASE_URL: isConvexRuntime
-    ? z.string().url().optional().default("https://placeholder.supabase.co")
-    : z.string().url(),
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: isConvexRuntime
-    ? z.string().optional().default("placeholder")
-    : z.string().min(1),
-  SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
   // Stripe — always required (Stripe is used in both modes)
   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: z.string().min(1),
   STRIPE_SECRET_KEY: z.string().min(1),
@@ -72,17 +51,12 @@ const envSchema = z.object({
 
 const parsed = envSchema.safeParse({
   NODE_ENV: process.env.NODE_ENV,
-  NEXT_PUBLIC_AUTH_PROVIDER: process.env.NEXT_PUBLIC_AUTH_PROVIDER,
-  NEXT_PUBLIC_DATA_PROVIDER: process.env.NEXT_PUBLIC_DATA_PROVIDER,
   NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
   NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
   NEXT_PUBLIC_CONVEX_URL: process.env.NEXT_PUBLIC_CONVEX_URL,
-  NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
   STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,
   STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET,
-  SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
   TURNSTILE_SECRET_KEY: process.env.TURNSTILE_SECRET_KEY,
   GOOGLE_MAPS_API_KEY: process.env.GOOGLE_MAPS_API_KEY,
   FIRECRAWL_API_KEY: process.env.FIRECRAWL_API_KEY,
@@ -100,18 +74,6 @@ if (!parsed.success) {
 }
 
 if (parsed.data.NODE_ENV === "production") {
-  if (parsed.data.NEXT_PUBLIC_AUTH_PROVIDER !== "clerk") {
-    throw new Error(
-      "Production requires NEXT_PUBLIC_AUTH_PROVIDER=clerk",
-    );
-  }
-
-  if (parsed.data.NEXT_PUBLIC_DATA_PROVIDER !== "convex") {
-    throw new Error(
-      "Production requires NEXT_PUBLIC_DATA_PROVIDER=convex",
-    );
-  }
-
   if (!parsed.data.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) {
     throw new Error(
       "Production requires NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",

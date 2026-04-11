@@ -2,24 +2,9 @@ import "server-only";
 
 import { currentUser, auth as clerkAuth } from "@clerk/nextjs/server";
 
-import { getUser as getSupabaseUser } from "@/lib/supabase/server";
-import { isClerkAuthEnabled } from "@/lib/platform/config";
 import type { PlatformUser } from "@/lib/platform/contracts";
 
 export async function getCurrentUser(): Promise<PlatformUser | null> {
-  if (!isClerkAuthEnabled()) {
-    const user = await getSupabaseUser();
-    if (!user) {
-      return null;
-    }
-
-    return {
-      id: user.id,
-      email: user.email ?? null,
-      provider: "supabase",
-    };
-  }
-
   const user = await currentUser();
   if (!user) {
     return null;
@@ -41,10 +26,6 @@ export async function getCurrentUserId(): Promise<string | null> {
 }
 
 export async function getConvexAuthToken(): Promise<string | undefined> {
-  if (!isClerkAuthEnabled()) {
-    return undefined;
-  }
-
   const authState = await clerkAuth();
   if (!authState.userId) {
     return undefined;

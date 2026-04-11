@@ -1,55 +1,28 @@
 import type { MetadataRoute } from "next";
 
-import { isConvexDataEnabled } from "@/lib/platform/config";
 import { getAllCities, STATE_NAMES } from "@/lib/data/cities";
 import { INSURANCES } from "@/lib/data/insurances";
 import { ARTICLES } from "@/lib/content/articles";
-import { filterPublicProfiles } from "@/lib/public-visibility";
 import { getBaseUrl } from "@/lib/utils/domains";
 
 // Use therapy domain for main sitemap (safe - never returns localhost in production)
 const BASE_URL = getBaseUrl("therapy");
 
 async function getProviderPages(): Promise<MetadataRoute.Sitemap> {
-  if (isConvexDataEnabled()) {
-    try {
-      const { queryConvexUnauthenticated } = await import("@/lib/platform/convex/server");
-      const slugs = await queryConvexUnauthenticated<Array<{ slug: string; updatedAt: string }>>(
-        "listings:getPublishedListingSlugs",
-      );
-      return (slugs || []).map((listing) => ({
-        url: `${BASE_URL}/provider/${listing.slug}`,
-        lastModified: new Date(listing.updatedAt),
-        changeFrequency: "weekly" as const,
-        priority: 0.7,
-      }));
-    } catch {
-      return [];
-    }
+  try {
+    const { queryConvexUnauthenticated } = await import("@/lib/platform/convex/server");
+    const slugs = await queryConvexUnauthenticated<Array<{ slug: string; updatedAt: string }>>(
+      "listings:getPublishedListingSlugs",
+    );
+    return (slugs || []).map((listing) => ({
+      url: `${BASE_URL}/provider/${listing.slug}`,
+      lastModified: new Date(listing.updatedAt),
+      changeFrequency: "weekly" as const,
+      priority: 0.7,
+    }));
+  } catch {
+    return [];
   }
-
-  const { createClient } = await import("@/lib/supabase/server");
-  const supabase = await createClient();
-
-  const { data: listings } = await supabase
-    .from("listings")
-    .select("slug, updated_at, profiles!inner(contact_email, is_seeded)")
-    .eq("status", "published")
-    .order("updated_at", { ascending: false });
-
-  return filterPublicProfiles(
-    listings || [],
-    (listing) =>
-      listing.profiles as {
-        contact_email?: string | null;
-        is_seeded?: boolean | null;
-      }
-  ).map((listing) => ({
-    url: `${BASE_URL}/provider/${listing.slug}`,
-    lastModified: new Date(listing.updated_at),
-    changeFrequency: "weekly" as const,
-    priority: 0.7,
-  }));
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {

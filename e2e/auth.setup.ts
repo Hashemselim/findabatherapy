@@ -168,7 +168,7 @@ if (E2E_EMAIL && E2E_PASSWORD) {
 
     console.log(`Signing in via API: ${E2E_EMAIL}`);
 
-    // Dynamic import to avoid loading dotenv/supabase in non-API path
+    // Dynamic import to avoid loading extra auth helpers in the UI path
     const { signInViaAPI } = await import("./lib/auth-helper");
     const storageState = await signInViaAPI(E2E_EMAIL, E2E_PASSWORD);
 

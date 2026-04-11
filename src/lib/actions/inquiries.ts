@@ -2,12 +2,15 @@
 
 import { revalidatePath } from "next/cache";
 
-import { isConvexDataEnabled } from "@/lib/platform/config";
-import { contactFormSchema, type ContactFormData, type InquiryStatus } from "@/lib/validations/contact";
-import { verifyTurnstileToken } from "@/lib/turnstile";
-import { sendProviderInquiryNotification, sendFamilyInquiryConfirmation } from "@/lib/email/notifications";
 import { createNotification } from "@/lib/actions/notifications";
-import { isPublicProfileVisible } from "@/lib/public-visibility";
+import { sendFamilyInquiryConfirmation, sendProviderInquiryNotification } from "@/lib/email/notifications";
+import {
+  mutateConvex,
+  mutateConvexUnauthenticated,
+  queryConvex,
+} from "@/lib/platform/convex/server";
+import { verifyTurnstileToken } from "@/lib/turnstile";
+import { contactFormSchema, type ContactFormData, type InquiryStatus } from "@/lib/validations/contact";
 
 type ActionResult<T = void> =
   | { success: true; data?: T }
@@ -40,8 +43,8 @@ export interface Inquiry {
 }
 
 /**
- * Submit an inquiry from a family to a provider
- * This is a public action (no auth required)
+ * Submit an inquiry from a family to a provider.
+ * This is a public action (no auth required).
  */
 export async function submitInquiry(
   listingId: string,
@@ -50,18 +53,15 @@ export async function submitInquiry(
   locationId?: string,
   source: InquirySource = "listing_page"
 ): Promise<ActionResult> {
-  // Validate input
   const parsed = contactFormSchema.safeParse(data);
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0]?.message || "Invalid input" };
   }
 
-  // Check honeypot field (spam protection)
   if (parsed.data.website && parsed.data.website.length > 0) {
     return { success: true };
   }
 
-  // Verify Turnstile token
   if (!turnstileToken) {
     return { success: false, error: "Security verification required" };
   }
@@ -71,655 +71,185 @@ export async function submitInquiry(
     return { success: false, error: "Security verification failed. Please try again." };
   }
 
-  if (isConvexDataEnabled()) {
-    try {
-      const { mutateConvexUnauthenticated } = await import("@/lib/platform/convex/server");
+  try {
+    const result = await mutateConvexUnauthenticated<{
+      success: boolean;
+      inquiryId?: string;
+      clientId?: string;
+      providerEmail?: string;
+      providerName?: string;
+      providerSlug?: string;
+      logoUrl?: string | null;
+      brandColor?: string;
+      website?: string | null;
+      phone?: string | null;
+      workspaceId?: string;
+    }>("inquiries:submitInquiry", {
+      listingId,
+      familyName: parsed.data.familyName,
+      familyEmail: parsed.data.familyEmail,
+      familyPhone: parsed.data.familyPhone || null,
+      childAge: parsed.data.childAge || null,
+      message: parsed.data.message,
+      locationId: locationId || null,
+      source,
+      referralSource: parsed.data.referralSource || null,
+      referralSourceOther:
+        parsed.data.referralSource === "other" ? (parsed.data.referralSourceOther || null) : null,
+    });
 
-      const result = await mutateConvexUnauthenticated<{
-        success: boolean;
-        inquiryId?: string;
-        clientId?: string;
-        providerEmail?: string;
-        providerName?: string;
-        providerSlug?: string;
-        logoUrl?: string | null;
-        brandColor?: string;
-        website?: string | null;
-        phone?: string | null;
-        workspaceId?: string;
-      }>("inquiries:submitInquiry", {
-        listingId,
+    if (!result?.success) {
+      return { success: false, error: "Provider not found" };
+    }
+
+    if (result.providerEmail) {
+      sendProviderInquiryNotification({
+        to: result.providerEmail,
+        providerName: result.providerName || "Provider",
         familyName: parsed.data.familyName,
         familyEmail: parsed.data.familyEmail,
-        familyPhone: parsed.data.familyPhone || null,
-        childAge: parsed.data.childAge || null,
+        familyPhone: parsed.data.familyPhone,
+        childAge: parsed.data.childAge,
         message: parsed.data.message,
-        locationId: locationId || null,
-        source,
-        referralSource: parsed.data.referralSource || null,
-        referralSourceOther: parsed.data.referralSource === "other" ? (parsed.data.referralSourceOther || null) : null,
+      }).catch((err) => {
+        console.error("[INQUIRY] Failed to send provider notification:", err);
       });
 
-      if (!result?.success) {
-        return { success: false, error: "Provider not found" };
-      }
-
-      // Send email notifications (fire and forget)
-      if (result.providerEmail) {
-        sendProviderInquiryNotification({
-          to: result.providerEmail,
-          providerName: result.providerName || "Provider",
-          familyName: parsed.data.familyName,
-          familyEmail: parsed.data.familyEmail,
-          familyPhone: parsed.data.familyPhone,
-          childAge: parsed.data.childAge,
-          message: parsed.data.message,
-        }).catch((err) => {
-          console.error("[INQUIRY] Failed to send provider notification:", err);
-        });
-
-        sendFamilyInquiryConfirmation({
-          to: parsed.data.familyEmail,
-          familyName: parsed.data.familyName,
-          providerName: result.providerName || "Provider",
-          providerSlug: result.providerSlug || "",
-          source,
-          agencyBranding: {
-            agencyName: result.providerName || "Provider",
-            contactEmail: result.providerEmail,
-            logoUrl: result.logoUrl || null,
-            brandColor: result.brandColor || "#0866FF",
-            website: result.website || null,
-            phone: result.phone || null,
-          },
-        }).catch((err) => {
-          console.error("[INQUIRY] Failed to send family confirmation:", err);
-        });
-      }
-
-      // Create in-app notification
-      if (result.workspaceId && result.clientId) {
-        createNotification({
-          profileId: result.workspaceId,
-          type: "contact_form",
-          title: `New contact from ${parsed.data.familyName}`,
-          body: parsed.data.message.slice(0, 200),
-          link: `/dashboard/clients/${result.clientId}`,
-          entityId: result.clientId,
-          entityType: "client",
-        }).catch((err) => {
-          console.error("[INQUIRY] Failed to create notification:", err);
-        });
-      }
-
-      return { success: true };
-    } catch (error) {
-      console.error("[INQUIRY] Convex submitInquiry error:", error);
-      return { success: false, error: "Failed to submit inquiry. Please try again." };
+      sendFamilyInquiryConfirmation({
+        to: parsed.data.familyEmail,
+        familyName: parsed.data.familyName,
+        providerName: result.providerName || "Provider",
+        providerSlug: result.providerSlug || "",
+        source,
+        agencyBranding: {
+          agencyName: result.providerName || "Provider",
+          contactEmail: result.providerEmail,
+          logoUrl: result.logoUrl || null,
+          brandColor: result.brandColor || "#0866FF",
+          website: result.website || null,
+          phone: result.phone || null,
+        },
+      }).catch((err) => {
+        console.error("[INQUIRY] Failed to send family confirmation:", err);
+      });
     }
-  }
 
-  const { createAdminClient } = await import("@/lib/supabase/server");
-  const supabase = await createAdminClient();
+    if (result.workspaceId && result.clientId) {
+      createNotification({
+        profileId: result.workspaceId,
+        type: "contact_form",
+        title: `New contact from ${parsed.data.familyName}`,
+        body: parsed.data.message.slice(0, 200),
+        link: `/dashboard/clients/${result.clientId}`,
+        entityId: result.clientId,
+        entityType: "client",
+      }).catch((err) => {
+        console.error("[INQUIRY] Failed to create notification:", err);
+      });
+    }
 
-  // Verify listing exists and is published
-  const { data: listing, error: listingError } = await supabase
-    .from("listings")
-    .select("id, slug, profile_id, logo_url, profiles!inner(plan_tier, subscription_status, contact_email, agency_name, website, contact_phone, is_seeded)")
-    .eq("id", listingId)
-    .eq("status", "published")
-    .single();
-
-  if (listingError || !listing) {
-    return { success: false, error: "Provider not found" };
-  }
-
-  const profile = listing.profiles as unknown as {
-    plan_tier: string;
-    subscription_status: string | null;
-    contact_email: string;
-    agency_name: string;
-    website: string | null;
-    contact_phone: string | null;
-    is_seeded: boolean;
-  };
-
-  if (!isPublicProfileVisible(profile)) {
-    return { success: false, error: "Provider not found" };
-  }
-  const providerSlug = listing.slug;
-  const brandColor =
-    (
-      await supabase
-        .from("intake_form_settings")
-        .select("background_color")
-        .eq("profile_id", listing.profile_id)
-        .single()
-    ).data?.background_color || "#0866FF";
-
-  const isPremium =
-    profile.plan_tier !== "free" &&
-    (profile.subscription_status === "active" ||
-      profile.subscription_status === "trialing");
-
-  if (!isPremium) {
-    return { success: false, error: "This provider does not accept inquiries through the platform" };
-  }
-
-  // Insert inquiry
-  const { data: inquiry, error: insertError } = await supabase
-    .from("inquiries")
-    .insert({
-      listing_id: listingId,
-      location_id: locationId || null,
-      family_name: parsed.data.familyName,
-      family_email: parsed.data.familyEmail,
-      family_phone: parsed.data.familyPhone || null,
-      child_age: parsed.data.childAge || null,
-      message: parsed.data.message,
-      status: "converted",
-      source,
-      referral_source: parsed.data.referralSource || null,
-      referral_source_other: parsed.data.referralSource === "other" ? (parsed.data.referralSourceOther || null) : null,
-    })
-    .select("id")
-    .single();
-
-  if (insertError || !inquiry) {
+    return { success: true };
+  } catch (error) {
+    console.error("[INQUIRY] submitInquiry error:", error);
     return { success: false, error: "Failed to submit inquiry. Please try again." };
   }
-
-  // Auto-create client record as a lead
-  const profileId = listing.profile_id;
-  const nameParts = parsed.data.familyName.trim().split(/\s+/);
-  const parentFirstName = nameParts[0] || "";
-  const parentLastName = nameParts.length > 1 ? nameParts.slice(1).join(" ") : "";
-
-  const notesParts: string[] = [];
-  if (parsed.data.childAge) {
-    notesParts.push(`Child's age: ${parsed.data.childAge}`);
-  }
-  notesParts.push(parsed.data.message);
-  const notes = notesParts.join("\n\n");
-
-  const { data: client, error: clientError } = await supabase
-    .from("clients")
-    .insert({
-      profile_id: profileId,
-      listing_id: listingId,
-      inquiry_id: inquiry.id,
-      status: "inquiry",
-      referral_source: parsed.data.referralSource || null,
-      referral_source_other: parsed.data.referralSource === "other" ? (parsed.data.referralSourceOther || null) : null,
-      notes,
-    })
-    .select("id")
-    .single();
-
-  if (clientError || !client) {
-    console.error("[INQUIRY] Failed to auto-create client lead:", clientError);
-  }
-
-  if (client) {
-    await supabase.from("client_parents").insert({
-      client_id: client.id,
-      first_name: parentFirstName || null,
-      last_name: parentLastName || null,
-      email: parsed.data.familyEmail || null,
-      phone: parsed.data.familyPhone || null,
-      is_primary: true,
-      sort_order: 0,
-    }).then(({ error: parentError }) => {
-      if (parentError) {
-        console.error("[INQUIRY] Failed to create parent record:", parentError);
-      }
-    });
-
-    if (locationId) {
-      await supabase.from("client_locations").insert({
-        client_id: client.id,
-        location_id: locationId,
-        is_primary: true,
-      }).then(({ error: locError }) => {
-        if (locError) {
-          console.error("[INQUIRY] Failed to create client location:", locError);
-        }
-      });
-    }
-
-    createNotification({
-      profileId,
-      type: "contact_form",
-      title: `New contact from ${parsed.data.familyName}`,
-      body: parsed.data.message.slice(0, 200),
-      link: `/dashboard/clients/${client.id}`,
-      entityId: client.id,
-      entityType: "client",
-    }).catch((err) => {
-      console.error("[INQUIRY] Failed to create notification:", err);
-    });
-  }
-
-  sendProviderInquiryNotification({
-    to: profile.contact_email,
-    providerName: profile.agency_name,
-    familyName: parsed.data.familyName,
-    familyEmail: parsed.data.familyEmail,
-    familyPhone: parsed.data.familyPhone,
-    childAge: parsed.data.childAge,
-    message: parsed.data.message,
-  }).catch((err) => {
-    console.error("[INQUIRY] Failed to send provider notification:", err);
-  });
-
-  sendFamilyInquiryConfirmation({
-    to: parsed.data.familyEmail,
-    familyName: parsed.data.familyName,
-    providerName: profile.agency_name,
-    providerSlug,
-    source,
-    agencyBranding: {
-      agencyName: profile.agency_name,
-      contactEmail: profile.contact_email || "",
-      logoUrl: listing.logo_url || null,
-      brandColor,
-      website: profile.website || null,
-      phone: profile.contact_phone || null,
-    },
-  }).catch((err) => {
-    console.error("[INQUIRY] Failed to send family confirmation:", err);
-  });
-
-  return { success: true };
 }
 
 /**
- * Get all inquiries for the current user's listing
+ * Get all inquiries for the current workspace listing.
  */
 export async function getInquiries(
   filter?: { status?: InquiryStatus; locationIds?: string[] }
 ): Promise<ActionResult<{ inquiries: Inquiry[]; unreadCount: number }>> {
-  if (isConvexDataEnabled()) {
-    try {
-      const { queryConvex } = await import("@/lib/platform/convex/server");
-      const result = await queryConvex<{ inquiries: Inquiry[]; unreadCount: number }>(
-        "inquiries:getInquiries",
-        {
-          status: filter?.status,
-          locationIds: filter?.locationIds,
-        },
-      );
-      return { success: true, data: result };
-    } catch (error) {
-      console.error("[INQUIRY] Convex getInquiries error:", error);
-      return { success: false, error: "Not authenticated" };
-    }
-  }
-
-  const { createClient, getCurrentProfileId } = await import("@/lib/supabase/server");
-  const profileId = await getCurrentProfileId();
-  if (!profileId) {
+  try {
+    const result = await queryConvex<{ inquiries: Inquiry[]; unreadCount: number }>(
+      "inquiries:getInquiries",
+      {
+        status: filter?.status,
+        locationIds: filter?.locationIds ?? null,
+      },
+    );
+    return { success: true, data: result };
+  } catch (error) {
+    console.error("[INQUIRY] getInquiries error:", error);
     return { success: false, error: "Not authenticated" };
   }
-
-  const supabase = await createClient();
-
-  const { data: listing } = await supabase
-    .from("listings")
-    .select("id")
-    .eq("profile_id", profileId)
-    .single();
-
-  if (!listing) {
-    return { success: false, error: "Listing not found" };
-  }
-
-  let query = supabase
-    .from("inquiries")
-    .select(`
-      *,
-      locations (
-        id,
-        label,
-        city,
-        state
-      )
-    `)
-    .eq("listing_id", listing.id)
-    .neq("status", "archived")
-    .order("created_at", { ascending: false });
-
-  if (filter?.status) {
-    query = query.eq("status", filter.status);
-  }
-
-  if (filter?.locationIds && filter.locationIds.length > 0) {
-    query = query.or(`location_id.is.null,location_id.in.(${filter.locationIds.join(",")})`);
-  }
-
-  const { data: inquiries, error } = await query;
-
-  if (error) {
-    return { success: false, error: "Failed to fetch inquiries" };
-  }
-
-  const { count } = await supabase
-    .from("inquiries")
-    .select("id", { count: "exact", head: true })
-    .eq("listing_id", listing.id)
-    .eq("status", "unread");
-
-  return {
-    success: true,
-    data: {
-      inquiries: inquiries.map((i) => {
-        const loc = i.locations as { id: string; label: string | null; city: string; state: string } | null;
-        return {
-          id: i.id,
-          listingId: i.listing_id,
-          familyName: i.family_name,
-          familyEmail: i.family_email,
-          familyPhone: i.family_phone,
-          childAge: i.child_age,
-          message: i.message,
-          status: i.status as InquiryStatus,
-          createdAt: i.created_at,
-          readAt: i.read_at,
-          repliedAt: i.replied_at,
-          locationId: i.location_id,
-          location: loc ? {
-            id: loc.id,
-            label: loc.label,
-            city: loc.city,
-            state: loc.state,
-          } : null,
-          source: (i.source as InquirySource) || "listing_page",
-        };
-      }),
-      unreadCount: count || 0,
-    },
-  };
 }
 
 /**
- * Get a single inquiry by ID
+ * Get a single inquiry by ID.
  */
 export async function getInquiry(
   inquiryId: string
 ): Promise<ActionResult<Inquiry>> {
-  if (isConvexDataEnabled()) {
-    try {
-      const { queryConvex } = await import("@/lib/platform/convex/server");
-      const result = await queryConvex<Inquiry>("inquiries:getInquiry", { inquiryId });
-      if (!result) {
-        return { success: false, error: "Inquiry not found" };
-      }
-      return { success: true, data: result };
-    } catch (error) {
-      console.error("[INQUIRY] Convex getInquiry error:", error);
-      return { success: false, error: "Not authenticated" };
+  try {
+    const result = await queryConvex<Inquiry | null>("inquiries:getInquiry", { inquiryId });
+    if (!result) {
+      return { success: false, error: "Inquiry not found" };
     }
-  }
-
-  const { createClient, getCurrentProfileId } = await import("@/lib/supabase/server");
-  const profileId = await getCurrentProfileId();
-  if (!profileId) {
+    return { success: true, data: result };
+  } catch (error) {
+    console.error("[INQUIRY] getInquiry error:", error);
     return { success: false, error: "Not authenticated" };
   }
-
-  const supabase = await createClient();
-
-  const { data: listing } = await supabase
-    .from("listings")
-    .select("id")
-    .eq("profile_id", profileId)
-    .single();
-
-  if (!listing) {
-    return { success: false, error: "Listing not found" };
-  }
-
-  const { data: inquiry, error } = await supabase
-    .from("inquiries")
-    .select(`
-      *,
-      locations (
-        id,
-        label,
-        city,
-        state
-      )
-    `)
-    .eq("id", inquiryId)
-    .eq("listing_id", listing.id)
-    .single();
-
-  if (error || !inquiry) {
-    return { success: false, error: "Inquiry not found" };
-  }
-
-  const loc = inquiry.locations as { id: string; label: string | null; city: string; state: string } | null;
-
-  return {
-    success: true,
-    data: {
-      id: inquiry.id,
-      listingId: inquiry.listing_id,
-      familyName: inquiry.family_name,
-      familyEmail: inquiry.family_email,
-      familyPhone: inquiry.family_phone,
-      childAge: inquiry.child_age,
-      message: inquiry.message,
-      status: inquiry.status as InquiryStatus,
-      createdAt: inquiry.created_at,
-      readAt: inquiry.read_at,
-      repliedAt: inquiry.replied_at,
-      locationId: inquiry.location_id,
-      location: loc ? {
-        id: loc.id,
-        label: loc.label,
-        city: loc.city,
-        state: loc.state,
-      } : null,
-      source: (inquiry.source as InquirySource) || "listing_page",
-    },
-  };
 }
 
 /**
- * Mark an inquiry as read
+ * Mark an inquiry as read.
  */
 export async function markInquiryAsRead(
   inquiryId: string
 ): Promise<ActionResult> {
-  if (isConvexDataEnabled()) {
-    try {
-      const { mutateConvex } = await import("@/lib/platform/convex/server");
-      await mutateConvex("inquiries:markInquiryAsRead", { inquiryId });
-      revalidatePath("/dashboard/inquiries");
-      return { success: true };
-    } catch (error) {
-      console.error("[INQUIRY] Convex markInquiryAsRead error:", error);
-      return { success: false, error: "Failed to update inquiry" };
-    }
-  }
-
-  const { createClient, getCurrentProfileId } = await import("@/lib/supabase/server");
-  const profileId = await getCurrentProfileId();
-  if (!profileId) {
-    return { success: false, error: "Not authenticated" };
-  }
-
-  const supabase = await createClient();
-
-  const { data: listing } = await supabase
-    .from("listings")
-    .select("id")
-    .eq("profile_id", profileId)
-    .single();
-
-  if (!listing) {
-    return { success: false, error: "Listing not found" };
-  }
-
-  const { error } = await supabase
-    .from("inquiries")
-    .update({
-      status: "read",
-      read_at: new Date().toISOString(),
-    })
-    .eq("id", inquiryId)
-    .eq("listing_id", listing.id)
-    .eq("status", "unread");
-
-  if (error) {
+  try {
+    await mutateConvex("inquiries:markInquiryAsRead", { inquiryId });
+    revalidatePath("/dashboard/inquiries");
+    return { success: true };
+  } catch (error) {
+    console.error("[INQUIRY] markInquiryAsRead error:", error);
     return { success: false, error: "Failed to update inquiry" };
   }
-
-  revalidatePath("/dashboard/inquiries");
-  return { success: true };
 }
 
 /**
- * Mark an inquiry as replied
+ * Mark an inquiry as replied.
  */
 export async function markInquiryAsReplied(
   inquiryId: string
 ): Promise<ActionResult> {
-  if (isConvexDataEnabled()) {
-    try {
-      const { mutateConvex } = await import("@/lib/platform/convex/server");
-      await mutateConvex("inquiries:markInquiryAsReplied", { inquiryId });
-      revalidatePath("/dashboard/inquiries");
-      return { success: true };
-    } catch (error) {
-      console.error("[INQUIRY] Convex markInquiryAsReplied error:", error);
-      return { success: false, error: "Failed to update inquiry" };
-    }
-  }
-
-  const { createClient, getCurrentProfileId } = await import("@/lib/supabase/server");
-  const profileId = await getCurrentProfileId();
-  if (!profileId) {
-    return { success: false, error: "Not authenticated" };
-  }
-
-  const supabase = await createClient();
-
-  const { data: listing } = await supabase
-    .from("listings")
-    .select("id")
-    .eq("profile_id", profileId)
-    .single();
-
-  if (!listing) {
-    return { success: false, error: "Listing not found" };
-  }
-
-  const { error } = await supabase
-    .from("inquiries")
-    .update({
-      status: "replied",
-      replied_at: new Date().toISOString(),
-    })
-    .eq("id", inquiryId)
-    .eq("listing_id", listing.id);
-
-  if (error) {
+  try {
+    await mutateConvex("inquiries:markInquiryAsReplied", { inquiryId });
+    revalidatePath("/dashboard/inquiries");
+    return { success: true };
+  } catch (error) {
+    console.error("[INQUIRY] markInquiryAsReplied error:", error);
     return { success: false, error: "Failed to update inquiry" };
   }
-
-  revalidatePath("/dashboard/inquiries");
-  return { success: true };
 }
 
 /**
- * Archive an inquiry
+ * Archive an inquiry.
  */
 export async function archiveInquiry(
   inquiryId: string
 ): Promise<ActionResult> {
-  if (isConvexDataEnabled()) {
-    try {
-      const { mutateConvex } = await import("@/lib/platform/convex/server");
-      await mutateConvex("inquiries:archiveInquiry", { inquiryId });
-      revalidatePath("/dashboard/inquiries");
-      return { success: true };
-    } catch (error) {
-      console.error("[INQUIRY] Convex archiveInquiry error:", error);
-      return { success: false, error: "Failed to archive inquiry" };
-    }
-  }
-
-  const { createClient, getCurrentProfileId } = await import("@/lib/supabase/server");
-  const profileId = await getCurrentProfileId();
-  if (!profileId) {
-    return { success: false, error: "Not authenticated" };
-  }
-
-  const supabase = await createClient();
-
-  const { data: listing } = await supabase
-    .from("listings")
-    .select("id")
-    .eq("profile_id", profileId)
-    .single();
-
-  if (!listing) {
-    return { success: false, error: "Listing not found" };
-  }
-
-  const { error } = await supabase
-    .from("inquiries")
-    .update({ status: "archived" })
-    .eq("id", inquiryId)
-    .eq("listing_id", listing.id);
-
-  if (error) {
+  try {
+    await mutateConvex("inquiries:archiveInquiry", { inquiryId });
+    revalidatePath("/dashboard/inquiries");
+    return { success: true };
+  } catch (error) {
+    console.error("[INQUIRY] archiveInquiry error:", error);
     return { success: false, error: "Failed to archive inquiry" };
   }
-
-  revalidatePath("/dashboard/inquiries");
-  return { success: true };
 }
 
 /**
- * Get unread inquiry count (for sidebar badge)
+ * Get unread inquiry count (for sidebar badge).
  */
 export async function getUnreadInquiryCount(): Promise<ActionResult<number>> {
-  if (isConvexDataEnabled()) {
-    try {
-      const { queryConvex } = await import("@/lib/platform/convex/server");
-      const count = await queryConvex<number>("inquiries:getUnreadInquiryCount");
-      return { success: true, data: count };
-    } catch {
-      return { success: true, data: 0 };
-    }
-  }
-
-  const { createClient, getCurrentProfileId } = await import("@/lib/supabase/server");
-  const profileId = await getCurrentProfileId();
-  if (!profileId) {
+  try {
+    const count = await queryConvex<number>("inquiries:getUnreadInquiryCount");
+    return { success: true, data: count };
+  } catch {
     return { success: true, data: 0 };
   }
-
-  const supabase = await createClient();
-
-  const { data: listing } = await supabase
-    .from("listings")
-    .select("id")
-    .eq("profile_id", profileId)
-    .single();
-
-  if (!listing) {
-    return { success: true, data: 0 };
-  }
-
-  const { count } = await supabase
-    .from("inquiries")
-    .select("id", { count: "exact", head: true })
-    .eq("listing_id", listing.id)
-    .eq("status", "unread");
-
-  return { success: true, data: count || 0 };
 }

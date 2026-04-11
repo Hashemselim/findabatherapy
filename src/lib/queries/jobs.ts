@@ -1,29 +1,21 @@
 import { unstable_noStore as noStore } from "next/cache";
 
-import { isConvexDataEnabled } from "@/lib/platform/config";
-import { filterPublicProfiles, isPublicProfileVisible } from "@/lib/public-visibility";
-import type { createAdminClient } from "@/lib/supabase/server";
-import {
-  type PositionType,
-  type EmploymentType,
-  type BenefitType,
-  type JobTherapySetting,
-  type JobScheduleType,
-  type JobAgeGroup,
-} from "@/lib/validations/jobs";
-import type { PlanTier } from "@/lib/plans/features";
 import { calculateDistance, formatDistance } from "@/lib/geo/distance";
+import type { PlanTier } from "@/lib/plans/features";
+import { queryConvexUnauthenticated } from "@/lib/platform/convex/server";
 import {
-  extractDbLocation,
+  type BenefitType,
+  type EmploymentType,
+  type JobAgeGroup,
+  type JobScheduleType,
+  type JobTherapySetting,
+  type PositionType,
+} from "@/lib/validations/jobs";
+import {
   getStateCode,
   sortSearchResultsByRelevance,
-  type DbLocation,
   type PlanTier as SharedPlanTier,
 } from "@/lib/utils/location-utils";
-
-// =============================================================================
-// JOB DATA TYPES
-// =============================================================================
 
 export interface PublicJobPosting {
   id: string;
@@ -61,7 +53,6 @@ export interface JobSearchResult {
   id: string;
   slug: string;
   title: string;
-  /** Brief description/summary of the job for search result previews */
   description: string | null;
   positionType: PositionType;
   employmentTypes: EmploymentType[];
@@ -70,7 +61,6 @@ export interface JobSearchResult {
   salaryType: "hourly" | "annual" | null;
   remoteOption: boolean;
   publishedAt: string;
-  /** Featured jobs appear at top of search results, above paid tier sorting */
   isFeatured: boolean;
   provider: {
     id: string;
@@ -80,24 +70,14 @@ export interface JobSearchResult {
     planTier: PlanTier;
     isVerified: boolean;
   };
-  /**
-   * Display location (resolved from custom location or agency location)
-   * Priority: custom_city/custom_state > location relation > null
-   */
   location: {
     city: string;
     state: string;
     lat: number | null;
     lng: number | null;
   } | null;
-  /**
-   * Service states for remote/telehealth jobs
-   * ['*'] = nationwide, ['NY', 'NJ'] = specific states, null = use location
-   */
   serviceStates?: string[] | null;
-  /** Distance in miles from search location (only when proximity search is used) */
   distance?: number;
-  /** Formatted distance string for display (e.g., "5.2 mi") */
   distanceFormatted?: string;
 }
 
@@ -112,14 +92,11 @@ export interface JobSearchFilters {
   city?: string;
   lat?: number;
   lng?: number;
-  radius?: number; // in miles
+  radius?: number;
   postedWithin?: "24h" | "7d" | "30d";
   providerId?: string;
-  /** Multi-select therapy settings (in_home, in_center, school_based, telehealth) */
   therapySettings?: JobTherapySetting[];
-  /** Multi-select schedule types (daytime, after_school, evening) */
   scheduleTypes?: JobScheduleType[];
-  /** Multi-select age groups (early_intervention, preschool, school_age, teens, adults) */
   ageGroups?: JobAgeGroup[];
 }
 
@@ -137,150 +114,22 @@ export interface JobSearchResponse {
   totalPages: number;
 }
 
-// =============================================================================
-// HELPER FUNCTIONS
-// =============================================================================
-
-/**
- * Check if a job matches a state filter
- * Returns true if: service_states contains state (or '*') OR custom_state = state OR location.state = state
- */
-function jobMatchesState(
-  job: {
-    service_states: string[] | null;
-    custom_state: string | null;
-    locations: DbLocation | DbLocation[] | null;
-  },
-  stateCode: string
-): boolean {
-  // 1. Check service_states (for remote/telehealth jobs)
-  if (job.service_states && job.service_states.length > 0) {
-    // '*' means nationwide - matches any state
-    if (job.service_states.includes("*")) return true;
-    if (job.service_states.includes(stateCode)) return true;
-  }
-
-  // 2. Check custom_state (for jobs with custom locations)
-  if (job.custom_state && job.custom_state.toUpperCase() === stateCode) {
-    return true;
-  }
-
-  // 3. Check location.state (existing behavior)
-  const location = extractDbLocation(job.locations);
-  if (location?.state && location.state.toUpperCase() === stateCode) {
-    return true;
-  }
-
-  return false;
-}
-
-/**
- * Resolve display location for a job
- * Priority: custom_city/custom_state > location relation > null
- */
-function resolveJobLocation(job: {
-  custom_city: string | null;
-  custom_state: string | null;
-  locations: DbLocation | DbLocation[] | null;
-}): { city: string; state: string; lat: number | null; lng: number | null } | null {
-  // 1. Custom location takes priority (for jobs at different addresses than agency HQ)
-  if (job.custom_city && job.custom_state) {
-    return {
-      city: job.custom_city,
-      state: job.custom_state,
-      lat: null, // Custom locations don't have coordinates yet
-      lng: null,
-    };
-  }
-
-  // 2. Fall back to location relation
-  return extractDbLocation(job.locations);
-}
-
-type ListingMapEntry = {
-  profile_id: string;
-  logo_url: string | null;
+export interface EmployerListItem {
+  id: string;
   slug: string;
-};
-
-async function getVisiblePublishedListingMap(
-  supabase: Awaited<ReturnType<typeof createAdminClient>>,
-  profileIds: string[]
-): Promise<Map<string, ListingMapEntry>> {
-  const uniqueProfileIds = Array.from(new Set(profileIds.filter(Boolean)));
-  if (uniqueProfileIds.length === 0) {
-    return new Map();
-  }
-
-  const { data: listings } = await supabase
-    .from("listings")
-    .select("profile_id, logo_url, slug, profiles!inner(contact_email, is_seeded)")
-    .eq("status", "published")
-    .in("profile_id", uniqueProfileIds);
-
-  const visibleRows = filterPublicProfiles(
-    listings || [],
-    (listing) =>
-      listing.profiles as {
-        contact_email?: string | null;
-        is_seeded?: boolean | null;
-      }
-  );
-
-  const listingMap = new Map<string, ListingMapEntry>();
-  for (const listing of visibleRows) {
-    if (!listing.slug || listingMap.has(listing.profile_id)) {
-      continue;
-    }
-
-    listingMap.set(listing.profile_id, {
-      profile_id: listing.profile_id,
-      logo_url: listing.logo_url,
-      slug: listing.slug,
-    });
-  }
-
-  return listingMap;
+  agencyName: string;
+  logoUrl: string | null;
+  headline: string | null;
+  planTier: PlanTier;
+  isVerified: boolean;
+  primaryLocation: {
+    city: string;
+    state: string;
+  } | null;
+  locationCount: number;
+  openJobCount: number;
 }
 
-async function getVisiblePublishedListingBySlug(
-  supabase: Awaited<ReturnType<typeof createAdminClient>>,
-  slug: string
-): Promise<ListingMapEntry | null> {
-  const { data: listing, error } = await supabase
-    .from("listings")
-    .select("profile_id, logo_url, slug, profiles!inner(contact_email, is_seeded)")
-    .eq("slug", slug)
-    .eq("status", "published")
-    .single();
-
-  if (error || !listing) {
-    return null;
-  }
-
-  if (
-    !isPublicProfileVisible(
-      listing.profiles as {
-        contact_email?: string | null;
-        is_seeded?: boolean | null;
-      }
-    )
-  ) {
-    return null;
-  }
-
-  return {
-    profile_id: listing.profile_id,
-    logo_url: listing.logo_url,
-    slug: listing.slug,
-  };
-}
-
-// =============================================================================
-// CONVEX DATASET TYPES
-// =============================================================================
-
-/** Shape returned by `jobs:getPublicJobs` (Convex public dataset) */
 interface ConvexPublicJob {
   id: string;
   slug: string;
@@ -317,7 +166,6 @@ interface ConvexPublicJob {
   serviceStates: string[] | null;
 }
 
-/** Shape returned by `jobs:getPublicEmployers` (Convex public dataset) */
 interface ConvexPublicEmployer {
   id: string;
   slug: string;
@@ -331,7 +179,6 @@ interface ConvexPublicEmployer {
   openJobCount: number;
 }
 
-/** Map a Convex public job entry to the local JobSearchResult shape */
 function mapConvexJobToSearchResult(job: ConvexPublicJob): JobSearchResult {
   return {
     id: job.id,
@@ -355,8 +202,9 @@ function mapConvexJobToSearchResult(job: ConvexPublicJob): JobSearchResult {
   };
 }
 
-/** Map a Convex public employer entry to the local EmployerListItem shape */
-function mapConvexEmployerToListItem(employer: ConvexPublicEmployer): EmployerListItem {
+function mapConvexEmployerToListItem(
+  employer: ConvexPublicEmployer,
+): EmployerListItem {
   return {
     id: employer.id,
     slug: employer.slug,
@@ -371,7 +219,6 @@ function mapConvexEmployerToListItem(employer: ConvexPublicEmployer): EmployerLi
   };
 }
 
-/** Check if a Convex job matches a state code (mirrors Supabase-side helper) */
 function convexJobMatchesState(job: ConvexPublicJob, stateCode: string): boolean {
   if (job.serviceStates && job.serviceStates.length > 0) {
     if (job.serviceStates.includes("*")) return true;
@@ -381,909 +228,242 @@ function convexJobMatchesState(job: ConvexPublicJob, stateCode: string): boolean
   return false;
 }
 
-// =============================================================================
-// JOB QUERIES
-// =============================================================================
+function citySlugToName(citySlug: string) {
+  return citySlug
+    .split("-")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
 
-/**
- * Get a single published job by slug
- */
+function applyDistance(
+  job: JobSearchResult,
+  filters: JobSearchFilters,
+): JobSearchResult {
+  if (
+    typeof filters.lat !== "number" ||
+    typeof filters.lng !== "number" ||
+    job.location?.lat == null ||
+    job.location.lng == null
+  ) {
+    return job;
+  }
+
+  const distance = calculateDistance(
+    { latitude: filters.lat, longitude: filters.lng },
+    { latitude: job.location.lat, longitude: job.location.lng },
+  );
+
+  return {
+    ...job,
+    distance,
+    distanceFormatted: formatDistance(distance),
+  };
+}
+
+function filterJobs(
+  jobs: ConvexPublicJob[],
+  filters: JobSearchFilters,
+): JobSearchResult[] {
+  let filtered = jobs;
+
+  if (filters.positionTypes?.length) {
+    filtered = filtered.filter((job) =>
+      filters.positionTypes!.includes(job.positionType as PositionType),
+    );
+  }
+  if (filters.employmentTypes?.length) {
+    filtered = filtered.filter((job) =>
+      job.employmentTypes.some((entry) =>
+        filters.employmentTypes!.includes(entry as EmploymentType),
+      ),
+    );
+  }
+  if (filters.salaryType) {
+    filtered = filtered.filter((job) => job.salaryType === filters.salaryType);
+  }
+  if (typeof filters.salaryMin === "number") {
+    filtered = filtered.filter((job) => (job.salaryMax ?? 0) >= filters.salaryMin!);
+  }
+  if (typeof filters.salaryMax === "number") {
+    filtered = filtered.filter((job) => (job.salaryMin ?? 0) <= filters.salaryMax!);
+  }
+  if (filters.remote === true) {
+    filtered = filtered.filter((job) => job.remoteOption);
+  }
+  if (filters.providerId) {
+    filtered = filtered.filter((job) => job.provider.id === filters.providerId);
+  }
+  if (filters.state) {
+    const stateCode = getStateCode(filters.state) || filters.state.toUpperCase();
+    filtered = filtered.filter((job) => convexJobMatchesState(job, stateCode));
+  }
+  if (filters.city) {
+    const city = filters.city.trim().toLowerCase();
+    filtered = filtered.filter((job) => job.location?.city.toLowerCase() === city);
+  }
+  if (filters.postedWithin) {
+    const now = Date.now();
+    const cutoff =
+      filters.postedWithin === "24h"
+        ? now - 24 * 60 * 60 * 1000
+        : filters.postedWithin === "7d"
+          ? now - 7 * 24 * 60 * 60 * 1000
+          : now - 30 * 24 * 60 * 60 * 1000;
+    filtered = filtered.filter((job) => new Date(job.publishedAt).getTime() >= cutoff);
+  }
+  if (filters.therapySettings?.length) {
+    filtered = filtered.filter((job) =>
+      job.therapySettings.some((entry) =>
+        (filters.therapySettings as string[]).includes(entry),
+      ),
+    );
+  }
+  if (filters.scheduleTypes?.length) {
+    filtered = filtered.filter((job) =>
+      job.scheduleTypes.some((entry) =>
+        (filters.scheduleTypes as string[]).includes(entry),
+      ),
+    );
+  }
+  if (filters.ageGroups?.length) {
+    filtered = filtered.filter((job) =>
+      job.ageGroups.some((entry) =>
+        (filters.ageGroups as string[]).includes(entry),
+      ),
+    );
+  }
+
+  return filtered.map((job) => applyDistance(mapConvexJobToSearchResult(job), filters));
+}
+
+function sortJobs(
+  jobs: JobSearchResult[],
+  sort: JobSearchParams["sort"],
+): JobSearchResult[] {
+  const results = [...jobs];
+
+  if (sort === "date") {
+    results.sort(
+      (left, right) =>
+        new Date(right.publishedAt).getTime() - new Date(left.publishedAt).getTime(),
+    );
+    return results;
+  }
+
+  if (sort === "salary") {
+    results.sort((left, right) => (right.salaryMax ?? 0) - (left.salaryMax ?? 0));
+    return results;
+  }
+
+  const sortable = results.map((job) => ({
+    ...job,
+    planTier: job.provider.planTier as SharedPlanTier,
+    distanceMiles: job.distance,
+  }));
+  sortSearchResultsByRelevance(sortable);
+  return sortable;
+}
+
+async function getAllPublicJobs() {
+  return queryConvexUnauthenticated<ConvexPublicJob[]>("jobs:getPublicJobs", {});
+}
+
 export async function getPublishedJobBySlug(
-  slug: string
+  slug: string,
 ): Promise<PublicJobPosting | null> {
   noStore();
 
-  if (isConvexDataEnabled()) {
-    const { queryConvexUnauthenticated } = await import(
-      "@/lib/platform/convex/server"
-    );
-    const job = await queryConvexUnauthenticated<ConvexPublicJob | null>(
-      "jobs:getPublicJobBySlug",
-      { slug }
-    );
-    if (!job) return null;
-    return {
-      id: job.id,
-      slug: job.slug,
-      title: job.title,
-      description: job.description,
-      positionType: job.positionType as PositionType,
-      employmentTypes: job.employmentTypes as EmploymentType[],
-      salaryMin: job.salaryMin,
-      salaryMax: job.salaryMax,
-      salaryType: job.salaryType as "hourly" | "annual" | null,
-      remoteOption: job.remoteOption,
-      requirements: job.requirements,
-      benefits: job.benefits as BenefitType[],
-      publishedAt: job.publishedAt,
-      expiresAt: job.expiresAt,
-      provider: {
-        ...job.provider,
-        planTier: job.provider.planTier as PlanTier,
-      },
-      location: job.location,
-    };
-  }
-
-  const { createAdminClient } = await import("@/lib/supabase/server");
-  const supabase = await createAdminClient();
-
-  const { data: job, error } = await supabase
-    .from("job_postings")
-    .select(`
-      id,
-      slug,
-      title,
-      description,
-      position_type,
-      employment_type,
-      salary_min,
-      salary_max,
-      salary_type,
-      remote_option,
-      requirements,
-      benefits,
-      published_at,
-      expires_at,
-      profile_id,
-      location_id,
-      profiles!inner (
-        id,
-        agency_name,
-        plan_tier,
-        subscription_status
-      ),
-      locations (
-        id,
-        city,
-        state,
-        latitude,
-        longitude
-      )
-    `)
-    .eq("slug", slug)
-    .eq("status", "published")
-    .single();
-
-  if (error || !job) {
+  const job = await queryConvexUnauthenticated<ConvexPublicJob | null>(
+    "jobs:getPublicJobBySlug",
+    { slug },
+  );
+  if (!job) {
     return null;
   }
-
-  // Get logo URL and slug from listing
-  const listing = (
-    await getVisiblePublishedListingMap(supabase, [job.profile_id])
-  ).get(job.profile_id);
-
-  if (!listing) {
-    return null;
-  }
-
-  const profile = job.profiles as unknown as {
-    id: string;
-    agency_name: string;
-    plan_tier: string;
-    subscription_status: string | null;
-  };
-
-  // Handle both array and single object cases for location relation
-  const rawLocation = job.locations;
-  const location = extractDbLocation(rawLocation);
-
-  // Determine effective plan tier
-  const isActiveSubscription =
-    profile.subscription_status === "active" ||
-    profile.subscription_status === "trialing";
-  const effectiveTier = (isActiveSubscription ? profile.plan_tier : "free") as PlanTier;
 
   return {
     id: job.id,
     slug: job.slug,
     title: job.title,
     description: job.description,
-    positionType: job.position_type as PositionType,
-    employmentTypes: (job.employment_type || []) as EmploymentType[],
-    salaryMin: job.salary_min,
-    salaryMax: job.salary_max,
-    salaryType: job.salary_type as "hourly" | "annual" | null,
-    remoteOption: job.remote_option,
-    requirements: typeof job.requirements === "string" ? job.requirements : null,
-    benefits: (job.benefits || []) as BenefitType[],
-    publishedAt: job.published_at,
-    expiresAt: job.expires_at,
+    positionType: job.positionType as PositionType,
+    employmentTypes: job.employmentTypes as EmploymentType[],
+    salaryMin: job.salaryMin,
+    salaryMax: job.salaryMax,
+    salaryType: job.salaryType as "hourly" | "annual" | null,
+    remoteOption: job.remoteOption,
+    requirements: job.requirements,
+    benefits: job.benefits as BenefitType[],
+    publishedAt: job.publishedAt,
+    expiresAt: job.expiresAt,
     provider: {
-      id: profile.id,
-      slug: listing?.slug || "",
-      agencyName: profile.agency_name,
-      logoUrl: listing?.logo_url || null,
-      planTier: effectiveTier,
-      isVerified: effectiveTier !== "free",
+      ...job.provider,
+      planTier: job.provider.planTier as PlanTier,
     },
-    location,
+    location: job.location,
   };
 }
 
-/**
- * Search for published jobs with filters
- * Supports distance-based search when lat/lng are provided
- */
 export async function searchJobs(
-  params: JobSearchParams = {}
+  params: JobSearchParams = {},
 ): Promise<JobSearchResponse> {
   noStore();
 
   const { filters = {}, page = 1, limit = 20, sort = "relevance" } = params;
   const offset = (page - 1) * limit;
 
-  if (isConvexDataEnabled()) {
-    const { queryConvexUnauthenticated } = await import(
-      "@/lib/platform/convex/server"
-    );
-    const allJobs = await queryConvexUnauthenticated<ConvexPublicJob[]>(
-      "jobs:getPublicJobs",
-      {}
-    );
+  let results = filterJobs(await getAllPublicJobs(), filters);
 
-    let filtered = allJobs;
-
-    // Apply filters
-    if (filters.positionTypes && filters.positionTypes.length > 0) {
-      filtered = filtered.filter((j) =>
-        filters.positionTypes!.includes(j.positionType as PositionType)
-      );
-    }
-    if (filters.employmentTypes && filters.employmentTypes.length > 0) {
-      filtered = filtered.filter((j) =>
-        j.employmentTypes.some((et) =>
-          filters.employmentTypes!.includes(et as EmploymentType)
-        )
-      );
-    }
-    if (filters.remote === true) {
-      filtered = filtered.filter((j) => j.remoteOption);
-    }
-    if (filters.providerId) {
-      filtered = filtered.filter((j) => j.provider.id === filters.providerId);
-    }
-    if (filters.state) {
-      const stateCode =
-        getStateCode(filters.state) || filters.state.toUpperCase();
-      filtered = filtered.filter((j) => convexJobMatchesState(j, stateCode));
-    }
-    if (filters.postedWithin) {
-      const now = Date.now();
-      const cutoff =
-        filters.postedWithin === "24h"
-          ? now - 24 * 60 * 60 * 1000
-          : filters.postedWithin === "7d"
-            ? now - 7 * 24 * 60 * 60 * 1000
-            : now - 30 * 24 * 60 * 60 * 1000;
-      filtered = filtered.filter(
-        (j) => new Date(j.publishedAt).getTime() >= cutoff
-      );
-    }
-    if (filters.therapySettings && filters.therapySettings.length > 0) {
-      filtered = filtered.filter((j) =>
-        j.therapySettings.some((ts) =>
-          (filters.therapySettings as string[]).includes(ts)
-        )
-      );
-    }
-    if (filters.scheduleTypes && filters.scheduleTypes.length > 0) {
-      filtered = filtered.filter((j) =>
-        j.scheduleTypes.some((st) =>
-          (filters.scheduleTypes as string[]).includes(st)
-        )
-      );
-    }
-    if (filters.ageGroups && filters.ageGroups.length > 0) {
-      filtered = filtered.filter((j) =>
-        j.ageGroups.some((ag) =>
-          (filters.ageGroups as string[]).includes(ag)
-        )
-      );
-    }
-
-    // Map to result shape
-    let results: JobSearchResult[] = filtered.map((j) => {
-      const result = mapConvexJobToSearchResult(j);
-
-      // Calculate distance when proximity search is active
-      if (
-        filters.lat !== undefined &&
-        filters.lng !== undefined &&
-        j.location?.lat != null &&
-        j.location?.lng != null
-      ) {
-        const distance = calculateDistance(
-          { latitude: filters.lat, longitude: filters.lng },
-          { latitude: j.location.lat, longitude: j.location.lng }
-        );
-        result.distance = distance;
-        result.distanceFormatted = formatDistance(distance);
+  if (
+    typeof filters.lat === "number" &&
+    typeof filters.lng === "number" &&
+    typeof filters.radius === "number"
+  ) {
+    results = results.filter((job) => {
+      if (job.distance === undefined) {
+        return job.remoteOption;
       }
-
-      return result;
-    });
-
-    // Filter by radius when explicitly provided
-    const isProximitySearch =
-      filters.lat !== undefined && filters.lng !== undefined;
-    if (isProximitySearch && filters.radius !== undefined) {
-      results = results.filter((job) => {
-        if (job.distance === undefined) return job.remoteOption;
-        return job.distance <= filters.radius!;
-      });
-    }
-
-    // Sort
-    if (sort === "relevance" || sort === "distance") {
-      const sortable = results.map((job) => ({
-        ...job,
-        planTier: job.provider.planTier as SharedPlanTier,
-        distanceMiles: job.distance,
-      }));
-      sortSearchResultsByRelevance(sortable);
-      results = sortable;
-    } else if (sort === "date") {
-      results.sort(
-        (a, b) =>
-          new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
-      );
-    } else if (sort === "salary") {
-      results.sort((a, b) => (b.salaryMax ?? 0) - (a.salaryMax ?? 0));
-    }
-
-    const total = results.length;
-    const paginatedResults = results.slice(offset, offset + limit);
-    const totalPages = Math.ceil(total / limit);
-
-    return { jobs: paginatedResults, total, page, totalPages };
-  }
-
-  const { createAdminClient } = await import("@/lib/supabase/server");
-  const supabase = await createAdminClient();
-
-  // Check if this is a proximity search (has lat/lng)
-  const isProximitySearch = filters.lat !== undefined && filters.lng !== undefined;
-  // Only use radius when explicitly provided - don't default to 25 miles
-  // This matches therapy search behavior: show all results in state, sorted by distance
-  const searchRadius = filters.radius;
-
-  // With service_states and custom_state, we need to handle state filtering in JS
-  // to support OR logic: service_states contains state OR custom_state = state OR location.state = state
-  // Use left join for locations to include remote jobs without physical locations
-  const needsJsStateFilter = filters.state !== undefined;
-
-  // Build base query - include lat/lng for distance calculation
-  // Include new location flexibility columns
-  let query = supabase
-    .from("job_postings")
-    .select(`
-      id,
-      slug,
-      title,
-      description,
-      position_type,
-      employment_type,
-      salary_min,
-      salary_max,
-      salary_type,
-      remote_option,
-      published_at,
-      is_featured,
-      profile_id,
-      service_states,
-      custom_city,
-      custom_state,
-      profiles!inner (
-        id,
-        agency_name,
-        plan_tier,
-        subscription_status
-      ),
-      locations (
-        city,
-        state,
-        latitude,
-        longitude
-      )
-    `, { count: needsJsStateFilter || isProximitySearch ? undefined : "exact" })
-    .eq("status", "published");
-
-  // Apply filters
-  if (filters.positionTypes && filters.positionTypes.length > 0) {
-    query = query.in("position_type", filters.positionTypes);
-  }
-
-  if (filters.employmentTypes && filters.employmentTypes.length > 0) {
-    query = query.overlaps("employment_type", filters.employmentTypes);
-  }
-
-  if (filters.remote === true) {
-    query = query.eq("remote_option", true);
-  }
-
-  if (filters.providerId) {
-    query = query.eq("profile_id", filters.providerId);
-  }
-
-  // NOTE: State filtering is done in JS to support OR logic:
-  // service_states contains state OR custom_state = state OR location.state = state
-  // This allows remote/telehealth jobs with service_states to appear in state searches
-  // City is only used for display purposes (showing "near Edison, NJ")
-  // All jobs in the state are shown and sorted by distance (matches therapy search behavior)
-
-  // Posted within filter
-  if (filters.postedWithin) {
-    const now = new Date();
-    let cutoffDate: Date;
-
-    switch (filters.postedWithin) {
-      case "24h":
-        cutoffDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-        break;
-      case "7d":
-        cutoffDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        break;
-      case "30d":
-        cutoffDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-        break;
-      default:
-        cutoffDate = new Date(0);
-    }
-
-    query = query.gte("published_at", cutoffDate.toISOString());
-  }
-
-  // Multi-select array filters
-  if (filters.therapySettings && filters.therapySettings.length > 0) {
-    query = query.overlaps("therapy_settings", filters.therapySettings);
-  }
-
-  if (filters.scheduleTypes && filters.scheduleTypes.length > 0) {
-    query = query.overlaps("schedule_types", filters.scheduleTypes);
-  }
-
-  if (filters.ageGroups && filters.ageGroups.length > 0) {
-    query = query.overlaps("age_groups", filters.ageGroups);
-  }
-
-  // For proximity search, we need to fetch all results to calculate distances
-  // Then filter by radius and sort by distance
-  if (isProximitySearch) {
-    // Apply basic sorting first
-    query = query.order("published_at", { ascending: false });
-
-    // Fetch more results for proximity filtering (we'll filter by radius)
-    const { data: jobs, error } = await query.limit(500);
-
-    if (error) {
-      console.error("[JOBS] Proximity search error:", JSON.stringify(error, null, 2));
-      return { jobs: [], total: 0, page, totalPages: 0 };
-    }
-
-    // Get logo URLs and slugs for all providers
-    const profileIds = [...new Set((jobs || []).map((j) => j.profile_id))];
-    const listingMap = await getVisiblePublishedListingMap(supabase, profileIds);
-
-    // Filter by state first (if provided) using OR logic:
-    // service_states contains state OR custom_state = state OR location.state = state
-    let filteredJobs = (jobs || []).filter((job) => listingMap.has(job.profile_id));
-    if (filters.state) {
-      const stateCode = getStateCode(filters.state) || filters.state.toUpperCase();
-      filteredJobs = filteredJobs.filter((job) =>
-        jobMatchesState(
-          {
-            service_states: job.service_states as string[] | null,
-            custom_state: job.custom_state as string | null,
-            locations: job.locations as DbLocation | DbLocation[] | null,
-          },
-          stateCode
-        )
-      );
-    }
-
-    // Transform and calculate distances
-    const userLocation = { latitude: filters.lat!, longitude: filters.lng! };
-    let results: JobSearchResult[] = filteredJobs.map((job) => {
-      const profile = job.profiles as unknown as {
-        id: string;
-        agency_name: string;
-        plan_tier: string;
-        subscription_status: string | null;
-      };
-      const listingInfo = listingMap.get(job.profile_id);
-
-      // Resolve display location (custom location > agency location)
-      const location = resolveJobLocation({
-        custom_city: job.custom_city as string | null,
-        custom_state: job.custom_state as string | null,
-        locations: job.locations as DbLocation | DbLocation[] | null,
-      });
-
-      // Calculate distance if location has coordinates
-      // For custom locations without coordinates, we can't calculate distance
-      let distance: number | undefined;
-      let distanceFormatted: string | undefined;
-      if (location?.lat && location?.lng) {
-        distance = calculateDistance(userLocation, {
-          latitude: location.lat,
-          longitude: location.lng,
-        });
-        distanceFormatted = formatDistance(distance);
-      }
-
-      // Determine effective plan tier
-      const isActiveSubscription =
-        profile.subscription_status === "active" ||
-        profile.subscription_status === "trialing";
-      const effectiveTier = (isActiveSubscription ? profile.plan_tier : "free") as PlanTier;
-
-      return {
-        id: job.id,
-        slug: job.slug,
-        title: job.title,
-        description: job.description,
-        positionType: job.position_type as PositionType,
-        employmentTypes: (job.employment_type || []) as EmploymentType[],
-        salaryMin: job.salary_min,
-        salaryMax: job.salary_max,
-        salaryType: job.salary_type as "hourly" | "annual" | null,
-        remoteOption: job.remote_option,
-        publishedAt: job.published_at,
-        isFeatured: job.is_featured || false,
-        provider: {
-          id: profile.id,
-          slug: listingInfo?.slug || "",
-          agencyName: profile.agency_name,
-          logoUrl: listingInfo?.logo_url || null,
-          planTier: effectiveTier,
-          isVerified: effectiveTier !== "free",
-        },
-        location,
-        serviceStates: job.service_states as string[] | null,
-        distance,
-        distanceFormatted,
-      };
-    });
-
-    // Filter by radius only when explicitly provided
-    // Otherwise show all jobs in state, sorted by distance (matching therapy search behavior)
-    if (searchRadius !== undefined) {
-      results = results.filter((job) => {
-        // Include jobs without location coordinates (remote jobs) or within radius
-        if (job.distance === undefined) return job.remoteOption;
-        return job.distance <= searchRadius;
-      });
-    }
-
-    // Sort: paid plans first (equal priority), then by distance
-    // This matches therapy search: Featured → Paid (equal) → Free → Distance
-    if (sort === "relevance" || sort === "distance") {
-      // Use shared sorting utility by mapping to expected interface
-      const sortableResults = results.map((job) => ({
-        ...job,
-        planTier: job.provider.planTier as SharedPlanTier,
-        distanceMiles: job.distance,
-      }));
-      sortSearchResultsByRelevance(sortableResults);
-      results = sortableResults;
-    } else if (sort === "date") {
-      results.sort((a, b) => {
-        return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
-      });
-    } else if (sort === "salary") {
-      results.sort((a, b) => {
-        const salaryA = a.salaryMax ?? 0;
-        const salaryB = b.salaryMax ?? 0;
-        return salaryB - salaryA;
-      });
-    }
-
-    // Apply pagination
-    const total = results.length;
-    const paginatedResults = results.slice(offset, offset + limit);
-    const totalPages = Math.ceil(total / limit);
-
-    return {
-      jobs: paginatedResults,
-      total,
-      page,
-      totalPages,
-    };
-  }
-
-  // Non-proximity search
-  // If we have a state filter, we need to fetch all and filter in JS for OR logic
-  // Otherwise, we can use database pagination
-  if (needsJsStateFilter) {
-    // Fetch all results for JS filtering
-    query = query.order("published_at", { ascending: false }).limit(500);
-    const { data: jobs, error } = await query;
-
-    if (error) {
-      console.error("[JOBS] Search error:", JSON.stringify(error, null, 2));
-      return { jobs: [], total: 0, page, totalPages: 0 };
-    }
-
-    // Get logo URLs and slugs for all providers
-    const profileIds = [...new Set((jobs || []).map((j) => j.profile_id))];
-    const listingMap = await getVisiblePublishedListingMap(supabase, profileIds);
-
-    // Filter by state using OR logic
-    const stateCode = getStateCode(filters.state!) || filters.state!.toUpperCase();
-    const filteredJobs = (jobs || [])
-      .filter((job) => listingMap.has(job.profile_id))
-      .filter((job) =>
-        jobMatchesState(
-          {
-            service_states: job.service_states as string[] | null,
-            custom_state: job.custom_state as string | null,
-            locations: job.locations as DbLocation | DbLocation[] | null,
-          },
-          stateCode
-        )
-      );
-
-    // Transform results
-    const results: JobSearchResult[] = filteredJobs.map((job) => {
-      const profile = job.profiles as unknown as {
-        id: string;
-        agency_name: string;
-        plan_tier: string;
-        subscription_status: string | null;
-      };
-      const listingInfo = listingMap.get(job.profile_id);
-
-      // Resolve display location (custom location > agency location)
-      const location = resolveJobLocation({
-        custom_city: job.custom_city as string | null,
-        custom_state: job.custom_state as string | null,
-        locations: job.locations as DbLocation | DbLocation[] | null,
-      });
-
-      // Determine effective plan tier
-      const isActiveSubscription =
-        profile.subscription_status === "active" ||
-        profile.subscription_status === "trialing";
-      const effectiveTier = (isActiveSubscription ? profile.plan_tier : "free") as PlanTier;
-
-      return {
-        id: job.id,
-        slug: job.slug,
-        title: job.title,
-        description: job.description,
-        positionType: job.position_type as PositionType,
-        employmentTypes: (job.employment_type || []) as EmploymentType[],
-        salaryMin: job.salary_min,
-        salaryMax: job.salary_max,
-        salaryType: job.salary_type as "hourly" | "annual" | null,
-        remoteOption: job.remote_option,
-        publishedAt: job.published_at,
-        isFeatured: job.is_featured || false,
-        provider: {
-          id: profile.id,
-          slug: listingInfo?.slug || "",
-          agencyName: profile.agency_name,
-          logoUrl: listingInfo?.logo_url || null,
-          planTier: effectiveTier,
-          isVerified: effectiveTier !== "free",
-        },
-        location,
-        serviceStates: job.service_states as string[] | null,
-      };
-    });
-
-    // Apply sorting
-    if (sort === "relevance") {
-      results.sort((a, b) => {
-        if (a.isFeatured && !b.isFeatured) return -1;
-        if (!a.isFeatured && b.isFeatured) return 1;
-        const aIsPaid = a.provider.planTier !== "free";
-        const bIsPaid = b.provider.planTier !== "free";
-        if (aIsPaid && !bIsPaid) return -1;
-        if (!aIsPaid && bIsPaid) return 1;
-        return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
-      });
-    } else if (sort === "salary") {
-      results.sort((a, b) => (b.salaryMax ?? 0) - (a.salaryMax ?? 0));
-    }
-    // date sort already applied via order()
-
-    // Apply pagination
-    const total = results.length;
-    const paginatedResults = results.slice(offset, offset + limit);
-    const totalPages = Math.ceil(total / limit);
-
-    return {
-      jobs: paginatedResults,
-      total,
-      page,
-      totalPages,
-    };
-  }
-
-  // No state filter - use database pagination
-  switch (sort) {
-    case "date":
-      query = query.order("published_at", { ascending: false });
-      break;
-    case "salary":
-      query = query.order("salary_max", { ascending: false, nullsFirst: false });
-      break;
-    case "relevance":
-    default:
-      query = query.order("published_at", { ascending: false });
-      break;
-  }
-
-  const { data: jobs, error } = await query.limit(500);
-
-  if (error) {
-    console.error("[JOBS] Search error:", JSON.stringify(error, null, 2));
-    console.error("[JOBS] Error message:", error.message);
-    console.error("[JOBS] Error code:", error.code);
-    console.error("[JOBS] Error details:", error.details);
-    return { jobs: [], total: 0, page, totalPages: 0 };
-  }
-
-  // Get logo URLs and slugs for all providers
-  const profileIds = [...new Set((jobs || []).map((j) => j.profile_id))];
-  const listingMap = await getVisiblePublishedListingMap(supabase, profileIds);
-
-  // Transform results
-  const results: JobSearchResult[] = (jobs || [])
-    .filter((job) => listingMap.has(job.profile_id))
-    .map((job) => {
-    const profile = job.profiles as unknown as {
-      id: string;
-      agency_name: string;
-      plan_tier: string;
-      subscription_status: string | null;
-    };
-    const listingInfo = listingMap.get(job.profile_id);
-
-    // Resolve display location (custom location > agency location)
-    const location = resolveJobLocation({
-      custom_city: job.custom_city as string | null,
-      custom_state: job.custom_state as string | null,
-      locations: job.locations as DbLocation | DbLocation[] | null,
-    });
-
-    // Determine effective plan tier
-    const isActiveSubscription =
-      profile.subscription_status === "active" ||
-      profile.subscription_status === "trialing";
-    const effectiveTier = (isActiveSubscription ? profile.plan_tier : "free") as PlanTier;
-
-    return {
-      id: job.id,
-      slug: job.slug,
-      title: job.title,
-      description: job.description,
-      positionType: job.position_type as PositionType,
-      employmentTypes: (job.employment_type || []) as EmploymentType[],
-      salaryMin: job.salary_min,
-      salaryMax: job.salary_max,
-      salaryType: job.salary_type as "hourly" | "annual" | null,
-      remoteOption: job.remote_option,
-      publishedAt: job.published_at,
-      isFeatured: job.is_featured || false,
-      provider: {
-        id: profile.id,
-        slug: listingInfo?.slug || "",
-        agencyName: profile.agency_name,
-        logoUrl: listingInfo?.logo_url || null,
-        planTier: effectiveTier,
-        isVerified: effectiveTier !== "free",
-      },
-      location,
-      serviceStates: job.service_states as string[] | null,
-    };
-      });
-
-  // Sort by plan tier for relevance: Featured → Paid (equal priority) → Free → then by date
-  // This matches therapy search sorting logic
-  if (sort === "relevance") {
-    results.sort((a, b) => {
-      // 1. Featured jobs first
-      if (a.isFeatured && !b.isFeatured) return -1;
-      if (!a.isFeatured && b.isFeatured) return 1;
-      // 2. Paid tiers (Pro) have priority over free
-      const aIsPaid = a.provider.planTier !== "free";
-      const bIsPaid = b.provider.planTier !== "free";
-      if (aIsPaid && !bIsPaid) return -1;
-      if (!aIsPaid && bIsPaid) return 1;
-      // 3. Then by date
-      return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
+      return job.distance <= filters.radius!;
     });
   }
+
+  results = sortJobs(results, sort);
 
   const total = results.length;
-  const paginatedResults = results.slice(offset, offset + limit);
   const totalPages = Math.ceil(total / limit);
 
   return {
-    jobs: paginatedResults,
+    jobs: results.slice(offset, offset + limit),
     total,
     page,
     totalPages,
   };
 }
 
-/**
- * Get jobs by state
- * Includes jobs where: service_states contains state OR custom_state = state OR location.state = state
- */
 export async function getJobsByState(
   stateSlug: string,
-  limit = 50
+  limit = 50,
 ): Promise<{ jobs: JobSearchResult[]; total: number }> {
   noStore();
 
-  // Convert slug to state code (e.g., "new-jersey" -> "NJ")
   const stateCode = getStateCode(stateSlug);
   if (!stateCode) {
     return { jobs: [], total: 0 };
   }
 
-  if (isConvexDataEnabled()) {
-    const { queryConvexUnauthenticated } = await import(
-      "@/lib/platform/convex/server"
-    );
-    const allJobs = await queryConvexUnauthenticated<ConvexPublicJob[]>(
-      "jobs:getPublicJobs",
-      {}
-    );
-    const filtered = allJobs.filter((j) =>
-      convexJobMatchesState(j, stateCode)
-    );
-    const results = filtered
-      .slice(0, limit)
-      .map(mapConvexJobToSearchResult);
-    return { jobs: results, total: filtered.length };
-  }
-
-  const { createAdminClient } = await import("@/lib/supabase/server");
-  const supabase = await createAdminClient();
-
-  // Fetch all jobs and filter in JS for OR logic
-  const { data: jobs, error } = await supabase
-    .from("job_postings")
-    .select(`
-      id,
-      slug,
-      title,
-      description,
-      position_type,
-      employment_type,
-      salary_min,
-      salary_max,
-      salary_type,
-      remote_option,
-      published_at,
-      is_featured,
-      profile_id,
-      service_states,
-      custom_city,
-      custom_state,
-      profiles!inner (
-        id,
-        agency_name,
-        plan_tier,
-        subscription_status
-      ),
-      locations (
-        city,
-        state,
-        latitude,
-        longitude
-      )
-    `)
-    .eq("status", "published")
-    .order("published_at", { ascending: false })
-    .limit(500);
-
-  if (error) {
-    console.error("[JOBS] State search error:", JSON.stringify(error, null, 2));
-    return { jobs: [], total: 0 };
-  }
-
-  // Filter by state using OR logic
-  const filteredJobs = (jobs || []).filter((job) =>
-    jobMatchesState(
-      {
-        service_states: job.service_states as string[] | null,
-        custom_state: job.custom_state as string | null,
-        locations: job.locations as DbLocation | DbLocation[] | null,
-      },
-      stateCode
-    )
+  const jobs = (await getAllPublicJobs()).filter((job) =>
+    convexJobMatchesState(job, stateCode),
   );
-
-  // Get logo URLs and slugs
-  const profileIds = [...new Set(filteredJobs.map((j) => j.profile_id))];
-  const listingMap = await getVisiblePublishedListingMap(supabase, profileIds);
-
-  const visibleJobs = filteredJobs.filter((job) => listingMap.has(job.profile_id));
-  const results: JobSearchResult[] = visibleJobs.slice(0, limit).map((job) => {
-    const profile = job.profiles as unknown as {
-      id: string;
-      agency_name: string;
-      plan_tier: string;
-      subscription_status: string | null;
-    };
-    const listingInfo = listingMap.get(job.profile_id);
-
-    // Resolve display location (custom location > agency location)
-    const location = resolveJobLocation({
-      custom_city: job.custom_city as string | null,
-      custom_state: job.custom_state as string | null,
-      locations: job.locations as DbLocation | DbLocation[] | null,
-    });
-
-    const isActiveSubscription =
-      profile.subscription_status === "active" ||
-      profile.subscription_status === "trialing";
-    const effectiveTier = (isActiveSubscription ? profile.plan_tier : "free") as PlanTier;
-
-    return {
-      id: job.id,
-      slug: job.slug,
-      title: job.title,
-      description: job.description,
-      positionType: job.position_type as PositionType,
-      employmentTypes: (job.employment_type || []) as EmploymentType[],
-      salaryMin: job.salary_min,
-      salaryMax: job.salary_max,
-      salaryType: job.salary_type as "hourly" | "annual" | null,
-      remoteOption: job.remote_option,
-      publishedAt: job.published_at,
-      isFeatured: job.is_featured || false,
-      provider: {
-        id: profile.id,
-        slug: listingInfo?.slug || "",
-        agencyName: profile.agency_name,
-        logoUrl: listingInfo?.logo_url || null,
-        planTier: effectiveTier,
-        isVerified: effectiveTier !== "free",
-      },
-      location,
-      serviceStates: job.service_states as string[] | null,
-    };
-  });
-
-  return { jobs: results, total: visibleJobs.length };
+  return {
+    jobs: jobs.slice(0, limit).map(mapConvexJobToSearchResult),
+    total: jobs.length,
+  };
 }
 
-/**
- * Get jobs by city
- * Includes jobs where: custom_city matches OR location.city matches (within state)
- */
 export async function getJobsByCity(
   stateSlug: string,
   citySlug: string,
-  limit = 50
+  limit = 50,
 ): Promise<{ jobs: JobSearchResult[]; total: number }> {
   noStore();
 
@@ -1292,747 +472,92 @@ export async function getJobsByCity(
     return { jobs: [], total: 0 };
   }
 
-  // Convert city slug to city name (e.g., "new-york-city" -> "New York City")
-  const cityName = citySlug
-    .split("-")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
-
-  if (isConvexDataEnabled()) {
-    const { queryConvexUnauthenticated } = await import(
-      "@/lib/platform/convex/server"
-    );
-    const allJobs = await queryConvexUnauthenticated<ConvexPublicJob[]>(
-      "jobs:getPublicJobs",
-      {}
-    );
-    const filtered = allJobs.filter((j) => {
-      if (!j.location) return false;
-      return (
-        j.location.city.toLowerCase() === cityName.toLowerCase() &&
-        j.location.state.toUpperCase() === stateCode
-      );
-    });
-    const results = filtered
-      .slice(0, limit)
-      .map(mapConvexJobToSearchResult);
-    return { jobs: results, total: filtered.length };
-  }
-
-  const { createAdminClient } = await import("@/lib/supabase/server");
-  const supabase = await createAdminClient();
-
-  // Fetch jobs and filter in JS to handle custom_city OR location.city
-  const { data: jobs, error } = await supabase
-    .from("job_postings")
-    .select(`
-      id,
-      slug,
-      title,
-      description,
-      position_type,
-      employment_type,
-      salary_min,
-      salary_max,
-      salary_type,
-      remote_option,
-      published_at,
-      is_featured,
-      profile_id,
-      service_states,
-      custom_city,
-      custom_state,
-      profiles!inner (
-        id,
-        agency_name,
-        plan_tier,
-        subscription_status
-      ),
-      locations (
-        city,
-        state,
-        latitude,
-        longitude
-      )
-    `)
-    .eq("status", "published")
-    .order("published_at", { ascending: false })
-    .limit(500);
-
-  if (error) {
-    console.error("[JOBS] City search error:", error);
-    return { jobs: [], total: 0 };
-  }
-
-  // Filter by city + state (custom location OR agency location)
-  const filteredJobs = (jobs || []).filter((job) => {
-    // Check custom location
-    if (
-      job.custom_city &&
-      job.custom_state &&
-      job.custom_city.toLowerCase() === cityName.toLowerCase() &&
-      job.custom_state.toUpperCase() === stateCode
-    ) {
-      return true;
+  const cityName = citySlugToName(citySlug).toLowerCase();
+  const jobs = (await getAllPublicJobs()).filter((job) => {
+    if (!job.location) {
+      return false;
     }
-
-    // Check agency location
-    const location = extractDbLocation(job.locations as DbLocation | DbLocation[] | null);
-    if (
-      location?.city?.toLowerCase() === cityName.toLowerCase() &&
-      location?.state?.toUpperCase() === stateCode
-    ) {
-      return true;
-    }
-
-    return false;
+    return (
+      job.location.city.toLowerCase() === cityName &&
+      job.location.state.toUpperCase() === stateCode
+    );
   });
 
-  // Get logo URLs and slugs
-  const profileIds = [...new Set(filteredJobs.map((j) => j.profile_id))];
-  const listingMap = await getVisiblePublishedListingMap(supabase, profileIds);
-
-  const visibleJobs = filteredJobs.filter((job) => listingMap.has(job.profile_id));
-  const results: JobSearchResult[] = visibleJobs.slice(0, limit).map((job) => {
-    const profile = job.profiles as unknown as {
-      id: string;
-      agency_name: string;
-      plan_tier: string;
-      subscription_status: string | null;
-    };
-    const listingInfo = listingMap.get(job.profile_id);
-
-    // Resolve display location (custom location > agency location)
-    const location = resolveJobLocation({
-      custom_city: job.custom_city as string | null,
-      custom_state: job.custom_state as string | null,
-      locations: job.locations as DbLocation | DbLocation[] | null,
-    });
-
-    const isActiveSubscription =
-      profile.subscription_status === "active" ||
-      profile.subscription_status === "trialing";
-    const effectiveTier = (isActiveSubscription ? profile.plan_tier : "free") as PlanTier;
-
-    return {
-      id: job.id,
-      slug: job.slug,
-      title: job.title,
-      description: job.description,
-      positionType: job.position_type as PositionType,
-      employmentTypes: (job.employment_type || []) as EmploymentType[],
-      salaryMin: job.salary_min,
-      salaryMax: job.salary_max,
-      salaryType: job.salary_type as "hourly" | "annual" | null,
-      remoteOption: job.remote_option,
-      publishedAt: job.published_at,
-      isFeatured: job.is_featured || false,
-      provider: {
-        id: profile.id,
-        slug: listingInfo?.slug || "",
-        agencyName: profile.agency_name,
-        logoUrl: listingInfo?.logo_url || null,
-        planTier: effectiveTier,
-        isVerified: effectiveTier !== "free",
-      },
-      location,
-      serviceStates: job.service_states as string[] | null,
-    };
-  });
-
-  return { jobs: results, total: visibleJobs.length };
+  return {
+    jobs: jobs.slice(0, limit).map(mapConvexJobToSearchResult),
+    total: jobs.length,
+  };
 }
 
-/**
- * Get jobs for a specific provider
- */
 export async function getJobsByProvider(
-  providerSlug: string
+  providerSlug: string,
 ): Promise<JobSearchResult[]> {
   noStore();
 
-  if (isConvexDataEnabled()) {
-    const { queryConvexUnauthenticated } = await import(
-      "@/lib/platform/convex/server"
-    );
-    const jobs = await queryConvexUnauthenticated<ConvexPublicJob[]>(
-      "jobs:getPublicJobsByProvider",
-      { providerSlug }
-    );
-    return jobs.map(mapConvexJobToSearchResult);
-  }
-
-  const { createAdminClient } = await import("@/lib/supabase/server");
-  const supabase = await createAdminClient();
-
-  // First, look up the listing by slug to get the profile_id
-  const listing = await getVisiblePublishedListingBySlug(supabase, providerSlug);
-  if (!listing) {
-    return [];
-  }
-
-  const { data: jobs, error } = await supabase
-    .from("job_postings")
-    .select(`
-      id,
-      slug,
-      title,
-      description,
-      position_type,
-      employment_type,
-      salary_min,
-      salary_max,
-      salary_type,
-      remote_option,
-      published_at,
-      is_featured,
-      profile_id,
-      service_states,
-      custom_city,
-      custom_state,
-      profiles!inner (
-        id,
-        agency_name,
-        plan_tier,
-        subscription_status
-      ),
-      locations (
-        city,
-        state,
-        latitude,
-        longitude
-      )
-    `)
-    .eq("status", "published")
-    .eq("profile_id", listing.profile_id)
-    .order("published_at", { ascending: false });
-
-  if (error || !jobs || jobs.length === 0) {
-    return [];
-  }
-
-  return jobs.map((job) => {
-    const profile = job.profiles as unknown as {
-      id: string;
-      agency_name: string;
-      plan_tier: string;
-      subscription_status: string | null;
-    };
-
-    // Resolve display location (custom location > agency location)
-    const location = resolveJobLocation({
-      custom_city: job.custom_city as string | null,
-      custom_state: job.custom_state as string | null,
-      locations: job.locations as DbLocation | DbLocation[] | null,
-    });
-
-    const isActiveSubscription =
-      profile.subscription_status === "active" ||
-      profile.subscription_status === "trialing";
-    const effectiveTier = (isActiveSubscription ? profile.plan_tier : "free") as PlanTier;
-
-    return {
-      id: job.id,
-      slug: job.slug,
-      title: job.title,
-      description: job.description,
-      positionType: job.position_type as PositionType,
-      employmentTypes: (job.employment_type || []) as EmploymentType[],
-      salaryMin: job.salary_min,
-      salaryMax: job.salary_max,
-      salaryType: job.salary_type as "hourly" | "annual" | null,
-      remoteOption: job.remote_option,
-      publishedAt: job.published_at,
-      isFeatured: job.is_featured || false,
-      provider: {
-        id: profile.id,
-        slug: listing.slug,
-        agencyName: profile.agency_name,
-        logoUrl: listing.logo_url || null,
-        planTier: effectiveTier,
-        isVerified: effectiveTier !== "free",
-      },
-      location,
-      serviceStates: job.service_states as string[] | null,
-    };
-  });
+  const jobs = await queryConvexUnauthenticated<ConvexPublicJob[]>(
+    "jobs:getPublicJobsByProvider",
+    { providerSlug },
+  );
+  return jobs.map(mapConvexJobToSearchResult);
 }
 
-/**
- * Get featured/recent jobs for homepage
- */
 export async function getFeaturedJobs(limit = 6): Promise<JobSearchResult[]> {
   noStore();
 
-  if (isConvexDataEnabled()) {
-    const { queryConvexUnauthenticated } = await import(
-      "@/lib/platform/convex/server"
-    );
-    const allJobs = await queryConvexUnauthenticated<ConvexPublicJob[]>(
-      "jobs:getPublicJobs",
-      {}
-    );
-    // Sort: Featured -> Paid -> Free -> then by date
-    const results = allJobs.map(mapConvexJobToSearchResult);
-    results.sort((a, b) => {
-      if (a.isFeatured && !b.isFeatured) return -1;
-      if (!a.isFeatured && b.isFeatured) return 1;
-      const aIsPaid = a.provider.planTier !== "free";
-      const bIsPaid = b.provider.planTier !== "free";
-      if (aIsPaid && !bIsPaid) return -1;
-      if (!aIsPaid && bIsPaid) return 1;
-      return (
-        new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
-      );
-    });
-    return results.slice(0, limit);
-  }
-
-  const { createAdminClient } = await import("@/lib/supabase/server");
-  const supabase = await createAdminClient();
-
-  // Get published jobs, prioritizing featured and paid plans
-  const { data: jobs, error } = await supabase
-    .from("job_postings")
-    .select(`
-      id,
-      slug,
-      title,
-      description,
-      position_type,
-      employment_type,
-      salary_min,
-      salary_max,
-      salary_type,
-      remote_option,
-      published_at,
-      is_featured,
-      profile_id,
-      service_states,
-      custom_city,
-      custom_state,
-      profiles!inner (
-        id,
-        agency_name,
-        plan_tier,
-        subscription_status
-      ),
-      locations (
-        city,
-        state,
-        latitude,
-        longitude
-      )
-    `)
-    .eq("status", "published")
-    .order("published_at", { ascending: false })
-    .limit(limit * 2); // Fetch more to allow sorting by tier
-
-  if (error || !jobs) {
-    return [];
-  }
-
-  // Get logo URLs and slugs from listings
-  const profileIds = [...new Set(jobs.map((j) => j.profile_id))];
-  const listingMap = await getVisiblePublishedListingMap(supabase, profileIds);
-
-  const results: JobSearchResult[] = jobs
-    .filter((job) => listingMap.has(job.profile_id))
-    .map((job) => {
-    const profile = job.profiles as unknown as {
-      id: string;
-      agency_name: string;
-      plan_tier: string;
-      subscription_status: string | null;
-    };
-    const listingInfo = listingMap.get(job.profile_id);
-
-    // Resolve display location (custom location > agency location)
-    const location = resolveJobLocation({
-      custom_city: job.custom_city as string | null,
-      custom_state: job.custom_state as string | null,
-      locations: job.locations as DbLocation | DbLocation[] | null,
-    });
-
-    const isActiveSubscription =
-      profile.subscription_status === "active" ||
-      profile.subscription_status === "trialing";
-    const effectiveTier = (isActiveSubscription ? profile.plan_tier : "free") as PlanTier;
-
-    return {
-      id: job.id,
-      slug: job.slug,
-      title: job.title,
-      description: job.description,
-      positionType: job.position_type as PositionType,
-      employmentTypes: (job.employment_type || []) as EmploymentType[],
-      salaryMin: job.salary_min,
-      salaryMax: job.salary_max,
-      salaryType: job.salary_type as "hourly" | "annual" | null,
-      remoteOption: job.remote_option,
-      publishedAt: job.published_at,
-      isFeatured: job.is_featured || false,
-      provider: {
-        id: profile.id,
-        slug: listingInfo?.slug || "",
-        agencyName: profile.agency_name,
-        logoUrl: listingInfo?.logo_url || null,
-        planTier: effectiveTier,
-        isVerified: effectiveTier !== "free",
-      },
-      location,
-      serviceStates: job.service_states as string[] | null,
-    };
-      });
-
-  // Sort: Featured → Paid (equal priority) → Free → then by date
-  results.sort((a, b) => {
-    // 1. Featured jobs first
-    if (a.isFeatured && !b.isFeatured) return -1;
-    if (!a.isFeatured && b.isFeatured) return 1;
-    // 2. Paid tiers (Pro) have priority over free
-    const aIsPaid = a.provider.planTier !== "free";
-    const bIsPaid = b.provider.planTier !== "free";
-    if (aIsPaid && !bIsPaid) return -1;
-    if (!aIsPaid && bIsPaid) return 1;
-    // 3. Then by date
-    return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
+  const results = (await getAllPublicJobs()).map(mapConvexJobToSearchResult);
+  results.sort((left, right) => {
+    if (left.isFeatured && !right.isFeatured) return -1;
+    if (!left.isFeatured && right.isFeatured) return 1;
+    const leftIsPaid = left.provider.planTier !== "free";
+    const rightIsPaid = right.provider.planTier !== "free";
+    if (leftIsPaid && !rightIsPaid) return -1;
+    if (!leftIsPaid && rightIsPaid) return 1;
+    return new Date(right.publishedAt).getTime() - new Date(left.publishedAt).getTime();
   });
-
   return results.slice(0, limit);
 }
 
-/**
- * Get total count of published jobs
- */
 export async function getTotalJobCount(): Promise<number> {
   noStore();
-
-  if (isConvexDataEnabled()) {
-    const { queryConvexUnauthenticated } = await import(
-      "@/lib/platform/convex/server"
-    );
-    const allJobs = await queryConvexUnauthenticated<ConvexPublicJob[]>(
-      "jobs:getPublicJobs",
-      {}
-    );
-    return allJobs.length;
-  }
-
-  const { createAdminClient } = await import("@/lib/supabase/server");
-  const supabase = await createAdminClient();
-
-  const { data: jobs } = await supabase
-    .from("job_postings")
-    .select("profile_id")
-    .eq("status", "published");
-  const listingMap = await getVisiblePublishedListingMap(
-    supabase,
-    (jobs || []).map((job) => job.profile_id)
-  );
-  return (jobs || []).filter((job) => listingMap.has(job.profile_id)).length;
+  return (await getAllPublicJobs()).length;
 }
 
-/**
- * Get job counts by state
- * Counts jobs from service_states, custom_state, and location.state
- * Note: Nationwide jobs (service_states = ['*']) are counted once for display but will appear in all state searches
- */
 export async function getJobCountsByState(): Promise<Map<string, number>> {
   noStore();
 
-  if (isConvexDataEnabled()) {
-    const { queryConvexUnauthenticated } = await import(
-      "@/lib/platform/convex/server"
-    );
-    const allJobs = await queryConvexUnauthenticated<ConvexPublicJob[]>(
-      "jobs:getPublicJobs",
-      {}
-    );
-    const counts = new Map<string, number>();
-    for (const job of allJobs) {
-      const jobStates = new Set<string>();
-      if (job.serviceStates && job.serviceStates.length > 0) {
-        job.serviceStates.forEach((s) => {
-          if (s !== "*") jobStates.add(s.toUpperCase());
-        });
-      }
-      if (job.location?.state) {
-        jobStates.add(job.location.state.toUpperCase());
-      }
-      jobStates.forEach((state) => {
-        counts.set(state, (counts.get(state) || 0) + 1);
-      });
-    }
-    return counts;
-  }
-
-  const { createAdminClient } = await import("@/lib/supabase/server");
-  const supabase = await createAdminClient();
-
-  const { data, error } = await supabase
-    .from("job_postings")
-    .select(`
-      service_states,
-      custom_state,
-      profile_id,
-      locations (
-        state
-      )
-    `)
-    .eq("status", "published");
-
-  if (error || !data) {
-    return new Map();
-  }
-
-  const listingMap = await getVisiblePublishedListingMap(
-    supabase,
-    data.map((job) => job.profile_id)
-  );
-
   const counts = new Map<string, number>();
-
-  data
-    .filter((job) => listingMap.has(job.profile_id))
-    .forEach((job) => {
-    // Track which states this job has been counted for
+  for (const job of await getAllPublicJobs()) {
     const jobStates = new Set<string>();
-
-    // 1. Count from service_states (excluding '*' for per-state counts)
-    const serviceStates = job.service_states as string[] | null;
-    if (serviceStates && serviceStates.length > 0) {
-      serviceStates.forEach((state) => {
+    if (job.serviceStates?.length) {
+      job.serviceStates.forEach((state) => {
         if (state !== "*") {
           jobStates.add(state.toUpperCase());
         }
       });
     }
-
-    // 2. Count from custom_state
-    const customState = job.custom_state as string | null;
-    if (customState) {
-      jobStates.add(customState.toUpperCase());
+    if (job.location?.state) {
+      jobStates.add(job.location.state.toUpperCase());
     }
-
-    // 3. Count from location.state
-    const location = extractDbLocation(job.locations as DbLocation | DbLocation[] | null);
-    if (location?.state) {
-      jobStates.add(location.state.toUpperCase());
-    }
-
-    // Add to counts
     jobStates.forEach((state) => {
-      const currentCount = counts.get(state) || 0;
-      counts.set(state, currentCount + 1);
+      counts.set(state, (counts.get(state) || 0) + 1);
     });
-    });
-
+  }
   return counts;
 }
 
-// =============================================================================
-// EMPLOYER TYPES & QUERIES
-// =============================================================================
-
-export interface EmployerListItem {
-  id: string;
-  slug: string;
-  agencyName: string;
-  logoUrl: string | null;
-  headline: string | null;
-  planTier: PlanTier;
-  isVerified: boolean;
-  primaryLocation: {
-    city: string;
-    state: string;
-  } | null;
-  locationCount: number;
-  openJobCount: number;
-}
-
-/**
- * Get all employers with published listings
- * Optionally filter to only those with open job postings
- */
 export async function getAllEmployers(options?: {
   hiringOnly?: boolean;
 }): Promise<EmployerListItem[]> {
   noStore();
 
-  if (isConvexDataEnabled()) {
-    const { queryConvexUnauthenticated } = await import(
-      "@/lib/platform/convex/server"
-    );
-    const employers = await queryConvexUnauthenticated<ConvexPublicEmployer[]>(
-      "jobs:getPublicEmployers",
-      { hiringOnly: options?.hiringOnly ?? false }
-    );
-    return employers.map(mapConvexEmployerToListItem);
-  }
-
-  const { createAdminClient } = await import("@/lib/supabase/server");
-  const supabase = await createAdminClient();
-
-  // Get all published listings with their profiles
-  const { data: listings, error: listingsError } = await supabase
-    .from("listings")
-    .select(`
-      profile_id,
-      logo_url,
-      headline,
-      slug,
-      profiles!inner (
-        id,
-        agency_name,
-        plan_tier,
-        subscription_status,
-        contact_email,
-        is_seeded
-      )
-    `)
-    .eq("status", "published");
-
-  if (listingsError || !listings) {
-    console.error("[EMPLOYERS] Error fetching employers:", listingsError);
-    return [];
-  }
-
-  const visibleListings = filterPublicProfiles(
-    listings,
-    (listing) =>
-      listing.profiles as {
-        contact_email?: string | null;
-        is_seeded?: boolean | null;
-      }
+  const employers = await queryConvexUnauthenticated<ConvexPublicEmployer[]>(
+    "jobs:getPublicEmployers",
+    { hiringOnly: options?.hiringOnly ?? false },
   );
-
-  if (visibleListings.length === 0) {
-    return [];
-  }
-
-  const profileIds = visibleListings.map((l) => l.profile_id);
-
-  // Get job counts for each profile
-  const { data: jobCounts } = await supabase
-    .from("job_postings")
-    .select("profile_id")
-    .eq("status", "published")
-    .in("profile_id", profileIds);
-
-  const profileJobCounts = new Map<string, number>();
-  jobCounts?.forEach((job) => {
-    const count = profileJobCounts.get(job.profile_id) || 0;
-    profileJobCounts.set(job.profile_id, count + 1);
-  });
-
-  // Get locations for each profile
-  const { data: locations } = await supabase
-    .from("locations")
-    .select("profile_id, city, state, is_primary")
-    .in("profile_id", profileIds)
-    .order("is_primary", { ascending: false });
-
-  // Group locations by profile
-  const locationMap = new Map<string, { city: string; state: string }[]>();
-  locations?.forEach((loc) => {
-    const existing = locationMap.get(loc.profile_id) || [];
-    existing.push({ city: loc.city, state: loc.state });
-    locationMap.set(loc.profile_id, existing);
-  });
-
-  // Build employer list
-  const employers: EmployerListItem[] = [];
-
-  visibleListings.forEach((listing) => {
-    // Skip listings without a slug (required for routing)
-    if (!listing.slug) {
-      return;
-    }
-
-    const profile = listing.profiles as unknown as {
-      id: string;
-      agency_name: string;
-      plan_tier: string;
-      subscription_status: string | null;
-    };
-
-    const profileLocations = locationMap.get(listing.profile_id) || [];
-    const jobCount = profileJobCounts.get(listing.profile_id) || 0;
-
-    // If hiringOnly filter is set, skip employers with no jobs
-    if (options?.hiringOnly && jobCount === 0) {
-      return;
-    }
-
-    const isActiveSubscription =
-      profile.subscription_status === "active" ||
-      profile.subscription_status === "trialing";
-    const effectiveTier = (isActiveSubscription ? profile.plan_tier : "free") as PlanTier;
-
-    employers.push({
-      id: listing.profile_id,
-      slug: listing.slug,
-      agencyName: profile.agency_name,
-      logoUrl: listing.logo_url || null,
-      headline: listing.headline || null,
-      planTier: effectiveTier,
-      isVerified: effectiveTier !== "free",
-      primaryLocation: profileLocations.length > 0 ? profileLocations[0] : null,
-      locationCount: profileLocations.length,
-      openJobCount: jobCount,
-    });
-  });
-
-  // Sort: paid tiers first (equal priority), then by job count, then alphabetically
-  employers.sort((a, b) => {
-    // Paid tiers (Pro) have priority over free
-    const aIsPaid = a.planTier !== "free";
-    const bIsPaid = b.planTier !== "free";
-    if (aIsPaid && !bIsPaid) return -1;
-    if (!aIsPaid && bIsPaid) return 1;
-    if (b.openJobCount !== a.openJobCount) return b.openJobCount - a.openJobCount;
-    return a.agencyName.localeCompare(b.agencyName);
-  });
-
-  return employers;
+  return employers.map(mapConvexEmployerToListItem);
 }
 
-/**
- * Get total count of employers with published jobs
- */
 export async function getTotalEmployerCount(): Promise<number> {
   noStore();
-
-  if (isConvexDataEnabled()) {
-    const { queryConvexUnauthenticated } = await import(
-      "@/lib/platform/convex/server"
-    );
-    const count = await queryConvexUnauthenticated<number>(
-      "jobs:getPublicEmployerCount",
-      {}
-    );
-    return count;
-  }
-
-  const { createAdminClient } = await import("@/lib/supabase/server");
-  const supabase = await createAdminClient();
-
-  const { data, error } = await supabase
-    .from("job_postings")
-    .select("profile_id")
-    .eq("status", "published");
-
-  if (error || !data) {
-    return 0;
-  }
-
-  const listingMap = await getVisiblePublishedListingMap(
-    supabase,
-    data.map((job) => job.profile_id)
-  );
-  const uniqueProfileIds = new Set(
-    data.map((d) => d.profile_id).filter((profileId) => listingMap.has(profileId))
-  );
-  return uniqueProfileIds.size;
+  return queryConvexUnauthenticated<number>("jobs:getPublicEmployerCount", {});
 }

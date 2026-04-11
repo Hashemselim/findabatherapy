@@ -1,12 +1,11 @@
 import dotenv from "dotenv";
 import path from "path";
 import type { Page } from "@playwright/test";
-import { createClient } from "@supabase/supabase-js";
 
 // Load .env.local for credentials
 dotenv.config({ path: path.resolve(__dirname, "../../.env.local") });
 
-export const AUTH_PROVIDER = process.env.NEXT_PUBLIC_AUTH_PROVIDER || "clerk";
+export const AUTH_PROVIDER = "clerk" as const;
 
 export interface TestUser {
   id: string;
@@ -14,42 +13,15 @@ export interface TestUser {
   password: string;
 }
 
-// ---------------------------------------------------------------------------
-// Supabase helpers (used when AUTH_PROVIDER=supabase)
-// ---------------------------------------------------------------------------
-
-function getSupabaseAdminClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-  if (!key) {
-    throw new Error("SUPABASE_SERVICE_ROLE_KEY required for test user management");
-  }
-  return createClient(url, key, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
-}
-
-/**
- * Gets a Supabase admin client (service role key) for user management.
- * In Clerk mode, throws — use Clerk testing utilities instead.
- */
 export function getAdminClient() {
-  if (AUTH_PROVIDER === "clerk") {
-    throw new Error(
-      "getAdminClient() is not available in Clerk mode. " +
-      "Use Clerk testing utilities for E2E auth."
-    );
-  }
-  return getSupabaseAdminClient();
+  throw new Error(
+    "getAdminClient() has been removed. E2E auth is Clerk-only now.",
+  );
 }
 
-/**
- * Signs in via the appropriate auth provider API and returns a storage state
- * compatible with Playwright's `use({ storageState })`.
- */
 export async function signInViaAPI(
-  email: string,
-  password: string
+  _email: string,
+  _password: string
 ): Promise<{
   cookies: Array<{
     name: string;
@@ -63,68 +35,9 @@ export async function signInViaAPI(
   }>;
   origins: Array<{ origin: string; localStorage: Array<{ name: string; value: string }> }>;
 }> {
-  if (AUTH_PROVIDER === "clerk") {
-    throw new Error(
-      "[E2E] Clerk auth mode requires a real Playwright sign-in helper " +
-        "or a pre-generated Clerk storage state. signInViaAPI() cannot " +
-        "safely synthesize Clerk session cookies from email/password."
-    );
-  }
-
-  // Supabase mode
-  const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-
-  const response = await fetch(
-    `${SUPABASE_URL}/auth/v1/token?grant_type=password`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        apikey: SUPABASE_ANON_KEY,
-      },
-      body: JSON.stringify({ email, password }),
-    }
+  throw new Error(
+    "signInViaAPI() has been removed. Use Clerk browser sign-in helpers instead.",
   );
-
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Sign-in failed: ${response.status} ${error}`);
-  }
-
-  const data = await response.json();
-
-  // Extract the project ref from the Supabase URL for cookie naming
-  const projectRef = new URL(SUPABASE_URL).hostname.split(".")[0];
-  const cookieName = `sb-${projectRef}-auth-token`;
-
-  // Build the auth token value that Supabase SSR expects
-  const tokenValue = JSON.stringify({
-    access_token: data.access_token,
-    refresh_token: data.refresh_token,
-    expires_at: data.expires_at,
-    expires_in: data.expires_in,
-    token_type: data.token_type,
-  });
-
-  // Supabase SSR splits cookies into chunks — base64 encode the value
-  const base64Value = Buffer.from(tokenValue).toString("base64");
-
-  return {
-    cookies: [
-      {
-        name: `${cookieName}.0`,
-        value: `base64-${base64Value}`,
-        domain: "localhost",
-        path: "/",
-        expires: data.expires_at ?? -1,
-        httpOnly: false,
-        secure: false,
-        sameSite: "Lax" as const,
-      },
-    ],
-    origins: [],
-  };
 }
 
 function getBaseUrl() {

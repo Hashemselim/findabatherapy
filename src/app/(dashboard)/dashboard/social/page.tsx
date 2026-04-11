@@ -6,7 +6,11 @@ import { DashboardCard, DashboardEmptyState } from "@/components/dashboard/ui";
 import { PreviewBanner } from "@/components/ui/preview-banner";
 import { getCurrentUser } from "@/lib/platform/auth/server";
 import { getCurrentPlanTier } from "@/lib/plans/guards";
-import { getSocialBrandData, checkSocialAssetsStatus } from "@/lib/actions/social";
+import {
+  getSocialBrandData,
+  checkSocialAssetsStatus,
+  getSocialAssetUrls,
+} from "@/lib/actions/social";
 import { SOCIAL_TEMPLATES } from "@/lib/social/templates";
 import { getUpcomingTemplates } from "@/lib/social/calendar";
 import { SocialPostsClient } from "@/components/dashboard/social/social-posts-client";
@@ -48,7 +52,6 @@ export default async function SocialPostsPage() {
         <SocialPostsClient
           templates={SOCIAL_TEMPLATES}
           upcoming={upcoming}
-          profileId="preview-social"
           assetsReady
           previewMode
           previewAgencyName="Acorn ABA Therapy"
@@ -82,11 +85,17 @@ export default async function SocialPostsPage() {
 
   // Check if assets are pre-generated (or generation is in progress)
   const statusResult = await checkSocialAssetsStatus();
-  const assetsReady = statusResult.success && statusResult.data?.ready;
-  const alreadyGenerating =
-    statusResult.success && statusResult.data?.generating;
   const brandHash =
     (statusResult.success && statusResult.data?.brandHash) || "";
+  const assetUrlsResult = brandHash
+    ? await getSocialAssetUrls(brandHash)
+    : { success: true as const, data: {} };
+  const assetUrls = assetUrlsResult.success ? assetUrlsResult.data || {} : {};
+  const assetsReady =
+    (statusResult.success && statusResult.data?.ready) ||
+    Object.keys(assetUrls).length > 0;
+  const alreadyGenerating =
+    statusResult.success && statusResult.data?.generating;
 
   return (
     <div className="space-y-3">
@@ -97,10 +106,9 @@ export default async function SocialPostsPage() {
       <SocialPostsClient
         templates={SOCIAL_TEMPLATES}
         upcoming={upcoming}
-        profileId={brand.profileId}
         assetsReady={assetsReady || false}
         alreadyGenerating={alreadyGenerating || false}
-        brandHash={brandHash}
+        assetUrls={assetUrls}
       />
     </div>
   );

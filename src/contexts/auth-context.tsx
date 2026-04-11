@@ -9,13 +9,8 @@ import {
   type ReactNode,
 } from "react";
 import { useUser as useClerkUser } from "@clerk/nextjs";
-import type { User, Session } from "@supabase/supabase-js";
 import { useRouter } from "next/navigation";
 import posthog from "posthog-js";
-
-import { platformConfig } from "@/lib/platform/config";
-import { createSupabaseBrowserClient } from "@/lib/supabase/clients";
-import { resolveCurrentWorkspaceProfileId } from "@/lib/workspace/current-profile";
 
 type Profile = {
   id: string;
@@ -30,9 +25,14 @@ type Profile = {
   updated_at: string;
 };
 
+type AuthUser = {
+  id: string;
+  email?: string | null;
+};
+
 type AuthContextType = {
-  user: User | null;
-  session: Session | null;
+  user: AuthUser | null;
+  session: null;
   profile: Profile | null;
   loading: boolean;
   isAuthenticated: boolean;
@@ -42,142 +42,81 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-/* ---------- Clerk-mode provider ---------- */
+async function fetchCurrentProfile(): Promise<Profile | null> {
+  const response = await fetch("/api/auth/profile", {
+    credentials: "include",
+    cache: "no-store",
+  });
+  if (!response.ok) {
+    return null;
+  }
 
-function ClerkAuthProvider({ children }: { children: ReactNode }) {
-  const { user, isLoaded } = useClerkUser();
-
-  const value: AuthContextType = {
-    // Clerk user mapped to a minimal shape; downstream code that truly needs
-    // the Supabase User type should use server-side helpers instead.
-    user: user
-      ? ({ id: user.id, email: user.primaryEmailAddress?.emailAddress } as unknown as User)
-      : null,
-    session: null,
-    profile: null, // dashboard pages use server-side getProfile()
-    loading: !isLoaded,
-    isAuthenticated: !!user,
-    isOnboardingComplete: false, // resolved server-side in Clerk mode
-    refreshProfile: async () => {
-      /* no-op – profile is fetched server-side */
-    },
-  };
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  const payload = (await response.json()) as { profile?: Profile | null };
+  return payload.profile ?? null;
 }
 
-/* ---------- Supabase-mode provider ---------- */
-
-function SupabaseAuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
+function AuthProviderImpl({ children }: { children: ReactNode }) {
+  const { user, isLoaded } = useClerkUser();
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [profileLoaded, setProfileLoaded] = useState(false);
   const router = useRouter();
-
-  const fetchProfile = useCallback(async (userId: string) => {
-    const supabase = createSupabaseBrowserClient();
-    const profileId = await resolveCurrentWorkspaceProfileId(supabase, userId);
-    const { data } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", profileId)
-      .single();
-
-    setProfile(data);
-  }, []);
 
   const refreshProfile = useCallback(async () => {
     if (user) {
-      await fetchProfile(user.id);
+      setProfile(await fetchCurrentProfile());
+    } else {
+      setProfile(null);
     }
-  }, [user, fetchProfile]);
+    setProfileLoaded(true);
+  }, [user]);
 
   useEffect(() => {
-    const supabase = createSupabaseBrowserClient();
+    if (!isLoaded) {
+      return;
+    }
 
-    // Get initial session
-    const initializeAuth = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
+    void refreshProfile();
+  }, [isLoaded, refreshProfile]);
 
-        setSession(session);
-        setUser(session?.user ?? null);
+  useEffect(() => {
+    if (!isLoaded) {
+      return;
+    }
 
-        if (session?.user) {
-          await fetchProfile(session.user.id);
+    if (user) {
+      posthog.identify(user.id, {
+        email: user.primaryEmailAddress?.emailAddress,
+      });
+    } else {
+      posthog.reset();
+      setProfile(null);
+      setProfileLoaded(true);
+    }
+    router.refresh();
+  }, [isLoaded, router, user]);
+
+  const value: AuthContextType = {
+    user: user
+      ? {
+          id: user.id,
+          email: user.primaryEmailAddress?.emailAddress ?? null,
         }
-      } catch {
-        // Auth initialization failed - user is not logged in
-      }
-
-      setLoading(false);
-    };
-
-    initializeAuth();
-
-    // Subscribe to auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      try {
-        setSession(session);
-        setUser(session?.user ?? null);
-
-        if (session?.user) {
-          await fetchProfile(session.user.id);
-        } else {
-          setProfile(null);
-        }
-
-        // Handle specific auth events
-        if (event === "SIGNED_IN" && session?.user) {
-          // Identify user in PostHog
-          posthog.identify(session.user.id, {
-            email: session.user.email,
-          });
-          router.refresh();
-        } else if (event === "SIGNED_OUT") {
-          // Reset PostHog on logout
-          posthog.reset();
-          setProfile(null);
-          router.refresh();
-        }
-      } catch {
-        // Auth state change can throw when there's no valid session (e.g., dev preview mode)
-      }
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [fetchProfile, router]);
+      : null,
+    session: null,
+    profile,
+    loading: !isLoaded || !profileLoaded,
+    isAuthenticated: !!user,
+    isOnboardingComplete: !!profile?.onboarding_completed_at,
+    refreshProfile,
+  };
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        session,
-        profile,
-        loading,
-        isAuthenticated: !!user,
-        isOnboardingComplete: !!profile?.onboarding_completed_at,
-        refreshProfile,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
+    <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
   );
 }
 
-/* ---------- Routing provider ---------- */
-
 export function AuthProvider({ children }: { children: ReactNode }) {
-  if (platformConfig.authProvider === "clerk") {
-    return <ClerkAuthProvider>{children}</ClerkAuthProvider>;
-  }
-
-  return <SupabaseAuthProvider>{children}</SupabaseAuthProvider>;
+  return <AuthProviderImpl>{children}</AuthProviderImpl>;
 }
 
 export function useAuth() {

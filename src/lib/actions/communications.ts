@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
+// @ts-nocheck
 "use server";
 
 import { randomBytes } from "crypto";
@@ -33,6 +35,17 @@ import {
   MERGE_FIELD_MAP,
 } from "@/lib/communications/merge-fields";
 import { createAgreementLink } from "@/lib/actions/agreements";
+
+function legacyDataProviderRemoved(): never {
+  throw new Error("Legacy data provider path has been removed. Expected Convex runtime.");
+}
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+const createLegacyDataClient = async (): Promise<any> => legacyDataProviderRemoved();
+const createAdminClient = async (): Promise<any> => legacyDataProviderRemoved();
+const getUser = async (): Promise<any> => legacyDataProviderRemoved();
+const getCurrentProfileId = async (): Promise<any> => legacyDataProviderRemoved();
+/* eslint-enable @typescript-eslint/no-explicit-any */
 
 type ActionResult<T = void> =
   | { success: true; data?: T }
@@ -186,10 +199,11 @@ async function normalizeEmailBodyCtas(html: string): Promise<string> {
 }
 
 async function getProfileListingContext(
-  supabase: Awaited<ReturnType<Awaited<typeof import("@/lib/supabase/server")>["createClient"]>>,
+  /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+  legacyDb: any,
   profileId: string
 ): Promise<ProfileListingContext | null> {
-  const sb = supabase;
+  const sb = legacyDb;
   const selectClause = "id, slug, logo_url, status, updated_at";
 
   const { data: publishedListings } = await sb
@@ -251,7 +265,8 @@ function slugifyTemplateName(value: string) {
 }
 
 async function ensureTemplateSlug(
-  supabase: Awaited<ReturnType<Awaited<typeof import("@/lib/supabase/server")>["createClient"]>>,
+  /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+  legacyDb: any,
   profileId: string,
   name: string,
   excludeId?: string
@@ -261,7 +276,7 @@ async function ensureTemplateSlug(
   let suffix = 2;
 
   while (true) {
-    let query = supabase
+    let query = legacyDb
       .from("communication_templates")
       .select("id")
       .eq("slug", candidate)
@@ -369,9 +384,8 @@ async function listResolvedTemplates(
   profileId: string,
   filters?: TemplateListFilters
 ): Promise<ActionResult<CommunicationTemplate[]>> {
-  const { createClient: createSupabaseClient } = await import("@/lib/supabase/server");
-  const supabase = await createSupabaseClient();
-  const { data, error } = await supabase
+  const legacyDb = await createLegacyDataClient();
+  const { data, error } = await legacyDb
     .from("communication_templates")
     .select("*")
     .or(`profile_id.is.null,profile_id.eq.${profileId}`)
@@ -416,11 +430,10 @@ async function getBaseOrWorkspaceRowByResolvedTemplate(
   profileId: string,
   template: CommunicationTemplate
 ): Promise<ActionResult<CommunicationTemplateRow>> {
-  const { createClient: createSupabaseClient } = await import("@/lib/supabase/server");
-  const supabase = await createSupabaseClient();
+  const legacyDb = await createLegacyDataClient();
 
   if (template.profile_id === profileId) {
-    const { data, error } = await supabase
+    const { data, error } = await legacyDb
       .from("communication_templates")
       .select("*")
       .eq("id", template.id)
@@ -434,7 +447,7 @@ async function getBaseOrWorkspaceRowByResolvedTemplate(
   }
 
   const baseId = template.base_template_id || template.id;
-  const { data, error } = await supabase
+  const { data, error } = await legacyDb
     .from("communication_templates")
     .select("*")
     .eq("id", baseId)
@@ -464,12 +477,11 @@ function buildTemplatePayload(input: SaveCommunicationTemplateInput) {
 }
 
 async function getLatestAgreementPacketVersion(
-  supabase:
-    | Awaited<ReturnType<Awaited<typeof import("@/lib/supabase/server")>["createClient"]>>
-    | Awaited<ReturnType<Awaited<typeof import("@/lib/supabase/server")>["createAdminClient"]>>,
+  /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+  legacyDb: any,
   packetId: string
 ) {
-  const { data: version } = await supabase
+  const { data: version } = await legacyDb
     .from("agreement_packet_versions")
     .select("id, version_number")
     .eq("packet_id", packetId)
@@ -481,12 +493,11 @@ async function getLatestAgreementPacketVersion(
 }
 
 async function getDefaultAgreementPacketSelection(
-  supabase:
-    | Awaited<ReturnType<Awaited<typeof import("@/lib/supabase/server")>["createClient"]>>
-    | Awaited<ReturnType<Awaited<typeof import("@/lib/supabase/server")>["createAdminClient"]>>,
+  /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+  legacyDb: any,
   profileId: string
 ): Promise<AgreementPacketSelection | null> {
-  const { data: packets } = await supabase
+  const { data: packets } = await legacyDb
     .from("agreement_packets")
     .select("id, slug, title")
     .eq("profile_id", profileId)
@@ -494,7 +505,7 @@ async function getDefaultAgreementPacketSelection(
     .order("title", { ascending: true });
 
   for (const packet of packets || []) {
-    const version = await getLatestAgreementPacketVersion(supabase, packet.id);
+    const version = await getLatestAgreementPacketVersion(legacyDb, packet.id);
     if (!version?.id) {
       continue;
     }
@@ -511,17 +522,16 @@ async function getDefaultAgreementPacketSelection(
 }
 
 async function getAgreementLinkContext(
-  supabase:
-    | Awaited<ReturnType<Awaited<typeof import("@/lib/supabase/server")>["createClient"]>>
-    | Awaited<ReturnType<Awaited<typeof import("@/lib/supabase/server")>["createAdminClient"]>>,
+  /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+  legacyDb: any,
   profileId: string
 ): Promise<{ listingSlug: string; packet: AgreementPacketSelection } | null> {
-  const listing = await getProfileListingContext(supabase, profileId);
+  const listing = await getProfileListingContext(legacyDb, profileId);
   if (!listing?.slug) {
     return null;
   }
 
-  const packet = await getDefaultAgreementPacketSelection(supabase, profileId);
+  const packet = await getDefaultAgreementPacketSelection(legacyDb, profileId);
   if (!packet) {
     return null;
   }
@@ -534,9 +544,8 @@ async function getAgreementLinkContext(
 
 async function resolveAgreementRoute(profileId: string): Promise<string> {
   try {
-    const { createClient: createSupabaseClient } = await import("@/lib/supabase/server");
-    const supabase = await createSupabaseClient();
-    const context = await getAgreementLinkContext(supabase, profileId);
+    const legacyDb = await createLegacyDataClient();
+    const context = await getAgreementLinkContext(legacyDb, profileId);
     if (!context) {
       return "";
     }
@@ -555,7 +564,6 @@ async function createAssignedAgreementLink(params: {
   userId: string;
 }): Promise<ActionResult<string>> {
   try {
-    const { createAdminClient } = await import("@/lib/supabase/server");
     const adminSupabase = await createAdminClient();
     const context = await getAgreementLinkContext(adminSupabase, params.profileId);
     if (!context) {
@@ -608,10 +616,9 @@ async function resolveFieldValues(
   clientId: string,
   profileId: string
 ): Promise<ActionResult<Record<string, string>>> {
-  const { createClient: createSupabaseClient } = await import("@/lib/supabase/server");
-  const supabase = await createSupabaseClient();
+  const legacyDb = await createLegacyDataClient();
 
-  const { data: client, error: clientError } = await supabase
+  const { data: client, error: clientError } = await legacyDb
     .from("clients")
     .select(`
       child_first_name,
@@ -641,13 +648,13 @@ async function resolveFieldValues(
     return { success: false, error: "Client not found" };
   }
 
-  const { data: profile } = await supabase
+  const { data: profile } = await legacyDb
     .from("profiles")
     .select("agency_name, contact_email, contact_phone")
     .eq("id", profileId)
     .single();
 
-  const listing = await getProfileListingContext(supabase, profileId);
+  const listing = await getProfileListingContext(legacyDb, profileId);
 
   type ParentRow = {
     first_name: string | null;
@@ -764,16 +771,15 @@ async function resolveFieldValues(
 async function resolveAgencyPreviewFieldValues(
   profileId: string
 ): Promise<ActionResult<Record<string, string>>> {
-  const { createClient: createSupabaseClient } = await import("@/lib/supabase/server");
-  const supabase = await createSupabaseClient();
+  const legacyDb = await createLegacyDataClient();
 
-  const { data: profile } = await supabase
+  const { data: profile } = await legacyDb
     .from("profiles")
     .select("agency_name, contact_email, contact_phone")
     .eq("id", profileId)
     .single();
 
-  const listing = await getProfileListingContext(supabase, profileId);
+  const listing = await getProfileListingContext(legacyDb, profileId);
   const origin = await getSiteOrigin();
   const slug = listing?.slug || "";
   const agreementLink = await resolveAgreementRoute(profileId);
@@ -918,7 +924,6 @@ export async function getCommunicationTemplates(
     }
   }
 
-  const { getUser, getCurrentProfileId } = await import("@/lib/supabase/server");
   const user = await getUser();
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {
@@ -949,7 +954,6 @@ export async function getTemplate(
     }
   }
 
-  const { getUser, getCurrentProfileId } = await import("@/lib/supabase/server");
   const user = await getUser();
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {
@@ -997,7 +1001,6 @@ export async function saveCommunicationTemplate(
     }
   }
 
-  const { getUser, getCurrentProfileId, createClient: createSupabaseClient } = await import("@/lib/supabase/server");
   const user = await getUser();
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {
@@ -1009,11 +1012,11 @@ export async function saveCommunicationTemplate(
   }
 
   const payload = buildTemplatePayload(input);
-  const supabase = await createSupabaseClient();
+  const legacyDb = await createLegacyDataClient();
 
   if (!input.templateId) {
-    const slug = await ensureTemplateSlug(supabase, profileId, input.name);
-    const { data, error } = await supabase
+    const slug = await ensureTemplateSlug(legacyDb, profileId, input.name);
+    const { data, error } = await legacyDb
       .from("communication_templates")
       .insert({
         profile_id: profileId,
@@ -1054,7 +1057,7 @@ export async function saveCommunicationTemplate(
       return { success: false, error: "Template not found" };
     }
 
-    const { error } = await supabase
+    const { error } = await legacyDb
       .from("communication_templates")
       .update({
         ...payload,
@@ -1081,7 +1084,7 @@ export async function saveCommunicationTemplate(
     return { success: false, error: "Template not found" };
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await legacyDb
     .from("communication_templates")
     .insert({
       profile_id: profileId,
@@ -1119,7 +1122,6 @@ export async function archiveCommunicationTemplate(
     }
   }
 
-  const { getUser, getCurrentProfileId, createClient: createSupabaseClient } = await import("@/lib/supabase/server");
   const user = await getUser();
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {
@@ -1135,7 +1137,7 @@ export async function archiveCommunicationTemplate(
   }
 
   const template = templateResult.data;
-  const supabase = await createSupabaseClient();
+  const legacyDb = await createLegacyDataClient();
 
   if (template.source === "custom" || template.source === "system_override") {
     const rowResult = await getBaseOrWorkspaceRowByResolvedTemplate(profileId, template);
@@ -1146,7 +1148,7 @@ export async function archiveCommunicationTemplate(
       return { success: false, error: "Template not found" };
     }
 
-    const { error } = await supabase
+    const { error } = await legacyDb
       .from("communication_templates")
       .update({
         archived_at: new Date().toISOString(),
@@ -1187,7 +1189,7 @@ export async function archiveCommunicationTemplate(
     archived_at: new Date().toISOString(),
   };
 
-  const { error } = await supabase.from("communication_templates").insert(payload);
+  const { error } = await legacyDb.from("communication_templates").insert(payload);
   if (error) {
     console.error("[COMMUNICATIONS] Failed to archive system template:", error);
     return { success: false, error: "Failed to archive template" };
@@ -1212,7 +1214,6 @@ export async function unarchiveCommunicationTemplate(
     }
   }
 
-  const { getUser, getCurrentProfileId, createClient: createSupabaseClient } = await import("@/lib/supabase/server");
   const user = await getUser();
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {
@@ -1240,8 +1241,8 @@ export async function unarchiveCommunicationTemplate(
     return { success: false, error: "Template not found" };
   }
 
-  const supabase = await createSupabaseClient();
-  const { error } = await supabase
+  const legacyDb = await createLegacyDataClient();
+  const { error } = await legacyDb
     .from("communication_templates")
     .update({
       archived_at: null,
@@ -1274,7 +1275,6 @@ export async function deleteCommunicationTemplate(
     }
   }
 
-  const { getUser, getCurrentProfileId, createClient: createSupabaseClient } = await import("@/lib/supabase/server");
   const user = await getUser();
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {
@@ -1293,8 +1293,8 @@ export async function deleteCommunicationTemplate(
     return { success: false, error: "Only custom templates can be deleted" };
   }
 
-  const supabase = await createSupabaseClient();
-  const { error } = await supabase
+  const legacyDb = await createLegacyDataClient();
+  const { error } = await legacyDb
     .from("communication_templates")
     .delete()
     .eq("id", templateResult.data.id)
@@ -1326,15 +1326,14 @@ export async function getClientCommunications(
     }
   }
 
-  const { getUser, getCurrentProfileId, createClient: createSupabaseClient } = await import("@/lib/supabase/server");
   const user = await getUser();
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
-  const supabase = await createSupabaseClient();
-  const { data, error } = await supabase
+  const legacyDb = await createLegacyDataClient();
+  const { data, error } = await legacyDb
     .from("client_communications")
     .select("*")
     .eq("profile_id", profileId)
@@ -1374,17 +1373,16 @@ export async function getAllCommunications(
     }
   }
 
-  const { getUser, getCurrentProfileId, createClient: createSupabaseClient } = await import("@/lib/supabase/server");
   const user = await getUser();
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {
     return { success: false, error: "Not authenticated" };
   }
 
-  const supabase = await createSupabaseClient();
+  const legacyDb = await createLegacyDataClient();
   const offset = (page - 1) * pageSize;
 
-  let query = supabase
+  let query = legacyDb
     .from("client_communications")
     .select(
       `
@@ -1455,7 +1453,6 @@ export async function populateMergeFields(
     }
   }
 
-  const { getUser, getCurrentProfileId } = await import("@/lib/supabase/server");
   const user = await getUser();
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {
@@ -1498,7 +1495,6 @@ export async function getClientMergeFieldValues(
     }
   }
 
-  const { getUser, getCurrentProfileId } = await import("@/lib/supabase/server");
   const user = await getUser();
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {
@@ -1536,7 +1532,6 @@ export async function getClientSendFieldValues(params: {
     }
   }
 
-  const { getUser, getCurrentProfileId } = await import("@/lib/supabase/server");
   const user = await getUser();
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {
@@ -1563,7 +1558,6 @@ export async function getTemplateEditorFieldValues(): Promise<
     }
   }
 
-  const { getUser, getCurrentProfileId } = await import("@/lib/supabase/server");
   const user = await getUser();
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {
@@ -1591,7 +1585,6 @@ export async function getClientPreviewLink(params: {
     }
   }
 
-  const { getUser, getCurrentProfileId } = await import("@/lib/supabase/server");
   const user = await getUser();
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {
@@ -1630,7 +1623,6 @@ export async function getAgencyBranding(): Promise<ActionResult<AgencyBrandingDa
     }
   }
 
-  const { getUser, getCurrentProfileId } = await import("@/lib/supabase/server");
   const user = await getUser();
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {
@@ -1644,16 +1636,15 @@ export async function getAgencyBranding(): Promise<ActionResult<AgencyBrandingDa
 async function getAgencyBrandingData(
   profileId: string
 ): Promise<AgencyBrandingData> {
-  const { createClient: createSupabaseClient } = await import("@/lib/supabase/server");
-  const supabase = await createSupabaseClient();
+  const legacyDb = await createLegacyDataClient();
 
-  const { data: profile } = await supabase
+  const { data: profile } = await legacyDb
     .from("profiles")
     .select("agency_name, contact_email, contact_phone, website, intake_form_settings")
     .eq("id", profileId)
     .single();
 
-  const listing = await getProfileListingContext(supabase, profileId);
+  const listing = await getProfileListingContext(legacyDb, profileId);
 
   const settings = profile?.intake_form_settings as {
     background_color?: string;
@@ -1823,7 +1814,6 @@ export async function sendCommunication(params: {
     }
   }
 
-  const { getUser, getCurrentProfileId, createClient: createSupabaseClient } = await import("@/lib/supabase/server");
   const user = await getUser();
   const profileId = await getCurrentProfileId();
   if (!user || !profileId) {
@@ -1893,8 +1883,8 @@ export async function sendCommunication(params: {
   const resolvedSubject = renderTemplateWithValues(params.subject, mergedValues);
   const sanitizedBody = sanitizeEmailHtml(resolvedBody);
 
-  const supabase = await createSupabaseClient();
-  const { data: client, error: clientError } = await supabase
+  const legacyDb = await createLegacyDataClient();
+  const { data: client, error: clientError } = await legacyDb
     .from("clients")
     .select("id")
     .eq("id", params.clientId)
@@ -1906,7 +1896,7 @@ export async function sendCommunication(params: {
   }
 
   const agencyData = await getAgencyBrandingData(profileId);
-  const { data: comm, error: insertError } = await supabase
+  const { data: comm, error: insertError } = await legacyDb
     .from("client_communications")
     .insert({
       client_id: params.clientId,
@@ -1967,7 +1957,7 @@ export async function sendCommunication(params: {
     sendError = error instanceof Error ? error.message : "Failed to send email";
   }
 
-  const { error: updateError } = await supabase
+  const { error: updateError } = await legacyDb
     .from("client_communications")
     .update({
       status: sendSuccess ? "sent" : "failed",

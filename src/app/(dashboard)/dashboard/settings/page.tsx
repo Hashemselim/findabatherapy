@@ -9,7 +9,6 @@ import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-heade
 import { DashboardCard, DashboardCallout } from "@/components/dashboard/ui";
 import { getProfile, getCurrentMembership } from "@/lib/platform/workspace/server";
 import { getCurrentUser } from "@/lib/platform/auth/server";
-import { isConvexDataEnabled } from "@/lib/platform/config";
 
 // Provider icons as separate components for cleaner code
 function GoogleIcon() {
@@ -45,25 +44,10 @@ export default async function DashboardSettingsPage() {
   const membership = await getCurrentMembership();
 
   // Get all linked authentication methods from identities array
-  // In Convex mode, we don't have Supabase identities - show Clerk provider info
-  let identities: Array<{ provider: string }> = [];
-  let userMetadata: Record<string, unknown> = {};
-  let userCreatedAt: string | null = null;
-  let emailConfirmedAt: string | null = null;
-
-  if (!isConvexDataEnabled()) {
-    const { getUser } = await import("@/lib/supabase/server");
-    const supabaseUser = await getUser();
-    if (supabaseUser) {
-      identities = (supabaseUser.identities as Array<{ provider: string }>) || [];
-      userMetadata = (supabaseUser.user_metadata as Record<string, unknown>) || {};
-      userCreatedAt = supabaseUser.created_at || null;
-      emailConfirmedAt = (supabaseUser as unknown as { email_confirmed_at?: string }).email_confirmed_at || null;
-    }
-  } else {
-    identities = [{ provider: "email" }];
-    emailConfirmedAt = new Date().toISOString(); // Clerk emails are always verified
-  }
+  const identities: Array<{ provider: string }> = [{ provider: "email" }];
+  const userMetadata: Record<string, unknown> = {};
+  const userCreatedAt: string | null = null;
+  const emailConfirmedAt = new Date().toISOString();
 
   // Map provider names to display info
   const getProviderDisplay = (provider: string) => {

@@ -40,6 +40,11 @@ function readNumber(value: unknown, fallback = 0) {
   return typeof value === "number" ? value : fallback;
 }
 
+function readAddonType(record: ConvexDoc) {
+  const payload = asRecord(record.payload);
+  return readString(payload.addonType) ?? readString(payload.addon_type);
+}
+
 function asId<TableName extends string>(value: unknown) {
   return value as string & { __tableName: TableName };
 }
@@ -105,6 +110,35 @@ async function requireCurrentListingContext(ctx: ConvexCtx) {
     .collect();
 
   return { workspace, listing, locations };
+}
+
+async function getEffectiveLocationLimit(ctx: ConvexCtx, workspace: ConvexDoc) {
+  const baseLimit = LOCATION_LIMITS[String(workspace.planTier ?? "free")] ?? 1;
+  if (workspace.planTier !== "pro") {
+    return baseLimit;
+  }
+
+  const billingRecords = await ctx.db
+    .query("billingRecords")
+    .withIndex("by_workspace", (q) =>
+      q.eq("workspaceId", asId<"workspaces">(workspace._id)),
+    )
+    .collect();
+
+  const extraLocations = billingRecords.reduce((sum, record) => {
+    if (record.recordType !== "addon" || record.status !== "active") {
+      return sum;
+    }
+
+    if (readAddonType(record as unknown as ConvexDoc) !== "location_pack") {
+      return sum;
+    }
+
+    const payload = asRecord(record.payload);
+    return sum + readNumber(payload.quantity, 1) * 5;
+  }, 0);
+
+  return baseLimit + extraLocations;
 }
 
 function mapLocation(location: ConvexDoc) {
@@ -174,7 +208,7 @@ export const addLocation = mutation({
   handler: async (ctx, args) => {
     const { workspace, listing, locations } = await requireCurrentListingContext(ctx);
     const currentCount = locations.length;
-    const limit = LOCATION_LIMITS[String(workspace.planTier ?? "free")] ?? 1;
+    const limit = await getEffectiveLocationLimit(ctx, workspace);
 
     if (currentCount >= limit) {
       throw new ConvexError(
@@ -246,6 +280,10 @@ export const updateLocation = mutation({
     contactEmail: v.optional(v.union(v.string(), v.null())),
     contactWebsite: v.optional(v.union(v.string(), v.null())),
     useCompanyContact: v.optional(v.boolean()),
+    googlePlaceId: v.optional(v.union(v.string(), v.null())),
+    googleRating: v.optional(v.union(v.number(), v.null())),
+    googleRatingCount: v.optional(v.union(v.number(), v.null())),
+    showGoogleReviews: v.optional(v.boolean()),
     geocoded: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
@@ -292,6 +330,18 @@ export const updateLocation = mutation({
           : {}),
         ...(args.useCompanyContact !== undefined
           ? { useCompanyContact: args.useCompanyContact }
+          : {}),
+        ...(args.googlePlaceId !== undefined
+          ? { googlePlaceId: args.googlePlaceId }
+          : {}),
+        ...(args.googleRating !== undefined
+          ? { googleRating: args.googleRating }
+          : {}),
+        ...(args.googleRatingCount !== undefined
+          ? { googleRatingCount: args.googleRatingCount }
+          : {}),
+        ...(args.showGoogleReviews !== undefined
+          ? { showGoogleReviews: args.showGoogleReviews }
           : {}),
       },
       updatedAt: new Date().toISOString(),
@@ -371,9 +421,9 @@ export const getLocationLimit = query({
   args: {},
   handler: async (ctx) => {
     const { workspace, locations } = await requireCurrentListingContext(ctx);
-    const planTier = String(workspace.planTier ?? "free");
+    const limit = await getEffectiveLocationLimit(ctx, workspace);
     return {
-      limit: LOCATION_LIMITS[planTier] ?? 1,
+      limit,
       current: locations.length,
     };
   },

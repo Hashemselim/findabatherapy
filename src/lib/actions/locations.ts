@@ -2,14 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 
-import { createClient, createAdminClient, getCurrentProfileId } from "@/lib/supabase/server";
-import { toUserFacingSupabaseError } from "@/lib/supabase/user-facing-errors";
-import { geocodeAddress } from "@/lib/geo/geocode";
-import { stripe } from "@/lib/stripe";
-import { getEffectivePlanTier } from "@/lib/plans/features";
 import { getEffectiveLimits } from "@/lib/actions/addons";
-import { isConvexDataEnabled } from "@/lib/platform/config";
-import { queryConvex, mutateConvex } from "@/lib/platform/convex/server";
+import { geocodeAddress } from "@/lib/geo/geocode";
+import { mutateConvex, queryConvex } from "@/lib/platform/convex/server";
 
 type ActionResult<T = void> =
   | { success: true; data?: T }
@@ -30,19 +25,16 @@ export interface LocationData {
   isPrimary: boolean;
   isAcceptingClients: boolean;
   createdAt: string;
-  serviceTypes: ServiceType[]; // Multi-select service types (in_home, in_center, telehealth, school_based)
-  insurances: string[]; // Always location-level, no fallback to company
-  // Contact info override
+  serviceTypes: ServiceType[];
+  insurances: string[];
   contactPhone: string | null;
   contactEmail: string | null;
   contactWebsite: string | null;
   useCompanyContact: boolean;
-  // Google Business integration
   googlePlaceId: string | null;
   googleRating: number | null;
   googleRatingCount: number | null;
   showGoogleReviews: boolean;
-  // Featured subscription
   isFeatured: boolean;
   featuredSubscription: {
     status: string;
@@ -52,126 +44,53 @@ export interface LocationData {
   } | null;
 }
 
-// Plan-based location limits
-const LOCATION_LIMITS: Record<string, number> = {
-  free: 3,
-  pro: 10,
-};
+function revalidateLocationViews() {
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/company");
+  revalidatePath("/dashboard/locations");
+}
 
-/**
- * Get all locations for the current user's listing
- */
-export async function getLocations(): Promise<ActionResult<LocationData[]>> {
-  if (isConvexDataEnabled()) {
-    try {
-      const locations = await queryConvex<LocationData[]>("locations:getDashboardLocations");
-      return { success: true, data: locations };
-    } catch (err) {
-      return { success: false, error: err instanceof Error ? err.message : "Failed to load locations" };
+async function geocodeLocationAddress(data: {
+  street?: string | null;
+  city?: string | null;
+  state?: string | null;
+  postalCode?: string | null;
+}) {
+  const addressParts = [data.street, data.city, data.state, data.postalCode].filter(Boolean);
+  if (addressParts.length === 0) {
+    return { latitude: null, longitude: null, geocoded: false };
+  }
+
+  try {
+    const geocodeResult = await geocodeAddress(`${addressParts.join(", ")}, USA`);
+    if (!geocodeResult) {
+      return { latitude: null, longitude: null, geocoded: false };
     }
-  }
 
-  const profileId = await getCurrentProfileId();
-  if (!profileId) {
-    return { success: false, error: "Not authenticated" };
-  }
-
-  const supabase = await createClient();
-
-  // Get listing
-  const { data: listing } = await supabase
-    .from("listings")
-    .select("id")
-    .eq("profile_id", profileId)
-    .single();
-
-  if (!listing) {
-    return { success: false, error: "No listing found" };
-  }
-
-  const { data: locations, error } = await supabase
-    .from("locations")
-    .select(`
-      id, label, street, city, state, postal_code, latitude, longitude,
-      service_radius_miles, is_primary, is_accepting_clients, created_at, service_types,
-      insurances,
-      contact_phone, contact_email, contact_website, use_company_contact,
-      google_place_id, google_rating, google_rating_count, show_google_reviews,
-      is_featured,
-      location_featured_subscriptions!left (
-        status,
-        billing_interval,
-        current_period_end,
-        cancel_at_period_end
-      )
-    `)
-    .eq("listing_id", listing.id)
-    .order("is_primary", { ascending: false })
-    .order("created_at", { ascending: true });
-
-  if (error) {
     return {
-      success: false,
-      error: toUserFacingSupabaseError({
-        action: "LOCATIONS:getLocations",
-        error,
-        fallback: "We could not load your locations.",
-      }),
+      latitude: geocodeResult.latitude,
+      longitude: geocodeResult.longitude,
+      geocoded: true,
     };
+  } catch {
+    return { latitude: null, longitude: null, geocoded: false };
   }
-
-  return {
-    success: true,
-    data: locations.map((loc) => {
-      // location_featured_subscriptions is returned as an object (not array) due to unique constraint
-      // It can be null if no subscription exists, or an object with subscription data
-      const rawSub = loc.location_featured_subscriptions as unknown;
-      const featuredSub = rawSub && typeof rawSub === "object" && !Array.isArray(rawSub)
-        ? (rawSub as {
-            status: string;
-            billing_interval: string;
-            current_period_end: string | null;
-            cancel_at_period_end: boolean;
-          })
-        : null;
-
-      return {
-        id: loc.id,
-        label: loc.label,
-        street: loc.street,
-        city: loc.city,
-        state: loc.state,
-        postalCode: loc.postal_code,
-        latitude: loc.latitude,
-        longitude: loc.longitude,
-        serviceRadiusMiles: loc.service_radius_miles || 25,
-        isPrimary: loc.is_primary,
-        isAcceptingClients: loc.is_accepting_clients ?? true,
-        createdAt: loc.created_at,
-        serviceTypes: (loc.service_types as ServiceType[]) || ["in_home", "in_center"],
-        insurances: (loc.insurances as string[]) || [],
-        contactPhone: loc.contact_phone,
-        contactEmail: loc.contact_email,
-        contactWebsite: loc.contact_website,
-        useCompanyContact: loc.use_company_contact ?? true,
-        googlePlaceId: loc.google_place_id,
-        googleRating: loc.google_rating,
-        googleRatingCount: loc.google_rating_count,
-        showGoogleReviews: loc.show_google_reviews || false,
-        isFeatured: loc.is_featured || false,
-        featuredSubscription: featuredSub ? {
-          status: featuredSub.status,
-          billingInterval: featuredSub.billing_interval,
-          currentPeriodEnd: featuredSub.current_period_end,
-          cancelAtPeriodEnd: featuredSub.cancel_at_period_end,
-        } : null,
-      };
-    }),
-  };
 }
 
 /**
- * Add a new location
+ * Get all locations for the current user's listing.
+ */
+export async function getLocations(): Promise<ActionResult<LocationData[]>> {
+  try {
+    const locations = await queryConvex<LocationData[]>("locations:getDashboardLocations");
+    return { success: true, data: locations };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : "Failed to load locations" };
+  }
+}
+
+/**
+ * Add a new location.
  */
 export async function addLocation(data: {
   label?: string;
@@ -185,173 +104,50 @@ export async function addLocation(data: {
   serviceTypes: ServiceType[];
   insurances: string[];
   isAcceptingClients?: boolean;
-  // Contact info override
   contactPhone?: string;
   contactEmail?: string;
   contactWebsite?: string;
   useCompanyContact?: boolean;
 }): Promise<ActionResult<{ id: string; geocoded: boolean }>> {
-  if (isConvexDataEnabled()) {
-    try {
-      const result = await mutateConvex<{ id: string; geocoded: boolean }>("locations:addLocation", {
-        label: data.label,
-        street: data.street,
-        city: data.city,
-        state: data.state,
-        postalCode: data.postalCode,
-        latitude: data.latitude,
-        longitude: data.longitude,
-        serviceRadiusMiles: data.serviceRadiusMiles,
-        serviceTypes: data.serviceTypes,
-        insurances: data.insurances,
-        isAcceptingClients: data.isAcceptingClients,
-        contactPhone: data.contactPhone,
-        contactEmail: data.contactEmail,
-        contactWebsite: data.contactWebsite,
-        useCompanyContact: data.useCompanyContact,
-      });
-      revalidatePath("/dashboard");
-      revalidatePath("/dashboard/company");
-      return { success: true, data: result };
-    } catch (err) {
-      return { success: false, error: err instanceof Error ? err.message : "Failed to add location" };
-    }
-  }
+  try {
+    const coordinatesProvided = data.latitude != null && data.longitude != null;
+    const geocodeResult = coordinatesProvided
+      ? { latitude: data.latitude ?? null, longitude: data.longitude ?? null, geocoded: true }
+      : await geocodeLocationAddress({
+          street: data.street,
+          city: data.city,
+          state: data.state,
+          postalCode: data.postalCode,
+        });
 
-  const profileId = await getCurrentProfileId();
-  if (!profileId) {
-    return { success: false, error: "Not authenticated" };
-  }
-
-  const supabase = await createClient();
-
-  // Get listing and profile
-  const { data: listing } = await supabase
-    .from("listings")
-    .select("id")
-    .eq("profile_id", profileId)
-    .single();
-
-  if (!listing) {
-    return { success: false, error: "No listing found" };
-  }
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("plan_tier, subscription_status")
-    .eq("id", profileId)
-    .single();
-
-  if (!profile) {
-    return { success: false, error: "Profile not found" };
-  }
-
-  // Check location limit
-  const { count } = await supabase
-    .from("locations")
-    .select("id", { count: "exact", head: true })
-    .eq("listing_id", listing.id);
-
-  const effectiveTier = getEffectivePlanTier(
-    profile.plan_tier,
-    profile.subscription_status
-  );
-  const limitsResult = await getEffectiveLimits(profileId);
-  const limit = limitsResult.success && limitsResult.data
-    ? limitsResult.data.maxLocations
-    : LOCATION_LIMITS[effectiveTier] || 1;
-  if ((count || 0) >= limit) {
-    return {
-      success: false,
-      error: effectiveTier === "free"
-        ? `Your plan allows a maximum of ${limit} location${limit === 1 ? "" : "s"}. Go Live to unlock more capacity.`
-        : `You've used ${count || 0} of ${limit} locations. Add more capacity from billing to create another location.`,
-    };
-  }
-
-  // Check if this is the first location (make it primary)
-  const isPrimary = (count || 0) === 0;
-
-  // Auto-geocode the address if coordinates not provided
-  let latitude = data.latitude || null;
-  let longitude = data.longitude || null;
-  let geocodeSuccess = false;
-
-  if (!latitude || !longitude) {
-    // Build full address for geocoding
-    const addressParts = [
-      data.street,
-      data.city,
-      data.state,
-      data.postalCode,
-    ].filter(Boolean);
-    const fullAddress = addressParts.join(", ") + ", USA";
-
-    try {
-      const geocodeResult = await geocodeAddress(fullAddress);
-      if (geocodeResult) {
-        latitude = geocodeResult.latitude;
-        longitude = geocodeResult.longitude;
-        geocodeSuccess = true;
-      }
-    } catch {
-      // Geocoding failed - continue without coordinates, location will still be saved
-    }
-  } else {
-    geocodeSuccess = true;
-  }
-
-  // Map service_types array to legacy service_mode value for backward compatibility
-  const legacyServiceMode = data.serviceTypes?.includes("in_home") && data.serviceTypes?.includes("in_center")
-    ? "both"
-    : data.serviceTypes?.includes("in_home")
-    ? "in_home"
-    : "center_based";
-
-  const { data: newLocation, error } = await supabase
-    .from("locations")
-    .insert({
-      listing_id: listing.id,
-      label: data.label || null,
-      street: data.street || null,
+    const result = await mutateConvex<{ id: string; geocoded: boolean }>("locations:addLocation", {
+      label: data.label,
+      street: data.street,
       city: data.city,
       state: data.state,
-      postal_code: data.postalCode || null,
-      latitude,
-      longitude,
-      service_radius_miles: data.serviceRadiusMiles || 25,
-      is_primary: isPrimary,
-      is_accepting_clients: data.isAcceptingClients ?? true,
-      service_types: data.serviceTypes,
-      service_mode: legacyServiceMode, // Legacy column - still has NOT NULL constraint
+      postalCode: data.postalCode,
+      latitude: geocodeResult.latitude,
+      longitude: geocodeResult.longitude,
+      serviceRadiusMiles: data.serviceRadiusMiles,
+      serviceTypes: data.serviceTypes,
       insurances: data.insurances,
-      // Contact info override
-      contact_phone: data.contactPhone || null,
-      contact_email: data.contactEmail || null,
-      contact_website: data.contactWebsite || null,
-      use_company_contact: data.useCompanyContact ?? true,
-    })
-    .select("id")
-    .single();
+      isAcceptingClients: data.isAcceptingClients,
+      contactPhone: data.contactPhone,
+      contactEmail: data.contactEmail,
+      contactWebsite: data.contactWebsite,
+      useCompanyContact: data.useCompanyContact,
+      geocoded: geocodeResult.geocoded,
+    });
 
-  if (error) {
-    return {
-      success: false,
-      error: toUserFacingSupabaseError({
-        action: "LOCATIONS:addLocation",
-        error,
-        fallback: "We could not save this location. Please try again.",
-      }),
-    };
+    revalidateLocationViews();
+    return { success: true, data: result };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : "Failed to add location" };
   }
-
-  revalidatePath("/dashboard");
-  revalidatePath("/dashboard/company");
-  return { success: true, data: { id: newLocation.id, geocoded: geocodeSuccess } };
 }
 
 /**
- * Update an existing location
+ * Update an existing location.
  */
 export async function updateLocation(
   locationId: string,
@@ -367,373 +163,135 @@ export async function updateLocation(
     serviceTypes?: ServiceType[];
     insurances?: string[];
     isAcceptingClients?: boolean;
-    // Contact info override
     contactPhone?: string;
     contactEmail?: string;
     contactWebsite?: string;
     useCompanyContact?: boolean;
   }
 ): Promise<ActionResult<{ geocoded: boolean }>> {
-  if (isConvexDataEnabled()) {
-    try {
-      const result = await mutateConvex<{ geocoded: boolean }>("locations:updateLocation", {
-        locationId,
-        label: data.label,
-        street: data.street,
-        city: data.city,
-        state: data.state,
-        postalCode: data.postalCode,
-        latitude: data.latitude,
-        longitude: data.longitude,
-        serviceRadiusMiles: data.serviceRadiusMiles,
-        serviceTypes: data.serviceTypes,
-        insurances: data.insurances,
-        isAcceptingClients: data.isAcceptingClients,
-        contactPhone: data.contactPhone,
-        contactEmail: data.contactEmail,
-        contactWebsite: data.contactWebsite,
-        useCompanyContact: data.useCompanyContact,
+  try {
+    const locationsResult = await getLocations();
+    if (!locationsResult.success || !locationsResult.data) {
+      return {
+        success: false,
+        error: !locationsResult.success
+          ? locationsResult.error
+          : "Failed to load locations",
+      };
+    }
+
+    const currentLocation = locationsResult.data.find((location) => location.id === locationId);
+    if (!currentLocation) {
+      return { success: false, error: "Location not found" };
+    }
+
+    const addressChanged =
+      data.street !== undefined ||
+      data.city !== undefined ||
+      data.state !== undefined ||
+      data.postalCode !== undefined;
+
+    let latitude: number | null | undefined = data.latitude;
+    let longitude: number | null | undefined = data.longitude;
+    let geocoded = false;
+
+    if (addressChanged) {
+      const geocodeResult = await geocodeLocationAddress({
+        street: data.street ?? currentLocation.street,
+        city: data.city ?? currentLocation.city,
+        state: data.state ?? currentLocation.state,
+        postalCode: data.postalCode ?? currentLocation.postalCode,
       });
-      revalidatePath("/dashboard");
-      revalidatePath("/dashboard/company");
-      return { success: true, data: result };
-    } catch (err) {
-      return { success: false, error: err instanceof Error ? err.message : "Failed to update location" };
+      latitude = geocodeResult.latitude;
+      longitude = geocodeResult.longitude;
+      geocoded = geocodeResult.geocoded;
+    } else if (data.latitude !== undefined || data.longitude !== undefined) {
+      latitude = data.latitude ?? null;
+      longitude = data.longitude ?? null;
+      geocoded = latitude != null && longitude != null;
     }
+
+    const result = await mutateConvex<{ geocoded: boolean }>("locations:updateLocation", {
+      locationId,
+      label: data.label,
+      street: data.street,
+      city: data.city,
+      state: data.state,
+      postalCode: data.postalCode,
+      latitude: addressChanged || data.latitude !== undefined ? (latitude ?? null) : undefined,
+      longitude: addressChanged || data.longitude !== undefined ? (longitude ?? null) : undefined,
+      serviceRadiusMiles: data.serviceRadiusMiles,
+      serviceTypes: data.serviceTypes,
+      insurances: data.insurances,
+      isAcceptingClients: data.isAcceptingClients,
+      contactPhone: data.contactPhone,
+      contactEmail: data.contactEmail,
+      contactWebsite: data.contactWebsite,
+      useCompanyContact: data.useCompanyContact,
+      geocoded,
+    });
+
+    revalidateLocationViews();
+    return { success: true, data: result };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : "Failed to update location" };
   }
-
-  const profileId = await getCurrentProfileId();
-  if (!profileId) {
-    return { success: false, error: "Not authenticated" };
-  }
-
-  const supabase = await createClient();
-
-  // Verify ownership
-  const { data: location } = await supabase
-    .from("locations")
-    .select("id, listing_id, listings!inner(profile_id)")
-    .eq("id", locationId)
-    .single();
-
-  if (!location) {
-    return { success: false, error: "Location not found" };
-  }
-
-  const listing = location.listings as unknown as { profile_id: string };
-  if (listing.profile_id !== profileId) {
-    return { success: false, error: "Not authorized" };
-  }
-
-  const updateData: Record<string, unknown> = {};
-  if (data.label !== undefined) updateData.label = data.label || null;
-  if (data.street !== undefined) updateData.street = data.street || null;
-  if (data.city !== undefined) updateData.city = data.city;
-  if (data.state !== undefined) updateData.state = data.state;
-  if (data.postalCode !== undefined) updateData.postal_code = data.postalCode || null;
-  if (data.serviceRadiusMiles !== undefined) updateData.service_radius_miles = data.serviceRadiusMiles;
-  if (data.serviceTypes !== undefined) updateData.service_types = data.serviceTypes;
-  if (data.insurances !== undefined) updateData.insurances = data.insurances;
-  if (data.isAcceptingClients !== undefined) updateData.is_accepting_clients = data.isAcceptingClients;
-  // Contact info override
-  if (data.contactPhone !== undefined) updateData.contact_phone = data.contactPhone || null;
-  if (data.contactEmail !== undefined) updateData.contact_email = data.contactEmail || null;
-  if (data.contactWebsite !== undefined) updateData.contact_website = data.contactWebsite || null;
-  if (data.useCompanyContact !== undefined) updateData.use_company_contact = data.useCompanyContact;
-
-  // Check if address fields changed - if so, re-geocode
-  const addressChanged =
-    data.street !== undefined ||
-    data.city !== undefined ||
-    data.state !== undefined ||
-    data.postalCode !== undefined;
-
-  let geocodeSuccess = false;
-
-  if (addressChanged) {
-    // Get current location data to merge with updates
-    const { data: currentLocation } = await supabase
-      .from("locations")
-      .select("street, city, state, postal_code")
-      .eq("id", locationId)
-      .single();
-
-    if (currentLocation) {
-      const street = data.street ?? currentLocation.street;
-      const city = data.city ?? currentLocation.city;
-      const state = data.state ?? currentLocation.state;
-      const postalCode = data.postalCode ?? currentLocation.postal_code;
-
-      const addressParts = [street, city, state, postalCode].filter(Boolean);
-      const fullAddress = addressParts.join(", ") + ", USA";
-
-      try {
-        const geocodeResult = await geocodeAddress(fullAddress);
-        if (geocodeResult) {
-          updateData.latitude = geocodeResult.latitude;
-          updateData.longitude = geocodeResult.longitude;
-          geocodeSuccess = true;
-        } else {
-          // Clear coordinates if geocoding fails
-          updateData.latitude = null;
-          updateData.longitude = null;
-        }
-      } catch {
-        // Geocoding failed - clear coordinates
-        updateData.latitude = null;
-        updateData.longitude = null;
-      }
-    }
-  } else if (data.latitude !== undefined || data.longitude !== undefined) {
-    // Manual coordinate update
-    if (data.latitude !== undefined) updateData.latitude = data.latitude || null;
-    if (data.longitude !== undefined) updateData.longitude = data.longitude || null;
-    geocodeSuccess = data.latitude != null && data.longitude != null;
-  }
-
-  const { error } = await supabase
-    .from("locations")
-    .update(updateData)
-    .eq("id", locationId);
-
-  if (error) {
-    return {
-      success: false,
-      error: toUserFacingSupabaseError({
-        action: "LOCATIONS:updateLocation",
-        error,
-        fallback: "We could not update this location. Please try again.",
-      }),
-    };
-  }
-
-  revalidatePath("/dashboard");
-  revalidatePath("/dashboard/company");
-  return { success: true, data: { geocoded: geocodeSuccess } };
 }
 
 /**
- * Delete a location
+ * Delete a location.
  */
 export async function deleteLocation(locationId: string): Promise<ActionResult> {
-  if (isConvexDataEnabled()) {
-    try {
-      await mutateConvex("locations:deleteLocation", { locationId });
-      revalidatePath("/dashboard");
-      revalidatePath("/dashboard/company");
-      revalidatePath("/dashboard/locations");
-      return { success: true };
-    } catch (err) {
-      return { success: false, error: err instanceof Error ? err.message : "Failed to delete location" };
-    }
+  try {
+    await mutateConvex("locations:deleteLocation", { locationId });
+    revalidateLocationViews();
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : "Failed to delete location" };
   }
-
-  const profileId = await getCurrentProfileId();
-  if (!profileId) {
-    return { success: false, error: "Not authenticated" };
-  }
-
-  const supabase = await createClient();
-
-  // Verify ownership and check if primary
-  const { data: location } = await supabase
-    .from("locations")
-    .select("id, listing_id, is_primary, listings!inner(profile_id)")
-    .eq("id", locationId)
-    .single();
-
-  if (!location) {
-    return { success: false, error: "Location not found" };
-  }
-
-  const listing = location.listings as unknown as { profile_id: string };
-  if (listing.profile_id !== profileId) {
-    return { success: false, error: "Not authorized" };
-  }
-
-  // Don't allow deleting the only location
-  const { count } = await supabase
-    .from("locations")
-    .select("id", { count: "exact", head: true })
-    .eq("listing_id", location.listing_id);
-
-  if ((count || 0) <= 1) {
-    return { success: false, error: "Cannot delete the only location" };
-  }
-
-  // Check for active featured subscription and cancel it
-  const adminClient = await createAdminClient();
-  const { data: featuredSub } = await adminClient
-    .from("location_featured_subscriptions")
-    .select("stripe_subscription_id, status")
-    .eq("location_id", locationId)
-    .eq("status", "active")
-    .single();
-
-  if (featuredSub) {
-    // Cancel the Stripe subscription immediately
-    try {
-      await stripe.subscriptions.cancel(featuredSub.stripe_subscription_id);
-      console.log(`Cancelled featured subscription for location ${locationId}`);
-    } catch (err) {
-      console.error("Failed to cancel featured subscription:", err);
-      // Continue with deletion anyway - the webhook will handle cleanup
-      // and the CASCADE delete will remove the subscription record
-    }
-  }
-
-  const { error } = await supabase.from("locations").delete().eq("id", locationId);
-
-  if (error) {
-    return {
-      success: false,
-      error: toUserFacingSupabaseError({
-        action: "LOCATIONS:deleteLocation",
-        error,
-        fallback: "We could not delete this location. Please try again.",
-      }),
-    };
-  }
-
-  // If we deleted the primary location, make another one primary
-  if (location.is_primary) {
-    const { data: newPrimary } = await supabase
-      .from("locations")
-      .select("id")
-      .eq("listing_id", location.listing_id)
-      .limit(1)
-      .single();
-
-    if (newPrimary) {
-      await supabase
-        .from("locations")
-        .update({ is_primary: true })
-        .eq("id", newPrimary.id);
-    }
-  }
-
-  revalidatePath("/dashboard");
-  revalidatePath("/dashboard/company");
-  revalidatePath("/dashboard/locations");
-  return { success: true };
 }
 
 /**
- * Set a location as the primary location
+ * Set a location as the primary location.
  */
 export async function setPrimaryLocation(locationId: string): Promise<ActionResult> {
-  if (isConvexDataEnabled()) {
-    try {
-      await mutateConvex("locations:setPrimaryLocation", { locationId });
-      revalidatePath("/dashboard");
-      revalidatePath("/dashboard/company");
-      return { success: true };
-    } catch (err) {
-      return { success: false, error: err instanceof Error ? err.message : "Failed to set primary location" };
-    }
+  try {
+    await mutateConvex("locations:setPrimaryLocation", { locationId });
+    revalidateLocationViews();
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : "Failed to set primary location" };
   }
-
-  const profileId = await getCurrentProfileId();
-  if (!profileId) {
-    return { success: false, error: "Not authenticated" };
-  }
-
-  const supabase = await createClient();
-
-  // Verify ownership
-  const { data: location } = await supabase
-    .from("locations")
-    .select("id, listing_id, listings!inner(profile_id)")
-    .eq("id", locationId)
-    .single();
-
-  if (!location) {
-    return { success: false, error: "Location not found" };
-  }
-
-  const listing = location.listings as unknown as { profile_id: string };
-  if (listing.profile_id !== profileId) {
-    return { success: false, error: "Not authorized" };
-  }
-
-  // Remove primary from all other locations
-  await supabase
-    .from("locations")
-    .update({ is_primary: false })
-    .eq("listing_id", location.listing_id);
-
-  // Set this one as primary
-  const { error } = await supabase
-    .from("locations")
-    .update({ is_primary: true })
-    .eq("id", locationId);
-
-  if (error) {
-    return {
-      success: false,
-      error: toUserFacingSupabaseError({
-        action: "LOCATIONS:setPrimaryLocation",
-        error,
-        fallback: "We could not update your primary location. Please try again.",
-      }),
-    };
-  }
-
-  revalidatePath("/dashboard");
-  revalidatePath("/dashboard/company");
-  return { success: true };
 }
 
 /**
- * Get location limit for the current user's plan
+ * Get location limit for the current user's plan.
  */
 export async function getLocationLimit(): Promise<ActionResult<{ limit: number; current: number }>> {
-  if (isConvexDataEnabled()) {
-    try {
-      const result = await queryConvex<{ limit: number; current: number }>("locations:getLocationLimit");
-      return { success: true, data: result };
-    } catch (err) {
-      return { success: false, error: err instanceof Error ? err.message : "Failed to get location limit" };
+  try {
+    const [limitsResult, locationsResult] = await Promise.all([
+      getEffectiveLimits(""),
+      getLocations(),
+    ]);
+
+    if (!locationsResult.success || !locationsResult.data) {
+      return {
+        success: false,
+        error: !locationsResult.success
+          ? locationsResult.error
+          : "Failed to get location limit",
+      };
     }
+
+    const limit = limitsResult.success && limitsResult.data ? limitsResult.data.maxLocations : 1;
+    return {
+      success: true,
+      data: {
+        limit,
+        current: locationsResult.data.length,
+      },
+    };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : "Failed to get location limit" };
   }
-
-  const profileId = await getCurrentProfileId();
-  if (!profileId) {
-    return { success: false, error: "Not authenticated" };
-  }
-
-  const supabase = await createClient();
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("plan_tier")
-    .eq("id", profileId)
-    .single();
-
-  if (!profile) {
-    return { success: false, error: "Profile not found" };
-  }
-
-  const { data: listing } = await supabase
-    .from("listings")
-    .select("id")
-    .eq("profile_id", profileId)
-    .single();
-
-  if (!listing) {
-    return { success: true, data: { limit: LOCATION_LIMITS[profile.plan_tier] || 1, current: 0 } };
-  }
-
-  const { count } = await supabase
-    .from("locations")
-    .select("id", { count: "exact", head: true })
-    .eq("listing_id", listing.id);
-
-  return {
-    success: true,
-    data: {
-      limit: LOCATION_LIMITS[profile.plan_tier] || 1,
-      current: count || 0,
-    },
-  };
 }

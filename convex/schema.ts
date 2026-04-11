@@ -368,7 +368,7 @@ export default defineSchema({
     .index("by_event_type", ["eventType"]),
 
   migrationImports: defineTable({
-    sourceSystem: v.literal("supabase"),
+    sourceSystem: v.string(),
     sourceTable: v.string(),
     sourceId: v.string(),
     targetTable: v.optional(v.string()),

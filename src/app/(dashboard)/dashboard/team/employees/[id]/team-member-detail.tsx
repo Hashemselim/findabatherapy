@@ -78,8 +78,10 @@ import {
   addTeamDocument,
   deleteTeamDocument,
   createTeamTask,
+  updateTeamTask,
+  completeTeamTask,
+  deleteTeamTask,
 } from "@/lib/actions/team";
-import { updateClientTask, completeClientTask, deleteClientTask } from "@/lib/actions/clients";
 import { TEAM_ROLE_OPTIONS } from "@/lib/validations/team";
 import { TASK_STATUS_OPTIONS } from "@/lib/validations/clients";
 
@@ -380,9 +382,9 @@ export function TeamMemberDetail({
     startTransition(async () => {
       let result;
       if (newStatus === "completed") {
-        result = await completeClientTask(taskId);
+        result = await completeTeamTask(taskId);
       } else {
-        result = await updateClientTask(taskId, {
+        result = await updateTeamTask(taskId, {
           status: newStatus as "pending" | "in_progress",
         });
       }
@@ -417,7 +419,7 @@ export function TeamMemberDetail({
         result = await deleteTeamDocument(deleteTarget.id);
         if (result.success) setDocuments((prev) => prev.filter((d) => d.id !== deleteTarget.id));
       } else if (deleteTarget.type === "task") {
-        result = await deleteClientTask(deleteTarget.id);
+        result = await deleteTeamTask(deleteTarget.id);
         if (result.success) setTasks((prev) => prev.filter((t) => t.id !== deleteTarget.id));
       }
       setDeleteTarget(null);
