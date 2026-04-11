@@ -49,6 +49,30 @@ export const domains: Record<Brand, DomainConfig> = {
   },
 };
 
+export function isGoodabaAppPath(pathname: string): boolean {
+  return (
+    pathname === "/" ||
+    pathname === "" ||
+    pathname === "/goodaba" ||
+    pathname === "/goodaba/pricing" ||
+    pathname.startsWith("/auth") ||
+    pathname.startsWith("/dashboard") ||
+    pathname.startsWith("/jobs") ||
+    pathname.startsWith("/job/") ||
+    pathname.startsWith("/employers") ||
+    pathname.startsWith("/behaviorwork") ||
+    pathname.startsWith("/pricing") ||
+    /^\/provider\/[^/]+\/(website|contact|intake|documents|resources|careers|jobs)(\/.*)?$/.test(
+      pathname
+    ) ||
+    Boolean(
+      pathname.match(
+        /^\/(bcba|bcaba|rbt|bt|clinical-director|regional-director|executive-director|admin)-jobs/
+      )
+    )
+  );
+}
+
 function normalizeHost(host: string): string {
   return host.toLowerCase().replace(/:\d+$/, "");
 }
@@ -86,16 +110,7 @@ export function getBrandFromHost(host: string): Brand {
  * Detect brand from pathname (useful on localhost).
  */
 export function getBrandFromPath(pathname: string): Brand {
-  if (
-    pathname.startsWith("/jobs") ||
-    pathname.startsWith("/job/") ||
-    pathname.startsWith("/employers") ||
-    pathname.startsWith("/behaviorwork") ||
-    pathname.startsWith("/pricing") ||
-    pathname.match(
-      /^\/(bcba|bcaba|rbt|bt|clinical-director|regional-director|executive-director|admin)-jobs/
-    )
-  ) {
+  if (isGoodabaAppPath(pathname)) {
     return "goodaba";
   }
 

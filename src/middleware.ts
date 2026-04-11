@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
 import { isDevOnboardingPreviewEnabled } from "@/lib/onboarding-preview";
-import { domains } from "@/lib/utils/domains";
+import { domains, isGoodabaAppPath } from "@/lib/utils/domains";
 
 const CANONICAL_GOODABA_PREFIXES = ["/auth", "/dashboard"];
 const matchesClerkProtectedRoute = createRouteMatcher(["/dashboard(.*)"]);
@@ -238,6 +238,16 @@ async function handlePlatformRouting(request: NextRequest) {
     return NextResponse.redirect(redirectUrl, 308);
   }
 
+  if (onLocalhost && (pathname === "/" || pathname === "")) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/goodaba-internal";
+    return NextResponse.rewrite(url, {
+      request: {
+        headers: withPlatformRequestHeaders(request),
+      },
+    });
+  }
+
   if (onLegacyBehaviorWorkHost && production) {
     if (pathname === "/" || pathname === "/pricing") {
       return redirectToGoodaba(request, "/");
@@ -392,12 +402,7 @@ async function handlePlatformRouting(request: NextRequest) {
 
   if (onGoodabaHost) {
     const explicitGoodabaPath =
-      pathname.startsWith("/jobs") ||
-      pathname.startsWith("/provider") ||
-      pathname.startsWith("/auth") ||
-      pathname.startsWith("/dashboard") ||
-      pathname.startsWith("/pricing") ||
-      pathname.startsWith("/behaviorwork");
+      isGoodabaAppPath(pathname) || pathname.startsWith("/provider");
 
     const clearlyTherapyPath =
       pathname.startsWith("/search") ||
