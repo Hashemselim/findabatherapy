@@ -417,7 +417,7 @@ export function TasksList({ initialTasks, clients = [] }: TasksListProps) {
             : null
         }
         clients={clients}
-        showClientSelector={!editingTask}
+        showClientSelector
         onSuccess={handleFormSuccess}
       />
 

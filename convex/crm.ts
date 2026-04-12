@@ -1639,8 +1639,35 @@ export const getTasks = query({
         return new Date(aDate).getTime() - new Date(bDate).getTime();
       });
 
+    // Resolve client names for the tasks
+    const mappedTasks = filtered.slice(offset, offset + limit).map(mapTask);
+    const clientIds = new Set(
+      mappedTasks.map((t) => t.clientId).filter(Boolean) as string[],
+    );
+
+    const clientNameMap = new Map<string, string>();
+    for (const cid of clientIds) {
+      try {
+        const clientRow = await ctx.db.get(asId<"crmRecords">(cid));
+        if (clientRow && !clientRow.deletedAt) {
+          const p = asRecord(clientRow.payload);
+          const name = [readString(p.firstName), readString(p.lastName)]
+            .filter(Boolean)
+            .join(" ");
+          clientNameMap.set(cid, name || "Unnamed Client");
+        }
+      } catch {
+        // skip
+      }
+    }
+
     return {
-      tasks: filtered.slice(offset, offset + limit).map(mapTask),
+      tasks: mappedTasks.map((t) => ({
+        ...t,
+        // Add fields expected by the frontend
+        client_id: t.clientId ?? null,
+        client_name: t.clientId ? (clientNameMap.get(t.clientId) ?? null) : null,
+      })),
       total: filtered.length,
     };
   },
