@@ -107,7 +107,14 @@ export function NoteFormDialog({
         });
         if (!result.success) { toast.error(result.error); return; }
         toast.success("Note added");
-        if (result.data) onNoteAdded?.(result.data);
+        if (result.data) {
+          // Enrich with client name from the clients list since the server action doesn't look it up
+          const enriched = {
+            ...result.data,
+            clientName: clientId ? (clients.find((c) => c.id === clientId)?.name ?? null) : null,
+          };
+          onNoteAdded?.(enriched);
+        }
       }
       onOpenChange(false);
     } catch {
