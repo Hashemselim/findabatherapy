@@ -63,7 +63,7 @@ export async function addClientNote(input: {
   body: string;
 }): Promise<ActionResult<ClientNote>> {
   try {
-    const { mutateConvex, queryConvex } = await import("@/lib/platform/convex/server");
+    const { mutateConvex } = await import("@/lib/platform/convex/server");
 
     const result = await mutateConvex<{ id: string }>("clientNotes:addNote", {
       clientId: input.clientId || undefined,
@@ -75,10 +75,6 @@ export async function addClientNote(input: {
       return { success: false, error: "Failed to create note" };
     }
 
-    // Fetch the created note to return full data
-    const notes = await queryConvex<ClientNote[]>("clientNotes:getClientNotes", {});
-    const created = notes?.find((n) => n.id === result.id);
-
     if (input.clientId) {
       revalidatePath(`/dashboard/clients/${input.clientId}`);
     }
@@ -86,7 +82,7 @@ export async function addClientNote(input: {
 
     return {
       success: true,
-      data: created ?? {
+      data: {
         id: result.id,
         clientId: input.clientId ?? null,
         clientName: null,
