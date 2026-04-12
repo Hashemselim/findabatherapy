@@ -2,6 +2,7 @@ import "server-only";
 
 import { cookies } from "next/headers";
 import type { NextResponse } from "next/server";
+import { isConvexDataEnabled } from "@/lib/platform/config";
 
 const COOKIE_NAMES = {
   intake: "public_intake_access",

@@ -285,9 +285,9 @@ describe("client portal UI", () => {
     render(<ClientPortalManager data={basePortalData} />);
 
     expect(screen.getByRole("heading", { name: /milo carter/i })).toBeInTheDocument();
-    expect(screen.getByText(/^client portal$/i)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /copy sign-in page link/i })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /preview family view/i })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: /^overview$/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^copy link$/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /^preview$/i })).toBeInTheDocument();
   });
 
   it("renders the public family portal task-first experience", () => {

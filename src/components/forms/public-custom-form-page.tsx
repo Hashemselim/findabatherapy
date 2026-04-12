@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   ChevronRight,
@@ -530,9 +530,23 @@ export function PublicCustomFormPage({
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const lastServerAnswersJsonRef = useRef(JSON.stringify(data.draftAnswers));
 
   useEffect(() => {
-    setAnswers(data.draftAnswers);
+    const nextServerAnswersJson = JSON.stringify(data.draftAnswers);
+    if (nextServerAnswersJson === lastServerAnswersJsonRef.current) {
+      return;
+    }
+
+    setAnswers((current) => {
+      const currentAnswersJson = JSON.stringify(current);
+      if (currentAnswersJson !== lastServerAnswersJsonRef.current) {
+        return current;
+      }
+
+      return data.draftAnswers;
+    });
+    lastServerAnswersJsonRef.current = nextServerAnswersJson;
   }, [data.draftAnswers]);
 
   const brandColor = brandColorFromData(data);

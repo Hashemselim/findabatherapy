@@ -156,11 +156,8 @@ test.describe("custom forms end-to-end", () => {
         await providerPage.goto(`${BASE_URL}/dashboard/clients/${createdClientId}/portal`, {
           waitUntil: "domcontentloaded",
         });
-        await expect(
-          providerPage.getByRole("tab", { name: "Guardians", exact: true }),
-        ).toBeVisible();
-        await expect(providerPage.getByText("Live for family access", { exact: true })).toBeVisible();
-        await providerPage.getByRole("tab", { name: "Guardians", exact: true }).click();
+        await expect(providerPage.getByText("Parents / Guardians", { exact: true })).toBeVisible();
+        await expect(providerPage.getByText("Portal: active", { exact: true })).toBeVisible();
         await expect(providerPage.getByText(`${guardianFirstName} ${guardianLastName}`, { exact: true })).toBeVisible();
         return createdClientId;
       });
@@ -195,14 +192,20 @@ test.describe("custom forms end-to-end", () => {
 
         await gotoWithRecovery(
           providerPage,
-          `${BASE_URL}/dashboard/clients/${clientId}/portal`,
-          providerPage.getByRole("tab", { name: "Overview", exact: true }),
+          `${BASE_URL}/dashboard/clients/${clientId}`,
+          providerPage.getByRole("tab", { name: "Settings", exact: true }),
         );
-        await providerPage.getByRole("tab", { name: "Overview", exact: true }).click();
-        await providerPage.getByRole("button", { name: "Copy sign-in page link", exact: true }).click();
-        const signInPageInput = providerPage.locator('input[readonly]').first();
-        await expect(signInPageInput).toHaveValue(/\/portal\/.+\/sign-in/);
-        const familyInviteUrl = await signInPageInput.inputValue();
+        await providerPage.getByRole("tab", { name: "Settings", exact: true }).click();
+        const previousSignInClipboardValue = await providerPage.evaluate(async () => navigator.clipboard.readText());
+        await providerPage.getByRole("button", { name: "Copy sign-in link", exact: true }).click();
+        await expect
+          .poll(
+            async () => providerPage.evaluate(async () => navigator.clipboard.readText()),
+            { timeout: 15000 },
+          )
+          .not.toBe(previousSignInClipboardValue);
+        const familyInviteUrl = await providerPage.evaluate(async () => navigator.clipboard.readText());
+        expect(familyInviteUrl).toMatch(/\/portal\/.+\/sign-in/);
         const familyContext = await browser.newContext({
           ...projectContextOptions(testInfo),
           storageState: { cookies: [], origins: [] },
@@ -261,7 +264,14 @@ test.describe("custom forms end-to-end", () => {
         await publicPage.getByLabel(shortTextQuestion, { exact: true }).fill("Milo");
         await openSelectByLabel(publicPage, singleSelectQuestion);
         await publicPage.getByRole("option", { name: "Home", exact: true }).click();
+        await expect(
+          questionBlockByText(publicPage, singleSelectQuestion).getByRole("combobox").first(),
+        ).toContainText("Home");
         await publicPage.getByLabel("Yes", { exact: true }).click();
+        await expect(publicPage.getByLabel("Yes", { exact: true })).toBeChecked();
+        await expect(
+          publicPage.getByText("Progress saved automatically", { exact: true }),
+        ).toBeVisible({ timeout: 15000 });
         await publicPage.getByRole("button", { name: "Submit form", exact: true }).click();
         await publicPage.waitForURL(/\/submitted$/, { timeout: 30000, waitUntil: "domcontentloaded" });
         await expect(publicPage.getByRole("heading", { name: "Form submitted", exact: true })).toBeVisible();
@@ -911,14 +921,20 @@ test.describe("custom forms end-to-end", () => {
 
         await gotoWithRecovery(
           providerPage,
-          `${BASE_URL}/dashboard/clients/${clientId}/portal`,
-          providerPage.getByRole("tab", { name: "Overview", exact: true }),
+          `${BASE_URL}/dashboard/clients/${clientId}`,
+          providerPage.getByRole("tab", { name: "Settings", exact: true }),
         );
-        await providerPage.getByRole("tab", { name: "Overview", exact: true }).click();
-        await providerPage.getByRole("button", { name: "Copy sign-in page link", exact: true }).click();
-        const signInPageInput = providerPage.locator('input[readonly]').first();
-        await expect(signInPageInput).toHaveValue(/\/portal\/.+\/sign-in/);
-        const familyInviteUrl = await signInPageInput.inputValue();
+        await providerPage.getByRole("tab", { name: "Settings", exact: true }).click();
+        const previousSignInClipboardValue = await providerPage.evaluate(async () => navigator.clipboard.readText());
+        await providerPage.getByRole("button", { name: "Copy sign-in link", exact: true }).click();
+        await expect
+          .poll(
+            async () => providerPage.evaluate(async () => navigator.clipboard.readText()),
+            { timeout: 15000 },
+          )
+          .not.toBe(previousSignInClipboardValue);
+        const familyInviteUrl = await providerPage.evaluate(async () => navigator.clipboard.readText());
+        expect(familyInviteUrl).toMatch(/\/portal\/.+\/sign-in/);
         const familyContext = await browser.newContext({
           storageState: { cookies: [], origins: [] },
           recordVideo: {
@@ -992,7 +1008,9 @@ test.describe("custom forms end-to-end", () => {
         await questionBlockByText(familyPage, recordsQuestion).getByLabel("Yes", { exact: true }).click();
         await expect(familyPage.getByLabel(contextQuestion, { exact: true })).toBeVisible();
         await familyPage.getByLabel(contextQuestion, { exact: true }).fill("Family shared updated school observations and home routines.");
-        await familyPage.waitForTimeout(1800);
+        await expect(
+          familyPage.getByText("Progress saved automatically", { exact: true }),
+        ).toBeVisible({ timeout: 15000 });
         await familyPage.reload({ waitUntil: "domcontentloaded" });
 
         await expect(familyPage.getByLabel(preferredNameQuestion, { exact: true })).toHaveValue("Nora");
