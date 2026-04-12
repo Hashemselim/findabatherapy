@@ -517,8 +517,55 @@ export async function getClientById(
   if (isConvexDataEnabled()) {
     try {
       const { queryConvex } = await import("@/lib/platform/convex/server");
-      const result = await queryConvex<ClientDetail>("crm:getClientById", { clientId });
-      return { success: true, data: result };
+      // Convex returns camelCase fields; map to snake_case expected by ClientDetail
+      const raw = await queryConvex<Record<string, unknown>>("crm:getClientById", { clientId });
+      const mapped = {
+        ...raw,
+        // Map top-level client fields from Convex camelCase to expected snake_case
+        child_first_name: raw.firstName as string | null ?? raw.child_first_name as string | null ?? null,
+        child_last_name: raw.lastName as string | null ?? raw.child_last_name as string | null ?? null,
+        child_date_of_birth: raw.dateOfBirth as string | null ?? raw.child_date_of_birth as string | null ?? null,
+        child_diagnosis: raw.child_diagnosis ?? [],
+        child_primary_concerns: raw.child_primary_concerns ?? null,
+        child_aba_history: raw.child_aba_history ?? null,
+        child_school_name: raw.child_school_name ?? null,
+        child_school_district: raw.child_school_district ?? null,
+        child_grade_level: raw.child_grade_level ?? null,
+        child_other_therapies: raw.child_other_therapies ?? null,
+        child_pediatrician_name: raw.child_pediatrician_name ?? null,
+        child_pediatrician_phone: raw.child_pediatrician_phone ?? null,
+        referral_source: raw.referralSource as string | null ?? raw.referral_source as string | null ?? null,
+        referral_date: raw.referral_date ?? null,
+        service_start_date: raw.service_start_date ?? null,
+        service_end_date: raw.service_end_date ?? null,
+        funding_source: raw.funding_source ?? null,
+        preferred_language: raw.preferred_language ?? null,
+        profile_id: raw.workspaceId as string ?? raw.profile_id as string ?? "",
+        status: raw.status as string ?? raw.stage as string ?? "inquiry",
+        created_at: raw.createdAt as string ?? raw.created_at as string ?? new Date().toISOString(),
+        updated_at: raw.updatedAt as string ?? raw.updated_at as string ?? new Date().toISOString(),
+        // Sub-records: map parent fields from Convex format
+        parents: Array.isArray(raw.parents) ? (raw.parents as Record<string, unknown>[]).map((p) => ({
+          ...p,
+          first_name: p.first_name ?? p.firstName ?? null,
+          last_name: p.last_name ?? p.lastName ?? null,
+          is_primary: p.is_primary ?? p.isPrimary ?? false,
+          created_at: p.createdAt ?? p.created_at ?? new Date().toISOString(),
+        })) : [],
+        locations: Array.isArray(raw.locations) ? (raw.locations as Record<string, unknown>[]).map((l) => ({
+          ...l,
+          is_primary: l.is_primary ?? l.isPrimary ?? false,
+          street_address: l.street_address ?? l.streetAddress ?? null,
+          postal_code: l.postal_code ?? l.postalCode ?? null,
+          created_at: l.createdAt ?? l.created_at ?? new Date().toISOString(),
+        })) : [],
+        insurances: raw.insurances ?? [],
+        authorizations: raw.authorizations ?? [],
+        documents: raw.documents ?? [],
+        tasks: raw.tasks ?? [],
+        contacts: raw.contacts ?? [],
+      } as unknown as ClientDetail;
+      return { success: true, data: mapped };
     } catch (err) {
       return { success: false, error: err instanceof Error ? err.message : "Client not found" };
     }
