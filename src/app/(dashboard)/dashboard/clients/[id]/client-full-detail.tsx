@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
-import { ArrowLeft, Mail, Phone, Plus } from "lucide-react";
+import { ArrowLeft, Mail, Phone, Plus, StickyNote } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -55,6 +55,7 @@ export function ClientFullDetail({ client, agreementPackets, portalData, notes }
   const [activeTab, setActiveTab] = useState("details");
   const [clientStatus, setClientStatus] = useState<ClientStatus>(client.status);
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
+  const [noteDialogPending, setNoteDialogPending] = useState(false);
 
   const childName = [client.child_first_name, client.child_last_name].filter(Boolean).join(" ") || "Client";
   const primaryParent = client.parents?.find((p) => p.is_primary) || client.parents?.[0];
@@ -155,6 +156,19 @@ export function ClientFullDetail({ client, agreementPackets, portalData, notes }
           Add Task
         </Button>
 
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-1.5"
+          onClick={() => {
+            setActiveTab("notes");
+            setNoteDialogPending(true);
+          }}
+        >
+          <StickyNote className="h-4 w-4" />
+          Add Note
+        </Button>
+
         <div className="w-full sm:w-[190px]">
           <Select
             value={clientStatus}
@@ -191,7 +205,12 @@ export function ClientFullDetail({ client, agreementPackets, portalData, notes }
         </TabsContent>
 
         <TabsContent value="notes">
-          <NotesTab clientId={client.id} notes={notes} />
+          <NotesTab
+            clientId={client.id}
+            notes={notes}
+            autoOpenDialog={noteDialogPending}
+            onDialogOpened={() => setNoteDialogPending(false)}
+          />
         </TabsContent>
 
         <TabsContent value="my-tasks">

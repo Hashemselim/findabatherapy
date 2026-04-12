@@ -52,9 +52,11 @@ function categoryTone(category: string) {
 interface NotesTabProps {
   clientId: string;
   notes: ClientNote[];
+  autoOpenDialog?: boolean;
+  onDialogOpened?: () => void;
 }
 
-export function NotesTab({ clientId, notes }: NotesTabProps) {
+export function NotesTab({ clientId, notes, autoOpenDialog, onDialogOpened }: NotesTabProps) {
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -64,6 +66,15 @@ export function NotesTab({ clientId, notes }: NotesTabProps) {
   const [category, setCategory] = useState<ClientNote["category"]>("general");
   const [body, setBody] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+
+  // Auto-open dialog when triggered from header "Add Note" button
+  useEffect(() => {
+    if (autoOpenDialog) {
+      setEditingNote(undefined);
+      setDialogOpen(true);
+      onDialogOpened?.();
+    }
+  }, [autoOpenDialog, onDialogOpened]);
 
   useEffect(() => {
     if (dialogOpen) {
