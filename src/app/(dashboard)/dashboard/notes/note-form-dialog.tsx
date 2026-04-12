@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2 } from "lucide-react";
+import { Check, ChevronsUpDown, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,20 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { cn } from "@/lib/utils";
 
 import {
   addClientNote,
@@ -56,16 +70,21 @@ export function NoteFormDialog({
   const isEditing = !!note;
   const [category, setCategory] = useState<ClientNote["category"]>("general");
   const [body, setBody] = useState("");
-  const [clientId, setClientId] = useState<string>("__none__");
+  const [clientId, setClientId] = useState<string | null>(null);
+  const [clientOpen, setClientOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (open) {
       setCategory(note?.category ?? "general");
       setBody(note?.body ?? "");
-      setClientId(note?.clientId ?? "__none__");
+      setClientId(note?.clientId ?? null);
     }
   }, [open, note]);
+
+  const selectedClientName = clientId
+    ? clients.find((c) => c.id === clientId)?.name ?? "Unknown"
+    : null;
 
   const handleSave = async () => {
     if (!body.trim()) return;
@@ -75,24 +94,18 @@ export function NoteFormDialog({
         const result = await updateClientNote(note.id, {
           category,
           body: body.trim(),
-          clientId: clientId === "__none__" ? null : clientId,
+          clientId,
         });
-        if (!result.success) {
-          toast.error(result.error);
-          return;
-        }
+        if (!result.success) { toast.error(result.error); return; }
         toast.success("Note updated");
         onNoteUpdated?.();
       } else {
         const result = await addClientNote({
-          clientId: clientId === "__none__" ? null : clientId,
+          clientId,
           category,
           body: body.trim(),
         });
-        if (!result.success) {
-          toast.error(result.error);
-          return;
-        }
+        if (!result.success) { toast.error(result.error); return; }
         toast.success("Note added");
         if (result.data) onNoteAdded?.(result.data);
       }
@@ -114,39 +127,61 @@ export function NoteFormDialog({
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label>Category</Label>
-              <Select
-                value={category}
-                onValueChange={(v) =>
-                  setCategory(v as ClientNote["category"])
-                }
-              >
+              <Select value={category} onValueChange={(v) => setCategory(v as ClientNote["category"])}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   {NOTE_CATEGORIES.map((c) => (
-                    <SelectItem key={c.value} value={c.value}>
-                      {c.label}
-                    </SelectItem>
+                    <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
               <Label>Client (optional)</Label>
-              <Select value={clientId} onValueChange={setClientId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="No client" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">No client</SelectItem>
-                  {clients.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Popover open={clientOpen} onOpenChange={setClientOpen} modal>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={clientOpen}
+                    className="w-full justify-between font-normal"
+                  >
+                    <span className="truncate">
+                      {selectedClientName ?? "No client"}
+                    </span>
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[250px] p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder="Search clients..." />
+                    <CommandList>
+                      <CommandEmpty>No clients found.</CommandEmpty>
+                      <CommandGroup>
+                        <CommandItem
+                          value="__none__"
+                          onSelect={() => { setClientId(null); setClientOpen(false); }}
+                        >
+                          <Check className={cn("mr-2 h-4 w-4", clientId === null ? "opacity-100" : "opacity-0")} />
+                          No client
+                        </CommandItem>
+                        {clients.map((client) => (
+                          <CommandItem
+                            key={client.id}
+                            value={client.name}
+                            onSelect={() => { setClientId(client.id); setClientOpen(false); }}
+                          >
+                            <Check className={cn("mr-2 h-4 w-4", clientId === client.id ? "opacity-100" : "opacity-0")} />
+                            {client.name}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
           </div>
           <div className="space-y-2">
@@ -160,11 +195,7 @@ export function NoteFormDialog({
           </div>
         </div>
         <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            disabled={isSaving}
-          >
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSaving}>
             Cancel
           </Button>
           <Button onClick={handleSave} disabled={isSaving || !body.trim()}>
