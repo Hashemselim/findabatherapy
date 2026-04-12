@@ -7,6 +7,7 @@ const COOKIE_NAMES = {
   intake: "public_intake_access",
   documents: "public_document_access",
   agreements: "public_agreement_access",
+  forms: "public_form_access",
   portal: "public_portal_access",
 } as const;
 
@@ -19,6 +20,34 @@ const COOKIE_OPTIONS = {
   secure: process.env.NODE_ENV === "production",
   path: "/",
 };
+
+function isLoopbackHostname(hostname: string) {
+  return (
+    hostname === "localhost" ||
+    hostname === "127.0.0.1" ||
+    hostname === "::1" ||
+    hostname === "[::1]"
+  );
+}
+
+function shouldUseSecureCookies(requestUrl?: URL) {
+  if (!requestUrl) {
+    return COOKIE_OPTIONS.secure;
+  }
+
+  if (requestUrl.protocol !== "https:" || isLoopbackHostname(requestUrl.hostname)) {
+    return false;
+  }
+
+  return true;
+}
+
+function getResponseCookieOptions(requestUrl?: URL) {
+  return {
+    ...COOKIE_OPTIONS,
+    secure: shouldUseSecureCookies(requestUrl),
+  };
+}
 
 function decodeAccessMap(value?: string): AccessMap {
   if (!value) {
@@ -106,6 +135,10 @@ export function buildAgreementAccessRouteKey(providerSlug: string, packetSlug: s
   return `agreements:${providerSlug}:${packetSlug}`;
 }
 
+export function buildFormAccessRouteKey(providerSlug: string, formSlug: string) {
+  return `forms:${providerSlug}:${formSlug}`;
+}
+
 export function buildPortalAccessRouteKey(slug: string) {
   return `portal:${slug}`;
 }
@@ -122,6 +155,10 @@ export function buildAgreementAccessPath(providerSlug: string, packetSlug: strin
   return `/agreements/${providerSlug}/${packetSlug}/access`;
 }
 
+export function buildFormAccessPath(providerSlug: string, formSlug: string) {
+  return `/forms/${providerSlug}/${formSlug}/access`;
+}
+
 export function buildPortalAccessPath(slug: string) {
   return `/portal/${slug}/access`;
 }
@@ -131,16 +168,17 @@ function writeResponseAccessMap(
   kind: AccessKind,
   value: AccessMap,
   maxAgeSeconds: number,
+  requestUrl?: URL,
 ) {
   response.cookies.set(COOKIE_NAMES[kind], encodeAccessMap(value), {
-    ...COOKIE_OPTIONS,
+    ...getResponseCookieOptions(requestUrl),
     maxAge: maxAgeSeconds,
   });
 }
 
-function clearResponseAccessMap(response: NextResponse, kind: AccessKind) {
+function clearResponseAccessMap(response: NextResponse, kind: AccessKind, requestUrl?: URL) {
   response.cookies.set(COOKIE_NAMES[kind], "", {
-    ...COOKIE_OPTIONS,
+    ...getResponseCookieOptions(requestUrl),
     maxAge: 0,
   });
 }
@@ -152,26 +190,33 @@ function updateResponseAccessToken(
   existingCookieValue: string | undefined,
   token: string | null,
   maxAgeSeconds: number,
+  requestUrl?: URL,
 ) {
   const current = decodeAccessMap(existingCookieValue);
 
   if (token) {
-    writeResponseAccessMap(response, kind, { ...current, [routeKey]: token }, maxAgeSeconds);
+    writeResponseAccessMap(
+      response,
+      kind,
+      { ...current, [routeKey]: token },
+      maxAgeSeconds,
+      requestUrl,
+    );
     return;
   }
 
   if (!(routeKey in current)) {
-    clearResponseAccessMap(response, kind);
+    clearResponseAccessMap(response, kind, requestUrl);
     return;
   }
 
   delete current[routeKey];
   if (Object.keys(current).length === 0) {
-    clearResponseAccessMap(response, kind);
+    clearResponseAccessMap(response, kind, requestUrl);
     return;
   }
 
-  writeResponseAccessMap(response, kind, current, maxAgeSeconds);
+  writeResponseAccessMap(response, kind, current, maxAgeSeconds, requestUrl);
 }
 
 export function setIntakeAccessTokenOnResponse(
@@ -179,6 +224,7 @@ export function setIntakeAccessTokenOnResponse(
   existingCookieValue: string | undefined,
   slug: string,
   token: string,
+  requestUrl?: URL,
 ) {
   updateResponseAccessToken(
     response,
@@ -187,6 +233,7 @@ export function setIntakeAccessTokenOnResponse(
     existingCookieValue,
     token,
     60 * 60 * 24 * 7,
+    requestUrl,
   );
 }
 
@@ -194,6 +241,7 @@ export function clearIntakeAccessTokenOnResponse(
   response: NextResponse,
   existingCookieValue: string | undefined,
   slug: string,
+  requestUrl?: URL,
 ) {
   updateResponseAccessToken(
     response,
@@ -202,6 +250,7 @@ export function clearIntakeAccessTokenOnResponse(
     existingCookieValue,
     null,
     60 * 60 * 24 * 7,
+    requestUrl,
   );
 }
 
@@ -210,6 +259,7 @@ export function setDocumentAccessTokenOnResponse(
   existingCookieValue: string | undefined,
   slug: string,
   token: string,
+  requestUrl?: URL,
 ) {
   updateResponseAccessToken(
     response,
@@ -218,6 +268,7 @@ export function setDocumentAccessTokenOnResponse(
     existingCookieValue,
     token,
     60 * 60 * 24 * 7,
+    requestUrl,
   );
 }
 
@@ -225,6 +276,7 @@ export function clearDocumentAccessTokenOnResponse(
   response: NextResponse,
   existingCookieValue: string | undefined,
   slug: string,
+  requestUrl?: URL,
 ) {
   updateResponseAccessToken(
     response,
@@ -233,6 +285,7 @@ export function clearDocumentAccessTokenOnResponse(
     existingCookieValue,
     null,
     60 * 60 * 24 * 7,
+    requestUrl,
   );
 }
 
@@ -242,6 +295,7 @@ export function setAgreementAccessTokenOnResponse(
   providerSlug: string,
   packetSlug: string,
   token: string,
+  requestUrl?: URL,
 ) {
   updateResponseAccessToken(
     response,
@@ -250,6 +304,7 @@ export function setAgreementAccessTokenOnResponse(
     existingCookieValue,
     token,
     60 * 60 * 24 * 14,
+    requestUrl,
   );
 }
 
@@ -258,6 +313,7 @@ export function clearAgreementAccessTokenOnResponse(
   existingCookieValue: string | undefined,
   providerSlug: string,
   packetSlug: string,
+  requestUrl?: URL,
 ) {
   updateResponseAccessToken(
     response,
@@ -266,6 +322,44 @@ export function clearAgreementAccessTokenOnResponse(
     existingCookieValue,
     null,
     60 * 60 * 24 * 14,
+    requestUrl,
+  );
+}
+
+export function setFormAccessTokenOnResponse(
+  response: NextResponse,
+  existingCookieValue: string | undefined,
+  providerSlug: string,
+  formSlug: string,
+  token: string,
+  requestUrl?: URL,
+) {
+  updateResponseAccessToken(
+    response,
+    "forms",
+    buildFormAccessRouteKey(providerSlug, formSlug),
+    existingCookieValue,
+    token,
+    60 * 60 * 24 * 14,
+    requestUrl,
+  );
+}
+
+export function clearFormAccessTokenOnResponse(
+  response: NextResponse,
+  existingCookieValue: string | undefined,
+  providerSlug: string,
+  formSlug: string,
+  requestUrl?: URL,
+) {
+  updateResponseAccessToken(
+    response,
+    "forms",
+    buildFormAccessRouteKey(providerSlug, formSlug),
+    existingCookieValue,
+    null,
+    60 * 60 * 24 * 14,
+    requestUrl,
   );
 }
 
@@ -274,6 +368,7 @@ export function setPortalAccessTokenOnResponse(
   existingCookieValue: string | undefined,
   slug: string,
   token: string,
+  requestUrl?: URL,
 ) {
   updateResponseAccessToken(
     response,
@@ -282,6 +377,7 @@ export function setPortalAccessTokenOnResponse(
     existingCookieValue,
     token,
     60 * 60 * 24 * 30,
+    requestUrl,
   );
 }
 
@@ -289,6 +385,7 @@ export function clearPortalAccessTokenOnResponse(
   response: NextResponse,
   existingCookieValue: string | undefined,
   slug: string,
+  requestUrl?: URL,
 ) {
   updateResponseAccessToken(
     response,
@@ -297,6 +394,7 @@ export function clearPortalAccessTokenOnResponse(
     existingCookieValue,
     null,
     60 * 60 * 24 * 30,
+    requestUrl,
   );
 }
 
@@ -342,6 +440,26 @@ export async function getAgreementAccessToken(
 
 export async function clearAgreementAccessToken(providerSlug: string, packetSlug: string) {
   await clearAccessToken("agreements", buildAgreementAccessRouteKey(providerSlug, packetSlug));
+}
+
+export async function setFormAccessToken(providerSlug: string, formSlug: string, token: string) {
+  await setAccessToken(
+    "forms",
+    buildFormAccessRouteKey(providerSlug, formSlug),
+    token,
+    60 * 60 * 24 * 14,
+  );
+}
+
+export async function getFormAccessToken(
+  providerSlug: string,
+  formSlug: string,
+): Promise<string | null> {
+  return getAccessToken("forms", buildFormAccessRouteKey(providerSlug, formSlug));
+}
+
+export async function clearFormAccessToken(providerSlug: string, formSlug: string) {
+  await clearAccessToken("forms", buildFormAccessRouteKey(providerSlug, formSlug));
 }
 
 export async function setPortalAccessToken(slug: string, token: string) {
@@ -399,6 +517,31 @@ export async function validateAgreementAccessToken(
   } catch {
     return false;
   }
+}
+
+export async function validateFormAccessToken(
+  providerSlug: string,
+  formSlug: string,
+  token: string,
+): Promise<boolean> {
+  if (isConvexDataEnabled()) {
+    try {
+      const { queryConvexUnauthenticated } = await import("@/lib/platform/convex/server");
+      const result = await queryConvexUnauthenticated(
+        "forms:getPublicFormPageData",
+        {
+          providerSlug,
+          formSlug,
+          token,
+        },
+      );
+      return Boolean(result);
+    } catch {
+      return false;
+    }
+  }
+
+  return false;
 }
 
 export async function validatePortalAccessToken(slug: string, token: string): Promise<boolean> {

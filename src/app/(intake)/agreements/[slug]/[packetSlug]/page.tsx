@@ -17,7 +17,7 @@ type AgreementPageProps = {
   searchParams: Promise<{ token?: string }>;
 };
 
-export const revalidate = 300;
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: AgreementPageProps): Promise<Metadata> {
   const { slug, packetSlug } = await params;
@@ -25,13 +25,15 @@ export async function generateMetadata({ params }: AgreementPageProps): Promise<
 
   if (!result.success || !result.data) {
     return {
-      title: "Agreement Form",
+      title: { absolute: "Agreement Form" },
       robots: { index: false, follow: false },
     };
   }
 
   return {
-    title: `${result.data.packet.title} | ${result.data.profile.agencyName}`,
+    title: {
+      absolute: `${result.data.packet.title} | ${result.data.profile.agencyName}`,
+    },
     description: result.data.packet.description || `Review and sign the ${result.data.packet.title} form.`,
     robots: { index: false, follow: false },
   };

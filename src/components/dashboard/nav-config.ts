@@ -174,6 +174,11 @@ export const sectionNav: NavSectionConfig[] = [
         icon: FileText,
       },
       {
+        href: "/dashboard/forms/custom",
+        label: "Forms",
+        icon: ClipboardList,
+      },
+      {
         href: "/dashboard/forms/documents",
         label: "Document Upload",
         icon: FileUp,

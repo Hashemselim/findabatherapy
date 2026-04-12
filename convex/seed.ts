@@ -1533,7 +1533,9 @@ export const provisionE2ECommunicationFixtures = mutation({
     parentFirstName: v.string(),
     parentLastName: v.string(),
     parentEmail: v.string(),
+    parentClerkUserId: v.optional(v.string()),
     packetSlug: v.string(),
+    portalEnabled: v.optional(v.boolean()),
   },
   returns: v.object({
     clientId: v.string(),
@@ -1588,6 +1590,16 @@ export const provisionE2ECommunicationFixtures = mutation({
         phone: "(555) 010-4040",
         relationship: "mother",
         isPrimary: true,
+        ...(args.parentClerkUserId
+          ? {
+              portalClerkUserId: args.parentClerkUserId,
+              portalLinkedEmail: normalizeSeedEmail(args.parentEmail),
+              portalAccessStatus: "active",
+              portalInviteAcceptedAt: timestamp,
+              portalAccountLinkedAt: timestamp,
+              portalLastViewedAt: timestamp,
+            }
+          : {}),
       },
       relatedIds: {
         clientId: String(clientId),
@@ -1596,6 +1608,26 @@ export const provisionE2ECommunicationFixtures = mutation({
       updatedAt: timestamp,
       legacyTable: "seed_fixtures",
       legacySourceId: `${args.packetSlug}-parent`,
+    });
+
+    await ctx.db.insert("crmRecords", {
+      workspaceId,
+      recordType: "client_portal_settings",
+      status: "active",
+      payload: {
+        enabled: args.portalEnabled ?? false,
+        notifyOnNewTask: true,
+        notifyOnNewDocument: true,
+        notifyOnNewMessage: true,
+        notifyOnReminder: true,
+      },
+      relatedIds: {
+        clientId: String(clientId),
+      },
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      legacyTable: "seed_fixtures",
+      legacySourceId: `${args.packetSlug}-portal-settings`,
     });
 
     const packetId = await ctx.db.insert("agreementPackets", {
@@ -1622,6 +1654,42 @@ export const provisionE2ECommunicationFixtures = mutation({
       clientId: String(clientId),
       packetId: String(packetId),
     };
+  },
+});
+
+export const insertE2EFormTemplate = mutation({
+  args: {
+    secret: v.string(),
+    workspaceId: v.string(),
+    title: v.string(),
+    description: v.optional(v.union(v.string(), v.null())),
+    draftSchemaJson: v.optional(v.string()),
+  },
+  returns: v.object({
+    templateId: v.string(),
+  }),
+  handler: async (ctx, args) => {
+    requireSeedSecret(args.secret);
+
+    const timestamp = now();
+    const slugBase = args.title
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 48) || "e2e-form";
+    const templateId = await ctx.db.insert("formTemplates", {
+      workspaceId: asId<"workspaces">(args.workspaceId),
+      slug: slugBase,
+      status: "draft",
+      title: args.title,
+      description: args.description ?? null,
+      draftSchemaJson: args.draftSchemaJson ?? "[]",
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    });
+
+    return { templateId: String(templateId) };
   },
 });
 
@@ -1800,6 +1868,234 @@ export const resetE2EOnboardingWorkspace = mutation({
       workspaceId,
       listingId: String(listingId),
       slug: workspaceSlug,
+    };
+  },
+});
+
+export const inspectE2EClientPortalState = query({
+  args: {
+    secret: v.string(),
+    workspaceId: v.string(),
+    clientId: v.string(),
+  },
+  returns: v.object({
+    portalSettings: v.union(
+      v.null(),
+      v.object({
+        id: v.string(),
+        status: v.string(),
+        payload: v.any(),
+      }),
+    ),
+    tasks: v.array(
+      v.object({
+        id: v.string(),
+        status: v.string(),
+        relatedClientId: v.union(v.string(), v.null()),
+        payload: v.any(),
+      }),
+    ),
+  }),
+  handler: async (ctx, args) => {
+    requireSeedSecret(args.secret);
+
+    const workspaceId = asId<"workspaces">(args.workspaceId);
+    const taskRows = await ctx.db
+      .query("crmRecords")
+      .withIndex("by_workspace_and_type", (q) =>
+        q.eq("workspaceId", workspaceId).eq("recordType", "client_task"),
+      )
+      .collect();
+    const portalRows = await ctx.db
+      .query("crmRecords")
+      .withIndex("by_workspace_and_type", (q) =>
+        q.eq("workspaceId", workspaceId).eq("recordType", "client_portal_settings"),
+      )
+      .collect();
+
+    const clientTasks = taskRows
+      .filter((row) => !row.deletedAt)
+      .filter((row) => {
+        const relatedIds = asRecord(row.relatedIds);
+        return readString(relatedIds.clientId) === args.clientId;
+      })
+      .map((row) => ({
+        id: String(row._id),
+        status: readString(row.status) ?? "unknown",
+        relatedClientId: readString(asRecord(row.relatedIds).clientId),
+        payload: row.payload,
+      }));
+
+    const portalSettings =
+      portalRows
+        .filter((row) => !row.deletedAt)
+        .filter((row) => {
+          const relatedIds = asRecord(row.relatedIds);
+          return readString(relatedIds.clientId) === args.clientId;
+        })
+        .map((row) => ({
+          id: String(row._id),
+          status: readString(row.status) ?? "unknown",
+          payload: row.payload,
+        }))[0] ?? null;
+
+    return {
+      portalSettings,
+      tasks: clientTasks,
+    };
+  },
+});
+
+export const inspectE2EWorkspacePortalState = query({
+  args: {
+    secret: v.string(),
+    workspaceId: v.string(),
+  },
+  returns: v.array(
+    v.object({
+      clientId: v.string(),
+      clientName: v.string(),
+      portalEnabled: v.boolean(),
+      taskCount: v.number(),
+      unassignedSubmissionCount: v.number(),
+      tasks: v.array(
+        v.object({
+          id: v.string(),
+          title: v.string(),
+          status: v.string(),
+          taskType: v.union(v.string(), v.null()),
+        }),
+      ),
+    }),
+  ),
+  handler: async (ctx, args) => {
+    requireSeedSecret(args.secret);
+
+    const workspaceId = asId<"workspaces">(args.workspaceId);
+    const [clientRows, taskRows, portalRows, submissionRows] = await Promise.all([
+      ctx.db
+        .query("crmRecords")
+        .withIndex("by_workspace_and_type", (q) =>
+          q.eq("workspaceId", workspaceId).eq("recordType", "client"),
+        )
+        .collect(),
+      ctx.db
+        .query("crmRecords")
+        .withIndex("by_workspace_and_type", (q) =>
+          q.eq("workspaceId", workspaceId).eq("recordType", "client_task"),
+        )
+        .collect(),
+      ctx.db
+        .query("crmRecords")
+        .withIndex("by_workspace_and_type", (q) =>
+          q.eq("workspaceId", workspaceId).eq("recordType", "client_portal_settings"),
+        )
+        .collect(),
+      ctx.db
+        .query("formSubmissions")
+        .withIndex("by_workspace", (q) => q.eq("workspaceId", workspaceId))
+        .collect(),
+    ]);
+
+    return clientRows
+      .filter((row) => !row.deletedAt)
+      .map((client) => {
+        const clientId = String(client._id);
+        const payload = asRecord(client.payload);
+        const clientName =
+          [
+            readString(payload.firstName) ?? readString(payload.child_first_name),
+            readString(payload.lastName) ?? readString(payload.child_last_name),
+          ]
+            .filter(Boolean)
+            .join(" ") || clientId;
+
+        const portalSettings = portalRows.find((row) => {
+          if (row.deletedAt) {
+            return false;
+          }
+          const relatedIds = asRecord(row.relatedIds);
+          return readString(relatedIds.clientId) === clientId;
+        });
+
+        const clientTasks = taskRows
+          .filter((row) => !row.deletedAt)
+          .filter((row) => {
+            const relatedIds = asRecord(row.relatedIds);
+            return readString(relatedIds.clientId) === clientId;
+          })
+          .map((row) => {
+            const taskPayload = asRecord(row.payload);
+            return {
+              id: String(row._id),
+              title: readString(taskPayload.title) ?? "Task",
+              status: readString(row.status) ?? "unknown",
+              taskType: readString(taskPayload.taskType),
+            };
+          });
+
+        const unassignedSubmissionCount = submissionRows
+          .filter((row) => !row.deletedAt)
+          .filter((row) => String(row.clientId ?? "") === clientId)
+          .length;
+
+        return {
+          clientId,
+          clientName,
+          portalEnabled: readBoolean(asRecord(portalSettings?.payload).enabled),
+          taskCount: clientTasks.length,
+          unassignedSubmissionCount,
+          tasks: clientTasks,
+        };
+      });
+  },
+});
+
+export const inspectE2EWorkspaceFormsState = query({
+  args: {
+    secret: v.string(),
+    workspaceId: v.string(),
+  },
+  returns: v.object({
+    unassignedSubmissions: v.array(
+      v.object({
+        id: v.string(),
+        templateTitle: v.string(),
+        clientId: v.union(v.string(), v.null()),
+      }),
+    ),
+  }),
+  handler: async (ctx, args) => {
+    requireSeedSecret(args.secret);
+
+    const workspaceId = asId<"workspaces">(args.workspaceId);
+    const [submissionRows, versionRows] = await Promise.all([
+      ctx.db
+        .query("formSubmissions")
+        .withIndex("by_workspace", (q) => q.eq("workspaceId", workspaceId))
+        .collect(),
+      ctx.db
+        .query("formVersions")
+        .withIndex("by_workspace", (q) => q.eq("workspaceId", workspaceId))
+        .collect(),
+    ]);
+
+    const versionTitles = new Map(
+      versionRows
+        .filter((row) => !row.deletedAt)
+        .map((row) => [String(row._id), readString(row.title) ?? "Untitled form"]),
+    );
+
+    return {
+      unassignedSubmissions: submissionRows
+        .filter((row) => !row.deletedAt)
+        .filter((row) => !row.clientId)
+        .map((row) => ({
+          id: String(row._id),
+          templateTitle:
+            versionTitles.get(String(row.versionId)) ?? "Untitled form",
+          clientId: row.clientId ? String(row.clientId) : null,
+        })),
     };
   },
 });

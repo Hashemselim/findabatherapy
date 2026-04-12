@@ -1,6 +1,13 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 
 import { US_STATES } from "@/lib/data/us-states";
+
+export const metadata: Metadata = {
+  title: "Browse ABA Therapy Providers by State | Find ABA Therapy",
+  description:
+    "Browse ABA therapy providers by state and open SEO-optimized state pages with city filters, service options, and insurance details.",
+};
 
 export default function StatesIndexPage() {
   return (

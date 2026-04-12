@@ -19,7 +19,7 @@ type PublicPortalPageProps = {
   searchParams: Promise<{ token?: string; client?: string }>;
 };
 
-export const revalidate = 60;
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({
   params,
@@ -29,13 +29,13 @@ export async function generateMetadata({
 
   if (!result.success || !result.data) {
     return {
-      title: "Client Portal",
+      title: { absolute: "Client Portal" },
       robots: { index: false, follow: false },
     };
   }
 
   return {
-    title: `Family Portal | ${result.data.agencyName}`,
+    title: { absolute: `Family Portal | ${result.data.agencyName}` },
     description: `Family portal for ${result.data.agencyName}.`,
     robots: { index: false, follow: false },
   };

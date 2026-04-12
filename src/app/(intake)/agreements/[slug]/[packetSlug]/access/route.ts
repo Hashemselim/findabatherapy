@@ -31,6 +31,7 @@ export async function GET(request: Request, { params }: RouteParams) {
         slug,
         packetSlug,
         token,
+        requestUrl,
       );
     } else {
       clearAgreementAccessTokenOnResponse(
@@ -38,6 +39,7 @@ export async function GET(request: Request, { params }: RouteParams) {
         existingCookieValue,
         slug,
         packetSlug,
+        requestUrl,
       );
     }
   }

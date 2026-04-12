@@ -10,6 +10,7 @@ import { getClientById } from "@/lib/actions/clients";
 import { getAgreementPacketOptions } from "@/lib/actions/agreements";
 import { getClientPortalData } from "@/lib/actions/client-portal";
 import { getClientNotes } from "@/lib/actions/client-notes";
+import { getClientFormsData, getPublishedFormTemplateOptions } from "@/lib/actions/forms";
 import { getCurrentPlanTier } from "@/lib/plans/guards";
 import { getDemoClientDetailById, isDemoClientId } from "@/lib/demo/client-previews";
 
@@ -95,11 +96,13 @@ export default async function ClientDetailPage({ params }: ClientDetailPageProps
     );
   }
 
-  const [result, packetOptionsResult, portalResult, notesResult] = await Promise.all([
+  const [result, packetOptionsResult, portalResult, notesResult, clientFormsResult, publishedFormsResult] = await Promise.all([
     getClientById(resolvedParams.id),
     getAgreementPacketOptions(),
     getClientPortalData(resolvedParams.id),
     getClientNotes(resolvedParams.id),
+    getClientFormsData(resolvedParams.id),
+    getPublishedFormTemplateOptions(),
   ]);
 
   if (!result.success || !result.data) {
@@ -113,6 +116,8 @@ export default async function ClientDetailPage({ params }: ClientDetailPageProps
         agreementPackets={packetOptionsResult.success && packetOptionsResult.data ? packetOptionsResult.data : []}
         portalData={portalResult.success && portalResult.data ? portalResult.data : null}
         notes={notesResult.success && notesResult.data ? notesResult.data : []}
+        clientFormsData={clientFormsResult.success && clientFormsResult.data ? clientFormsResult.data : null}
+        publishedForms={publishedFormsResult.success && publishedFormsResult.data ? publishedFormsResult.data : []}
       />
     </div>
   );

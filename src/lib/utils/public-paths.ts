@@ -23,6 +23,10 @@ export function getProviderDocumentUploadPath(slug: string): string {
   return `/provider/${slug}/documents`;
 }
 
+export function getProviderFormPath(slug: string, formSlug: string): string {
+  return `/provider/${slug}/forms/${formSlug}`;
+}
+
 export function getProviderResourcesPath(
   slug: string,
   suffix?: string

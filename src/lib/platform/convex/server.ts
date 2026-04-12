@@ -8,9 +8,7 @@ import { api } from "../../../../convex/_generated/api";
 
 import { platformConfig } from "@/lib/platform/config";
 
-type ConvexApiRoot = typeof api;
-type ConvexModuleName = Extract<keyof ConvexApiRoot, string>;
-type ConvexFunctionName = `${ConvexModuleName}:${string}`;
+type ConvexFunctionName = `${string}:${string}`;
 
 function requireConvexUrl() {
   if (!platformConfig.convexUrl) {
@@ -41,11 +39,9 @@ async function getConvexToken() {
 function resolveConvexFunction<Operation extends "query" | "mutation", T>(
   functionName: ConvexFunctionName,
 ) {
-  const [moduleName, exportName] = functionName.split(":") as [
-    ConvexModuleName,
-    string,
-  ];
-  const moduleApi = api[moduleName] as Record<string, unknown> | undefined;
+  const [moduleName, exportName] = functionName.split(":") as [string, string];
+  const apiRoot = api as unknown as Record<string, Record<string, unknown> | undefined>;
+  const moduleApi = apiRoot[moduleName];
   const functionReference = moduleApi?.[exportName];
 
   if (!functionReference) {

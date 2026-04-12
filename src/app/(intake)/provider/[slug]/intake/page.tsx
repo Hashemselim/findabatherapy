@@ -1,5 +1,5 @@
 export {
   default,
   generateMetadata,
-  revalidate,
+  dynamic,
 } from "@/app/(intake)/intake/[slug]/client/page";

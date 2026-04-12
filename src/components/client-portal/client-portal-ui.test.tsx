@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/actions/client-portal", () => ({
@@ -245,6 +245,41 @@ const publicPortalData: PublicClientPortalData = {
   },
 };
 
+const publicPortalDataWithCompletedForm: PublicClientPortalData = {
+  ...publicPortalData,
+  portal: {
+    ...publicPortalData.portal,
+    completedTasks: 2,
+  },
+  tasks: [
+    ...publicPortalData.tasks,
+    {
+      id: "task_3",
+      title: "Complete medical history form",
+      instructions: "Fill out the medical history form so the care team can review it.",
+      dueDate: "2026-04-11",
+      category: "forms",
+      taskType: "form_completion",
+      completionMethod: "external_link",
+      status: "completed",
+      visibility: "action_required",
+      reminderRule: null,
+      templateSource: "custom form",
+      formKey: null,
+      externalUrl: "https://example.com/forms/medical-history",
+      linkedDocumentId: null,
+      linkedToolId: null,
+      submittedDocumentId: null,
+      requiredDocumentType: null,
+      completionNote: null,
+      completedAt: "2026-04-10T12:00:00.000Z",
+      completedByGuardianId: "guardian_1",
+      createdAt: "2026-04-08T12:00:00.000Z",
+      updatedAt: "2026-04-10T12:00:00.000Z",
+    },
+  ],
+};
+
 describe("client portal UI", () => {
   it("renders the provider portal manager overview", () => {
     render(<ClientPortalManager data={basePortalData} />);
@@ -263,5 +298,23 @@ describe("client portal UI", () => {
     ).toBeInTheDocument();
     expect(screen.getAllByText(/upload your insurance card/i).length).toBeGreaterThan(0);
     expect(screen.getAllByRole("button", { name: /continue/i }).length).toBeGreaterThan(0);
+  });
+
+  it("shows completed form submissions inside completed tasks", () => {
+    render(
+      <PublicClientPortal
+        slug="north-river-aba"
+        data={publicPortalDataWithCompletedForm}
+      />,
+    );
+
+    const completedTasksTrigger = screen.getByRole("button", { name: /completed tasks/i });
+    fireEvent.click(completedTasksTrigger);
+
+    expect(screen.getByText(/completed tasks/i)).toBeInTheDocument();
+    expect(screen.getByText(/complete medical history form/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /view submission/i })).toBeInTheDocument();
+    expect(screen.getAllByText(/assigned apr 8, 2026/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/completed apr 10, 2026/i).length).toBeGreaterThan(0);
   });
 });

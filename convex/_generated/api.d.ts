@@ -18,6 +18,7 @@ import type * as clientPortal from "../clientPortal.js";
 import type * as communications from "../communications.js";
 import type * as crm from "../crm.js";
 import type * as files from "../files.js";
+import type * as forms from "../forms.js";
 import type * as inquiries from "../inquiries.js";
 import type * as intake from "../intake.js";
 import type * as jobs from "../jobs.js";
@@ -47,6 +48,7 @@ declare const fullApi: ApiFromModules<{
   communications: typeof communications;
   crm: typeof crm;
   files: typeof files;
+  forms: typeof forms;
   inquiries: typeof inquiries;
   intake: typeof intake;
   jobs: typeof jobs;

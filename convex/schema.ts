@@ -267,6 +267,140 @@ export default defineSchema({
     .index("by_workspace", ["workspaceId"])
     .index("by_packet", ["packetId"]),
 
+  formTemplates: defineTable({
+    workspaceId: v.id("workspaces"),
+    slug: v.string(),
+    status: v.union(
+      v.literal("draft"),
+      v.literal("published"),
+      v.literal("archived"),
+    ),
+    title: v.string(),
+    description: v.optional(v.union(v.string(), v.null())),
+    draftSchemaJson: v.string(),
+    latestPublishedVersionId: v.optional(v.id("formVersions")),
+    latestVersionNumber: v.optional(v.number()),
+    publishedAt: v.optional(v.string()),
+    archivedAt: v.optional(v.string()),
+    ...timestamps,
+    ...legacySync,
+  })
+    .index("by_workspace", ["workspaceId"])
+    .index("by_workspace_and_status", ["workspaceId", "status"])
+    .index("by_workspace_and_slug", ["workspaceId", "slug"]),
+
+  formVersions: defineTable({
+    workspaceId: v.id("workspaces"),
+    templateId: v.id("formTemplates"),
+    versionNumber: v.number(),
+    title: v.string(),
+    description: v.optional(v.union(v.string(), v.null())),
+    schemaJson: v.string(),
+    publishedAt: v.string(),
+    ...timestamps,
+    ...legacySync,
+  })
+    .index("by_workspace", ["workspaceId"])
+    .index("by_template", ["templateId"])
+    .index("by_workspace_and_template", ["workspaceId", "templateId"]),
+
+  formLinks: defineTable({
+    workspaceId: v.id("workspaces"),
+    templateId: v.id("formTemplates"),
+    versionId: v.id("formVersions"),
+    linkType: v.union(v.literal("generic"), v.literal("client_specific")),
+    token: v.string(),
+    clientId: v.optional(v.id("crmRecords")),
+    assignmentId: v.optional(v.id("formAssignments")),
+    status: v.union(
+      v.literal("active"),
+      v.literal("disabled"),
+      v.literal("submitted"),
+    ),
+    expiresAt: v.optional(v.string()),
+    usedAt: v.optional(v.string()),
+    lastUsedAt: v.optional(v.string()),
+    ...timestamps,
+    ...legacySync,
+  })
+    .index("by_workspace", ["workspaceId"])
+    .index("by_token", ["token"])
+    .index("by_assignment", ["assignmentId"])
+    .index("by_client", ["clientId"]),
+
+  formAssignments: defineTable({
+    workspaceId: v.id("workspaces"),
+    templateId: v.id("formTemplates"),
+    versionId: v.id("formVersions"),
+    clientId: v.id("crmRecords"),
+    taskId: v.optional(v.id("crmRecords")),
+    linkId: v.optional(v.id("formLinks")),
+    titleSnapshot: v.string(),
+    descriptionSnapshot: v.optional(v.union(v.string(), v.null())),
+    dueDate: v.optional(v.union(v.string(), v.null())),
+    status: v.union(
+      v.literal("pending"),
+      v.literal("completed"),
+      v.literal("cancelled"),
+    ),
+    completedAt: v.optional(v.string()),
+    ...timestamps,
+    ...legacySync,
+  })
+    .index("by_workspace", ["workspaceId"])
+    .index("by_client", ["clientId"])
+    .index("by_template", ["templateId"])
+    .index("by_task", ["taskId"]),
+
+  formSubmissions: defineTable({
+    workspaceId: v.id("workspaces"),
+    templateId: v.id("formTemplates"),
+    versionId: v.id("formVersions"),
+    assignmentId: v.optional(v.id("formAssignments")),
+    linkId: v.optional(v.id("formLinks")),
+    clientId: v.optional(v.id("crmRecords")),
+    taskId: v.optional(v.id("crmRecords")),
+    reviewState: v.union(
+      v.literal("submitted"),
+      v.literal("reviewed"),
+      v.literal("flagged"),
+      v.literal("archived"),
+    ),
+    status: v.union(v.literal("submitted"), v.literal("attached")),
+    responderType: v.optional(v.string()),
+    responderName: v.optional(v.union(v.string(), v.null())),
+    responderEmail: v.optional(v.union(v.string(), v.null())),
+    answersJson: v.string(),
+    submittedAt: v.string(),
+    ...timestamps,
+    ...legacySync,
+  })
+    .index("by_workspace", ["workspaceId"])
+    .index("by_client", ["clientId"])
+    .index("by_assignment", ["assignmentId"])
+    .index("by_link", ["linkId"])
+    .index("by_template", ["templateId"])
+    .index("by_workspace_and_review_state", ["workspaceId", "reviewState"]),
+
+  formDrafts: defineTable({
+    workspaceId: v.id("workspaces"),
+    templateId: v.id("formTemplates"),
+    versionId: v.id("formVersions"),
+    assignmentId: v.optional(v.id("formAssignments")),
+    linkId: v.optional(v.id("formLinks")),
+    clientId: v.optional(v.id("crmRecords")),
+    taskId: v.optional(v.id("crmRecords")),
+    tokenFingerprint: v.optional(v.string()),
+    answersJson: v.string(),
+    lastSavedAt: v.string(),
+    ...timestamps,
+    ...legacySync,
+  })
+    .index("by_workspace", ["workspaceId"])
+    .index("by_assignment", ["assignmentId"])
+    .index("by_link", ["linkId"])
+    .index("by_token_fingerprint", ["tokenFingerprint"]),
+
   referralRecords: defineTable({
     workspaceId: v.id("workspaces"),
     recordType: v.string(),

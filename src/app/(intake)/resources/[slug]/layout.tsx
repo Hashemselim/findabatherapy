@@ -26,7 +26,7 @@ export async function generateMetadata({ params }: ResourcesLayoutProps): Promis
 
   if (!result.success || !result.data) {
     return {
-      title: "Parent Resources",
+      title: { absolute: "Parent Resources" },
       robots: { index: false, follow: false },
     };
   }
@@ -34,7 +34,7 @@ export async function generateMetadata({ params }: ResourcesLayoutProps): Promis
   const { profile } = result.data;
 
   return {
-    title: `Parent Resources | ${profile.agencyName}`,
+    title: { absolute: `Parent Resources | ${profile.agencyName}` },
     description: `Parent education resources from ${profile.agencyName}, including FAQ, glossary, and guides.`,
     robots: { index: false, follow: false },
   };

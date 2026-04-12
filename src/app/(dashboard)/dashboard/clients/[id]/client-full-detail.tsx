@@ -31,7 +31,9 @@ import { CLIENT_STATUS_OPTIONS, type ClientStatus } from "@/lib/validations/clie
 import type { ClientPortalData } from "@/lib/actions/client-portal";
 import type { AgreementPacketOption } from "@/lib/actions/agreements";
 import type { ClientNote } from "@/lib/actions/client-notes";
+import type { ClientFormsData } from "@/lib/actions/forms";
 import { TaskFormDialog } from "@/components/dashboard/tasks";
+import { ClientFormsSection } from "@/components/dashboard/forms/client-forms-section";
 
 import { EMAIL_PROVIDER_OPTIONS, type EmailProvider } from "./client-detail-helpers";
 import { DetailsTab } from "./tabs/details-tab";
@@ -47,9 +49,25 @@ interface ClientFullDetailProps {
   agreementPackets: AgreementPacketOption[];
   portalData: ClientPortalData | null;
   notes: ClientNote[];
+  clientFormsData: ClientFormsData | null;
+  publishedForms: Array<{
+    id: string;
+    title: string;
+    description: string | null;
+    slug: string;
+    latestVersionId: string;
+    latestVersionNumber: number;
+  }>;
 }
 
-export function ClientFullDetail({ client, agreementPackets, portalData, notes }: ClientFullDetailProps) {
+export function ClientFullDetail({
+  client,
+  agreementPackets,
+  portalData,
+  notes,
+  clientFormsData,
+  publishedForms,
+}: ClientFullDetailProps) {
   const router = useRouter();
   const [isStatusPending, startStatusTransition] = useTransition();
   const [activeTab, setActiveTab] = useState("details");
@@ -200,8 +218,17 @@ export function ClientFullDetail({ client, agreementPackets, portalData, notes }
           <DashboardTabsTrigger value="settings">Settings</DashboardTabsTrigger>
         </DashboardTabsList>
 
-        <TabsContent value="details">
+        <TabsContent value="details" className="space-y-6">
           <DetailsTab client={client} portalData={portalData} agreementPackets={agreementPackets} />
+          {clientFormsData ? (
+            <ClientFormsSection
+              clientId={client.id}
+              clientName={childName}
+              data={clientFormsData}
+              availableForms={publishedForms}
+              clients={[{ id: client.id, name: childName }]}
+            />
+          ) : null}
         </TabsContent>
 
         <TabsContent value="notes">
@@ -246,7 +273,6 @@ export function ClientFullDetail({ client, agreementPackets, portalData, notes }
         </TabsContent>
       </Tabs>
 
-      {/* Global Add Task dialog - triggered from header */}
       <TaskFormDialog
         open={taskDialogOpen}
         onOpenChange={setTaskDialogOpen}

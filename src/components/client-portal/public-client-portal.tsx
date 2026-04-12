@@ -93,6 +93,10 @@ function normalizeExternalUrl(value: string | null | undefined) {
   return `https://${value}`;
 }
 
+function markPortalReturnContext(slug: string) {
+  document.cookie = `portal_return_slug=${encodeURIComponent(slug)}; Path=/; Max-Age=1800; SameSite=Lax`;
+}
+
 function taskStatusLabel(status: string) {
   return status.replaceAll("_", " ");
 }
@@ -122,6 +126,19 @@ function taskTypeLabel(taskType: string) {
       return "Review & sign";
     default:
       return "Custom task";
+  }
+}
+
+function taskTypeClasses(taskType: string) {
+  switch (taskType) {
+    case "form_completion":
+      return "border-sky-200 bg-sky-50 text-sky-800";
+    case "file_upload":
+      return "border-violet-200 bg-violet-50 text-violet-800";
+    case "review_and_sign":
+      return "border-amber-200 bg-amber-50 text-amber-800";
+    default:
+      return "border-slate-200 bg-slate-50 text-slate-700";
   }
 }
 
@@ -371,6 +388,24 @@ export function PublicClientPortal({
     });
   };
 
+  const handleFormTaskOpen = (task: PublicClientPortalData["tasks"][number]) => {
+    const externalUrl = normalizeExternalUrl(task.externalUrl);
+    if (externalUrl) {
+      markPortalReturnContext(slug);
+      const resolvedUrl = new URL(externalUrl, window.location.origin);
+      if (
+        resolvedUrl.origin === window.location.origin &&
+        resolvedUrl.pathname.startsWith("/forms/")
+      ) {
+        resolvedUrl.searchParams.set("portal", "1");
+      }
+      window.location.href = resolvedUrl.toString();
+      return;
+    }
+
+    handleOpenIntakeForm(task.id);
+  };
+
   const renderTaskActionArea = (task: PublicClientPortalData["tasks"][number]) => {
     const externalUrl = normalizeExternalUrl(task.externalUrl);
     const uploadOpen = taskUploadId === task.id;
@@ -393,9 +428,9 @@ export function PublicClientPortal({
           {task.taskType === "form_completion" ? (
             <Button
               className="rounded-full"
-              onClick={() => handleOpenIntakeForm(task.id)}
+              onClick={() => handleFormTaskOpen(task)}
             >
-              Open form
+              {task.status === "completed" || task.status === "submitted" ? "View submission" : "Open form"}
               <ChevronRight className="ml-2 h-4 w-4" />
             </Button>
           ) : null}
@@ -690,13 +725,17 @@ export function PublicClientPortal({
                               >
                                 {taskStatusLabel(task.status)}
                               </div>
-                              <div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-slate-700">
+                              <div className={`rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] ${taskTypeClasses(task.taskType)}`}>
                                 {taskTypeLabel(task.taskType)}
                               </div>
                             </div>
                             <p className="text-sm leading-6 text-slate-600">
                               {task.instructions || "No additional instructions."}
                             </p>
+                            <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                              <span>Assigned {formatDate(task.createdAt)}</span>
+                              {task.completedAt ? <span>Completed {formatDate(task.completedAt)}</span> : null}
+                            </div>
                           </div>
                           <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
                             <Clock3 className="h-4 w-4" />
@@ -743,26 +782,53 @@ export function PublicClientPortal({
                       </CollapsibleTrigger>
                       <CollapsibleContent className="border-t border-border/60 px-5 pb-5">
                         <div className="space-y-3 pt-4">
-                                {completedTasks.map((task) => (
+                          {completedTasks.map((task) => (
                             <div
                               key={task.id}
                               className="rounded-[24px] border border-emerald-200 bg-emerald-50 p-4"
                             >
-                              <div className="flex flex-wrap items-center gap-2">
-                                <CheckCircle2 className="h-4 w-4 text-emerald-700" />
-                                <p className="font-medium text-emerald-950">{task.title}</p>
+                              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                <div>
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <CheckCircle2 className="h-4 w-4 text-emerald-700" />
+                                    <p className="font-medium text-emerald-950">{task.title}</p>
+                                    <div
+                                      className={`rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] ${taskStatusClasses(task.status)}`}
+                                    >
+                                      {taskStatusLabel(task.status)}
+                                    </div>
+                                    <div
+                                      className={`rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] ${taskTypeClasses(task.taskType)}`}
+                                    >
+                                      {taskTypeLabel(task.taskType)}
+                                    </div>
+                                  </div>
+                                  <p className="mt-2 text-sm text-emerald-800/80">
+                                    {task.taskType === "file_upload" && task.submittedDocumentId
+                                      ? `${documentsById.get(task.submittedDocumentId)?.label ?? "Uploaded file"} submitted for provider review.`
+                                      : task.taskType === "review_and_sign" && task.linkedDocumentId
+                                        ? `${documentsById.get(task.linkedDocumentId)?.label ?? "Document"} signed and acknowledged.`
+                                        : task.taskType === "form_completion"
+                                          ? "Form submitted for provider review."
+                                          : task.completionNote || (task.status === "submitted"
+                                            ? "Submitted for provider review."
+                                            : "Completed.")}
+                                  </p>
+                                  <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-emerald-800/70">
+                                    <span>Assigned {formatDate(task.createdAt)}</span>
+                                    {task.completedAt ? <span>Completed {formatDate(task.completedAt)}</span> : null}
+                                  </div>
+                                </div>
+                                {task.taskType === "form_completion" && task.externalUrl ? (
+                                  <Button
+                                    className="rounded-full"
+                                    onClick={() => handleFormTaskOpen(task)}
+                                  >
+                                    View submission
+                                    <ChevronRight className="ml-2 h-4 w-4" />
+                                  </Button>
+                                ) : null}
                               </div>
-                              <p className="mt-2 text-sm text-emerald-800/80">
-                                {task.taskType === "file_upload" && task.submittedDocumentId
-                                  ? `${documentsById.get(task.submittedDocumentId)?.label ?? "Uploaded file"} submitted for provider review.`
-                                  : task.taskType === "review_and_sign" && task.linkedDocumentId
-                                    ? `${documentsById.get(task.linkedDocumentId)?.label ?? "Document"} signed and acknowledged.`
-                                    : task.taskType === "form_completion"
-                                      ? "Form submitted for provider review."
-                                      : task.completionNote || (task.status === "submitted"
-                                        ? "Submitted for provider review."
-                                        : "Completed.")}
-                              </p>
                             </div>
                           ))}
                         </div>

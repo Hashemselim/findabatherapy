@@ -1,9 +1,10 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { useForm, type UseFormReturn } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2, CheckCircle2, Copy, Info, Upload } from "lucide-react";
+import { Loader2, Info } from "lucide-react";
 import Turnstile from "react-turnstile";
 
 import { Button } from "@/components/ui/button";
@@ -62,15 +63,13 @@ export function ClientIntakeForm({
   intakeSlug,
   portalTaskId,
 }: ClientIntakeFormProps) {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const portalAssignedForm = Boolean(portalTaskId);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(
     portalAssignedForm ? "portal-assigned" : null,
   );
-  const [documentUploadUrl, setDocumentUploadUrl] = useState<string | null>(null);
-  const [uploadLinkCopied, setUploadLinkCopied] = useState(false);
 
   // Build the Zod schema dynamically from the provider's field config
   const schema = useMemo(() => buildIntakeSchema(fieldsConfig), [fieldsConfig]);
@@ -171,62 +170,33 @@ export function ClientIntakeForm({
           });
 
       if (result.success) {
-        setDocumentUploadUrl("data" in result ? result.data?.documentUploadUrl || null : null);
+        if (!intakeSlug) {
+          setError("Unable to finish the submission flow.");
+          return;
+        }
+
+        const submittedAt = new Date().toISOString();
+        const nextUrl = new URL(
+          `/intake/${intakeSlug}/client/submitted`,
+          window.location.origin,
+        );
+        nextUrl.searchParams.set("submittedAt", submittedAt);
+        if (portalAssignedForm) {
+          nextUrl.searchParams.set("portal", "1");
+        }
+        const uploadUrl = "data" in result ? result.data?.documentUploadUrl || null : null;
+        if (uploadUrl) {
+          nextUrl.searchParams.set("uploadUrl", uploadUrl);
+        }
         if (!portalTaskId && intakeSlug && prefillData) {
           await markIntakeTokenUsed(undefined, intakeSlug);
         }
-        setIsSuccess(true);
+        router.replace(`${nextUrl.pathname}${nextUrl.search}`);
       } else {
         setError(result.error || "Failed to submit form");
       }
     });
   };
-
-  if (isSuccess) {
-    return (
-      <div className="py-8 text-center">
-        <CheckCircle2 className="mx-auto h-16 w-16 text-green-500" />
-        <h3 className="mt-4 text-xl font-semibold">Thank You!</h3>
-        <p className="mt-2 text-muted-foreground">
-          {portalTaskId
-            ? `Your form has been submitted successfully. ${providerName} will review your information in the portal.`
-            : `Your intake form has been submitted successfully. ${providerName} will review your information and be in touch shortly.`}
-        </p>
-        {documentUploadUrl ? (
-          <div className="mt-6 space-y-3">
-            <p className="text-sm text-muted-foreground">
-              If you have diagnosis reports, referrals, or medical history ready,
-              you can upload them now on a secure page.
-            </p>
-            <div className="flex flex-col justify-center gap-3 sm:flex-row">
-              <Button
-                type="button"
-                onClick={() => {
-                  window.location.href = documentUploadUrl;
-                }}
-                style={getSolidBrandButtonStyles(brandColor)}
-              >
-                <Upload className="mr-2 h-4 w-4" />
-                Upload Documents
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={async () => {
-                  await navigator.clipboard.writeText(documentUploadUrl);
-                  setUploadLinkCopied(true);
-                  setTimeout(() => setUploadLinkCopied(false), 3000);
-                }}
-              >
-                <Copy className="mr-2 h-4 w-4" />
-                {uploadLinkCopied ? "Link Copied" : "Copy Upload Link"}
-              </Button>
-            </div>
-          </div>
-        ) : null}
-      </div>
-    );
-  }
 
   // Get only sections that have enabled fields
   const enabledSections = getEnabledSections(fieldsConfig);

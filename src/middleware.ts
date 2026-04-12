@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
 import { isDevOnboardingPreviewEnabled } from "@/lib/onboarding-preview";
+import { isClerkAuthEnabled } from "@/lib/platform/config";
 import { domains, isGoodabaAppPath } from "@/lib/utils/domains";
 
 const CANONICAL_GOODABA_PREFIXES = ["/auth", "/dashboard"];
@@ -10,6 +11,18 @@ const matchesClerkAuthRoute = createRouteMatcher([
   "/auth/sign-in(.*)",
   "/auth/sign-up(.*)",
 ]);
+
+function shouldBypassClerkMiddleware(pathname: string): boolean {
+  if (
+    pathname.startsWith("/dashboard") ||
+    pathname.startsWith("/auth") ||
+    pathname.startsWith("/portal")
+  ) {
+    return false;
+  }
+
+  return true;
+}
 
 function getAuthCallbackNextTarget(request: NextRequest): string {
   return (
@@ -75,7 +88,13 @@ function isLegacyJobsHost(host: string): boolean {
 
 function isLocalhost(host: string): boolean {
   const normalizedHost = normalizeHost(host);
-  return normalizedHost.includes("localhost") || normalizedHost.includes("127.0.0.1");
+  return (
+    normalizedHost.includes("localhost") ||
+    normalizedHost.includes("127.0.0.1") ||
+    normalizedHost === "0.0.0.0" ||
+    normalizedHost === "[::1]" ||
+    normalizedHost === "::1"
+  );
 }
 
 function matchesRoleJobsPath(pathname: string): RegExpMatchArray | null {
@@ -85,7 +104,7 @@ function matchesRoleJobsPath(pathname: string): RegExpMatchArray | null {
 }
 
 function isProviderControlledGoodabaPath(pathname: string): boolean {
-  return /^\/provider\/[^/]+\/(website|contact|intake|documents|resources|careers|jobs)(\/.*)?$/.test(
+  return /^\/provider\/[^/]+\/(website|contact|intake|documents|forms|resources|careers|jobs)(\/.*)?$/.test(
     pathname
   );
 }
@@ -273,9 +292,7 @@ async function handlePlatformRouting(request: NextRequest) {
     return redirectToGoodaba(request, "/");
   }
 
-  if (
-    pathname === "/behaviorwork" || pathname.startsWith("/behaviorwork/")
-  ) {
+  if (pathname === "/behaviorwork" || pathname.startsWith("/behaviorwork/")) {
     const canonicalPath =
       pathname === "/behaviorwork/get-started" ? "/pricing" : "/";
     if (production) {
@@ -463,7 +480,15 @@ const handleClerkMiddleware = clerkMiddleware(async (auth, request) => {
 });
 
 export default function middleware(request: NextRequest, event: Parameters<typeof handleClerkMiddleware>[1]) {
-  return handleClerkMiddleware(request, event);
+  if (isClerkAuthEnabled()) {
+    if (shouldBypassClerkMiddleware(request.nextUrl.pathname)) {
+      return handlePlatformRouting(request) ?? NextResponse.next();
+    }
+
+    return handleClerkMiddleware(request, event);
+  }
+
+  return handlePlatformRouting(request) ?? NextResponse.next();
 }
 
 export const config = {

@@ -20,7 +20,7 @@ type DocumentUploadPageProps = {
   searchParams: Promise<{ token?: string }>;
 };
 
-export const revalidate = 300;
+export const dynamic = "force-dynamic";
 
 function getLighterShade(hexColor: string, opacity: number = 0.1) {
   return `${hexColor}${Math.round(opacity * 255).toString(16).padStart(2, "0")}`;
@@ -34,13 +34,15 @@ export async function generateMetadata({
 
   if (!result.success || !result.data) {
     return {
-      title: "Secure Document Upload",
+      title: { absolute: "Secure Document Upload" },
       robots: { index: false, follow: false },
     };
   }
 
   return {
-    title: `Secure Document Upload | ${result.data.profile.agencyName}`,
+    title: {
+      absolute: `Secure Document Upload | ${result.data.profile.agencyName}`,
+    },
     description: `Upload supporting ABA intake documents for ${result.data.profile.agencyName}.`,
     robots: { index: false, follow: false },
   };

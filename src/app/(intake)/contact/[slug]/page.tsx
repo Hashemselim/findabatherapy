@@ -28,7 +28,7 @@ export async function generateMetadata({ params }: ContactPageProps): Promise<Me
 
   if (!result.success || !result.data) {
     return {
-      title: "Contact Form",
+      title: { absolute: "Contact Form" },
       robots: { index: false, follow: false },
     };
   }
@@ -36,7 +36,7 @@ export async function generateMetadata({ params }: ContactPageProps): Promise<Me
   const { profile } = result.data;
 
   return {
-    title: `Contact ${profile.agencyName} | Interest Form`,
+    title: { absolute: `Contact ${profile.agencyName} | Interest Form` },
     description: `Submit an inquiry to ${profile.agencyName}. Fill out the form and we'll be in touch shortly.`,
     robots: { index: false, follow: false }, // Private form, not for search
   };

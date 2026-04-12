@@ -27,8 +27,7 @@ type ClientIntakePageProps = {
   searchParams: Promise<{ ref?: string; token?: string; portalTaskId?: string }>;
 };
 
-// Revalidate every 5 minutes (ISR)
-export const revalidate = 300;
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: ClientIntakePageProps): Promise<Metadata> {
   const { slug } = await params;
@@ -36,7 +35,7 @@ export async function generateMetadata({ params }: ClientIntakePageProps): Promi
 
   if (!result.success || !result.data) {
     return {
-      title: "Client Intake Form",
+      title: { absolute: "Client Intake Form" },
       robots: { index: false, follow: false },
     };
   }
@@ -44,7 +43,7 @@ export async function generateMetadata({ params }: ClientIntakePageProps): Promi
   const { profile } = result.data;
 
   return {
-    title: `Client Intake | ${profile.agencyName}`,
+    title: { absolute: `Client Intake | ${profile.agencyName}` },
     description: `Submit a client intake form for ${profile.agencyName}. Fill out the form and we'll be in touch shortly.`,
     robots: { index: false, follow: false }, // Private form, not for search
   };
@@ -95,6 +94,12 @@ export default async function ClientIntakePage({ params, searchParams }: ClientI
     const tokenResult = await getIntakeTokenData(accessToken);
     if (tokenResult.success && tokenResult.data) {
       prefillData = tokenResult.data;
+    } else if (!tokenResult.success && tokenResult.error === "This intake link has already been used") {
+      const submittedUrl = new URL(`/intake/${slug}/client/submitted`, "http://localhost");
+      if (portalTaskId) {
+        submittedUrl.searchParams.set("portal", "1");
+      }
+      redirect(`${submittedUrl.pathname}${submittedUrl.search}`);
     }
   }
 

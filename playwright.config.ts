@@ -1,5 +1,10 @@
 import { defineConfig, devices } from "@playwright/test";
 
+const useDevServer = process.env.PLAYWRIGHT_USE_DEV_SERVER === "1";
+const webServerCommand = useDevServer
+  ? "npm run dev"
+  : "NEXT_PUBLIC_SITE_URL=http://localhost:3000 npm run build && NEXT_PUBLIC_SITE_URL=http://localhost:3000 npm run start -- --port 3000";
+
 /**
  * Playwright configuration for Find A BA Therapy
  * @see https://playwright.dev/docs/test-configuration
@@ -60,9 +65,9 @@ export default defineConfig({
 
   /* Run local dev server before starting the tests */
   webServer: {
-    command: "npm run dev",
+    command: webServerCommand,
     url: "http://localhost:3000",
     reuseExistingServer: true, // Always reuse if server is already running
-    timeout: 120000,
+    timeout: useDevServer ? 120000 : 600000,
   },
 });

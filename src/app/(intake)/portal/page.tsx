@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/card";
 import { getAuthenticatedPortalHomeEntries } from "@/lib/actions/client-portal";
 import { getCurrentUser } from "@/lib/platform/auth/server";
 
-export const revalidate = 60;
+export const dynamic = "force-dynamic";
 
 export default async function FamilyPortalHomePage() {
   const user = await getCurrentUser();

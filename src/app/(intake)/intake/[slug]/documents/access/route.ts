@@ -25,9 +25,9 @@ export async function GET(request: Request, { params }: RouteParams) {
 
   if (token) {
     if (await validateDocumentAccessToken(slug, token)) {
-      setDocumentAccessTokenOnResponse(response, existingCookieValue, slug, token);
+      setDocumentAccessTokenOnResponse(response, existingCookieValue, slug, token, requestUrl);
     } else {
-      clearDocumentAccessTokenOnResponse(response, existingCookieValue, slug);
+      clearDocumentAccessTokenOnResponse(response, existingCookieValue, slug, requestUrl);
     }
   }
 

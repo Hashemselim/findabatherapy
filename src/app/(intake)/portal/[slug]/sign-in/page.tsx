@@ -23,7 +23,7 @@ type FamilyPortalSignInPageProps = {
   searchParams: Promise<{ token?: string; email?: string; error?: string }>;
 };
 
-export const revalidate = 300;
+export const dynamic = "force-dynamic";
 
 function getLighterShade(hexColor: string, opacity = 0.1) {
   return `${hexColor}${Math.round(opacity * 255)
@@ -39,13 +39,15 @@ export async function generateMetadata({
 
   if (!branding.success || !branding.data) {
     return {
-      title: "Family Portal Sign In",
+      title: { absolute: "Family Portal Sign In" },
       robots: { index: false, follow: false },
     };
   }
 
   return {
-    title: `Family Portal Sign In | ${branding.data.agencyName}`,
+    title: {
+      absolute: `Family Portal Sign In | ${branding.data.agencyName}`,
+    },
     description: `Sign in to your ${branding.data.agencyName} family portal.`,
     robots: { index: false, follow: false },
   };

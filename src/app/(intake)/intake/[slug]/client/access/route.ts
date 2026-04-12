@@ -35,9 +35,9 @@ export async function GET(request: Request, { params }: RouteParams) {
 
   if (token) {
     if (await validateIntakeAccessToken(slug, token)) {
-      setIntakeAccessTokenOnResponse(response, existingCookieValue, slug, token);
+      setIntakeAccessTokenOnResponse(response, existingCookieValue, slug, token, requestUrl);
     } else {
-      clearIntakeAccessTokenOnResponse(response, existingCookieValue, slug);
+      clearIntakeAccessTokenOnResponse(response, existingCookieValue, slug, requestUrl);
     }
   }
 

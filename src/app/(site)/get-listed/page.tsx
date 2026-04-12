@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -23,6 +24,12 @@ import { CrossBrandBenefits } from "@/components/marketing/cross-brand-benefits"
 import { AlsoIncludedBadge } from "@/components/marketing/also-included-badge";
 import { cn } from "@/lib/utils";
 import { PLAN_CONFIGS } from "@/lib/plans/features";
+
+export const metadata: Metadata = {
+  title: "Get Listed on Find ABA Therapy | Pricing for ABA Providers",
+  description:
+    "Create or upgrade your ABA provider listing on Find ABA Therapy. Compare free and Pro options, branded pages, intake tools, and lead generation features.",
+};
 
 const features = [
   {

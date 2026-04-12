@@ -1,5 +1,6 @@
 "use server";
 
+import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 
 import { isConvexDataEnabled } from "@/lib/platform/config";
@@ -11,7 +12,7 @@ import {
   getPortalAccessToken,
 } from "@/lib/public-access";
 import { getIntakeAccessToken } from "@/lib/public-access";
-import { buildBrandUrl } from "@/lib/utils/domains";
+import { buildBrandUrl, getRequestOrigin } from "@/lib/utils/domains";
 import { createClerkSignInTokenUrl } from "@/lib/platform/auth/clerk-admin";
 import {
   DOCUMENT_MAX_SIZE,
@@ -25,6 +26,38 @@ import { markIntakeTokenUsed } from "@/lib/actions/intake";
 type ActionResult<T = void> =
   | { success: true; data?: T }
   | { success: false; error: string };
+
+async function getCurrentPortalOrigin() {
+  let origin = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+  try {
+    const requestHeaders = await headers();
+    origin = getRequestOrigin(requestHeaders, "goodaba");
+  } catch {
+    // Use env fallback outside an active request context.
+  }
+  return origin;
+}
+
+function rebaseUrlToOrigin(url: string, origin: string): string {
+  const parsedUrl = new URL(url);
+  const parsedOrigin = new URL(origin);
+  parsedUrl.protocol = parsedOrigin.protocol;
+  parsedUrl.host = parsedOrigin.host;
+  return parsedUrl.toString();
+}
+
+function rebaseTaskExternalUrls<T extends { tasks: Array<{ externalUrl: string | null }> }>(
+  data: T,
+  origin: string,
+): T {
+  return {
+    ...data,
+    tasks: data.tasks.map((task) => ({
+      ...task,
+      externalUrl: task.externalUrl ? rebaseUrlToOrigin(task.externalUrl, origin) : null,
+    })),
+  };
+}
 
 export interface PortalBrandingData {
   agencyName: string;
@@ -317,7 +350,8 @@ export async function getClientPortalData(
     const data = await queryConvex<ClientPortalData>("clientPortal:getClientPortalData", {
       clientId,
     });
-    return { success: true, data };
+    const origin = await getCurrentPortalOrigin();
+    return { success: true, data: rebaseTaskExternalUrls(data, origin) };
   } catch (error) {
     return {
       success: false,
@@ -673,7 +707,13 @@ export async function getPublicPortalIntakeFormUrl(
             clientId: clientId ?? null,
             taskId,
           });
-    return { success: true, data };
+    const origin = await getCurrentPortalOrigin();
+    return {
+      success: true,
+      data: {
+        url: rebaseUrlToOrigin(data.url, origin),
+      },
+    };
   } catch (error) {
     return {
       success: false,
@@ -956,7 +996,8 @@ export async function getPublicClientPortalData(
             slug,
             clientId: clientId ?? null,
           });
-    return { success: true, data };
+    const origin = await getCurrentPortalOrigin();
+    return { success: true, data: rebaseTaskExternalUrls(data, origin) };
   } catch (error) {
     return {
       success: false,

@@ -27,7 +27,6 @@ export const domains: Record<Brand, DomainConfig> = {
     noReplyEmail: "noreply@findabatherapy.org",
   },
   jobs: {
-    // Jobs are now a section of GoodABA rather than a standalone domain.
     production: "https://www.goodaba.com",
     domains: ["goodaba.com", "www.goodaba.com"],
     legacyDomains: [
@@ -62,7 +61,7 @@ export function isGoodabaAppPath(pathname: string): boolean {
     pathname.startsWith("/employers") ||
     pathname.startsWith("/behaviorwork") ||
     pathname.startsWith("/pricing") ||
-    /^\/provider\/[^/]+\/(website|contact|intake|documents|resources|careers|jobs)(\/.*)?$/.test(
+    /^\/provider\/[^/]+\/(website|contact|intake|documents|forms|resources|careers|jobs)(\/.*)?$/.test(
       pathname
     ) ||
     Boolean(
@@ -73,19 +72,20 @@ export function isGoodabaAppPath(pathname: string): boolean {
   );
 }
 
-function normalizeHost(host: string): string {
+function normalizeHostname(host: string): string {
   return host.toLowerCase().replace(/:\d+$/, "");
+}
+
+function normalizeOriginHost(host: string): string {
+  return host.toLowerCase();
 }
 
 function extractForwardedHost(host: string): string {
   return host.split(",")[0]?.trim() || host;
 }
 
-/**
- * Detect brand from hostname.
- */
 export function getBrandFromHost(host: string): Brand {
-  const normalizedHost = normalizeHost(host);
+  const normalizedHost = normalizeHostname(host);
 
   if (domains.goodaba.domains.some((domain) => normalizedHost === domain)) {
     return "goodaba";
@@ -106,9 +106,6 @@ export function getBrandFromHost(host: string): Brand {
   return "therapy";
 }
 
-/**
- * Detect brand from pathname (useful on localhost).
- */
 export function getBrandFromPath(pathname: string): Brand {
   if (isGoodabaAppPath(pathname)) {
     return "goodaba";
@@ -129,10 +126,9 @@ function validateProductionUrl(url: string, context: string): string {
   const isLocalhost = url.includes("localhost") || url.includes("127.0.0.1");
 
   if (isProduction && isLocalhost) {
-    console.error(
-      `CRITICAL ERROR: Localhost URL detected in production for ${context}. URL: ${url}`
+    console.warn(
+      `Localhost URL preserved during production-mode local run for ${context}. URL: ${url}`
     );
-    return domains.therapy.production;
   }
 
   return url;
@@ -156,19 +152,16 @@ export function getValidatedOrigin(
   brand: Brand = "therapy"
 ): string {
   const isProduction = process.env.NODE_ENV === "production";
+  const isLoopbackOrigin =
+    requestOrigin?.includes("localhost") || requestOrigin?.includes("127.0.0.1");
 
   if (isProduction) {
     if (requestOrigin) {
-      const isLocalhost =
-        requestOrigin.includes("localhost") ||
-        requestOrigin.includes("127.0.0.1");
-      if (!isLocalhost) {
+      if (!isLoopbackOrigin) {
         return requestOrigin;
       }
 
-      console.error(
-        `CRITICAL ERROR: Localhost request origin detected in production. Origin: ${requestOrigin}`
-      );
+      return requestOrigin;
     }
 
     return domains[brand].production;
@@ -199,7 +192,7 @@ export function getRequestOrigin(
       (process.env.NODE_ENV === "production" ? "https" : "http");
 
     return getValidatedOrigin(
-      `${forwardedProto}://${normalizeHost(forwardedHost)}`,
+      `${forwardedProto}://${normalizeOriginHost(forwardedHost)}`,
       fallbackBrand
     );
   }
@@ -251,7 +244,7 @@ export function getBrandName(brand: Brand): string {
 }
 
 export function isJobsDomain(host: string): boolean {
-  const normalizedHost = normalizeHost(host);
+  const normalizedHost = normalizeHostname(host);
   return (
     domains.jobs.legacyDomains?.some((domain) => normalizedHost === domain) ??
     false
@@ -259,7 +252,7 @@ export function isJobsDomain(host: string): boolean {
 }
 
 export function isGoodabaDomain(host: string): boolean {
-  const normalizedHost = normalizeHost(host);
+  const normalizedHost = normalizeHostname(host);
   return domains.goodaba.domains.some((domain) => normalizedHost === domain);
 }
 
