@@ -1,5 +1,8 @@
+import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
 
+import { Button } from "@/components/ui/button";
 import { ClientPortalPreview } from "@/components/client-portal/client-portal-preview";
 import { PublicClientPortal } from "@/components/client-portal/public-client-portal";
 import { getCurrentUser } from "@/lib/platform/auth/server";
@@ -111,10 +114,20 @@ export default async function ClientPortalPreviewPage({
   }
 
   return (
-    <PublicClientPortal
-      slug={portalResult.data.branding.slug ?? "preview"}
-      data={buildPreviewPortalData(portalResult.data)}
-      previewMode
-    />
+    <div>
+      <div className="border-b bg-background px-4 py-3">
+        <Button variant="ghost" size="sm" asChild className="gap-1.5">
+          <Link href={`/dashboard/clients/${id}`}>
+            <ArrowLeft className="h-4 w-4" />
+            Back to Client
+          </Link>
+        </Button>
+      </div>
+      <PublicClientPortal
+        slug={portalResult.data.branding.slug ?? "preview"}
+        data={buildPreviewPortalData(portalResult.data)}
+        previewMode
+      />
+    </div>
   );
 }

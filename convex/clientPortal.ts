@@ -510,6 +510,7 @@ function mapTask(row: ConvexDoc) {
     completionNote: readPayloadString(payload, "completionNote"),
     completedAt: readPayloadString(payload, "completedAt", "submittedAt"),
     completedByGuardianId: readPayloadString(payload, "completedByGuardianId"),
+    taskSource: readPayloadString(payload, "taskSource"),
     createdAt: readPayloadString(row, "createdAt") ?? now(),
     updatedAt: readPayloadString(row, "updatedAt") ?? now(),
   };
@@ -1944,7 +1945,7 @@ export const getPublicPortalData = query({
         inviteAccepted:
           guardian.accessStatus === "active" || Boolean(guardian.acceptedAt),
       },
-      tasks: portal.tasks.filter((task) => task.visibility !== "internal"),
+      tasks: portal.tasks.filter((task) => task.visibility !== "internal" && task.taskSource !== "provider_internal"),
       documents: portal.documents.filter((doc) => doc.visibility !== "internal"),
       messages: portal.messages,
       resources: portal.resources.filter((resource) => resource.visibility !== "internal"),

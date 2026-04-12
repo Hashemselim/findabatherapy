@@ -325,7 +325,7 @@ export function DetailsTab({
   };
 
   return (
-    <>
+    <div className="space-y-4">
       {/* SECTION 1: Client Information */}
       <Card>
         <CardContent className="pt-6">
@@ -1653,6 +1653,6 @@ export function DetailsTab({
         fixedClientId={client.id}
         fixedClientName={childName}
       />
-    </>
+    </div>
   );
 }
