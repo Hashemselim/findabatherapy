@@ -27,6 +27,7 @@ import {
   Palette,
   Share2,
   Sparkles,
+  StickyNote,
   User,
   UserCheck,
   UserCircle,
@@ -81,6 +82,12 @@ export const mainNavItems: NavItemConfig[] = [
     showBadge: true,
     quickLink: true,
     aliases: ["/dashboard/operations/tasks"],
+  },
+  {
+    href: "/dashboard/notes",
+    label: "Notes",
+    icon: StickyNote,
+    quickLink: true,
   },
   {
     href: "/dashboard/notifications",
