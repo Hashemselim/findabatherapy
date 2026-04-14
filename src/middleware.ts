@@ -13,15 +13,7 @@ const matchesClerkAuthRoute = createRouteMatcher([
 ]);
 
 function shouldBypassClerkMiddleware(pathname: string): boolean {
-  if (
-    pathname.startsWith("/dashboard") ||
-    pathname.startsWith("/auth") ||
-    pathname.startsWith("/portal")
-  ) {
-    return false;
-  }
-
-  return true;
+  return pathname.startsWith("/ingest");
 }
 
 function getAuthCallbackNextTarget(request: NextRequest): string {
