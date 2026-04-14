@@ -177,6 +177,7 @@ export function DashboardSidebar({
   const [notificationCount, setNotificationCount] = useState(staticUnreadCount ?? 0);
   const [applicantCount, setApplicantCount] = useState(0);
   const [taskCount, setTaskCount] = useState(0);
+  const [pendingHref, setPendingHref] = useState<string | null>(null);
   const [sectionOpen, setSectionOpen] = useState<Record<SectionId, boolean>>(getDefaultOpenState);
   const { signOut, loading: isSigningOut } = useSignOut();
 
@@ -185,12 +186,16 @@ export function DashboardSidebar({
     const activeSection = inferActiveSectionFromPath(pathname);
     const next = normalizeSectionState(loadSectionState(), activeSection);
     setSectionOpen(next);
+    setPendingHref(null);
     saveSectionState(next);
   }, [pathname]);
 
   // Fetch badge counts
   useEffect(() => {
     if (staticUnreadCount !== undefined) return;
+
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    let idleCallbackId: number | null = null;
 
     async function fetchCounts() {
       const [notifCount, applicationResult, taskResult] = await Promise.all([
@@ -207,8 +212,27 @@ export function DashboardSidebar({
       }
     }
 
-    fetchCounts();
-  }, [pathname, staticUnreadCount]);
+    const scheduleFetchCounts = () => {
+      void fetchCounts();
+    };
+
+    if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+      idleCallbackId = window.requestIdleCallback(scheduleFetchCounts, {
+        timeout: 1500,
+      });
+    } else {
+      timeoutId = setTimeout(scheduleFetchCounts, 800);
+    }
+
+    return () => {
+      if (idleCallbackId !== null && typeof window !== "undefined" && "cancelIdleCallback" in window) {
+        window.cancelIdleCallback(idleCallbackId);
+      }
+      if (timeoutId !== null) {
+        clearTimeout(timeoutId);
+      }
+    };
+  }, [staticUnreadCount]);
 
   const handleLogout = async () => {
     document.cookie = "dev_bypass=; path=/; max-age=0";
@@ -241,7 +265,7 @@ export function DashboardSidebar({
         <div className="px-5 py-6">
           <nav className="space-y-1">
             {customNavItems.map((item) =>
-              renderNavLink(item as NavItemConfig, pathname, isOnboardingComplete, isDemo, getBadgeCount)
+              renderNavLink(item as NavItemConfig, pathname, pendingHref, isOnboardingComplete, isDemo, getBadgeCount, setPendingHref)
             )}
           </nav>
         </div>
@@ -268,9 +292,9 @@ export function DashboardSidebar({
 
         {/* Main nav items */}
         <nav className="space-y-0.5 px-3">
-          {!isOnboardingComplete && renderNavLink(onboardingNavItem, pathname, isOnboardingComplete, isDemo, getBadgeCount)}
+          {!isOnboardingComplete && renderNavLink(onboardingNavItem, pathname, pendingHref, isOnboardingComplete, isDemo, getBadgeCount, setPendingHref)}
           {mainNavItems.map((item) =>
-            renderNavLink(item, pathname, isOnboardingComplete, isDemo, getBadgeCount)
+            renderNavLink(item, pathname, pendingHref, isOnboardingComplete, isDemo, getBadgeCount, setPendingHref)
           )}
         </nav>
 
@@ -279,7 +303,9 @@ export function DashboardSidebar({
           {sectionNav.map((section) => {
             const isOpen = sectionOpen[section.id] ?? section.defaultOpen;
             const SectionIcon = section.icon;
-            const hasActiveChild = section.items.some((item) => isNavItemActive(item, pathname));
+            const hasActiveChild = section.items.some(
+              (item) => isNavItemActive(item, pathname) || item.href === pendingHref
+            );
 
             // Calculate section badge total for collapsed state
             const sectionBadgeTotal = section.items.reduce(
@@ -324,7 +350,7 @@ export function DashboardSidebar({
                 </CollapsibleTrigger>
                 <CollapsibleContent className="space-y-0.5 pb-1 pl-6 pt-0.5">
                   {section.items.map((item) =>
-                    renderNavLink(item, pathname, isOnboardingComplete, isDemo, getBadgeCount)
+                    renderNavLink(item, pathname, pendingHref, isOnboardingComplete, isDemo, getBadgeCount, setPendingHref)
                   )}
                 </CollapsibleContent>
               </Collapsible>
@@ -474,12 +500,14 @@ export function DashboardSidebar({
 function renderNavLink(
   item: NavItemConfig,
   pathname: string,
+  pendingHref: string | null,
   isOnboardingComplete: boolean,
   isDemo: boolean,
-  getBadgeCount: (href: string) => number
+  getBadgeCount: (href: string) => number,
+  setPendingHref: (href: string) => void,
 ) {
   const Icon = item.icon;
-  const isActive = isNavItemActive(item, pathname);
+  const isActive = pendingHref === item.href || isNavItemActive(item, pathname);
   const isLocked = !isDemo && !isOnboardingComplete && item.href !== "/dashboard/onboarding";
   const badgeCount = item.showBadge ? getBadgeCount(item.href) : 0;
 
@@ -487,6 +515,11 @@ function renderNavLink(
     <Link
       key={item.href}
       href={item.href}
+      onClick={() => {
+        if (!isLocked) {
+          setPendingHref(item.href);
+        }
+      }}
       className={cn(
         "group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
         isActive

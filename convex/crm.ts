@@ -216,11 +216,15 @@ export const getClients = query({
     );
     const searchLower = (args.filters?.search ?? args.search)?.toLowerCase();
 
-    const rows = await getCrmRecordsByWorkspaceAndType(
-      ctx,
-      workspaceId,
-      "client",
-    );
+    const rows = await ctx.db
+      .query("crmRecords")
+      .withIndex("by_workspace_and_type", (q) =>
+        q
+          .eq("workspaceId", asId<"workspaces">(workspaceId))
+          .eq("recordType", "client"),
+      )
+      .order("desc")
+      .collect();
 
     const filtered = rows
       .filter(isNotDeleted)
@@ -244,12 +248,7 @@ export const getClients = query({
           email.includes(searchLower) ||
           phone.includes(searchLower)
         );
-      })
-      .sort(
-        (a, b) =>
-          new Date(readString(b.createdAt) ?? 0).getTime() -
-          new Date(readString(a.createdAt) ?? 0).getTime(),
-      );
+      });
 
     const counts = {
       total: filtered.length,
@@ -300,6 +299,37 @@ export const getClients = query({
       counts,
       total: filtered.length,
     };
+  },
+});
+
+export const getClientOptions = query({
+  args: {},
+  handler: async (ctx) => {
+    const { workspaceId } = await requireCurrentWorkspace(ctx);
+
+    const rows = await ctx.db
+      .query("crmRecords")
+      .withIndex("by_workspace_and_type", (q) =>
+        q
+          .eq("workspaceId", asId<"workspaces">(workspaceId))
+          .eq("recordType", "client"),
+      )
+      .collect();
+
+    return rows
+      .filter(isNotDeleted)
+      .map((row) => {
+        const payload = asRecord(row.payload);
+        const name = [readString(payload.firstName), readString(payload.lastName)]
+          .filter(Boolean)
+          .join(" ");
+
+        return {
+          id: row._id,
+          name: name || "Unnamed Client",
+        };
+      })
+      .sort((a, b) => a.name.localeCompare(b.name));
   },
 });
 

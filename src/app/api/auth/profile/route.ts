@@ -1,13 +1,9 @@
 import { NextResponse } from "next/server";
 
-import { getCurrentUser } from "@/lib/platform/auth/server";
 import { getCurrentWorkspace } from "@/lib/platform/workspace/server";
 
 export async function GET() {
-  const [user, workspace] = await Promise.all([
-    getCurrentUser(),
-    getCurrentWorkspace(),
-  ]);
+  const workspace = await getCurrentWorkspace();
   const profile = workspace
     ? {
         id: workspace.workspace.id,
@@ -25,8 +21,7 @@ export async function GET() {
     : null;
 
   return NextResponse.json({
-    user,
     profile,
-    isAuthenticated: Boolean(user),
+    isAuthenticated: Boolean(workspace),
   });
 }

@@ -1,10 +1,11 @@
 import "server-only";
 
+import { cache } from "react";
 import { currentUser, auth as clerkAuth } from "@clerk/nextjs/server";
 
 import type { PlatformUser } from "@/lib/platform/contracts";
 
-export async function getCurrentUser(): Promise<PlatformUser | null> {
+const getCurrentUserCached = cache(async (): Promise<PlatformUser | null> => {
   const user = await currentUser();
   if (!user) {
     return null;
@@ -18,6 +19,10 @@ export async function getCurrentUser(): Promise<PlatformUser | null> {
     imageUrl: user.imageUrl,
     provider: "clerk",
   };
+});
+
+export async function getCurrentUser(): Promise<PlatformUser | null> {
+  return getCurrentUserCached();
 }
 
 export async function getCurrentUserId(): Promise<string | null> {
@@ -25,7 +30,7 @@ export async function getCurrentUserId(): Promise<string | null> {
   return user?.id ?? null;
 }
 
-export async function getConvexAuthToken(): Promise<string | undefined> {
+const getConvexAuthTokenCached = cache(async (): Promise<string | undefined> => {
   const authState = await clerkAuth();
   if (!authState.userId) {
     return undefined;
@@ -41,4 +46,8 @@ export async function getConvexAuthToken(): Promise<string | undefined> {
   }
 
   return token;
+});
+
+export async function getConvexAuthToken(): Promise<string | undefined> {
+  return getConvexAuthTokenCached();
 }

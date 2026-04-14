@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
 import { Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { getCurrentUser } from "@/lib/platform/auth/server";
+import { getCurrentWorkspace } from "@/lib/platform/workspace/server";
 import { getTasks, getClientsList } from "@/lib/actions/clients";
 import { getCurrentPlanTier } from "@/lib/plans/guards";
 import { DEMO_TASKS } from "@/lib/demo/data";
@@ -11,6 +12,7 @@ import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-heade
 import { DashboardCard } from "@/components/dashboard/ui";
 import { LockedButton, PreviewBanner } from "@/components/ui/preview-banner";
 import { PreviewOverlay } from "@/components/ui/preview-overlay";
+import { Skeleton } from "@/components/ui/skeleton";
 
 import { TasksList } from "./tasks-list";
 
@@ -20,38 +22,13 @@ export const metadata = {
 };
 
 export default async function TasksPage() {
-  const user = await getCurrentUser();
-  if (!user) {
+  const workspace = await getCurrentWorkspace();
+  if (!workspace) {
     redirect("/auth/sign-in");
   }
 
   const planTier = await getCurrentPlanTier();
   const isPreview = planTier === "free";
-
-  let tasks: Array<{
-    id: string;
-    client_id: string | null;
-    title: string;
-    content?: string | null;
-    status: "pending" | "in_progress" | "completed";
-    due_date?: string | null;
-    reminder_at?: string | null;
-    created_at: string;
-    completed_at: string | null;
-    client_name?: string;
-  }> = [];
-  let clients: { id: string; name: string }[] = [];
-
-  if (isPreview) {
-    tasks = DEMO_TASKS;
-  } else {
-    const [tasksResult, clientsResult] = await Promise.all([
-      getTasks(),
-      getClientsList(),
-    ]);
-    tasks = tasksResult.success ? tasksResult.data?.tasks || [] : [];
-    clients = clientsResult.success ? clientsResult.data || [] : [];
-  }
 
   return (
     <div className="space-y-3">
@@ -76,10 +53,59 @@ export default async function TasksPage() {
       </DashboardPageHeader>
 
       <PreviewOverlay isPreview={isPreview}>
-        <DashboardCard className="p-5 sm:p-6">
-          <TasksList initialTasks={tasks} clients={clients} />
-        </DashboardCard>
+        {isPreview ? (
+          <DashboardCard className="p-5 sm:p-6">
+            <TasksList initialTasks={DEMO_TASKS} clients={[]} />
+          </DashboardCard>
+        ) : (
+          <Suspense fallback={<TasksContentFallback />}>
+            <TasksContent />
+          </Suspense>
+        )}
       </PreviewOverlay>
     </div>
+  );
+}
+
+async function TasksContent() {
+  const [tasksResult, clientsResult] = await Promise.all([
+    getTasks(),
+    getClientsList(),
+  ]);
+
+  const tasks = tasksResult.success ? tasksResult.data?.tasks || [] : [];
+  const clients = clientsResult.success ? clientsResult.data || [] : [];
+
+  return (
+    <DashboardCard className="p-5 sm:p-6">
+      <TasksList initialTasks={tasks} clients={clients} />
+    </DashboardCard>
+  );
+}
+
+function TasksContentFallback() {
+  return (
+    <DashboardCard className="p-5 sm:p-6">
+      <div className="space-y-4">
+        <div className="flex flex-wrap gap-2">
+          <Skeleton className="h-9 w-20 rounded-full" />
+          <Skeleton className="h-9 w-24 rounded-full" />
+          <Skeleton className="h-9 w-20 rounded-full" />
+        </div>
+        <div className="space-y-3">
+          {Array.from({ length: 5 }).map((_, index) => (
+            <div key={index} className="rounded-xl border border-border/60 p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="space-y-2">
+                  <Skeleton className="h-5 w-40" />
+                  <Skeleton className="h-4 w-64" />
+                </div>
+                <Skeleton className="h-6 w-20 rounded-full" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </DashboardCard>
   );
 }

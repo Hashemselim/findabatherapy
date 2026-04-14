@@ -1,5 +1,6 @@
 import "server-only";
 
+import { cache } from "react";
 import { queryConvex } from "@/lib/platform/convex/server";
 import type {
   PlatformCurrentWorkspace,
@@ -40,7 +41,7 @@ const ROLE_ORDER: Record<WorkspaceRole, number> = {
   owner: 3,
 };
 
-export async function getCurrentMembership(): Promise<PlatformMembership | null> {
+const getCurrentMembershipCached = cache(async (): Promise<PlatformMembership | null> => {
   const membership = await queryConvex<{
     id: string;
     profile_id: string;
@@ -66,6 +67,10 @@ export async function getCurrentMembership(): Promise<PlatformMembership | null>
     invitedByUserId: membership.invited_by_user_id,
     joinedAt: membership.joined_at,
   };
+});
+
+export async function getCurrentMembership(): Promise<PlatformMembership | null> {
+  return getCurrentMembershipCached();
 }
 
 export async function requireWorkspaceRole(
@@ -83,7 +88,7 @@ export async function requireWorkspaceRole(
   return membership;
 }
 
-export async function getCurrentWorkspace(): Promise<PlatformCurrentWorkspace | null> {
+const getCurrentWorkspaceCached = cache(async (): Promise<PlatformCurrentWorkspace | null> => {
   const workspace = await queryConvex<{
     membership: {
       id: string;
@@ -139,9 +144,13 @@ export async function getCurrentWorkspace(): Promise<PlatformCurrentWorkspace | 
       stripeSubscriptionId: workspace.profile.stripe_subscription_id,
     },
   };
+});
+
+export async function getCurrentWorkspace(): Promise<PlatformCurrentWorkspace | null> {
+  return getCurrentWorkspaceCached();
 }
 
-export async function getProfile(): Promise<WorkspaceProfile | null> {
+const getProfileCached = cache(async (): Promise<WorkspaceProfile | null> => {
   const workspace = await getCurrentWorkspace();
   if (!workspace) {
     return null;
@@ -159,6 +168,10 @@ export async function getProfile(): Promise<WorkspaceProfile | null> {
     stripe_customer_id: workspace.workspace.stripeCustomerId,
     stripe_subscription_id: workspace.workspace.stripeSubscriptionId,
   };
+});
+
+export async function getProfile(): Promise<WorkspaceProfile | null> {
+  return getProfileCached();
 }
 
 export async function getCurrentProfileId(): Promise<string | null> {

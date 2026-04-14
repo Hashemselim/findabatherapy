@@ -129,7 +129,11 @@ export function JobList({ jobs: initialJobs }: JobListProps) {
               <DashboardTableRow key={job.id}>
                 <DashboardTableCell className="pl-5">
                   <div className="flex flex-col">
-                    <Link href={`/dashboard/jobs/${job.id}`} className="font-medium text-foreground hover:underline">
+                    <Link
+                      href={`/dashboard/jobs/${job.id}`}
+                      prefetch={false}
+                      className="font-medium text-foreground hover:underline"
+                    >
                       {job.title}
                     </Link>
                     <span className="mt-1 text-sm text-muted-foreground">
@@ -159,10 +163,10 @@ export function JobList({ jobs: initialJobs }: JobListProps) {
                   <div className="flex justify-end gap-2">
                     {job.status === "published" && (
                       <Button variant="ghost" size="sm" className="hidden sm:flex" asChild>
-                        <Link href={`/job/${job.slug}`} target="_blank">
+                        <a href={`/job/${job.slug}`} target="_blank" rel="noopener noreferrer">
                           <ExternalLink className="mr-2 h-4 w-4" />
                           View
-                        </Link>
+                        </a>
                       </Button>
                     )}
                     <DropdownMenu>
@@ -174,23 +178,27 @@ export function JobList({ jobs: initialJobs }: JobListProps) {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem asChild>
-                          <Link href={`/dashboard/jobs/${job.id}`}>
+                          <Link href={`/dashboard/jobs/${job.id}`} prefetch={false}>
                             <Eye className="mr-2 h-4 w-4" />
                             View Details
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
-                          <Link href={`/dashboard/jobs/${job.id}/edit`}>
+                          <Link href={`/dashboard/jobs/${job.id}/edit`} prefetch={false}>
                             <Pencil className="mr-2 h-4 w-4" />
                             Edit
                           </Link>
                         </DropdownMenuItem>
                         {job.status === "published" && (
                           <DropdownMenuItem asChild>
-                            <Link href={`/job/${job.slug}`} target="_blank">
+                            <a
+                              href={`/job/${job.slug}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
                               <ExternalLink className="mr-2 h-4 w-4" />
                               View Live
-                            </Link>
+                            </a>
                           </DropdownMenuItem>
                         )}
                         <DropdownMenuSeparator />

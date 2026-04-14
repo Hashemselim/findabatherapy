@@ -101,6 +101,24 @@ async function getWorkspaceNotificationRows(
     .collect();
 }
 
+function isNotificationMatch(
+  row: ConvexDoc,
+  args: { type?: string; isRead?: boolean },
+) {
+  if (args.type && row.notificationType !== args.type) {
+    return false;
+  }
+
+  if (
+    args.isRead !== undefined &&
+    (row.status === "read") !== args.isRead
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
 export const createNotification = mutation({
   args: {
     workspaceId: v.string(),
@@ -146,19 +164,33 @@ export const getNotifications = query({
     const limit = args.limit ?? 50;
     const offset = args.offset ?? 0;
 
-    const rows = await getWorkspaceNotificationRows(ctx, workspaceId);
-    const filtered = rows
-      .filter((row) => !args.type || row.notificationType === args.type)
-      .filter((row) => args.isRead === undefined || (row.status === "read") === args.isRead)
-      .sort(
-        (a, b) =>
-          new Date(readString(b.createdAt) ?? 0).getTime() -
-          new Date(readString(a.createdAt) ?? 0).getTime(),
-      );
-    const unreadCount = rows.filter((row) => row.status !== "read").length;
+    const notifications: ConvexDoc[] = [];
+    let matchingIndex = 0;
+    let unreadCount = 0;
+
+    for await (const row of ctx.db
+      .query("notificationRecords")
+      .withIndex("by_workspace", (q) =>
+        q.eq("workspaceId", asId<"workspaces">(workspaceId)),
+      )
+      .order("desc")) {
+      if (row.status !== "read") {
+        unreadCount++;
+      }
+
+      if (!isNotificationMatch(row as ConvexDoc, args)) {
+        continue;
+      }
+
+      if (matchingIndex >= offset && notifications.length < limit) {
+        notifications.push(row as ConvexDoc);
+      }
+
+      matchingIndex++;
+    }
 
     return {
-      notifications: filtered.slice(offset, offset + limit).map(mapNotification),
+      notifications: notifications.map(mapNotification),
       unreadCount,
     };
   },
@@ -168,8 +200,19 @@ export const getUnreadNotificationCount = query({
   args: {},
   handler: async (ctx) => {
     const { workspaceId } = await requireCurrentWorkspace(ctx);
-    const rows = await getWorkspaceNotificationRows(ctx, workspaceId);
-    return rows.filter((row) => row.status !== "read").length;
+    let unreadCount = 0;
+
+    for await (const row of ctx.db
+      .query("notificationRecords")
+      .withIndex("by_workspace", (q) =>
+        q.eq("workspaceId", asId<"workspaces">(workspaceId)),
+      )) {
+      if (row.status !== "read") {
+        unreadCount++;
+      }
+    }
+
+    return unreadCount;
   },
 });
 
@@ -177,10 +220,13 @@ export const getUnreadCountsByType = query({
   args: {},
   handler: async (ctx) => {
     const { workspaceId } = await requireCurrentWorkspace(ctx);
-    const rows = await getWorkspaceNotificationRows(ctx, workspaceId);
-
     const counts: Record<string, number> = {};
-    for (const row of rows) {
+
+    for await (const row of ctx.db
+      .query("notificationRecords")
+      .withIndex("by_workspace", (q) =>
+        q.eq("workspaceId", asId<"workspaces">(workspaceId)),
+      )) {
       if (row.status === "read") {
         continue;
       }

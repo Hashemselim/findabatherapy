@@ -1,5 +1,6 @@
 import "server-only";
 
+import { cache } from "react";
 import { auth as clerkAuth } from "@clerk/nextjs/server";
 import { fetchMutation, fetchQuery } from "convex/nextjs";
 import type { FunctionReference } from "convex/server";
@@ -18,7 +19,7 @@ function requireConvexUrl() {
   return platformConfig.convexUrl;
 }
 
-async function getConvexToken() {
+const getConvexToken = cache(async function getConvexToken() {
   const authState = await clerkAuth();
   if (!authState.userId) {
     return undefined;
@@ -34,7 +35,7 @@ async function getConvexToken() {
   }
 
   return token;
-}
+});
 
 function resolveConvexFunction<Operation extends "query" | "mutation", T>(
   functionName: ConvexFunctionName,

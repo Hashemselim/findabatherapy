@@ -78,7 +78,7 @@ export default async function JobsPage() {
           <LockedButton label="New Job" />
         ) : limits?.canCreate ? (
           <Button asChild className="w-full rounded-full sm:w-auto">
-            <Link href="/dashboard/jobs/new">
+            <Link href="/dashboard/jobs/new" prefetch={false}>
               <Plus className="mr-2 h-4 w-4" />
               New Job
             </Link>
@@ -126,7 +126,7 @@ export default async function JobsPage() {
             </p>
             {limits?.canCreate && (
               <Button asChild className="mt-6">
-                <Link href="/dashboard/jobs/new">
+                <Link href="/dashboard/jobs/new" prefetch={false}>
                   <Plus className="mr-2 h-4 w-4" />
                   Create Job Posting
                 </Link>

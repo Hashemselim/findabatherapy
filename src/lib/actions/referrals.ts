@@ -953,12 +953,50 @@ export async function listReferralSources(filters?: {
   if (isConvexDataEnabled()) {
     try {
       const { queryConvex } = await import("@/lib/platform/convex/server");
+      const offset = Math.max(0, (page - 1) * pageSize);
       const result = await queryConvex<{ sources: ReferralSourceListItem[]; total: number }>("referrals:listReferralSources", {
-        filters: filters || null,
-        page,
-        pageSize,
+        search: filters?.search?.trim() || undefined,
+        stage: filters?.onlyReady ? undefined : filters?.stage,
+        type: filters?.category,
+        limit: pageSize,
+        offset,
       });
-      return { success: true, data: result };
+      const supportsClientFilters = Boolean(
+        filters?.locationId || filters?.onlyReachable || filters?.onlyReady
+      );
+
+      if (!supportsClientFilters) {
+        return { success: true, data: result };
+      }
+
+      const filteredSources = result.sources.filter((source) => {
+        if (filters?.locationId && source.location_id !== filters.locationId) {
+          return false;
+        }
+        if (filters?.onlyReachable) {
+          const isReachable = Boolean(
+            source.public_email || source.contact_form_url || source.phone
+          );
+          if (!isReachable) {
+            return false;
+          }
+        }
+        if (filters?.onlyReady) {
+          const readyStages = new Set(["ready_to_contact", "qualified", "contacted"]);
+          if (!readyStages.has(source.stage)) {
+            return false;
+          }
+        }
+        return true;
+      });
+
+      return {
+        success: true,
+        data: {
+          sources: filteredSources,
+          total: filteredSources.length,
+        },
+      };
     } catch (error) {
       console.error("[REFERRALS] Convex listReferralSources error:", error);
       return { success: false, error: "Failed to load referral sources" };

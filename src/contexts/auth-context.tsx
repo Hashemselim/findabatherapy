@@ -9,7 +9,6 @@ import {
   type ReactNode,
 } from "react";
 import { useUser as useClerkUser } from "@clerk/nextjs";
-import { useRouter } from "next/navigation";
 import posthog from "posthog-js";
 
 type Profile = {
@@ -59,7 +58,6 @@ function AuthProviderImpl({ children }: { children: ReactNode }) {
   const { user, isLoaded } = useClerkUser();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [profileLoaded, setProfileLoaded] = useState(false);
-  const router = useRouter();
 
   const refreshProfile = useCallback(async () => {
     if (user) {
@@ -92,8 +90,7 @@ function AuthProviderImpl({ children }: { children: ReactNode }) {
       setProfile(null);
       setProfileLoaded(true);
     }
-    router.refresh();
-  }, [isLoaded, router, user]);
+  }, [isLoaded, user]);
 
   const value: AuthContextType = {
     user: user

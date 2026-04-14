@@ -127,10 +127,10 @@ export default async function JobViewPage({ params }: JobViewPageProps) {
         <div className="flex items-center gap-2">
           {job.status === "published" && (
             <Button variant="outline" size="sm" asChild>
-              <Link href={`/job/${job.slug}`} target="_blank">
+              <a href={`/job/${job.slug}`} target="_blank" rel="noopener noreferrer">
                 <ExternalLink className="mr-2 h-4 w-4" />
                 View Live
-              </Link>
+              </a>
             </Button>
           )}
           <Button asChild>

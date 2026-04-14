@@ -58,10 +58,10 @@ export default async function JobEditPage({ params }: JobEditPageProps) {
 
         {job.status === "published" && (
           <Button variant="outline" size="sm" asChild>
-            <Link href={`/job/${job.slug}`} target="_blank">
+            <a href={`/job/${job.slug}`} target="_blank" rel="noopener noreferrer">
               <ExternalLink className="mr-2 h-4 w-4" />
               View Live
-            </Link>
+            </a>
           </Button>
         )}
       </div>

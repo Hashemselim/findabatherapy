@@ -1,5 +1,6 @@
 "use server";
 
+import { cache } from "react";
 import { revalidatePath } from "next/cache";
 
 import {
@@ -83,15 +84,19 @@ function revalidateListingSurfaces() {
   revalidatePath("/dashboard/company");
 }
 
-export async function getListingSlug(): Promise<string | null> {
+const getListingSlugCached = cache(async (): Promise<string | null> => {
   try {
     return await queryConvex<string | null>("listings:getCurrentListingSlug", {});
   } catch {
     return null;
   }
+});
+
+export async function getListingSlug(): Promise<string | null> {
+  return getListingSlugCached();
 }
 
-export async function getListing(): Promise<ActionResult<ListingWithRelations>> {
+const getListingCached = cache(async (): Promise<ActionResult<ListingWithRelations>> => {
   try {
     const result = await queryConvex<ListingWithRelations | null>("listings:getDashboardListing", {});
     if (!result) {
@@ -104,6 +109,10 @@ export async function getListing(): Promise<ActionResult<ListingWithRelations>> 
       error: err instanceof Error ? err.message : "Failed to load listing",
     };
   }
+});
+
+export async function getListing(): Promise<ActionResult<ListingWithRelations>> {
+  return getListingCached();
 }
 
 export async function updateListing(data: {

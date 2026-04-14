@@ -113,11 +113,17 @@ export const getClientNotes = query({
       if (authorId) authorIds.add(authorId);
     }
 
-    const authorNameMap = new Map<string, string>();
-    for (const authorId of authorIds) {
-      const name = await getUserName(ctx, authorId);
-      if (name) authorNameMap.set(authorId, name);
-    }
+    const authorEntries = await Promise.all(
+      [...authorIds].map(async (authorId) => {
+        const name = await getUserName(ctx, authorId);
+        return name ? ([authorId, name] as const) : null;
+      }),
+    );
+    const authorNameMap = new Map<string, string>(
+      authorEntries.filter(
+        (entry): entry is readonly [string, string] => entry !== null,
+      ),
+    );
 
     return filtered.map((row) => {
       const payload = asRecord(row.payload);

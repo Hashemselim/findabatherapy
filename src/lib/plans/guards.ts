@@ -1,5 +1,6 @@
 "use server";
 
+import { cache } from "react";
 import {
   type PlanTier,
   type PlanFeatures,
@@ -9,6 +10,7 @@ import {
 import { type AddonType } from "@/lib/plans/addon-config";
 import { getEffectiveLimits } from "@/lib/actions/addons";
 import { getWorkspaceSeatSummary } from "@/lib/actions/workspace-users";
+import { getCurrentWorkspace } from "@/lib/platform/workspace/server";
 
 export type GuardResult<T = void> =
   | { allowed: true; data?: T }
@@ -20,16 +22,31 @@ export type GuardResult<T = void> =
  * During onboarding: Returns selected plan tier (allows Pro field access before payment)
  * After onboarding: Returns "free" if subscription is not active, regardless of plan_tier
  */
-export async function getCurrentPlanTier(): Promise<PlanTier> {
+const getCurrentPlanTierCached = cache(async (): Promise<PlanTier> => {
   try {
-    const { queryConvex } = await import("@/lib/platform/convex/server");
-    const result = await queryConvex<{ planTier: "free" | "pro" }>(
-      "billing:getCurrentPlanTierQuery",
-    );
-    return result?.planTier ?? "free";
+    const current = await getCurrentWorkspace();
+    const workspace = current?.workspace;
+    if (!workspace) {
+      return "free";
+    }
+
+    const rawTier = workspace.planTier === "pro" ? "pro" : "free";
+    if (!workspace.onboardingCompletedAt) {
+      return rawTier;
+    }
+
+    const isActive =
+      workspace.subscriptionStatus === "active" ||
+      workspace.subscriptionStatus === "trialing";
+
+    return rawTier === "pro" && isActive ? "pro" : "free";
   } catch {
     return "free";
   }
+});
+
+export async function getCurrentPlanTier(): Promise<PlanTier> {
+  return getCurrentPlanTierCached();
 }
 
 /**

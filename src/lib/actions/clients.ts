@@ -466,14 +466,8 @@ export async function getClientsList(): Promise<ActionResult<{ id: string; name:
   if (isConvexDataEnabled()) {
     try {
       const { queryConvex } = await import("@/lib/platform/convex/server");
-      const result = await queryConvex<{
-        clients: { id: string; child_first_name: string | null; child_last_name: string | null }[];
-      }>("crm:getClients", {});
-      const mapped = (result.clients || []).map((c) => ({
-        id: c.id,
-        name: [c.child_first_name, c.child_last_name].filter(Boolean).join(" ") || "Unnamed Client",
-      }));
-      return { success: true, data: mapped };
+      const result = await queryConvex<{ id: string; name: string }[]>("crm:getClientOptions", {});
+      return { success: true, data: result };
     } catch (err) {
       return { success: false, error: err instanceof Error ? err.message : "Failed to fetch clients" };
     }
