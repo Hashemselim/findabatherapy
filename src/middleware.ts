@@ -12,7 +12,9 @@ const matchesClerkAuthRoute = createRouteMatcher([
   "/auth/sign-up(.*)",
 ]);
 
-function shouldBypassClerkMiddleware(pathname: string): boolean {
+// Public server-rendered routes still call Clerk helpers in signed-out states,
+// so only explicit webhook-style endpoints should bypass Clerk middleware.
+export function shouldBypassClerkMiddleware(pathname: string): boolean {
   return pathname.startsWith("/ingest");
 }
 
